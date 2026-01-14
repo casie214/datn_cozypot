@@ -3,36 +3,33 @@ import { ref, watch, computed } from 'vue';
 
 const props = defineProps({
   isOpen: Boolean,
-  detailItem: Object // Dữ liệu dòng được chọn (nếu là sửa)
+  detailItem: Object
 });
 
 const emit = defineEmits(['close', 'save']);
 
-// Form data reactive
+
 const formData = ref({
   ma: '',
   ten: '',
-  monAnGoc: '', // FK: id_mon_an_di_kem
+  monAnGoc: '',
   gia: '',
   kichCo: '',
   donVi: '',
   trangThai: true
 });
 
-// Giả lập danh sách món ăn để chọn (Dropdown)
 const listMonAn = [
   { id: 1, name: 'Coca-Cola' },
   { id: 2, name: 'Fanta' },
   { id: 3, name: 'Viên thả lẩu' }
 ];
 
-// Nếu có detailItem truyền vào -> Chế độ Sửa (Điền dữ liệu vào form)
-// Nếu detailItem null -> Chế độ Thêm mới (Reset form)
+
 watch(() => props.detailItem, (newVal) => {
   if (newVal) {
-    formData.value = { ...newVal }; // Clone dữ liệu
+    formData.value = { ...newVal }; 
   } else {
-    // Reset form
     formData.value = {
       ma: '', ten: '', monAnGoc: '', gia: '', kichCo: '', donVi: '', trangThai: true
     };
@@ -40,7 +37,6 @@ watch(() => props.detailItem, (newVal) => {
 });
 
 const handleSave = () => {
-  // Validate cơ bản nếu cần
   emit('save', formData.value);
   emit('close');
 };

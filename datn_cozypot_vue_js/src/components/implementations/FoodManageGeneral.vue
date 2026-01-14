@@ -13,7 +13,6 @@ const mockData = ref([
     { stt: 8, ma: 'BA08', ten: 'Nguyễn Văn Y', gia: '0987654321', danhmuc: 'Đồ uống', chitiet: 'Đồ uống đóng chai', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-010', trangthai: true },
 ]);
 
-// Tabs
 const activeTab = ref('thucdon');
 
 const isModalOpen = ref(false);
