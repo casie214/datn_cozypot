@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.Security;
+package com.example.datn_cozypot_spring_boot.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
