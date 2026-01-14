@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.Controller;
+package com.example.datn_cozypot_spring_boot.controller;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
