@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.Config;
+package com.example.datn_cozypot_spring_boot.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
