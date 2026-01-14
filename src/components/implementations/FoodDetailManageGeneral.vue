@@ -1,30 +1,27 @@
 <script setup>
 import { ref } from 'vue';
-import CategoryDetailModal from '../../components/implementations/Modal/CFoodDetailModal.vue'; // Import Modal vừa tạo
+import CategoryDetailModal from '../../components/implementations/Modal/CFoodDetailModal.vue';
 
-// Dữ liệu giả mô phỏng bảng chi_tiet_mon_an
 const detailData = ref([
   { id: 1, ma: 'CCLA-11-15', ten: 'Chai 1.5 L', monAnGoc: 1, monAnTen: 'Coca-Cola', gia: '18.000', kichCo: '1.5L', donVi: 'Chai', trangThai: true },
   { id: 2, ma: 'CCLA-11-18', ten: 'Chai 1.8 L', monAnGoc: 1, monAnTen: 'Coca-Cola', gia: '20.000', kichCo: '1.8L', donVi: 'Chai', trangThai: false },
 ]);
 
-// Quản lý Modal
 const isModalOpen = ref(false);
 const selectedDetail = ref(null);
 
 const openAddModal = () => {
-  selectedDetail.value = null; // null để biết là Thêm mới
+  selectedDetail.value = null;
   isModalOpen.value = true;
 };
 
 const openEditModal = (item) => {
-  selectedDetail.value = item; // Truyền item để biết là Sửa
+  selectedDetail.value = item; 
   isModalOpen.value = true;
 };
 
 const handleSaveData = (data) => {
   console.log("Dữ liệu đã lưu:", data);
-  // Ở đây bạn sẽ gọi API lưu xuống DB
   isModalOpen.value = false;
 };
 </script>

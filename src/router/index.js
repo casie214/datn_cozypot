@@ -1,12 +1,19 @@
-// src/router/index.js
+
 
 import { createRouter, createWebHistory } from "vue-router";
 
-const routes = [{
+const routes = [
+    {
         path: "/manage/food",
         name: "foodManager",
         component: () =>
             import ("../components/screens/FoodManager.vue")
+    },
+    {
+        path: "/test",
+        name: "test",
+        component: () =>
+            import ("../components/WelcomeItem.vue")
     },
 ];
 
@@ -14,7 +21,7 @@ const router = createRouter({
     history: createWebHistory(),
     routes,
     scrollBehavior() {
-        return { top: 0 }; // luôn scroll lên top khi đổi route
+        return { top: 0 }; 
     }
 });
 

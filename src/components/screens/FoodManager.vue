@@ -1,22 +1,19 @@
 <script setup>
 import { ref, shallowRef } from 'vue';
 import Sidebar from '../../components/implementations/sidebar.vue';
-import MenuFood from '../../components/implementations/FoodManageGeneral.vue';   // Import file 1
-import MenuHotpot from '../../components/implementations/FoodHotPotSetGeneral.vue'; // Import file 2
+import MenuFood from '../../components/implementations/FoodManageGeneral.vue';   
+import MenuHotpot from '../../components/implementations/FoodHotPotSetGeneral.vue';
 import FoodDetailManageGeneral from '../implementations/FoodDetailManageGeneral.vue';
 
-// Khai báo các tab
 const tabs = {
   'thucdon': MenuFood,
   'setlau': MenuHotpot,
   'chitiet': FoodDetailManageGeneral
 };
 
-// Biến lưu tab hiện tại (Mặc định là Set lẩu)
 const currentTabName = ref('thucdon');
 const currentComponent = shallowRef(MenuFood); 
 
-// Hàm đổi tab
 const changeTab = (tabName) => {
   currentTabName.value = tabName;
   currentComponent.value = tabs[tabName];

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import axiosClient from './api/axiosClient'
+import axiosClient from '../api/axiosClient'
 
 const serverStatus = ref('Checking connection...')
 const isConnected = ref(false)

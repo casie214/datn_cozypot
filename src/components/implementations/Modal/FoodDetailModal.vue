@@ -3,16 +3,14 @@ import { ref, computed } from 'vue';
 
 const props = defineProps({
   isOpen: Boolean,
-  foodItem: Object // Dữ liệu món ăn được truyền từ cha vào
+  foodItem: Object 
 });
 
 const emit = defineEmits(['close']);
 
-// Quản lý trạng thái: 'list' (Ảnh trái) hoặc 'update' (Ảnh phải)
 const currentView = ref('list'); 
-const selectedVariant = ref(null); // Lưu biến thể đang chọn để sửa
+const selectedVariant = ref(null); 
 
-// Dữ liệu giả các loại kích cỡ (Variants)
 const variants = ref([
   { id: 1, name: 'Chai 1.5 L', price: '18.000 VNĐ', rawPrice: 18000, code: 'CCLA-11-15' },
   { id: 2, name: 'Chai 1.8 L', price: '20.000 VNĐ', rawPrice: 20000, code: 'CCLA-11-18' },
@@ -20,19 +18,16 @@ const variants = ref([
   { id: 4, name: 'Chai 2.5 L', price: '26.000 VNĐ', rawPrice: 26000, code: 'CCLA-11-25' },
 ]);
 
-// Hàm chuyển sang chế độ sửa (Ảnh phải)
 const openEditMode = (variant) => {
   selectedVariant.value = variant;
   currentView.value = 'update';
 };
 
-// Hàm quay lại danh sách (Ảnh trái)
 const backToList = () => {
   selectedVariant.value = null;
   currentView.value = 'list';
 };
 
-// Hàm đóng modal
 const closeModal = () => {
   backToList();
   emit('close');
