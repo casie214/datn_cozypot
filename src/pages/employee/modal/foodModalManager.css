@@ -1,62 +1,3 @@
-<script setup>
-import { ref } from 'vue';
-
-const hotpotData = ref([
-  { stt: 1, ma: 'BA01', ten: 'Lẩu tôm chua cay', gia: '200.000 VNĐ', loailau: 'Lẩu hải sản cay', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1', trangthai: true },
-  { stt: 2, ma: 'BA02', ten: 'Lẩu bò mỹ', gia: '250.000 VNĐ', loailau: 'Lẩu bò', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: false },
-]);
-</script>
-
-<template>
-  <div class="tab-content">
-    <div class="filter-box">
-      <div class="filter-row">
-        <div class="filter-item search">
-          <label>Tìm kiếm</label>
-          <div class="input-group">
-            <input type="text" class="form-search form-control" placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn">🔍</button>
-          </div>
-        </div>
-        <div class="filter-item"><label>Trạng thái</label><select><option>Tất cả</option></select></div>
-        <div class="filter-item"><label>Loại set lẩu</label><select><option>Tất cả</option></select></div> <div class="filter-item"><label>Người tạo</label><select><option>Tất cả</option></select></div>
-        <div class="filter-item"><label>Lọc theo</label><select><option>Số thứ tự giảm dần</option></select></div>
-        <button class="btn-clear">Xóa bộ lọc</button>
-      </div>
-      
-    </div>
-
-    <div class="action-row">
-        <button class="btn-add">Thêm set lẩu</button> </div>
-
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>STT</th> <th>MÃ</th> <th>SET LẨU</th> <th>GIÁ BÁN</th> <th>LOẠI LẨU</th> <th>NGÀY TẠO</th> <th>NGƯỜI TẠO</th> <th>TRẠNG THÁI</th> <th>CHỨC NĂNG</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in hotpotData" :key="item.ma">
-            <td align="center">{{ item.stt }}</td>
-            <td>{{ item.ma }}</td>
-            <td><b>{{ item.ten }}</b></td>
-            <td style="color:#d32f2f"><b>{{ item.gia }}</b></td>
-            <td>{{ item.loailau }}</td> <td>{{ item.tao }}</td>
-            <td>{{ item.nguoi }}</td>
-            <td :class="item.trangthai ? 'status-active' : 'status-inactive'">{{ item.trangthai ? 'Đang hoạt động' : 'Ngưng' }}</td>
-            <td class="actions">
-               <button class="btn-icon">👁️</button>
-               <div class="toggle-switch" :class="{ 'on': item.trangthai }"><div class="toggle-knob"></div></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</template>
-
-<style scoped>
 .main-content {
     flex: 1;
     padding: 20px 40px;
@@ -138,7 +79,7 @@ const hotpotData = ref([
     cursor: pointer;
 }
 
-.form-search{
+.form-search {
     width: 20em;
 }
 
@@ -276,4 +217,94 @@ td {
 .toggle-switch.on { background: green; }
 .toggle-knob { width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.3s; }
 .toggle-switch.on .toggle-knob { left: 18px; }
-</style>
+
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  width: 600px;
+  max-height: 90vh;
+  border-radius: 12px;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  animation: slideDown 0.3s ease;
+}
+
+/* Header */
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.modal-header h2 { margin: 0; font-size: 18px; color: #333; }
+.btn-back, .btn-close {
+  background: none; border: none; font-size: 18px; cursor: pointer; color: #666;
+}
+.btn-back:hover, .btn-close:hover { color: #8B0000; }
+
+/* Body */
+.modal-body { padding: 20px; }
+
+/* Info Grid */
+.info-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;
+}
+.info-item { display: flex; flex-direction: column; font-size: 13px; }
+.info-item span { color: #888; margin-bottom: 4px; }
+.info-item b { color: #333; }
+.text-gray { color: #666; font-style: italic; }
+
+.divider { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+
+/* Variants Grid (Các thẻ giá) */
+.variants-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;
+}
+.variant-card {
+  border: 1px solid #ddd; border-radius: 8px; padding: 12px;
+  cursor: pointer; transition: 0.2s; position: relative;
+}
+.variant-card:hover { border-color: #8B0000; background: #fff5f5; }
+.v-header { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+.v-price { font-weight: bold; color: #333; }
+.add-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1px dashed #8B0000; color: #8B0000; font-weight: bold;
+}
+.icon-plus { font-size: 20px; margin-bottom: 5px; }
+
+/* Form */
+.form-container { margin-top: 10px; }
+.form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+.form-group { flex: 1; display: flex; flex-direction: column; }
+.form-group.full-width { width: 100%; }
+.form-group label { font-size: 12px; color: #888; margin-bottom: 5px; }
+.form-group input {
+  padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; background: #f9f9f9;
+}
+.form-group input:disabled { background: #fff; border: 1px solid #eee; color: #ccc; cursor: not-allowed; }
+.form-group input:focus { border-color: #8B0000; background: white; }
+
+/* Footer */
+.modal-footer {
+  padding: 15px 20px; border-top: 1px solid #eee;
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.btn-cancel {
+  background: #eee; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; color: #666;
+}
+.btn-confirm {
+  background: #8B0000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; color: white; font-weight: bold;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
