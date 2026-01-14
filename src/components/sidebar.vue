@@ -21,7 +21,7 @@ const menuItems = [
     <aside class="sidebar">
         <div class="logo-container">
             <div class="logo-circle">
-                <span><img src="../../assets/images/logo_upscaled.jpg" alt="" class="logo"></span>
+                <span><img src="../assets/images/logo_upscaled.jpg" alt="" class="logo"></span>
             </div>
         </div>
 

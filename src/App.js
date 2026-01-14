@@ -1,5 +1,3 @@
-
-
 import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
@@ -7,13 +5,13 @@ const routes = [
         path: "/manage/food",
         name: "foodManager",
         component: () =>
-            import ("../components/screens/FoodManager.vue")
+            import ("../src/pages/employee/screens/foodManager.vue")
     },
     {
         path: "/test",
         name: "test",
         component: () =>
-            import ("../components/WelcomeItem.vue")
+            import ("./components/testConnection.vue")
     },
 ];
 
