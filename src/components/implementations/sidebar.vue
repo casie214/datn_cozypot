@@ -2,17 +2,18 @@
 import { ref } from 'vue';
 
 const menuItems = [
-    { name: 'Tổng quan', icon: '' },
-    { name: 'Đặt bàn', icon: '' },
-    { name: 'Đơn hàng', icon: '' },
-    { name: 'Check-in bàn', icon: '' },
-    { name: 'Quản lý bàn', icon: '' },
-    { name: 'Nhân viên', icon: '' },
-    { name: 'Khách hàng', icon: '' }, 
-    { name: 'Thực đơn', icon: '', active: true },
-    { name: 'Danh mục', icon: '' },
-    { name: 'Nhắn tin', icon: '' },
-    { name: 'Khuyến mãi', icon: '' },
+    { name: 'Tổng quan', icon: "fa-solid fa-house" },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days" },
+    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping" },
+    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check" },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair" },
+    { name: 'Nhân viên', icon: "fa-solid fa-user" },
+    { name: 'Khách hàng', icon: "fa-solid fa-users" }, 
+    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", active: true },
+    { name: 'Danh mục', icon: "fa-solid fa-table-list" },
+    { name: 'Nhắn tin', icon: "fa-solid fa-comments" },
+    { name: 'Khuyến mãi', icon: "fa-solid fa-tags" },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area"}
 ];
 </script>
 
@@ -26,7 +27,9 @@ const menuItems = [
 
         <nav class="menu-list">
             <div v-for="(item, index) in menuItems" :key="index" class="menu-item" :class="{ 'active': item.active }">
-                <span class="icon">{{ item.icon }}</span>
+                
+                <i :class="item.icon" class="icon"></i>
+                
                 <span class="label">{{ item.name }}</span>
                 <span v-if="item.active" class="arrow">▼</span>
             </div>
@@ -35,6 +38,9 @@ const menuItems = [
 </template>
 
 <style scoped>
+/* Import thư viện icon */
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
+
 .sidebar {
     width: 250px;
     background-color: #fff;
@@ -46,20 +52,26 @@ const menuItems = [
 }
 
 .logo-container {
+    width: 100%;
+    height: 10em;
     display: flex;
+    align-items: center;
     justify-content: center;
     margin-bottom: 30px;
 }
 
 .logo-circle {
-    width: 80px;
-    height: 80px;
-    border: 2px solid #8B0000;
-    border-radius: 50%;
+    width: 10em;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #8B0000;
+    overflow: hidden;
+}
+
+.logo {
+    width: 100%;      
+    height: 100%;      
+    object-fit: cover; 
 }
 
 .menu-item {
@@ -83,25 +95,13 @@ const menuItems = [
 
 .icon {
     margin-right: 15px;
-    width: 20px;
+    width: 25px; 
     text-align: center;
+    font-size: 18px; 
 }
 
 .arrow {
     margin-left: auto;
     font-size: 10px;
-}
-
-.logo-container {
-    width: 100%;
-    height: 10em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.logo {
-    width: 10em;
-    height: 10em;
 }
 </style>

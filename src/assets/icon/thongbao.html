@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Toast Success</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: #1e1e1e;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #ffffff;
+            border-left: 6px solid #2ecc71;
+            padding: 16px 20px;
+            border-radius: 12px;
+            width: 380px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast i {
+            font-size: 32px;
+            color: #2ecc71;
+        }
+
+        .toast-content h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #222;
+        }
+
+        .toast-content p {
+            margin: 4px 0 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .toast .close {
+            margin-left: auto;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .toast .close:hover {
+            color: #000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast success -->
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <div class="toast-content">
+            <h4>Thêm nhân viên thành công</h4>
+            <p>Dữ liệu đã được lưu vào hệ thống</p>
+        </div>
+        <span class="close" onclick="closeToast()">&times;</span>
+    </div>
+
+    <script>
+        // Tự động tắt sau 4 giây
+        setTimeout(() => {
+            closeToast();
+        }, 4000);
+
+        function closeToast() {
+            const toast = document.getElementById('toast');
+            toast.style.animation = 'fadeOut 0.4s ease forwards';
+            setTimeout(() => {
+                toast.remove();
+            }, 400);
+        }
+    </script>
+
+</body>
+</html>
