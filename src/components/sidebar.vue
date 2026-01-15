@@ -1,19 +1,26 @@
 <script setup>
 import { ref } from 'vue';
 
+// Cập nhật thêm thuộc tính 'path' để map với router
 const menuItems = [
-    { name: 'Tổng quan', icon: "fa-solid fa-house" },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days" },
-    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping" },
-    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check" },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair" },
-    { name: 'Nhân viên', icon: "fa-solid fa-user" },
-    { name: 'Khách hàng', icon: "fa-solid fa-users" }, 
-    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", active: true },
-    { name: 'Danh mục', icon: "fa-solid fa-table-list" },
-    { name: 'Nhắn tin', icon: "fa-solid fa-comments" },
-    { name: 'Khuyến mãi', icon: "fa-solid fa-tags" },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area"}
+    { name: 'Tổng quan', icon: "fa-solid fa-house", path: "/dashboard" },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: "/booking" },
+    
+    // Link tới trang Quản lý đơn hàng vừa tạo
+    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: "/manage/orders" },
+    
+    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: "/checkin" },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: "/tables" },
+    { name: 'Nhân viên', icon: "fa-solid fa-user", path: "/staff" },
+    { name: 'Khách hàng', icon: "fa-solid fa-users", path: "/customers" }, 
+    
+    // Link tới trang Quản lý thực đơn
+    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", path: "/manage/food" },
+    
+    { name: 'Danh mục', icon: "fa-solid fa-table-list", path: "/categories" },
+    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: "/messages" },
+    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: "/promotions" },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: "/reports"}
 ];
 </script>
 
@@ -21,18 +28,25 @@ const menuItems = [
     <aside class="sidebar">
         <div class="logo-container">
             <div class="logo-circle">
-                <span><img src="../assets/images/logo_upscaled.jpg" alt="" class="logo"></span>
+                <span><img src="../assets/images/logo_upscaled.jpg" alt="CozyPot Logo" class="logo"></span>
             </div>
         </div>
 
         <nav class="menu-list">
-            <div v-for="(item, index) in menuItems" :key="index" class="menu-item" :class="{ 'active': item.active }">
+            <router-link 
+                v-for="(item, index) in menuItems" 
+                :key="index" 
+                :to="item.path"
+                class="menu-item"
+                active-class="active"
+            >
                 
                 <i :class="item.icon" class="icon"></i>
                 
                 <span class="label">{{ item.name }}</span>
-                <span v-if="item.active" class="arrow">▼</span>
-            </div>
+                
+                <span class="arrow" v-if="$route.path === item.path">▼</span>
+            </router-link>
         </nav>
     </aside>
 </template>
@@ -49,6 +63,9 @@ const menuItems = [
     display: flex;
     flex-direction: column;
     padding-top: 20px;
+    position: fixed; /* Cố định sidebar để scroll nội dung bên phải */
+    left: 0;
+    top: 0;
 }
 
 .logo-container {
@@ -74,6 +91,7 @@ const menuItems = [
     object-fit: cover; 
 }
 
+/* Style cho router-link (thẻ a) */
 .menu-item {
     display: flex;
     align-items: center;
@@ -82,12 +100,14 @@ const menuItems = [
     color: #555;
     font-weight: 500;
     transition: all 0.3s;
+    text-decoration: none; /* Bỏ gạch chân mặc định của thẻ a */
 }
 
 .menu-item:hover {
     background-color: #f5f5f5;
 }
 
+/* Class active này sẽ được Vue Router tự động thêm vào */
 .menu-item.active {
     background-color: #8B0000;
     color: white;
