@@ -5,13 +5,24 @@ const routes = [
         path: "/manage/food",
         name: "foodManager",
         component: () =>
-            import ("../src/pages/employee/screens/foodManager.vue")
+            import("../src/pages/employee/screens/foodManager.vue")
+    },
+    {
+        path: "/manage/orders",
+        name: "orderManager",
+        component: () => 
+            import("../src/pages/employee/screens/OrderManager.vue") 
+    },
+    {
+        path: "/payment/:id", 
+        name: "paymentScreen",
+        component: () => import("../src/pages/employee/screens/PaymentScreen.vue")
     },
     {
         path: "/test",
         name: "test",
         component: () =>
-            import ("./components/testConnection.vue")
+            import("./components/testConnection.vue")
     },
 ];
 
