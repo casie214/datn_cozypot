@@ -1,6 +1,6 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useRouter } from 'vue-router'; // 1. Import Vue Router
+import { useRouter } from 'vue-router'; 
 
 const props = defineProps({
   isOpen: Boolean,
@@ -8,29 +8,32 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
-const router = useRouter(); // 2. Khởi tạo Router
+const router = useRouter(); 
 
-// Dữ liệu mẫu cho danh sách món
+// Dữ liệu mẫu danh sách món
 const mockFoodItems = [
-    { id: 1, name: 'Lẩu nấm', status: 'Chưa lên', quantity: 1, price: '280.000 đ' }
+    { id: 1, name: 'Lẩu nấm', status: 'Chưa lên', quantity: 1, price: '280.000 đ' },
+    { id: 2, name: 'Lẩu nấm', status: 'Chưa lên', quantity: 1, price: '280.000 đ' },
+    { id: 3, name: 'Lẩu nấm', status: 'Chưa lên', quantity: 1, price: '280.000 đ' }
 ];
 
-// 3. Hàm xử lý chuyển trang thanh toán
+// Hàm chuyển sang trang Thanh toán
 const goToPayment = () => {
-    // Kiểm tra nếu có dữ liệu đơn hàng thì mới chuyển
     if (props.orderData && props.orderData.id) {
-        // (Tùy chọn) Đóng modal lại
         emit('close');
-        
-        // Chuyển hướng đến trang PaymentScreen kèm theo ID đơn hàng
+        router.push({ name: 'paymentScreen', params: { id: props.orderData.id } });
+    }
+};
+
+// --- MỚI: Hàm chuyển sang trang Thêm món ---
+const goToAddFood = () => {
+    if (props.orderData && props.orderData.id) {
+        emit('close'); // Đóng popup
+        // Chuyển sang màn hình thêm món
         router.push({ 
-            name: 'paymentScreen', 
+            name: 'addFoodScreen', 
             params: { id: props.orderData.id } 
         });
-    } else {
-        // Fallback cho trường hợp test nếu chưa có ID thật
-        console.warn("Không tìm thấy ID đơn hàng, chuyển hướng test...");
-        router.push({ name: 'paymentScreen', params: { id: 'unknown' } });
     }
 };
 </script>
@@ -76,7 +79,10 @@ const goToPayment = () => {
             <div class="title-left">
                 <span>🍴</span> <b>Danh sách món</b>
             </div>
-            <button class="btn-check-all">✔ Đã lên tất cả</button>
+            <div class="title-actions">
+                <button class="btn-add-food" @click="goToAddFood">➕ Thêm món</button>
+                <button class="btn-check-all">✔ Đã lên tất cả</button>
+            </div>
         </div>
 
         <div class="food-list">
@@ -123,10 +129,7 @@ const goToPayment = () => {
 
       <div class="modal-footer">
         <button class="btn-cancel-order">✖ Hủy đơn</button>
-        
-        <button class="btn-payment" @click="goToPayment">
-            💳 Tiến hành thanh toán
-        </button>
+        <button class="btn-payment" @click="goToPayment">💳 Tiến hành thanh toán</button>
       </div>
 
     </div>
@@ -171,11 +174,28 @@ const goToPayment = () => {
 .info-col label { color: #666; margin-bottom: 2px; font-size: 12px; }
 .mt-2 { margin-top: 10px; }
 
-/* Food Section */
+/* Section Title & Buttons */
 .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .title-left { font-size: 16px; display: flex; gap: 5px; align-items: center; }
+.title-actions { display: flex; gap: 10px; } /* Wrapper cho 2 nút */
+
 .btn-check-all { background: #8B0000; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
+/* Nút Thêm món mới (Style outline đỏ) */
+.btn-add-food { 
+    background: white; 
+    border: 1px solid #8B0000; 
+    color: #8B0000; 
+    padding: 5px 10px; 
+    border-radius: 4px; 
+    font-size: 12px; 
+    cursor: pointer; 
+    font-weight: bold;
+    transition: 0.2s;
+}
+.btn-add-food:hover { background: #ffebee; }
+
+/* Food List */
 .food-item { 
     display: flex; align-items: center; gap: 15px; 
     border: 1px solid #eee; padding: 10px; border-radius: 6px; margin-bottom: 10px; position: relative;
