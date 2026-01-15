@@ -58,6 +58,10 @@
   font-weight: normal;
 }
 
+.app-layout{
+  display: flex;
+}
+
 body {
   min-height: 100vh;
   color: var(--color-text);

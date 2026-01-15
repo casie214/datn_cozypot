@@ -39,7 +39,7 @@ const {
 
           <div class="form-group">
             <label>Thuộc món ăn (FK)</label>
-            <select v-model="formData.monAnGoc">
+            <select v-model="formData.monAnGoc" class="form-control">
               <option value="">-- Chọn món ăn --</option>
               <option v-for="mon in listMonAn" :key="mon.id" :value="mon.id">{{ mon.name }}</option>
             </select>

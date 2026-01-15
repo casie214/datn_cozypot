@@ -53,9 +53,9 @@ const {
         <tbody>
           <tr v-for="(item, index) in detailData" :key="item.id">
             <td align="center">{{ index + 1 }}</td>
-            <td>{{ item.ma }}</td>
-            <td><b>{{ item.ten }}</b></td>
-            <td>{{ item.monAnTen }}</td> <td style="color:#d32f2f; font-weight:bold">{{ item.gia }}</td>
+            <td>{{ item.maChiTietMonAn }}</td>
+            <td><b>{{ item.tenMonAn }}</b></td>
+            <td>{{ item.tenMonAn }}</td> <td style="color:#d32f2f; font-weight:bold">{{ item.giaBan }}</td>
             <td>{{ item.kichCo }}</td>
             <td>{{ item.donVi }}</td>
             <td :class="item.trangThai ? 'status-active' : 'status-inactive'">
@@ -69,6 +69,17 @@ const {
         </tbody>
       </table>
     </div>
+
+    <div class="pagination">
+        <button>&lt;</button>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>...</button>
+        <button>7</button>
+        <button>8</button>
+        <button>&gt;</button>
+    </div>
+
 
     <CategoryDetailModal 
       :isOpen="isModalOpen"
