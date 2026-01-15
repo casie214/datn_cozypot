@@ -10,7 +10,6 @@
     margin-bottom: 20px;
 }
 
-/* Tabs */
 .tabs {
     border-bottom: 1px solid #ddd;
     margin-bottom: 20px;
@@ -97,7 +96,7 @@
 .action-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 15px;
+    margin-top: 0px;
     margin-bottom: 15px;
 }
 

@@ -1,10 +1,14 @@
 <script setup>
 import { ref } from 'vue';
+import { useHotpotManager } from '../foodFunction';
+import FoodHotpotModal from '../../modal/foodHotpotModal.vue';
 
-const hotpotData = ref([
-  { stt: 1, ma: 'BA01', ten: 'Lẩu tôm chua cay', gia: '200.000 VNĐ', loailau: 'Lẩu hải sản cay', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1', trangthai: true },
-  { stt: 2, ma: 'BA02', ten: 'Lẩu bò mỹ', gia: '250.000 VNĐ', loailau: 'Lẩu bò', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: false },
-]);
+const { 
+  hotpotData, 
+  isModalOpen, 
+  selectedHotpot, 
+  handleViewDetails 
+} = useHotpotManager();
 
 </script>
 
@@ -47,7 +51,7 @@ const hotpotData = ref([
             <td>{{ item.nguoi }}</td>
             <td :class="item.trangthai ? 'status-active' : 'status-inactive'">{{ item.trangthai ? 'Đang hoạt động' : 'Ngưng' }}</td>
             <td class="actions">
-               <button class="btn-icon">👁️</button>
+               <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
                <div class="toggle-switch" :class="{ 'on': item.trangthai }"><div class="toggle-knob"></div></div>
             </td>
           </tr>
@@ -55,6 +59,12 @@ const hotpotData = ref([
       </table>
     </div>
   </div>
+
+  <FoodHotpotModal
+      :isOpen="isModalOpen" 
+      :hotpotItem="selectedHotpot" 
+      @close="isModalOpen = false" 
+    />
 </template>
 
 <style scoped src="../foodFragment/foodManager.css">
