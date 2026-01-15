@@ -1,0 +1,81 @@
+<script setup>
+import { useHotpotSetTypeManager } from '../foodFunction';
+
+const { hotpotTypeData, isModalOpen, selectedItem, openModal } = useHotpotSetTypeManager();
+</script>
+
+<template>
+  <div class="tab-content">
+    <div class="filter-box">
+        <div class="filter-row">
+            <div class="filter-item search">
+                <label>Tìm kiếm</label>
+                <div class="input-group">
+                    <input class="form-control form-search" type="text" placeholder="Tìm kiếm loại lẩu (mã, tên)" />
+                    <button class="search-btn">🔍</button>
+                </div>
+            </div>
+            <div class="filter-item">
+                <label>Trạng thái</label>
+                <select>
+                    <option>Tất cả</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>Người tạo</label>
+                <select>
+                    <option>Tất cả</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>Lọc theo</label>
+                <select>
+                    <option>Số thứ tự giảm dần</option>
+                </select>
+            </div>
+            <button class="btn-clear">Xóa bộ lọc</button>
+        </div>
+
+
+    </div>
+
+    <div class="action-row" style="margin-left: auto;">
+             <button class="btn-add" @click="openModal(null)">+ Thêm loại set</button>
+          </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>MÃ LOẠI</th>
+            <th>TÊN LOẠI SET</th>
+            <th>MÔ TẢ</th>
+            <th>TRẠNG THÁI</th>
+            <th>CHỨC NĂNG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in hotpotTypeData" :key="item.id">
+            <td align="center">{{ index + 1 }}</td>
+            <td>{{ item.maLoaiSet }}</td>
+            <td><b>{{ item.tenLoaiSet }}</b></td>
+            <td>{{ item.moTa }}</td>
+            <td :class="item.trangThai === 0 ? 'status-active' : 'status-inactive'">
+               {{ item.trangthai === 0 ? 'Hoạt động' : 'Ngưng' }}
+            </td>
+            <td class="actions">
+               <button class="btn-icon" @click="openModal(item)">✏️</button>
+               <div class="toggle-switch" :class="{ 'on': item.trangthai === 1 }">
+                  <div class="toggle-knob"></div>
+               </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    </div>
+</template>
+
+<style scoped src="../foodFragment/foodManager.css"></style>

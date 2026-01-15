@@ -1,32 +1,52 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, ref } from 'vue';
 import { useFoodModal } from '../screens/foodFunction';
+import FoodDetailAddModal from './FoodAddModals/FoodDetailAddModal.vue';
 
 const props = defineProps({
   isOpen: Boolean,
-  foodItem: Object 
+  foodItem: Object
 });
 
 const emit = defineEmits(['close']);
 
-const { 
-  currentView, 
-  selectedVariant, 
-  variants, 
-  openEditMode, 
-  backToList 
-} = useFoodModal();
+const {
+  currentView,
+  selectedVariant,
+  variants,
+  openEditMode,
+  backToList,
+  fetchVariants
+} = useFoodModal(props.foodItem);
+
+const isAddModalOpen = ref(false);
+const isSelfVisible = ref(true);
+
+const openAddModal = () => {
+  isSelfVisible.value = false;
+  isAddModalOpen.value = true;
+};
+
+const handleCloseAddModal = () => {
+  isAddModalOpen.value = false;
+  isSelfVisible.value = true;
+};
+
+const handleRefresh = () => {
+  fetchVariants();
+  handleCloseAddModal();
+};
 
 const closeModal = () => {
-  backToList(); 
-  emit('close'); 
+  backToList();
+  emit('close');
 };
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
+  <div v-if="isOpen && isSelfVisible" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
-      
+
       <div class="modal-header">
         <div class="header-left">
           <button v-if="currentView === 'update'" @click="backToList" class="btn-back">←</button>
@@ -36,33 +56,28 @@ const closeModal = () => {
       </div>
 
       <div class="modal-body">
-        
+
         <div v-if="currentView === 'list'">
           <div class="info-grid">
-            <div class="info-item"><span>Món ăn</span> <b>{{ foodItem?.ten || 'N/A' }}</b></div>
-            <div class="info-item"><span>Mã món ăn</span> <b>{{ foodItem?.ma || 'N/A' }}</b></div>
-            <div class="info-item"><span>Mô tả</span> <span class="text-gray">Lorem ipsum</span></div>
-            <div class="info-item"><span>Danh mục</span> <b>{{ foodItem?.danhmuc || 'N/A' }}</b></div>
+            <div class="info-item"><span>Món ăn</span> <b>{{ foodItem?.tenMonAn || 'N/A' }}</b></div>
+            <div class="info-item"><span>Mã món ăn</span> <b>{{ foodItem?.maMonAn || 'N/A' }}</b></div>
+            <div class="info-item"><span>Mô tả</span> <span class="text-gray">{{ foodItem?.moTa }}</span></div>
+            <div class="info-item"><span>Danh mục</span> <b>{{ foodItem?.tenDanhMuc || 'N/A' }}</b></div>
             <div class="info-item"><span>Chi tiết danh mục</span> <b>{{ foodItem?.chitiet || 'N/A' }}</b></div>
           </div>
 
           <hr class="divider">
 
           <div class="variants-grid">
-            <div 
-              v-for="v in variants" 
-              :key="v.id" 
-              class="variant-card"
-              @click="openEditMode(v)"
-            >
+            <div v-for="v in variants" :key="v.id" class="variant-card" @click="openEditMode(v)">
               <div class="v-header">
-                <b>{{ v.name }}</b>
+                <b>{{ v.tenChiTietMonAn }}</b>
                 <span class="icon-edit">🏷️</span>
               </div>
-              <div class="v-price">{{ v.price }}</div>
+              <div class="v-price">{{ v.giaBan }} VNĐ</div>
             </div>
 
-            <div class="variant-card add-card">
+            <div class="variant-card add-card" @click="openAddModal">
               <div class="icon-plus">+</div>
               <div>Thêm loại</div>
             </div>
@@ -78,7 +93,7 @@ const closeModal = () => {
             <div class="info-item"><span>Chi tiết danh mục</span> <b>{{ foodItem?.chitiet }}</b></div>
             <div class="info-item"><span>Mã chi tiết</span> <b>{{ selectedVariant?.code }}</b></div>
           </div>
-          
+
           <hr class="divider">
         </div>
 
@@ -94,7 +109,7 @@ const closeModal = () => {
             </div>
           </div>
           <div class="form-row">
-             <div class="form-group">
+            <div class="form-group">
               <label>Mã chi tiết</label>
               <input type="text" :placeholder="currentView === 'update' ? selectedVariant.code : 'Placeholder'">
             </div>
@@ -104,8 +119,8 @@ const closeModal = () => {
             </div>
           </div>
           <div class="form-group full-width">
-             <label>Giá bán</label>
-             <input type="number" :placeholder="currentView === 'update' ? selectedVariant.price : 'Placeholder'">
+            <label>Giá bán</label>
+            <input type="number" :placeholder="currentView === 'update' ? selectedVariant.price : 'Placeholder'">
           </div>
         </div>
 
@@ -115,10 +130,10 @@ const closeModal = () => {
         <button class="btn-cancel" @click="closeModal">Hủy</button>
         <button class="btn-confirm">Xác nhận thay đổi</button>
       </div>
-
     </div>
   </div>
+  <FoodDetailAddModal v-if="isAddModalOpen" :isOpen="isAddModalOpen" :foodId="foodItem?.id" @close="handleCloseAddModal"
+    @refresh="handleRefresh" />
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

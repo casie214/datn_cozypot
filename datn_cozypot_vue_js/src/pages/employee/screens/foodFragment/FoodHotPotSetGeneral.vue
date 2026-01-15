@@ -3,11 +3,11 @@ import { ref } from 'vue';
 import { useHotpotManager } from '../foodFunction';
 import FoodHotpotModal from '../../modal/foodHotpotModal.vue';
 
-const { 
-  hotpotData, 
-  isModalOpen, 
-  selectedHotpot, 
-  handleViewDetails 
+const {
+  hotpotData,
+  isModalOpen,
+  selectedHotpot,
+  handleViewDetails
 } = useHotpotManager();
 
 </script>
@@ -23,36 +23,60 @@ const {
             <button class="search-btn">🔍</button>
           </div>
         </div>
-        <div class="filter-item"><label>Trạng thái</label><select><option>Tất cả</option></select></div>
-        <div class="filter-item"><label>Loại set lẩu</label><select><option>Tất cả</option></select></div> <div class="filter-item"><label>Người tạo</label><select><option>Tất cả</option></select></div>
-        <div class="filter-item"><label>Lọc theo</label><select><option>Số thứ tự giảm dần</option></select></div>
+        <div class="filter-item"><label>Trạng thái</label><select>
+            <option>Tất cả</option>
+          </select></div>
+        <div class="filter-item"><label>Loại set lẩu</label><select>
+            <option>Tất cả</option>
+          </select></div>
+        <div class="filter-item"><label>Người tạo</label><select>
+            <option>Tất cả</option>
+          </select></div>
+        <div class="filter-item"><label>Lọc theo</label><select>
+            <option>Số thứ tự giảm dần</option>
+          </select></div>
         <button class="btn-clear">Xóa bộ lọc</button>
       </div>
-      
+
     </div>
 
     <div class="action-row">
-        <button class="btn-add">Thêm set lẩu</button> </div>
+      <button class="btn-add">Thêm set lẩu</button>
+    </div>
 
     <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th>STT</th> <th>MÃ</th> <th>SET LẨU</th> <th>GIÁ BÁN</th> <th>LOẠI LẨU</th> <th>NGÀY TẠO</th> <th>NGƯỜI TẠO</th> <th>TRẠNG THÁI</th> <th>CHỨC NĂNG</th>
+            <th>STT</th>
+            <th>MÃ</th>
+            <th>SET LẨU</th>
+            <th>GIÁ BÁN</th>
+            <th>LOẠI LẨU</th>
+            <th>NGÀY TẠO</th>
+            <th>NGƯỜI TẠO</th>
+            <th>TRẠNG THÁI</th>
+            <th>CHỨC NĂNG</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in hotpotData" :key="item.ma">
-            <td align="center">{{ item.stt }}</td>
-            <td>{{ item.ma }}</td>
-            <td><b>{{ item.ten }}</b></td>
-            <td style="color:#d32f2f"><b>{{ item.gia }}</b></td>
-            <td>{{ item.loailau }}</td> <td>{{ item.tao }}</td>
-            <td>{{ item.nguoi }}</td>
-            <td :class="item.trangthai ? 'status-active' : 'status-inactive'">{{ item.trangthai ? 'Đang hoạt động' : 'Ngưng' }}</td>
+          <tr v-for="(item, index) in hotpotData" :key="item.ma">
+            <td align="center">{{ index + 1 }}</td>
+            <td>{{ item.maSetLau }}</td>
+            <td><b>{{ item.tenSetLau }}</b></td>
+            <td style="color:#d32f2f"><b>{{ item.giaBan }}</b></td>
+            <td>{{ item.tenLoaiSet }}</td>
+            <td>{{ item.ngayTao }}</td>
+            <td>{{ item.nguoiTao }}</td>
+            <td :class="item.trangThai === 0 ? 'status-active' : 'status-inactive'">
+              {{ item.trangThai === 0 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
+            </td>
             <td class="actions">
-               <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
-               <div class="toggle-switch" :class="{ 'on': item.trangthai }"><div class="toggle-knob"></div></div>
+              <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
+
+              <div class="toggle-switch" :class="{ 'on': item.trangThai === 0 }" @click="toggleStatus(item)">
+                <div class="toggle-knob"></div>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -60,13 +84,18 @@ const {
     </div>
   </div>
 
-  <FoodHotpotModal
-      :isOpen="isModalOpen" 
-      :hotpotItem="selectedHotpot" 
-      @close="isModalOpen = false" 
-    />
+  <div class="pagination">
+    <button>&lt;</button>
+    <button class="active">1</button>
+    <button>2</button>
+    <button>...</button>
+    <button>7</button>
+    <button>8</button>
+    <button>&gt;</button>
+  </div>
+
+
+  <FoodHotpotModal :isOpen="isModalOpen" :hotpotItem="selectedHotpot" @close="isModalOpen = false" />
 </template>
 
-<style scoped src="../foodFragment/foodManager.css">
-
-</style>
+<style scoped src="../foodFragment/foodManager.css"></style>
