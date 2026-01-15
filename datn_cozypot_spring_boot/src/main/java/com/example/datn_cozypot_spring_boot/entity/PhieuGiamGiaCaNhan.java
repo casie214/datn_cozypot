@@ -18,6 +18,10 @@ public class PhieuGiamGiaCaNhan {
     @Column(name = "id_phieu_giam_gia_ca_nhan", nullable = false)
     private Integer id;
 
+    // Cột computed trong SQL Server → chỉ để read
+    @Column(name = "ma_giam_gia_ca_nhan", insertable = false, updatable = false)
+    private String maGiamGiaCaNhan;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
@@ -46,10 +50,9 @@ public class PhieuGiamGiaCaNhan {
 
     @Size(max = 255)
     @Nationalized
-    @Column(name = "ghi_chu")
+    @Column(name = "ghi_chu", length = 255)
     private String ghiChu;
 
     @Column(name = "ngay_het_han")
     private Instant ngayHetHan;
-
 }

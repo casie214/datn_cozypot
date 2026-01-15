@@ -21,6 +21,9 @@ public class DotKhuyenMai {
     @Column(name = "id_dot_khuyen_mai", nullable = false)
     private Integer id;
 
+    @Column(name = "ma_dot_khuyen_mai", insertable = false, updatable = false)
+    private String maDotKhuyenMai;
+
     @Size(max = 200)
     @Nationalized
     @Column(name = "ten_dot_khuyen_mai", length = 200)
@@ -53,7 +56,7 @@ public class DotKhuyenMai {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @Column(name = "ngay_tao")
+    @Column(name = "ngay_tao", updatable = false)
     private Instant ngayTao;
 
     @Column(name = "ngay_sua")
