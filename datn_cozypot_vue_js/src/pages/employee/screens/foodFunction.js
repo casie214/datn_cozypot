@@ -162,3 +162,68 @@ export function useCategoryDetailModal(props, emit) {
         handleSave
     };
 }
+
+export function useHotpotManager() {
+    const hotpotData = ref([
+        { stt: 1, ma: 'BA01', ten: 'Lẩu tôm chua cay', gia: '200.000 VNĐ', loailau: 'Lẩu hải sản cay', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1', trangthai: true },
+        { stt: 2, ma: 'BA02', ten: 'Lẩu bò mỹ', gia: '250.000 VNĐ', loailau: 'Lẩu bò', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: false },
+        { stt: 3, ma: 'BA03', ten: 'Set lẩu nấm', gia: '180.000 VNĐ', loailau: 'Lẩu chay', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: true },
+        { stt: 4, ma: 'BA04', ten: 'Set lẩu thái', gia: '220.000 VNĐ', loailau: 'Lẩu thái', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: true },
+        { stt: 5, ma: 'BA05', ten: 'Set lẩu riêu cua', gia: '300.000 VNĐ', loailau: 'Lẩu riêu', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: true },
+        { stt: 6, ma: 'BA06', ten: 'Set lẩu ếch', gia: '200.000 VNĐ', loailau: 'Lẩu ếch', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-2', trangthai: true },
+        { stt: 7, ma: 'BA07', ten: 'Set lẩu gà lá é', gia: '250.000 VNĐ', loailau: 'Lẩu gà', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-8', trangthai: false },
+        { stt: 8, ma: 'BA08', ten: 'Set lẩu uyên ương', gia: '400.000 VNĐ', loailau: 'Lẩu thập cẩm', tao: '16:00 - 01/01/2026', nguoi: 'ADMIN1-010', trangthai: true },
+    ]);
+
+    const isModalOpen = ref(false);
+    const selectedHotpot = ref(null);
+
+    const handleViewDetails = (item) => {
+        selectedHotpot.value = item;
+        isModalOpen.value = true;
+    };
+
+    return {
+        hotpotData,
+        isModalOpen,
+        selectedHotpot,
+        handleViewDetails
+    };
+}
+
+export function useHotpotModal(props, emit) {
+    const currentView = ref('list'); 
+    
+    const selectedVariant = ref(null); 
+
+    const variants = ref([
+        { id: 1, name: 'Set Nhỏ (2-3 người)', price: '200.000 VNĐ', rawPrice: 200000, code: 'SL-TOM-S' },
+        { id: 2, name: 'Set Vừa (4-5 người)', price: '350.000 VNĐ', rawPrice: 350000, code: 'SL-TOM-M' },
+        { id: 3, name: 'Set Lớn (6-8 người)', price: '500.000 VNĐ', rawPrice: 500000, code: 'SL-TOM-L' },
+        { id: 4, name: 'Set Đặc Biệt', price: '800.000 VNĐ', rawPrice: 800000, code: 'SL-TOM-VIP' },
+    ]);
+
+    const openEditMode = (variant) => {
+        selectedVariant.value = variant; 
+        currentView.value = 'update';    
+    };
+
+    const backToList = () => {
+        selectedVariant.value = null;
+        currentView.value = 'list';
+    };
+
+    const closeModal = () => {
+        backToList(); 
+        emit('close');
+    };
+
+    return {
+        currentView,
+        selectedVariant,
+        variants,
+        openEditMode,
+        backToList,
+        closeModal
+    };
+}
