@@ -19,6 +19,11 @@ const routes = [
         component: () => import("../src/pages/employee/screens/PaymentScreen.vue")
     },
     {
+    path: "/add-food/:id", 
+    name: "addFoodScreen",
+    component: () => import("../src/pages/employee/screens/AddFoodScreen.vue")
+    },
+    {
         path: "/test",
         name: "test",
         component: () =>
