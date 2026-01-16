@@ -16,10 +16,6 @@ public class SetLauRequest {
     @NotNull(message = "ID loại set lẩu không được để trống")
     private Integer idLoaiSet; // Chỉ nhận ID
 
-    @NotBlank(message = "Mã set lẩu không được để trống")
-    @Size(max = 50, message = "Mã set lẩu không được quá 50 ký tự")
-    private String maSetLau;
-
     @NotBlank(message = "Tên set lẩu không được để trống")
     @Size(max = 200, message = "Tên set lẩu không được quá 200 ký tự")
     private String tenSetLau;

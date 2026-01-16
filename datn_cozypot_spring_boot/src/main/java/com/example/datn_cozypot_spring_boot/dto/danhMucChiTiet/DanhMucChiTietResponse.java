@@ -18,6 +18,7 @@ public class DanhMucChiTietResponse {
     private String tenDanhMuc;
 
     private String maDanhMucChiTiet;
+    private Integer idDanhMucChiTiet;
     private String tenDanhMucChiTiet;
     private String moTa;
 

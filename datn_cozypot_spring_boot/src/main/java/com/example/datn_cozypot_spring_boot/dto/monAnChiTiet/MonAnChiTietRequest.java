@@ -16,10 +16,6 @@ public class MonAnChiTietRequest {
     @NotNull(message = "ID món ăn đi kèm không được để trống")
     private Integer idMonAnDiKem;
 
-    @NotBlank(message = "Mã chi tiết món ăn không được để trống")
-    @Size(max = 50, message = "Mã chi tiết không được quá 50 ký tự")
-    private String maChiTietMonAn;
-
     @NotBlank(message = "Tên chi tiết món ăn không được để trống")
     @Size(max = 200, message = "Tên chi tiết không được quá 200 ký tự")
     private String tenChiTietMonAn;

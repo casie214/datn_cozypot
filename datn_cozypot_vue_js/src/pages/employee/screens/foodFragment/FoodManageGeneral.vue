@@ -3,14 +3,24 @@ import { Alert } from 'bootstrap/dist/js/bootstrap.bundle.min';
 import foodModal from '../../modal/foodModal.vue';
 
 import { useFoodManager } from '../foodFunction';
+import FoodAddModal from '../../modal/FoodAddModals/FoodAddModal.vue';
 
 const {
     mockData,
     activeTab,
     isModalOpen,
     selectedItem,
-    handleViewDetails
+    isAddFoodModalOpen,
+    handleViewDetails,
+    getAllFood,
+    handleToggleStatus
 } = useFoodManager();
+
+const handleRefreshList = () => {
+    setTimeout(() => {
+        getAllFood();
+    }, 500);
+};
 </script>
 
 <template>
@@ -61,7 +71,7 @@ const {
 
     </div>
     <div class="action-row">
-        <button class="btn-add">Thêm món ăn</button>
+        <button class="btn-add" @click="isAddFoodModalOpen = true">Thêm món ăn</button>
     </div>
 
     <div class="table-container">
@@ -90,13 +100,14 @@ const {
                     <td>{{ item.tenDanhMucChiTiet }}</td>
                     <td>{{ item.ngayTao }}</td>
                     <td>{{ item.nguoiTao }}</td>
-                    <td :class="item.trangThaiKinhDoanh === 0 ? 'status-active' : 'status-inactive'">
-                        {{ item.trangThaiKinhDoanh === 0 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
+                    <td :class="item.trangThaiKinhDoanh === 1 ? 'status-active' : 'status-inactive'">
+                        {{ item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                     </td>
                     <td class="actions">
                         <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
 
-                        <div class="toggle-switch" :class="{ 'on': item.trangthai }">
+                        <div class="toggle-switch" :class="{ 'on': item.trangThaiKinhDoanh === 1 }"
+                            @click.stop="handleToggleStatus(item)">
                             <div class="toggle-knob"></div>
                         </div>
                     </td>
@@ -116,7 +127,10 @@ const {
     </div>
 
     <foodModal v-if="isModalOpen && selectedItem" :isOpen="isModalOpen" :foodItem="selectedItem"
-        @close="isModalOpen = false" />
+        @close="isModalOpen = false" @refresh="handleRefreshList" />
+
+    <FoodAddModal v-if="isAddFoodModalOpen" :isOpen="isAddFoodModalOpen" @close="isAddFoodModalOpen = false"
+        @refresh="handleRefreshList" />
 </template>
 
 <style scoped src="../foodFragment/foodManager.css"></style>
