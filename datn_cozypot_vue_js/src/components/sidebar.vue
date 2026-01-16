@@ -5,18 +5,12 @@ import { ref } from 'vue';
 const menuItems = [
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: "/dashboard" },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: "/booking" },
-    
-    // Link tới trang Quản lý đơn hàng vừa tạo
-    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: "/manage/orders" },
-    
+    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: "/manage/orders" },   
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: "/checkin" },
     { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: "/tables" },
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: "/staff" },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: "/customers" }, 
-    
-    // Link tới trang Quản lý thực đơn
-    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", path: "/manage/food" },
-    
+    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", path: "/manage/food" },   
     { name: 'Danh mục', icon: "fa-solid fa-table-list", path: "/categories" },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: "/messages" },
     { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: "/promotions" },
@@ -52,7 +46,7 @@ const menuItems = [
 </template>
 
 <style scoped>
-/* Import thư viện icon */
+
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
 .sidebar {

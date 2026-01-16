@@ -1,93 +1,180 @@
-import { ref } from 'vue';
+import { ref, onMounted } from "vue";
+import {
+  BeGetAllHoaDon,
+  BeGetChiTietHoaDon,
+  BeGetThamSoHeThong,
+} from "./OrderService";
 
 export function useOrderManager() {
-
-  const filters = ref({
-    status: 'Tất cả',
-    fromDate: '',
-    toDate: ''
-  });
-
   const isDetailModalOpen = ref(false);
   const selectedOrder = ref(null);
-
   const isHistoryModalOpen = ref(false);
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
 
+  const orderList = ref([]);
+  const orderDetails = ref([]);
+  const currentVAT = ref(0);
 
-  const orderList = ref([
-    { id: 'ORD14012016123', khachHang: 'Nguyễn Văn A', sdt: '0987654321', ban: 'B-01', tongTien: '320.000 ₫', trangThai: 'Đã xác nhận' },
-    { id: 'ORD14012016124', khachHang: 'Nguyễn Văn B', sdt: '0987654321', ban: 'B-03', tongTien: '120.000 ₫', trangThai: 'Đã xác nhận' },
-    { id: 'ORD14012016125', khachHang: 'Trần Văn C', sdt: '0987654321', ban: 'B-04', tongTien: '390.000 ₫', trangThai: 'Đã xác nhận' },
-    { id: 'ORD14012016126', khachHang: 'Nguyễn Văn E', sdt: '0987654321', ban: 'B-06', tongTien: '700.000 ₫', trangThai: 'Đã xác nhận' },
-    { id: 'ORD14012016127', khachHang: 'Nguyễn Văn F', sdt: '0987654321', ban: 'B-04', tongTien: '210.000 ₫', trangThai: 'Đã xác nhận' },
-    { id: 'ORD14012016128', khachHang: 'Nguyễn Văn G', sdt: '0987654321', ban: 'B-06', tongTien: '800.000 ₫', trangThai: 'Hoàn thành' },
-    { id: 'ORD14012016129', khachHang: 'Nguyễn Văn H', sdt: '0987654321', ban: 'B-01', tongTien: '218.000 ₫', trangThai: 'Hoàn thành' },
-    { id: 'ORD14012016130', khachHang: 'Nguyễn Văn Y', sdt: '0987654321', ban: 'B-03', tongTien: '214.000 ₫', trangThai: 'Hoàn thành' },
-    { id: 'ORD14012016131', khachHang: 'Nguyễn Văn K', sdt: '0987654321', ban: 'B-04', tongTien: '213.000 ₫', trangThai: 'Hoàn thành' },
-  ]);
+  const filters = ref({
+    status: "Tất cả",
+    fromDate: "",
+    toDate: "",
+  });
 
-  
-  const mockHistoryData = [
-    { 
-      id: 1, 
-      action: 'Xóa món', 
-      title: 'Xóa món Lẩu Thái Tomyum x1', 
-      time: 'Vừa xong', 
-      user: 'Administrator', 
-      detail: 'Lẩu Thái Tomyum x1',
-      orderCode: 'ORD20260101174139',
-      type: 'delete' 
-    },
-    { 
-      id: 2, 
-      action: 'Thêm món', 
-      title: 'Thêm món Lẩu nấm x1', 
-      time: '5 phút trước', 
-      user: 'Administrator', 
-      detail: 'Lẩu nấm x1',
-      orderCode: 'ORD20260101174139',
-      type: 'add' 
-    },
-    { 
-      id: 3, 
-      action: 'Thêm món', 
-      title: 'Thêm món Lẩu hải sản x1', 
-      time: '7 phút trước', 
-      user: 'Administrator', 
-      detail: 'Lẩu hải sản x1',
-      orderCode: 'ORD20260101174139',
-      type: 'add'
-    },
-    { 
-      id: 4, 
-      action: 'Tạo đơn', 
-      title: 'Tạo đơn hàng mới', 
-      time: '10 phút trước', 
-      user: 'Administrator', 
-      detail: '',
-      orderCode: 'ORD20260101174139',
-      type: 'create' 
+  const formatDate = (dateString) => {
+    if (!dateString) return "---";
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  // Hàm format tiền tệ (300000 -> 300.000 ₫)
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined) return "0 ₫";
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(value);
+  };
+
+  const mapStatus = (statusInt) => {
+    switch (statusInt) {
+      case 0:
+        return "Đã hủy";
+      case 1:
+        return "Đã xác nhận";
+      case 2:
+        return "Hoàn thành";
+      default:
+        return "Không xác định";
     }
+  };
+
+  const fetchConfig = async () => {
+    try {
+      const config = await BeGetThamSoHeThong();
+      currentVAT.value = Number(config.VAT); // Đảm bảo lưu dưới dạng số
+      console.log("VAT hệ thống:", currentVAT.value);
+    } catch (error) {
+      console.error("Lỗi lấy config:", error);
+      currentVAT.value = 10; // Fallback mặc định
+    }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const data = await BeGetAllHoaDon();
+      console.log("Dữ liệu gốc từ BE:", data);
+      orderList.value = data.map((item) => {
+        // 1. Lấy giá trị chốt từ Backend
+        const finalPrice = item.tongTienThanhToan || 0; 
+
+        return {
+          id: item.maHoaDon,       
+          dbId: item.id,           
+          khachHang: item.tenKhachHang,
+          sdt: item.sdtKhachHang,  
+          ban: item.tenBan,
+          
+          tongTien: formatCurrency(finalPrice),
+          // Tiền dạng số để truyền vào Modal 
+          tongTienRaw: finalPrice,
+          
+          // Lấy giảm giá để truyền vào Modal
+          soTienDaGiam: item.soTienDaGiam || 0, 
+
+          // Khớp với DTO Java (trangThaiHoaDon)
+          trangThai: mapStatus(item.trangThaiHoaDon), 
+          
+          // Khớp với DTO Java (thoiGianTao)
+          ngayTao: formatDate(item.thoiGianTao),
+        };
+      });
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách hóa đơn:", error);
+    }
+  };
+  // ---------------------
+
+  onMounted(async () => {
+    await fetchConfig();
+    await fetchOrders();
+  });
+
+  const mockHistoryData = [
+    {
+      id: 1,
+      action: "Xóa món",
+      title: "Xóa món Lẩu Thái Tomyum x1",
+      time: "Vừa xong",
+      user: "Administrator",
+      detail: "Lẩu Thái Tomyum x1",
+      orderCode: "ORD20260101174139",
+      type: "delete",
+    },
+    {
+      id: 2,
+      action: "Thêm món",
+      title: "Thêm món Lẩu nấm x1",
+      time: "5 phút trước",
+      user: "Administrator",
+      detail: "Lẩu nấm x1",
+      orderCode: "ORD20260101174139",
+      type: "add",
+    },
+    {
+      id: 3,
+      action: "Thêm món",
+      title: "Thêm món Lẩu hải sản x1",
+      time: "7 phút trước",
+      user: "Administrator",
+      detail: "Lẩu hải sản x1",
+      orderCode: "ORD20260101174139",
+      type: "add",
+    },
+    {
+      id: 4,
+      action: "Tạo đơn",
+      title: "Tạo đơn hàng mới",
+      time: "10 phút trước",
+      user: "Administrator",
+      detail: "",
+      orderCode: "ORD20260101174139",
+      type: "create",
+    },
   ];
 
-
-
   const handleSearch = () => {
-    console.log("Đang tìm kiếm với:", filters.value);
+    console.log("Đang tìm kiếm:", filters.value);
+    fetchOrders();
   };
 
   const handleReset = () => {
-    filters.value = { status: 'Tất cả', fromDate: '', toDate: '' };
+    filters.value = { status: "Tất cả", fromDate: "", toDate: "" };
+    fetchOrders();
   };
 
- 
-  const handleViewDetail = (id) => {
-    const order = orderList.value.find(item => item.id === id);
+  const handleViewDetail = async (maHoaDon) => {
+    // Tìm đơn hàng trong list đã tải
+    const order = orderList.value.find((item) => item.id === maHoaDon);
+
     if (order) {
-        selectedOrder.value = order;
+      selectedOrder.value = order;
+      try {
+        orderDetails.value = [];
+        const data = await BeGetChiTietHoaDon(order.dbId); 
+        orderDetails.value = data;
         isDetailModalOpen.value = true;
+      } catch (error) {
+        console.error("Lỗi lấy chi tiết đơn hàng:", error);
+        alert("Không thể tải chi tiết món ăn!");
+      }
     }
   };
 
@@ -96,13 +183,12 @@ export function useOrderManager() {
     selectedOrder.value = null;
   };
 
- 
-  const handleViewHistory = (id) => {
-    const order = orderList.value.find(item => item.id === id);
+  const handleViewHistory = (maHoaDon) => {
+    const order = orderList.value.find((item) => item.id === maHoaDon);
     if (order) {
-        selectedHistoryOrder.value = order;
-        historyEvents.value = mockHistoryData; 
-        isHistoryModalOpen.value = true;
+      selectedHistoryOrder.value = order;
+      historyEvents.value = mockHistoryData;
+      isHistoryModalOpen.value = true;
     }
   };
 
@@ -111,10 +197,9 @@ export function useOrderManager() {
     selectedHistoryOrder.value = null;
   };
 
-  const handlePrintOrder = (id) => {
-    console.log("In hóa đơn:", id);
+  const handlePrintOrder = (maHoaDon) => {
+    console.log("In hóa đơn:", maHoaDon);
   };
-
 
   return {
     filters,
@@ -122,6 +207,7 @@ export function useOrderManager() {
     isDetailModalOpen,
     selectedOrder,
     handleViewDetail,
+    orderDetails,
     closeDetailModal,
     isHistoryModalOpen,
     selectedHistoryOrder,
@@ -130,6 +216,7 @@ export function useOrderManager() {
     closeHistoryModal,
     handleSearch,
     handleReset,
-    handlePrintOrder
+    handlePrintOrder,
+    currentVAT,
   };
 }

@@ -12,6 +12,7 @@ const {
   handleSearch, 
   handleReset,
   handleViewDetail,
+  orderDetails,
   handleViewHistory,
   handlePrintOrder,
 
@@ -22,15 +23,18 @@ const {
   isHistoryModalOpen,
   selectedHistoryOrder,
   historyEvents,
-  closeHistoryModal
+  closeHistoryModal,
+  currentVAT,
 
 } = useOrderManager();
 
 const getStatusClass = (status) => {
   if (status === 'Hoàn thành') return 'status-completed'; 
   if (status === 'Đã xác nhận') return 'status-confirmed'; 
+  if (status === 'Đã hủy') return 'status-cancelled'; 
   return ''; 
 };
+
 </script>
 
 <template>
@@ -128,6 +132,8 @@ const getStatusClass = (status) => {
     <OrderDetailModal 
         :isOpen="isDetailModalOpen"
         :orderData="selectedOrder"
+        :orderDetailList="orderDetails"
+        :vatRate="currentVAT" 
         @close="closeDetailModal"
     />
 
@@ -153,6 +159,10 @@ const getStatusClass = (status) => {
     font-weight: 700;
 }
 
+.status-cancelled {
+    color: #dc3545; 
+    font-weight: 700;
+}
 
 .app-layout {
   min-height: 100vh;
