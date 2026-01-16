@@ -16,7 +16,7 @@ public class MonAnChiTietResponse {
     private Integer id;
 
     private Integer idMonAnDiKem;
-    private String tenMonAn;
+    private String tenMonAnDiKem;
 
     private String maChiTietMonAn;
     private String tenChiTietMonAn;

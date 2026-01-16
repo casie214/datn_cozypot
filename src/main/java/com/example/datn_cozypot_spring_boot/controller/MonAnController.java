@@ -3,12 +3,17 @@ package com.example.datn_cozypot_spring_boot.controller;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
+import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
+import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.DanhMuc;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,5 +66,35 @@ public class MonAnController {
     @GetMapping("/category/hotpotType")
     public ResponseEntity<List<LoaiLauResponse>> findLoaiLauCategory(){
         return ResponseEntity.ok(monAnService.findAllLoaiLau());
+    }
+
+    @PostMapping
+    public ResponseEntity<MonAnResponse> addNewMon(@RequestBody @Valid MonAnRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.createMonAn(request));
+    }
+
+    @PostMapping("/hotpotGeneral")
+    public ResponseEntity<SetLauResponse> addNewLau(@RequestBody @Valid SetLauRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.createSetLau(request));
+    }
+
+    @PostMapping("/foodDetail")
+    public ResponseEntity<MonAnChiTietResponse> addNewChiTietMon(@RequestBody @Valid MonAnChiTietRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.createMonAnChiTiet(request));
+    }
+
+    @PutMapping("/foodDetail/{id}")
+    public ResponseEntity<MonAnChiTietResponse> putChiTietMon(@PathVariable("id") int id, @RequestBody @Valid MonAnChiTietRequest request){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.putMonAnChiTiet(id, request));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<MonAnResponse> putMon(@PathVariable("id") int id, @RequestBody @Valid MonAnRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.putMonAn(id ,request));
+    }
+
+    @PutMapping("/hotpotGeneral/{id}")
+    public ResponseEntity<SetLauResponse> putLau(@PathVariable("id") int id, @RequestBody @Valid SetLauRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.putLau(id ,request));
     }
 }

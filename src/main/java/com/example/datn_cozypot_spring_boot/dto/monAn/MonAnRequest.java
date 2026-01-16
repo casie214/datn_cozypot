@@ -19,10 +19,6 @@ public class MonAnRequest {
     @NotNull(message = "ID danh mục chi tiết không được để trống")
     private Integer idDanhMucChiTiet;
 
-    @NotBlank(message = "Mã món ăn không được để trống")
-    @Size(max = 50, message = "Mã món ăn không được quá 50 ký tự")
-    private String maMonAn;
-
     @NotBlank(message = "Tên món ăn không được để trống")
     @Size(max = 200, message = "Tên món ăn không được quá 200 ký tự")
     private String tenMonAn;
