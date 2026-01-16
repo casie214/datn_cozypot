@@ -1,36 +1,22 @@
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
-import axios from 'axios'; 
+import { ref, defineProps, defineEmits, onMounted } from 'vue';
+import axios from 'axios';
+import { useFoodAddModal, useFoodDetailAddModal } from '../../screens/foodFunction';
 
 const props = defineProps({
   isOpen: Boolean,
-  foodId: Number 
+  foodItem: Object
 });
 
 const emit = defineEmits(['close', 'refresh']);
 
-const newItem = ref({
-  tenChiTietMonAn: '',
-  maChiTietMonAn: '',
-  giaBan: 0,
-  kichCo: '',
-  donVi: '',
-  trangThai: 1
-});
+const {
+  formData,
+  listDanhMuc,
+  isParentLocked,
+  handleSave
+} = useFoodDetailAddModal(props, emit);
 
-// const handleSave = async () => {
-//     try {
-        
-
-//         console.log("ok, id:", props.foodId);
-        
-//         emit('refresh'); 
-//         emit('close'); 
-//     } catch (e) {
-//         console.error(e);
-//         alert("Lỗi");
-//     }
-// };
 </script>
 
 <template>
@@ -44,30 +30,41 @@ const newItem = ref({
 
       <div class="modal-body">
         <div class="form-container">
+          <div class="form-group">
+            <label>Tên chi tiết</label>
+            <input v-model="formData.tenChiTietMonAn" type="text" placeholder="VD: Size L">
+          </div>
+          <div class="form-row">
             <div class="form-group">
-                <label>Tên chi tiết</label>
-                <input v-model="newItem.tenChiTietMonAn" type="text" placeholder="VD: Size L">
+              <label>Giá bán</label>
+              <input v-model="formData.giaBan" type="number">
+              <label>Giá vốn</label>
+              <input v-model="formData.giaVon" type="number">
+
+              <label>Món ăn
+                <span class="required">*</span>
+              </label>
+              <select :disabled="isParentLocked" :class="{ 'locked-field': isParentLocked }" v-model="formData.idMonAnDiKem" class="form-control">
+                <option value="">-- Chọn món ăn --</option>
+                <option v-for="item in listDanhMuc" :key="item.id" :value="item.id">
+                  {{ item.tenMonAn || item.ten }}
+                </option>
+              </select>
+              <small v-if="isParentLocked" style="color: #666; font-style: italic;">
+                *Đang thêm chi tiết cho món: {{ parentFood?.tenMonAn }}
+              </small>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Mã chi tiết</label>
-                    <input v-model="newItem.maChiTietMonAn" type="text">
-                </div>
-                <div class="form-group">
-                    <label>Giá bán</label>
-                    <input v-model="newItem.giaBan" type="number">
-                </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Kích cỡ</label>
+              <input v-model="formData.kichCo" type="text">
             </div>
-             <div class="form-row">
-                <div class="form-group">
-                    <label>Kích cỡ</label>
-                    <input v-model="newItem.kichCo" type="text">
-                </div>
-                <div class="form-group">
-                    <label>Đơn vị</label>
-                    <input v-model="newItem.donVi" type="text">
-                </div>
+            <div class="form-group">
+              <label>Đơn vị</label>
+              <input v-model="formData.donVi" type="text">
             </div>
+          </div>
         </div>
       </div>
 
@@ -79,12 +76,4 @@ const newItem = ref({
   </div>
 </template>
 
-<style scoped>
-/* Copy CSS modal cũ sang, nhưng chỉnh z-index cao hơn để nó hiện đè lên */
-.modal-overlay { 
-    background: rgba(0, 0, 0, 0.6); 
-    z-index: 2000; /* Cao hơn modal cha (thường là 1000) */
-}
-.modal-content { width: 500px; /* Nhỏ hơn modal cha chút cho đẹp */ }
-/* ... Các CSS form khác ... */
-</style>
+<style scoped src="../foodModalManager.css"></style>

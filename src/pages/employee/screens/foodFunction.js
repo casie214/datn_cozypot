@@ -1,6 +1,6 @@
-import { nextTick, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 
-import MenuFood from '../screens/foodFragment/FoodManageGeneral.vue'; 
+import MenuFood from '../screens/foodFragment/FoodManageGeneral.vue';
 import MenuHotpot from '../screens/foodFragment/FoodHotPotSetGeneral.vue';
 import FoodDetailManageGeneral from '../screens/foodFragment/FoodDetailManageGeneral.vue';
 import axios from 'axios';
@@ -25,64 +25,85 @@ export function getAllFoodDetail() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
 }
 
-export function getAllCategory(){
+export function getAllCategory() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/category`);
 }
 
-export function getAllCategoryDetail(){
+export function getAllCategoryDetail() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
 }
 
-export function getAllCategoryHotpot(){
+export function getAllCategoryHotpot() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
 }
 
+export function postNewFood(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food`, data);
+}
+
+export function putNewFood(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
+}
+
+export function putNewFoodDetail(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
+}
+
+export function postNewHotpot(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
+}
+
+export function postNewFoodDetail(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
+}
+export function putNewHotpot(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
+}
+
+
 //Trang chính food manager
 export function useTabManager() {
-  const tabs = {
-    'thucdon': MenuFood,
-    'setlau': MenuHotpot,
-    'chitiet': FoodDetailManageGeneral
-  };
+    const tabs = {
+        'thucdon': MenuFood,
+        'setlau': MenuHotpot,
+        'chitiet': FoodDetailManageGeneral
+    };
 
-  const currentTabName = ref('thucdon'); 
-  const currentComponent = shallowRef(MenuFood); 
+    const currentTabName = ref('thucdon');
+    const currentComponent = shallowRef(MenuFood);
 
-  const changeTab = (tabName) => {
-    currentTabName.value = tabName;
-    currentComponent.value = tabs[tabName];
-  };
+    const changeTab = (tabName) => {
+        currentTabName.value = tabName;
+        currentComponent.value = tabs[tabName];
+    };
 
-  return {
-    currentTabName,
-    currentComponent,
-    changeTab
-  };
+    return {
+        currentTabName,
+        currentComponent,
+        changeTab
+    };
 }
 
 export function useFoodDetailManager() {
     const detailData = ref([]);
-    
+
     function getAllFoodDetails() {
         getAllFoodDetail()
-    .then(async res => {
-      detailData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                detailData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllFoodDetails();
     })
 
+
     const isModalOpen = ref(false);
     const selectedDetail = ref(null);
-
-    const openAddModal = () => {
-        selectedDetail.value = null; 
-        isModalOpen.value = true;
-    };
+    const isAddModalOpen = ref(false);
 
     const openEditModal = (item) => {
         selectedDetail.value = item;
@@ -90,17 +111,38 @@ export function useFoodDetailManager() {
     };
 
     const handleSaveData = (data) => {
-        console.log("Dữ liệu đã lưu:", data);
         isModalOpen.value = false;
+        emit('refresh');
+        emit('close');
+    };
+
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThai;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThai = newStatus;
+
+        try {
+            const payload = {...item, trangThai: newStatus };
+            if (item.monAnDiKem && item.monAnDiKem.id) {
+                payload.idMonAnDiKem = item.monAnDiKem.id;
+            }
+            await putNewFoodDetail(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
     };
 
     return {
         detailData,
         isModalOpen,
+        isAddModalOpen,
         selectedDetail,
-        openAddModal,
+        getAllFoodDetails,
         openEditModal,
-        handleSaveData
+        handleSaveData,
+        handleToggleStatus
     };
 }
 
@@ -110,14 +152,14 @@ export function useFoodManager() {
 
     function getAllFood() {
         getAllFoodGeneral()
-    .then(async res => {
-      mockData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                mockData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllFood();
     })
 
@@ -125,10 +167,29 @@ export function useFoodManager() {
 
     const isModalOpen = ref(false);
     const selectedItem = ref(null);
+    const isAddFoodModalOpen = ref(false);
 
     const handleViewDetails = (item) => {
         selectedItem.value = item;
         isModalOpen.value = true;
+    };
+
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThaiKinhDoanh;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThaiKinhDoanh = newStatus;
+
+        try {
+            const payload = {...item, trangThaiKinhDoanh: newStatus };
+            if (item.danhMucChiTiet && item.danhMucChiTiet.id) {
+                payload.idDanhMucChiTiet = item.danhMucChiTiet.id;
+            }
+            await putNewFood(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
     };
 
     return {
@@ -136,19 +197,52 @@ export function useFoodManager() {
         activeTab,
         isModalOpen,
         selectedItem,
-        handleViewDetails
+        isAddFoodModalOpen,
+        handleViewDetails,
+        getAllFood,
+        handleToggleStatus
     };
 }
 
-export function useFoodModal(itemSource) { // itemSource nên là getter () => props.foodItem
-    const currentView = ref('list'); 
-    const selectedVariant = ref(null); 
+export function useFoodModal(itemSource) {
+    const currentView = ref('list');
+    const selectedVariant = ref(null);
     const variants = ref([]);
-    
+    const listDanhMuc = ref([]);
+    const listDanhMucChiTiet = ref([]);
+
+    const parentFormData = ref({
+        id: '',
+        tenMonAn: '',
+        idDanhMuc: '',
+        idDanhMucChiTiet: '',
+        moTa: '',
+        giaBan: 0,
+        hinhAnh: '',
+        trangThai: 1
+    });
+
+
+    function getAllCategories() {
+        getAllCategory()
+            .then(async res => {
+                listDanhMuc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+    function getAllCategoriesDetail() {
+        getAllCategoryDetail()
+            .then(async res => {
+                listDanhMucChiTiet.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
     const fetchVariants = () => {
-
         const item = typeof itemSource === 'function' ? itemSource() : itemSource;
-
         if (!item || !item.id) return;
 
         getFoodGeneralModalById(item.id)
@@ -159,16 +253,8 @@ export function useFoodModal(itemSource) { // itemSource nên là getter () => p
             .catch(console.error);
     }
 
-    watch(
-        () => (typeof itemSource === 'function' ? itemSource() : itemSource),
-        (newItem) => {
-            if (newItem) fetchVariants();
-        },
-        { immediate: true }
-    );
-
     const openEditMode = (variant) => {
-        selectedVariant.value = variant;
+        selectedVariant.value = {...variant };
         currentView.value = 'update';
     };
 
@@ -177,52 +263,159 @@ export function useFoodModal(itemSource) { // itemSource nên là getter () => p
         currentView.value = 'list';
     };
 
+    const filteredSubCategories = computed(() => {
+        if (!parentFormData.value || !parentFormData.value.idDanhMuc) return [];
+        return listDanhMucChiTiet.value.filter(item => item.idDanhMucChiTiet === parentFormData.value.idDanhMuc);
+    });
+
+    onMounted(() => {
+        getAllCategories();
+        getAllCategoriesDetail();
+    });
+
+    watch(
+        () => (typeof itemSource === 'function' ? itemSource() : itemSource),
+        (newVal) => {
+            if (newVal) {
+                parentFormData.value = {...newVal };
+                if (newVal.idDanhMuc) {
+                    parentFormData.value.idDanhMuc = newVal.danhMuc.id;
+                }
+
+                if (newVal.idDanhMucChiTiet) {
+                    parentFormData.value.idDanhMucChiTiet = newVal.idDanhMucChiTiet;
+                }
+                fetchVariants();
+                currentView.value = 'list';
+            } else {
+                parentFormData.value = {
+                    id: '',
+                    tenMonAn: '',
+                    idDanhMuc: '',
+                    idDanhMucChiTiet: '',
+                    moTa: '',
+                    giaBan: 0,
+                    hinhAnh: '',
+                    trangThai: 1
+                };
+                variants.value = [];
+            }
+        }, { immediate: true, deep: true }
+    );
+
+    const handleSave = async(emit) => {
+        try {
+            const data = parentFormData.value;
+            console.log("Dữ liệu cập nhật Variant:", data);
+            await putNewFood(data.id, data);
+
+            if (typeof emit === 'function') {
+                emit('refresh');
+                emit('close');
+            }
+
+            fetchVariants();
+            backToList();
+
+        } catch (e) {
+            console.error("Lỗi cập nhật:", e);
+        }
+    };
+
+    // 6. RETURN
     return {
         currentView,
         selectedVariant,
         variants,
+        parentFormData,
+        listDanhMuc,
+        filteredSubCategories,
+
         openEditMode,
         backToList,
-        fetchVariants
+        fetchVariants,
+        handleSave
     };
 }
 
-export function useCategoryDetailModal(props, emit) {
-    
+export function useFoodDetailModal(props, emit) {
+
     const formData = ref({
-        ma: '',
-        ten: '',
-        monAnGoc: '',
-        gia: '',
+        tenChiTietMonAn: '',
+        idMonAnDiKem: '',
+        giaBan: '',
+        giaVon: '',
         kichCo: '',
         donVi: '',
-        trangThai: true
+        trangThai: 1
     });
 
-    const listMonAn = [
-        { id: 1, name: 'Coca-Cola' },
-        { id: 2, name: 'Fanta' },
-        { id: 3, name: 'Viên thả lẩu' }
-    ];
+    const listMonAn = ref([]);
+    const dataChiTiet = ref([]);
+
+    function getAllFood() {
+        getAllFoodGeneral()
+            .then(async res => {
+                listMonAn.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+    function getAllFoodDetails() {
+        getAllFoodDetail()
+            .then(async res => {
+                dataChiTiet.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+    onMounted(() => {
+        getAllFood();
+        getAllFoodDetail();
+    })
+
 
     watch(() => props.detailItem, (newVal) => {
         if (newVal) {
-            formData.value = { ...newVal }; 
+            formData.value = {...newVal };
         } else {
             formData.value = {
-                ma: '', ten: '', monAnGoc: '', gia: '', kichCo: '', donVi: '', trangThai: true
+                tenChiTietMonAn: '',
+                idMonAnDiKem: '',
+                giaBan: '',
+                giaVon: '',
+                kichCo: '',
+                donVi: '',
+                trangThai: 1
             };
         }
     });
 
     const handleSave = () => {
-        emit('save', formData.value);
-        emit('close');
+        try {
+            if (!formData.value.tenChiTietMonAn || !formData.value.giaBan) {
+                alert("Vui lòng nhập tên món và chọn danh mục chi tiết!");
+                return;
+            }
+
+            putNewFoodDetail(formData.value.id, formData.value);
+
+            console.log("Dữ liệu cập nhật:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
     };
 
     return {
         formData,
         listMonAn,
+        getAllFoodDetails,
         handleSave
     };
 }
@@ -232,39 +425,58 @@ export function useHotpotManager() {
 
     function getAllHotpot() {
         getAllHotpotGeneral()
-    .then(async res => {
-      hotpotData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                hotpotData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllHotpot();
     })
 
     const isModalOpen = ref(false);
     const selectedHotpot = ref(null);
+    const isAddHotpotModalOpen = ref(false);
 
     const handleViewDetails = (item) => {
         selectedHotpot.value = item;
         isModalOpen.value = true;
     };
 
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThai;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThai = newStatus;
+
+        try {
+            const payload = {...item, trangThai: newStatus };
+            await putNewHotpot(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
+    };
+
     return {
         hotpotData,
         isModalOpen,
         selectedHotpot,
-        handleViewDetails
+        isAddHotpotModalOpen,
+        getAllHotpot,
+        handleViewDetails,
+        handleToggleStatus
     };
 }
 
 export function useHotpotModal(props, emit) {
-    
+
     const formData = ref({
         maSetLau: '',
         tenSetLau: '',
-        idLoaiSet: '', 
+        idLoaiSet: '',
         giaBan: 0,
         moTa: '',
         moTaChiTiet: '',
@@ -272,36 +484,53 @@ export function useHotpotModal(props, emit) {
         trangThai: 1
     });
 
-    const listLoaiSet = ref([
-        { id: 1, name: 'Lẩu Thái' },
-        { id: 2, name: 'Lẩu Nấm' },
-        { id: 3, name: 'Lẩu Riêu Cua' }
-    ]);
+    const listLoaiSet = ref([]);
+
+    function getAllCategoriesHotpot() {
+        getAllCategoryHotpot()
+            .then(async res => {
+                listLoaiSet.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+    onMounted(() => {
+        getAllCategoriesHotpot();
+    })
 
     watch(() => props.hotpotItem, (newItem) => {
         if (newItem) {
-            formData.value = { ...newItem };
-            
+            formData.value = {...newItem };
+
             if (newItem.idLoaiSet && typeof newItem.idLoaiSet === 'object') {
                 formData.value.idLoaiSet = newItem.idLoaiSet.id;
             }
         } else {
             formData.value = {
-                maSetLau: '', tenSetLau: '', idLoaiSet: '', giaBan: 0, 
-                moTa: '', moTaChiTiet: '', hinhAnh: '', trangThai: 1
+                maSetLau: '',
+                tenSetLau: '',
+                idLoaiSet: '',
+                giaBan: 0,
+                moTa: '',
+                moTaChiTiet: '',
+                hinhAnh: '',
+                trangThai: 1
             };
         }
     }, { immediate: true });
 
-    const handleSave = () => {
-        if (!formData.value.maSetLau || !formData.value.tenSetLau) {
-            alert("Vui lòng nhập đủ thông tin bắt buộc!");
-            return;
+    const handleSave = async() => {
+        try {
+            await putNewHotpot(formData.value.id, formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
         }
-        
-        console.log("Dữ liệu chuẩn bị lưu:", formData.value);
-        emit('save', formData.value);
-        emit('close');
     };
 
     const closeModal = () => {
@@ -317,25 +546,25 @@ export function useHotpotModal(props, emit) {
 }
 
 export function useCategoryTabManager() {
-  const tabs = {
-    'danhmuc': CategoryGeneral,
-    'chitiet': CategoryDetailGeneral,
-    'loaiset': CategoryHotpotGeneral
-  };
+    const tabs = {
+        'danhmuc': CategoryGeneral,
+        'chitiet': CategoryDetailGeneral,
+        'loaiset': CategoryHotpotGeneral
+    };
 
-  const currentTabName = ref('danhmuc');
-  const currentComponent = shallowRef(CategoryGeneral); 
+    const currentTabName = ref('danhmuc');
+    const currentComponent = shallowRef(CategoryGeneral);
 
-  const changeTab = (tabName) => {
-    currentTabName.value = tabName;
-    currentComponent.value = tabs[tabName];
-  };
+    const changeTab = (tabName) => {
+        currentTabName.value = tabName;
+        currentComponent.value = tabs[tabName];
+    };
 
-  return {
-    currentTabName,
-    currentComponent,
-    changeTab
-  };
+    return {
+        currentTabName,
+        currentComponent,
+        changeTab
+    };
 }
 
 export function useCategoryManager() {
@@ -343,14 +572,14 @@ export function useCategoryManager() {
 
     function getAllCategories() {
         getAllCategory()
-    .then(async res => {
-      categoryData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                categoryData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllCategories();
     })
 
@@ -375,14 +604,14 @@ export function useCategoryDetailManager() {
 
     function getAllCategoriesDetail() {
         getAllCategoryDetail()
-    .then(async res => {
-      detailData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                detailData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllCategoriesDetail();
     })
 
@@ -407,14 +636,14 @@ export function useHotpotSetTypeManager() {
 
     function getAllHotpotType() {
         getAllCategoryHotpot()
-    .then(async res => {
-      hotpotTypeData.value = res.data;
-      await nextTick();
-    })
-    .catch(console.error);
+            .then(async res => {
+                hotpotTypeData.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
     }
 
-    onMounted(() =>{
+    onMounted(() => {
         getAllHotpotType();
     })
 
@@ -431,5 +660,243 @@ export function useHotpotSetTypeManager() {
         isModalOpen,
         selectedItem,
         openModal
+    };
+}
+
+export function useFoodAddModal(props, emit) {
+
+    const formData = ref({
+        tenMonAn: '',
+        idDanhMuc: '',
+        idDanhMucChiTiet: '',
+        giaBan: 0,
+        moTa: '',
+        hinhAnh: '',
+        trangThaiKinhDoanh: 1
+    });
+
+    const listDanhMuc = ref([]);
+    const listDanhMucChiTiet = ref([]);
+
+    function getAllCategories() {
+        getAllCategory()
+            .then(async res => {
+                listDanhMuc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+    function getAllCategoriesDetail() {
+        getAllCategoryDetail()
+            .then(async res => {
+                listDanhMucChiTiet.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+    onMounted(() => {
+        getAllCategories();
+        getAllCategoriesDetail();
+    })
+
+    const filteredSubCategories = computed(() => {
+        if (!formData.value.idDanhMuc) return [];
+        return listDanhMucChiTiet.value.filter(item => item.idDanhMucChiTiet === formData.value.idDanhMuc);
+    });
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                tenMonAn: '',
+                idDanhMuc: '',
+                idDanhMucChiTiet: '',
+                moTa: '',
+                giaBan: 0,
+                hinhAnh: '',
+                trangThaiKinhDoanh: 1
+            };
+        }
+    });
+
+    const handleSave = async() => {
+        try {
+            if (!formData.value.tenMonAn || !formData.value.idDanhMucChiTiet) {
+                alert("Vui lòng nhập tên món và chọn danh mục chi tiết!");
+                return;
+            }
+
+            // Gọi API Thêm mới (Example)
+            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
+            postNewFood(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        listDanhMuc,
+        filteredSubCategories,
+        handleSave
+    };
+}
+
+export function useHotpotAddModal(props, emit) {
+
+    const formData = ref({
+        tenSetLau: '',
+        idLoaiSet: '',
+        moTaChiTiet: '',
+        giaBan: 0,
+        moTa: '',
+        hinhAnh: '',
+        trangThai: 1
+    });
+
+    const listDanhMuc = ref([]);
+
+    function getAllCategoriesHotpot() {
+        getAllCategoryHotpot()
+            .then(async res => {
+                listDanhMuc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+
+    onMounted(() => {
+        getAllCategoriesHotpot();
+    })
+
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                tenSetLau: '',
+                idLoaiSet: '',
+                moTaChiTiet: '',
+                giaBan: 0,
+                moTa: '',
+                hinhAnh: '',
+                trangThai: 1
+            };
+        }
+    });
+
+    const handleSave = async() => {
+        try {
+            if (!formData.value.tenSetLau || !formData.value.idLoaiSet) {
+                alert("Vui lòng nhập tên set và chọn loại set chi tiết!");
+                return;
+            }
+
+            // Gọi API Thêm mới (Example)
+            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
+            postNewHotpot(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        listDanhMuc,
+        handleSave
+    };
+}
+
+export function useFoodDetailAddModal(props, emit) {
+
+    const formData = ref({
+        tenChiTietMonAn: '',
+        idMonAnDiKem: '',
+        moTaChiTiet: '',
+        giaBan: 0,
+        giaVon: 0,
+        kichCo: '',
+        donVi: '',
+        trangThai: 1
+    });
+
+    const listDanhMuc = ref([]);
+    const isParentLocked = ref(false);
+
+    function getAllFoodDetails() {
+        getAllFoodGeneral()
+            .then(async res => {
+                listDanhMuc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+
+
+    onMounted(() => {
+        getAllFoodDetails();
+        // alert(props.foodItem.id)
+    })
+
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                tenChiTietMonAn: '',
+                idMonAnDiKem: '',
+                moTaChiTiet: '',
+                giaBan: 0,
+                giaVon: 0,
+                kichCo: '',
+                donVi: '',
+                trangThai: 1
+            };
+
+            if (props.foodItem && props.foodItem.id) {
+                formData.value.idMonAnDiKem = props.foodItem.id;
+                isParentLocked.value = true;
+            } else {
+                isParentLocked.value = false;
+            }
+        }
+    }, { immediate: true });
+
+    const handleSave = async() => {
+        try {
+            if (!formData.value.tenChiTietMonAn || !formData.value.idMonAnDiKem) {
+                alert("Vui lòng nhập tên set và chọn loại set chi tiết!");
+                return;
+            }
+
+            await postNewFoodDetail(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        listDanhMuc,
+        isParentLocked,
+        handleSave
     };
 }

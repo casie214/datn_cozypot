@@ -1,19 +1,21 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useCategoryDetailModal } from '../screens/foodFunction'; 
+import { useFoodDetailModal } from '../screens/foodFunction'; 
 
 const props = defineProps({
   isOpen: Boolean,
   detailItem: Object
 });
 
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']); // Thêm refresh
 
 const { 
   formData, 
   listMonAn, 
   handleSave 
-} = useCategoryDetailModal(props, emit);
+} = useFoodDetailModal(props, emit);
+
+
 </script>
 
 <template>
@@ -21,7 +23,7 @@ const {
     <div class="modal-content">
       
       <div class="modal-header">
-        <h2>{{ detailItem ? 'Cập nhật chi tiết món' : 'Thêm chi tiết món mới' }}</h2>
+        <h2>Cập nhật chi tiết món</h2>
         <button class="btn-close" @click="emit('close')">✕</button>
       </div>
 
@@ -29,40 +31,53 @@ const {
         <div class="form-grid">
           
           <div class="form-group">
-            <label>Mã chi tiết <span class="required">*</span></label>
-            <input v-model="formData.ma" type="text" placeholder="VD: CCLA-11-15">
-          </div>
-          <div class="form-group">
-            <label>Tên chi tiết <span class="required">*</span></label>
-            <input v-model="formData.ten" type="text" placeholder="VD: Chai 1.5 L">
+            <label>Mã chi tiết</label>
+            <input v-model="formData.maChiTietMonAn" type="text" disabled style="background: #eee; cursor: not-allowed;">
           </div>
 
           <div class="form-group">
-            <label>Thuộc món ăn (FK)</label>
-            <select v-model="formData.monAnGoc" class="form-control">
-              <option value="">-- Chọn món ăn --</option>
-              <option v-for="mon in listMonAn" :key="mon.id" :value="mon.id">{{ mon.name }}</option>
+            <label>Tên chi tiết <span class="required">*</span></label>
+            <input v-model="formData.tenChiTietMonAn" type="text" placeholder="VD: Chai 1.5 L">
+          </div>
+
+          <div class="form-group">
+            <label>Thuộc món ăn</label>
+            <select v-model="formData.idMonAnDiKem" class="form-control">
+              <option value="" >-- Chọn món ăn --</option>
+              <option v-for="mon in listMonAn" :key="mon.id" :value="mon.id">
+                  {{ mon.tenMonAn || mon.name }}
+              </option>
             </select>
           </div>
+
           <div class="form-group">
             <label>Giá bán</label>
-            <input v-model="formData.gia" type="text" placeholder="VD: 18.000">
+            <input v-model.number="formData.giaBan" type="number" placeholder="VD: 18000">
+          </div>
+
+          <div class="form-group">
+            <label>Giá vốn</label>
+            <input v-model.number="formData.giaVon" type="number" placeholder="VD: 12000">
           </div>
 
           <div class="form-group">
             <label>Kích cỡ</label>
-            <input v-model="formData.kichCo" type="text" placeholder="VD: Lớn, Nhỏ, 1.5L">
-          </div>
-          <div class="form-group">
-            <label>Đơn vị tính</label>
-            <input v-model="formData.donVi" type="text" placeholder="VD: Chai, Lon, Đĩa">
+            <input v-model="formData.kichCo" type="text" placeholder="VD: Lớn, Nhỏ">
           </div>
 
-           <div class="form-group full-width">
+          <div class="form-group">
+            <label>Đơn vị tính</label>
+            <input v-model="formData.donVi" type="text" placeholder="VD: Chai, Lon">
+          </div>
+
+          <div class="form-group full-width">
             <label>Trạng thái kinh doanh</label>
              <div class="toggle-wrapper">
-                <span>{{ formData.trangThai ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
-                <div class="toggle-switch" :class="{ 'on': formData.trangThai }" @click="formData.trangThai = !formData.trangThai">
+                <span>{{ formData.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
+                
+                <div class="toggle-switch" 
+                     :class="{ 'on': formData.trangThai === 1 }" 
+                     @click="formData.trangThai = (formData.trangThai === 1 ? 0 : 1)">
                   <div class="toggle-knob"></div>
                 </div>
              </div>
@@ -74,7 +89,7 @@ const {
       <div class="modal-footer">
         <button class="btn-cancel" @click="emit('close')">Hủy</button>
         <button class="btn-confirm" @click="handleSave">
-          {{ detailItem ? 'Lưu thay đổi' : 'Thêm mới' }}
+          Lưu thay đổi
         </button>
       </div>
 

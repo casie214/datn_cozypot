@@ -1,21 +1,31 @@
 <script setup>
+import FoodDetailAddModal from '../../modal/FoodAddModals/FoodDetailAddModal.vue';
 import CategoryDetailModal from '../../modal/foodDetailModal.vue';
 
 import { useFoodDetailManager } from '../foodFunction';
 
-const { 
-  detailData, 
-  isModalOpen, 
-  selectedDetail, 
-  openAddModal, 
-  openEditModal, 
-  handleSaveData 
+const {
+  detailData,
+  isModalOpen,
+  isAddModalOpen,
+  selectedDetail,
+  openAddModal,
+  getAllFoodDetails,
+  openEditModal,
+  handleSaveData,
+  handleToggleStatus
 } = useFoodDetailManager();
+
+const handleRefreshList = () => {
+  setTimeout(() => {
+    getAllFoodDetails();
+  }, 500);
+};
 </script>
 
 <template>
   <div class="tab-content">
-    
+
     <div class="filter-box">
       <div class="filter-row">
         <div class="filter-item search">
@@ -25,15 +35,19 @@ const {
             <button class="search-btn">🔍</button>
           </div>
         </div>
-        <div class="filter-item"><label>Trạng thái</label><select><option>Tất cả</option></select></div>
-        <div class="filter-item"><label>Thuộc món ăn</label><select><option>Tất cả</option></select></div>
+        <div class="filter-item"><label>Trạng thái</label><select>
+            <option>Tất cả</option>
+          </select></div>
+        <div class="filter-item"><label>Thuộc món ăn</label><select>
+            <option>Tất cả</option>
+          </select></div>
       </div>
-      
+
     </div>
 
     <div class="action-row">
-        <button class="btn-add" @click="openAddModal">+ Thêm chi tiết món</button>
-      </div>
+      <button class="btn-add" @click="isAddModalOpen = true">+ Thêm chi tiết món</button>
+    </div>
 
     <div class="table-container">
       <table>
@@ -54,16 +68,19 @@ const {
           <tr v-for="(item, index) in detailData" :key="item.id">
             <td align="center">{{ index + 1 }}</td>
             <td>{{ item.maChiTietMonAn }}</td>
-            <td><b>{{ item.tenMonAn }}</b></td>
-            <td>{{ item.tenMonAn }}</td> <td style="color:#d32f2f; font-weight:bold">{{ item.giaBan }}</td>
+            <td><b>{{ item.tenChiTietMonAn }}</b></td>
+            <td>{{ item.tenMonAnDiKem }}</td>
+            <td style="color:#d32f2f; font-weight:bold">{{ item.giaBan }}</td>
             <td>{{ item.kichCo }}</td>
             <td>{{ item.donVi }}</td>
             <td :class="item.trangThai ? 'status-active' : 'status-inactive'">
-              {{ item.trangThai ? 'Đang hoạt động' : 'Ngưng' }}
+              {{ item.trangThai ? 'Đang hoạt động' : 'Ngưng bán' }}
             </td>
             <td class="actions">
               <button class="btn-icon" @click="openEditModal(item)">✏️</button>
-              <button class="btn-icon">🗑️</button>
+              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }" @click.stop="handleToggleStatus(item)">
+                <div class="toggle-knob"></div>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -71,26 +88,23 @@ const {
     </div>
 
     <div class="pagination">
-        <button>&lt;</button>
-        <button class="active">1</button>
-        <button>2</button>
-        <button>...</button>
-        <button>7</button>
-        <button>8</button>
-        <button>&gt;</button>
+      <button>&lt;</button>
+      <button class="active">1</button>
+      <button>2</button>
+      <button>...</button>
+      <button>7</button>
+      <button>8</button>
+      <button>&gt;</button>
     </div>
 
 
-    <CategoryDetailModal 
-      :isOpen="isModalOpen"
-      :detailItem="selectedDetail"
-      @close="isModalOpen = false"
-      @save="handleSaveData"
-    />
+    <CategoryDetailModal :isOpen="isModalOpen" :detailItem="selectedDetail" @close="isModalOpen = false"
+      @save="handleSaveData" @refresh="handleRefreshList" />
+
+    <FoodDetailAddModal v-if="isAddModalOpen" :isOpen="isAddModalOpen" @close="isAddModalOpen = false"
+      @refresh="handleRefreshList" />
 
   </div>
 </template>
 
-<style scoped src="../foodFragment/foodManager.css">
-
-</style>
+<style scoped src="../foodFragment/foodManager.css"></style>
