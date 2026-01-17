@@ -3,13 +3,13 @@ import { ref } from 'vue';
 
 const menuItems = [
     { name: 'Tổng quan', icon: "fa-solid fa-house" },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days" },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", active: true },
     { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping" },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check" },
     { name: 'Quản lý bàn', icon: "fa-solid fa-chair" },
     { name: 'Nhân viên', icon: "fa-solid fa-user" },
     { name: 'Khách hàng', icon: "fa-solid fa-users" }, 
-    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", active: true },
+    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", },
     { name: 'Danh mục', icon: "fa-solid fa-table-list" },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments" },
     { name: 'Khuyến mãi', icon: "fa-solid fa-tags" },
@@ -24,14 +24,15 @@ const menuItems = [
                 <span><img src="../assets/images/logo_upscaled.jpg" alt="" class="logo"></span>
             </div>
         </div>
-
-        <nav class="menu-list">
+    
+        <nav class="container menu-list">
+            <hr>
             <div v-for="(item, index) in menuItems" :key="index" class="menu-item" :class="{ 'active': item.active }">
                 
                 <i :class="item.icon" class="icon"></i>
                 
                 <span class="label">{{ item.name }}</span>
-                <span v-if="item.active" class="arrow">▼</span>
+                <span v-if="item.active" class="arrow"></span>
             </div>
         </nav>
     </aside>
@@ -41,6 +42,10 @@ const menuItems = [
 /* Import thư viện icon */
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
+hr {
+  border: 0;
+  border-top: 2px solid #7d1619; /* Chỉnh độ dày ở đây */
+}
 .sidebar {
     width: 250px;
     background-color: #fff;
@@ -57,11 +62,11 @@ const menuItems = [
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 30px;
+   
 }
 
 .logo-circle {
-    width: 10em;
+    width: 7em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -86,11 +91,13 @@ const menuItems = [
 
 .menu-item:hover {
     background-color: #f5f5f5;
+    border-radius: 15px;
 }
 
 .menu-item.active {
     background-color: #8B0000;
     color: white;
+    border-radius: 15px;
 }
 
 .icon {
