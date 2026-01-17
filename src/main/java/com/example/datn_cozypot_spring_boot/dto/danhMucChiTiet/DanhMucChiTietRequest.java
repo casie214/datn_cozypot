@@ -16,9 +16,6 @@ public class DanhMucChiTietRequest {
     @NotNull(message = "ID danh mục cha không được để trống")
     private Integer idDanhMuc; // Chỉ nhận ID của danh mục cha
 
-    @Size(max = 50, message = "Mã chi tiết không được quá 50 ký tự")
-    private String maDanhMucChiTiet;
-
     @NotBlank(message = "Tên danh mục chi tiết không được để trống")
     @Size(max = 100, message = "Tên danh mục chi tiết không được quá 100 ký tự")
     private String tenDanhMucChiTiet;

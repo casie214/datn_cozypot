@@ -1,7 +1,10 @@
 package com.example.datn_cozypot_spring_boot.service.implementation;
 
+import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
+import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
+import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
@@ -9,9 +12,7 @@ import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest
 import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
-import com.example.datn_cozypot_spring_boot.entity.ChiTietMonAn;
-import com.example.datn_cozypot_spring_boot.entity.MonAnDiKem;
-import com.example.datn_cozypot_spring_boot.entity.SetLau;
+import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.*;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import lombok.RequiredArgsConstructor;
@@ -91,10 +92,17 @@ public class MonAnServiceImplementation implements MonAnService {
 
     @Override
     public List<DanhMucChiTietResponse> findAllDanhMucChiTiet() {
-        return danhMucChiTietRepository
-                .findAll()
-                .stream()
-                .map(danhMucChiTiet -> modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class))
+        return danhMucChiTietRepository.findAll().stream()
+                .map(entity -> {
+                    DanhMucChiTietResponse response = modelMapper.map(entity, DanhMucChiTietResponse.class);
+                    response.setTenDanhMucChiTiet(entity.getTenDanhMucChiTiet());
+                    if (entity.getIdDanhMuc() != null) {
+                        response.setTenDanhMuc(entity.getIdDanhMuc().getTenDanhMuc());
+                    } else {
+                        response.setTenDanhMuc("---");
+                    }
+                    return response;
+                })
                 .toList();
     }
 
@@ -187,5 +195,72 @@ public class MonAnServiceImplementation implements MonAnService {
                     setLauRepository.save(setLau);
                     return modelMapper.map(setLau, SetLauResponse.class);
                 }).orElse(null);
+    }
+
+    @Override
+    public DanhMucResponse putDanhMuc(int id, DanhMucRequest request) {
+        return danhMucRepository.findById(id)
+                .map(danhMuc -> {
+                    danhMuc.setTenDanhMuc(request.getTenDanhMuc());
+                    danhMuc.setMoTa(request.getMoTa());
+                    danhMuc.setTrangThai(request.getTrangThai());
+                    danhMucRepository.save(danhMuc);
+                    return modelMapper.map(danhMuc, DanhMucResponse.class);
+                })
+                .orElse(null);
+    }
+
+    @Override
+    public DanhMucResponse addNewDanhMuc(DanhMucRequest request) {
+        DanhMuc danhMuc = modelMapper.map(request, DanhMuc.class);
+        danhMuc.setId(null);
+        danhMuc.setMaDanhMuc(null);
+        danhMucRepository.save(danhMuc);
+        return modelMapper.map(danhMuc, DanhMucResponse.class);
+    }
+
+    @Override
+    public LoaiLauResponse putLoaiLau(int id, LoaiLauRequest request) {
+        return loaiLauRepository.findById(id)
+                .map(loaiSetLau -> {
+                    loaiSetLau.setTenLoaiSet(request.getTenLoaiSet());
+                    loaiSetLau.setMoTa(request.getMoTa());
+                    loaiSetLau.setTrangThai(request.getTrangThai());
+                    loaiLauRepository.save(loaiSetLau);
+                    return modelMapper.map(loaiSetLau, LoaiLauResponse.class);
+                })
+                .orElse(null);
+    }
+
+    @Override
+    public LoaiLauResponse addNewLoaiLau(LoaiLauRequest request) {
+        LoaiSetLau loaiSetLau = modelMapper.map(request, LoaiSetLau.class);
+        loaiSetLau.setId(null);
+        loaiSetLau.setMaLoaiSet(null);
+        loaiLauRepository.save(loaiSetLau);
+        return modelMapper.map(loaiSetLau, LoaiLauResponse.class);
+    }
+
+    @Override
+    public DanhMucChiTietResponse putDanhMucChiTiet(int id, DanhMucChiTietRequest request) {
+        return danhMucChiTietRepository.findById(id)
+                .map(danhMucChiTiet -> {
+                    danhMucChiTiet.setIdDanhMuc(danhMucRepository.findById(request.getIdDanhMuc()).get());
+                    danhMucChiTiet.setTenDanhMucChiTiet(request.getTenDanhMucChiTiet());
+                    danhMucChiTiet.setMoTa(request.getMoTa());
+                    danhMucChiTiet.setTrangThai(request.getTrangThai());
+                    danhMucChiTietRepository.save(danhMucChiTiet);
+                    return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
+                })
+                .orElse(null);
+    }
+
+    @Override
+    public DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request) {
+        DanhMucChiTiet danhMucChiTiet = modelMapper.map(request, DanhMucChiTiet.class);
+        danhMucChiTiet.setId(null);
+        danhMucChiTiet.setMaDanhMucChiTiet(null);
+        danhMucChiTietRepository.save(danhMucChiTiet);
+        return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
     }
 }

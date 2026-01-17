@@ -9,10 +9,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class LoaiLauRequest {
-    @NotBlank(message = "Mã loại set không được để trống")
-    @Size(max = 50, message = "Mã loại set không được quá 50 ký tự")
-    private String maLoaiSet;
-
     @NotBlank(message = "Tên loại set không được để trống")
     @Size(max = 100, message = "Tên loại set không được quá 100 ký tự")
     private String tenLoaiSet;

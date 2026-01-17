@@ -9,9 +9,6 @@ import lombok.Setter;
 @Setter
 public class DanhMucRequest {
 
-    @Size(max = 50, message = "Mã danh mục không được quá 50 ký tự")
-    private String maDanhMuc;
-
     @NotBlank(message = "Tên danh mục không được để trống")
     @Size(max = 100, message = "Tên danh mục không được quá 100 ký tự")
     private String tenDanhMuc;

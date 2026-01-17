@@ -1,7 +1,10 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
+import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
+import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
@@ -42,4 +45,16 @@ public interface MonAnService {
     MonAnResponse putMonAn(int id, MonAnRequest request);
 
     SetLauResponse putLau(int id, SetLauRequest request);
+
+    DanhMucResponse putDanhMuc(int id, DanhMucRequest request);
+
+    DanhMucResponse addNewDanhMuc(DanhMucRequest request);
+
+    LoaiLauResponse putLoaiLau(int id, LoaiLauRequest request);
+
+    LoaiLauResponse addNewLoaiLau(LoaiLauRequest request);
+
+    DanhMucChiTietResponse putDanhMucChiTiet(int id, DanhMucChiTietRequest request);
+
+    DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request);
 }
