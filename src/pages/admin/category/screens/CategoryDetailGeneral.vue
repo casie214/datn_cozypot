@@ -1,8 +1,7 @@
 <script setup>
 import { useCategoryDetailManager } from '../../../../services/foodFunction';
-import CategoryDetailAddModal from '../../modal/FoodAddModals/CategoryDetailAddModal.vue';
-import CategoryDetailPutModal from '../../modal/FoodUpdateModals/CategoryDetailPutModal.vue';
-import CategoryPutModal from '../../modal/FoodUpdateModals/CategoryPutModal.vue';
+import CategoryDetailAddModal from '../modal/addModal/CategoryDetailAddModal.vue';
+import CategoryDetailPutModal from '../modal/updateModal/CategoryDetailPutModal.vue';
 
 const { detailData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategoriesDetail } = useCategoryDetailManager();
 
@@ -110,4 +109,4 @@ const handleRefreshList = () => {
     </div>
 </template>
 
-<style scoped src="../foodFragment/foodManager.css"></style>
+<style scoped src="/src/assets/foodManager.css"></style>

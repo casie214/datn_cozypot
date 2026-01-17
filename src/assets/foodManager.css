@@ -361,3 +361,21 @@ td {
   from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+.pagination button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
+}
+
+.pagination button.dots {
+    border: none;
+    background: transparent;
+    cursor: default;
+}
+
+.pagination button.active {
+    background-color: #B91C1C; /* Màu đỏ chủ đạo của bạn */
+    color: white;
+    border-color: #B91C1C;
+}

@@ -1,6 +1,6 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useFoodDetailModal } from '../../../../services/foodFunction'; 
+import { useFoodDetailModal } from '../../../../../services/foodFunction'; 
 
 const props = defineProps({
   isOpen: Boolean,
@@ -97,5 +97,5 @@ const {
   </div>
 </template>
 
-<style scoped>
+<style scoped src="/src/assets/foodModalManager.css">
 </style>

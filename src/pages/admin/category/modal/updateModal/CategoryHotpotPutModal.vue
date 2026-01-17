@@ -1,34 +1,44 @@
 <script setup>
+import { useCategoryHotpotPutModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
-import { useCategoryAddModal} from '../../../../services/foodFunction';
 
-const props = defineProps(['isOpen', 'formData']);
+const props = defineProps({
+  isOpen: Boolean,
+  itemList: Object
+});
 const emit = defineEmits(['close', 'save']);
 
-const { 
-  formData, 
-  handleSave 
-} = useCategoryAddModal(props, emit);
+const {
+    formData,
+    handleSave,
+    closeModal
+} = useCategoryHotpotPutModal(props, emit);
 </script>
 
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Thêm Danh Mục Mới</h2>
+        <h2>Cập Nhật Loại Set</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
       <div class="modal-body">
         <div class="form-container">
+            
             <div class="form-group full-width">
-                <label>Tên danh mục <span class="required">*</span></label>
-                <input v-model="formData.tenDanhMuc" type="text" placeholder="Nhập tên danh mục...">
+                <label>Mã loại</label>
+                <input :value="formData.maLoaiSet" type="text" disabled style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
+            </div>
+
+            <div class="form-group full-width">
+                <label>Tên loại set <span class="required">*</span></label>
+                <input v-model="formData.tenLoaiSet" type="text">
             </div>
 
             <div class="form-group full-width">
                 <label>Mô tả</label>
-                <textarea v-model="formData.moTa" rows="3" placeholder="Nhập mô tả..."></textarea>
+                <textarea v-model="formData.moTa" rows="3"></textarea>
             </div>
 
             <div class="form-group full-width">
@@ -46,12 +56,12 @@ const {
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" @click="$emit('close')">Hủy</button>
-        <button class="btn-confirm" @click="handleSave">Thêm mới</button>
+        <button class="btn-cancel" @click="closeModal">Hủy</button>
+        <button class="btn-confirm" @click="handleSave">Lưu thay đổi</button>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped src="../foodModalManager.css">
+<style scoped src="/src/assets/foodModalManager.css">
 </style>
