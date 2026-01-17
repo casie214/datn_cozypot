@@ -1,18 +1,21 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.DotKhuyenMaiDTO;
+import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
 import com.example.datn_cozypot_spring_boot.service.DotKhuyenMaiService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/dot-khuyen-mai")
 
-public class DotKhuyenMaiController {
+ public class DotKhuyenMaiController {
     @Autowired
     private DotKhuyenMaiService dotKhuyenMaiService;
 
@@ -49,13 +52,24 @@ public class DotKhuyenMaiController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<DotKhuyenMaiDTO>> search(
+    public ResponseEntity<?> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) Integer type
+            @RequestParam(required = false) Integer type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
     ) {
-        return ResponseEntity.ok(
-                dotKhuyenMaiService.search(keyword, status, type)
-        );
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(dotKhuyenMaiService.search(keyword, status, type, pageable));
+    }
+    @GetMapping("/active")
+    public ResponseEntity<?> getActive() {
+        return ResponseEntity.ok(dotKhuyenMaiService.getActivePromotion());
+    }
+
+    @GetMapping("/active-list")
+    public ResponseEntity<?> getActiveList() {
+        // Giả sử bạn có hàm tìm các đợt đang hoạt động (trangThai = 1)
+        return ResponseEntity.ok(dotKhuyenMaiService.getActiveListForCombo());
     }
 }

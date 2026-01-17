@@ -4,11 +4,15 @@ import com.example.datn_cozypot_spring_boot.dto.PhieuGiamGiaDTO;
 import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/phieu-giam-gia")
+@CrossOrigin(origins = "*")
+
 public class PhieuKhuyenMaiController {
     @Autowired
     private PhieuGiamGiaService service;
@@ -20,9 +24,13 @@ public class PhieuKhuyenMaiController {
 
     @GetMapping("/search")
     public ResponseEntity<?> search(
-            @RequestParam(required = false) String ten,
-            @RequestParam(required = false) Integer trangThai) {
-        return ResponseEntity.ok(service.searchAdvanced(ten, trangThai));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(service.searchAdvanced(keyword, status, pageable));
     }
 
     @PostMapping("/create")

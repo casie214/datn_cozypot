@@ -21,6 +21,8 @@ public class PhieuGiamGiaDTO {
     @NotNull(message = "Phải chọn đợt khuyến mãi")
     private Integer idDotKhuyenMai;
 
+    private String tenDotKhuyenMai;
+
     @NotBlank(message = "Code giảm giá không được để trống")
     @Size(max = 50, message = "Code giảm giá tối đa 50 ký tự")
     private String codeGiamGia;
