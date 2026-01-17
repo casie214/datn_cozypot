@@ -72,13 +72,6 @@ const getIconClass = (type) => {
                         </span>
                     </div>
 
-                    <div v-if="event.detail" class="card-body">
-                        <div class="divider"></div>
-                        <div class="detail-item">
-                            🍴 {{ event.detail }}
-                        </div>
-                    </div>
-
                     <div class="card-footer">
                         Đơn hàng: {{ event.orderCode }}
                     </div>
