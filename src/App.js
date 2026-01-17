@@ -2,22 +2,29 @@ import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
     {
-        path: "/manage/food",
-        name: "foodManager",
-        component: () =>
-            import ("../src/pages/employee/screens/foodManager.vue")
+        path: "/",
+        redirect: "/manage/food"
     },
     {
-        path: "/manage/category",
-        name: "categoryManager",
-        component: () =>
-            import ("../src/pages/employee/screens/categoryManager.vue")
+        path: "/manage/food",
+        name: "foodManager",
+        component: () => import("@/pages/employee/screens/foodManager.vue")
+    },
+    {
+        path: "/admin/staff",
+        name: "staffManager",
+        component: () => import("@/pages/admin/staff/screens/staffManager.vue")
+    },
+    // SỬA TẠI ĐÂY: Đổi path thành /admin/client cho đồng bộ với thư mục
+    {
+        path: "/admin/client", 
+        name: "clientManager",
+        component: () => import("@/pages/admin/client/screens/clientManager.vue")
     },
     {
         path: "/test",
         name: "test",
-        component: () =>
-            import ("./components/testConnection.vue")
+        component: () => import("@/components/testConnection.vue")
     },
 ];
 

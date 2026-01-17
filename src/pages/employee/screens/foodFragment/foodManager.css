@@ -116,7 +116,7 @@
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    min-width: 200px;
+    min-width: 120px;
 }
 
 .input-group {
@@ -150,7 +150,7 @@
 .action-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 0px;
+    margin-top: 15px;
     margin-bottom: 15px;
 }
 
