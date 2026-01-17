@@ -1,7 +1,7 @@
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
-import { useFoodModal } from '../screens/foodFunction';
-import FoodDetailAddModal from './FoodAddModals/FoodDetailAddModal.vue';
+import { useFoodModal } from '../../../../services/foodFunction';
+import FoodDetailAddModal from '../FoodAddModals/FoodDetailAddModal.vue';
 
 const props = defineProps({
   isOpen: Boolean,

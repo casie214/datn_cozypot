@@ -1,8 +1,8 @@
 <script setup>
 import FoodDetailAddModal from '../../modal/FoodAddModals/FoodDetailAddModal.vue';
-import CategoryDetailModal from '../../modal/foodDetailModal.vue';
+import CategoryDetailModal from '../../modal/FoodUpdateModals/foodDetailModal.vue';
 
-import { useFoodDetailManager } from '../foodFunction';
+import { useFoodDetailManager } from '../../../../services/foodFunction';
 
 const {
   detailData,

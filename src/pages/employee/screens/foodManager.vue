@@ -1,6 +1,6 @@
 <script setup>
 import Sidebar from '../../../components/sidebar.vue';
-import { useTabManager } from './foodFunction';
+import { useTabManager } from '../../../services/foodFunction';
 
 const { currentTabName, currentComponent, changeTab } = useTabManager();
 </script>

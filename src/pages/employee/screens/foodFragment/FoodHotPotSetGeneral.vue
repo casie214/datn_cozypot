@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-import { useHotpotManager } from '../foodFunction';
-import FoodHotpotModal from '../../modal/foodHotpotModal.vue';
+import { useHotpotManager } from '../../../../services/foodFunction';
+import FoodHotpotModal from '../../modal/FoodUpdateModals/foodHotpotModal.vue';
 import FoodHotpotAddModal from '../../modal/FoodAddModals/FoodHotpotAddModal.vue';
 
 const {

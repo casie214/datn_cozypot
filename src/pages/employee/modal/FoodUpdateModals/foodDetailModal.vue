@@ -1,6 +1,6 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useFoodDetailModal } from '../screens/foodFunction'; 
+import { useFoodDetailModal } from '../../../../services/foodFunction'; 
 
 const props = defineProps({
   isOpen: Boolean,

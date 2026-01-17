@@ -1,12 +1,12 @@
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 
-import MenuFood from '../screens/foodFragment/FoodManageGeneral.vue';
-import MenuHotpot from '../screens/foodFragment/FoodHotPotSetGeneral.vue';
-import FoodDetailManageGeneral from '../screens/foodFragment/FoodDetailManageGeneral.vue';
+import MenuFood from '../pages/employee/screens/foodFragment/FoodManageGeneral.vue';
+import MenuHotpot from '../pages/employee/screens/foodFragment/FoodHotPotSetGeneral.vue';
+import FoodDetailManageGeneral from '../pages/employee/screens/foodFragment/FoodDetailManageGeneral.vue';
 import axios from 'axios';
-import CategoryGeneral from './foodFragment/CategoryGeneral.vue';
-import CategoryDetailGeneral from './foodFragment/CategoryDetailGeneral.vue';
-import CategoryHotpotGeneral from './foodFragment/CategoryHotpotGeneral.vue';
+import CategoryGeneral from '../pages/employee/screens/foodFragment/CategoryGeneral.vue';
+import CategoryDetailGeneral from '../pages/employee/screens/foodFragment/CategoryDetailGeneral.vue';
+import CategoryHotpotGeneral from '../pages/employee/screens/foodFragment/CategoryHotpotGeneral.vue';
 const API_BASE_EMPLOYEE = "http://localhost:8080/api/manage";
 
 export function getAllFoodGeneral() {
@@ -53,12 +53,40 @@ export function postNewHotpot(data) {
     return axios.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
 }
 
+export function putNewCategory(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
+}
+
 export function postNewFoodDetail(data) {
     return axios.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
 }
 export function putNewHotpot(id, data) {
     return axios.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
 }
+export function postNewCategory(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/category`, data);
+}
+
+export function putNewHotpotCategory(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
+}
+
+export function putCategoryDetail(id, data) {
+    return axios.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
+}
+
+export function postCategoryDetail(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+}
+
+export function postNewCategoryDetail(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+}
+
+export function postNewHotpotCategory(data) {
+    return axios.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
+}
+
 
 
 //Trang chính food manager
@@ -584,18 +612,44 @@ export function useCategoryManager() {
     })
 
     const isModalOpen = ref(false);
+
+    const isModalUpdateOpen = ref(false);
+
     const selectedItem = ref(null);
 
     const openModal = (item = null) => {
         selectedItem.value = item;
-        isModalOpen.value = true;
+        isModalUpdateOpen.value = true;
+    };
+
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThai;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThai = newStatus;
+        try {
+            const payload = {
+                tenDanhMuc: item.tenDanhMuc,
+                moTa: item.moTa || "",
+                trangThai: newStatus
+            };
+            console.log(payload);
+            console.log(item.id);
+            await putNewCategory(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
     };
 
     return {
         categoryData,
         isModalOpen,
+        isModalUpdateOpen,
         selectedItem,
-        openModal
+        openModal,
+        getAllCategories,
+        handleToggleStatus
     };
 }
 
@@ -616,18 +670,38 @@ export function useCategoryDetailManager() {
     })
 
     const isModalOpen = ref(false);
+    const isModalUpdateOpen = ref(false);
     const selectedItem = ref(null);
 
     const openModal = (item = null) => {
         selectedItem.value = item;
-        isModalOpen.value = true;
+        isModalUpdateOpen.value = true;
+    };
+
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThai;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThai = newStatus;
+        try {
+            const payload = {...item, trangThai: newStatus };
+            console.log(payload);
+            console.log(item.id);
+            await putCategoryDetail(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
     };
 
     return {
         detailData,
         isModalOpen,
+        isModalUpdateOpen,
         selectedItem,
-        openModal
+        openModal,
+        handleToggleStatus,
+        getAllCategoriesDetail
     };
 }
 
@@ -648,18 +722,41 @@ export function useHotpotSetTypeManager() {
     })
 
     const isModalOpen = ref(false);
+
+    const isModalUpdateOpen = ref(false);
+
     const selectedItem = ref(null);
 
     const openModal = (item = null) => {
         selectedItem.value = item;
-        isModalOpen.value = true;
+        isModalUpdateOpen.value = true;
     };
+
+    const handleToggleStatus = async(item) => {
+        const oldStatus = item.trangThai;
+        const newStatus = oldStatus === 1 ? 0 : 1;
+        item.trangThai = newStatus;
+        try {
+            const payload = {...item, trangThai: newStatus };
+            console.log(payload);
+            console.log(item.id);
+            await putNewHotpotCategory(item.id, payload);
+
+        } catch (error) {
+            console.error("Lỗi: ", error);
+            item.trangThai = oldStatus;
+        }
+    };
+
 
     return {
         hotpotTypeData,
         isModalOpen,
+        isModalUpdateOpen,
         selectedItem,
-        openModal
+        openModal,
+        handleToggleStatus,
+        getAllHotpotType
     };
 }
 
@@ -794,11 +891,8 @@ export function useHotpotAddModal(props, emit) {
 
     const handleSave = async() => {
         try {
-            if (!formData.value.tenSetLau || !formData.value.idLoaiSet) {
-                alert("Vui lòng nhập tên set và chọn loại set chi tiết!");
-                return;
-            }
 
+            console.log(formData.value);
             // Gọi API Thêm mới (Example)
             // await axios.post('http://localhost:8080/api/manage/food', formData.value);
             postNewHotpot(formData.value);
@@ -898,5 +992,299 @@ export function useFoodDetailAddModal(props, emit) {
         listDanhMuc,
         isParentLocked,
         handleSave
+    };
+}
+
+export function useCategoryAddModal(props, emit) {
+
+    const formData = ref({
+        tenDanhMuc: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                tenDanhMuc: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    });
+
+    const handleSave = async() => {
+        try {
+            // Gọi API Thêm mới (Example)
+            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
+            postNewCategory(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        handleSave
+    };
+}
+
+export function useCategoryPutModal(props, emit) {
+
+    const formData = ref({
+        tenDanhMuc: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+    watch(() => props.itemList, (newItem) => {
+        if (newItem) {
+            formData.value = {...newItem };
+        } else {
+            formData.value = {
+                tenDanhMuc: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    }, { immediate: true });
+
+    const handleSave = async() => {
+        try {
+            await putNewCategory(formData.value.id, formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    const closeModal = () => {
+        emit('close');
+    };
+
+    return {
+        formData,
+        handleSave,
+        closeModal
+    };
+}
+
+export function useCategoryHotpotPutModal(props, emit) {
+
+    const formData = ref({
+        tenLoaiSet: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+    watch(() => props.itemList, (newItem) => {
+        if (newItem) {
+            formData.value = {...newItem };
+        } else {
+            formData.value = {
+                tenLoaiSet: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    }, { immediate: true });
+
+    const handleSave = async() => {
+        try {
+            await putNewHotpotCategory(formData.value.id, formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    const closeModal = () => {
+        emit('close');
+    };
+
+    return {
+        formData,
+        handleSave,
+        closeModal
+    };
+}
+
+
+export function useHotpotCategoryAddModal(props, emit) {
+
+    const formData = ref({
+        tenLoaiSet: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                tenLoaiSet: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    });
+
+    const handleSave = async() => {
+        try {
+            // Gọi API Thêm mới (Example)
+            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
+            postNewHotpotCategory(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        handleSave
+    };
+}
+
+export function useCategoryDetailAddModal(props, emit) {
+
+    const listDanhMucGoc = ref([]);
+
+    function getAllCategories() {
+        getAllCategory()
+            .then(async res => {
+                listDanhMucGoc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+    onMounted(() => {
+        getAllCategories();
+    })
+
+    const formData = ref({
+        idDanhMuc: '',
+        tenDanhMucChiTiet: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+
+    watch(() => props.isOpen, (val) => {
+        if (val) {
+            formData.value = {
+                idDanhMuc: '',
+                tenDanhMucChiTiet: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    });
+
+    const handleSave = async() => {
+        try {
+            // Gọi API Thêm mới (Example)
+            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
+            postNewCategoryDetail(formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    return {
+        formData,
+        handleSave,
+        listDanhMucGoc
+    };
+}
+
+export function useCategoryDetailPutModal(props, emit) {
+
+    const listDanhMucGoc = ref([]);
+
+    function getAllCategories() {
+        getAllCategory()
+            .then(async res => {
+                listDanhMucGoc.value = res.data;
+                await nextTick();
+            })
+            .catch(console.error);
+    }
+    onMounted(() => {
+        getAllCategories();
+    })
+
+    const formData = ref({
+        idDanhMuc: '',
+        tenDanhMucChiTiet: '',
+        moTa: '',
+        trangThai: 1
+    });
+
+    watch(() => props.itemList, (newItem) => {
+        if (newItem) {
+            formData.value = {...newItem };
+        } else {
+            formData.value = {
+                idDanhMuc: '',
+                tenDanhMucChiTiet: '',
+                moTa: '',
+                trangThai: 1
+            };
+        }
+    }, { immediate: true });
+
+    const handleSave = async() => {
+        try {
+            await putCategoryDetail(formData.value.id, formData.value);
+
+            console.log("Dữ liệu thêm mới:", formData.value);
+
+            emit('refresh');
+            emit('close');
+        } catch (e) {
+            console.error("Lỗi thêm món ăn:", e);
+            alert("Đã xảy ra lỗi khi thêm mới!");
+        }
+    };
+
+    const closeModal = () => {
+        emit('close');
+    };
+
+    return {
+        formData,
+        handleSave,
+        closeModal,
+        listDanhMucGoc
     };
 }

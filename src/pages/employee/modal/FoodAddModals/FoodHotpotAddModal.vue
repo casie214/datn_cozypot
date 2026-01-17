@@ -1,6 +1,6 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useHotpotAddModal } from '../../screens/foodFunction'; 
+import { useHotpotAddModal } from '../../../../services/foodFunction'; 
 
 const props = defineProps({
   isOpen: Boolean
@@ -35,7 +35,7 @@ const {
                 </div>
                 <div class="form-group">
                     <label>Loại Set <span class="required">*</span></label>
-                    <select v-model="formData.tenMonAn" class="form-control">
+                    <select v-model="formData.idLoaiSet" class="form-control">
                         <option value="">-- Chọn loại set --</option>
                         <option v-for="item in listDanhMuc" :key="item.id" :value="item.id">
                             {{ item.tenLoaiSet || item.ten }}
@@ -91,5 +91,5 @@ const {
   </div>
 </template>
 
-<style scoped src="../foodModalManager.css">
+<style scoped src="../../modal/foodModalManager.css">
 </style>
