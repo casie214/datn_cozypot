@@ -1,0 +1,212 @@
+:root {
+  --primary-red: #7B121C; /* Đỏ đô chuẩn */
+  --dark-red: #600000;
+  --bg-light: #F8F9FA;
+  --white: #ffffff;
+}
+
+.app-content{
+  background-color: white;
+}
+
+
+
+
+.title-page {
+  color: var(--primary-red);
+  font-weight: 700;
+  font-size: 26px;
+  margin-bottom: 25px;
+}
+
+.custom-table{
+    border: 1px solid #d0cece; 
+
+}
+
+.filter-card {
+  background: var(--white);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 30px;
+  /* Giữ viền xám nhẹ của bạn */
+  border: 1px solid #d0cece; 
+ 
+box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.custom-input {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  color: gray;
+}
+
+/* Nút bấm */
+.btn-red-dark {
+  background-color: var(--dark-red);
+  color: white !important;
+  border-radius: 8px;
+  padding: 8px 20px;
+  border: none;
+  font-size: 14px;
+}
+
+.btn-red-dark:hover {
+  background-color: var(--primary-red);
+  
+font-weight: bold;
+}
+
+/* Table styling */
+.table-container {
+  background: var(--white);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.custom-table thead {
+  background-color: var(--primary-red);
+  color: white;
+}
+
+.custom-table th {
+  padding: 15px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  text-transform: uppercase;
+}
+
+.custom-table td {
+  padding: 15px;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+/* Switch & Eye icon */
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.eye-icon {
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* Phân trang tròn */
+.pagination-custom .page-link {
+  border: 1px solid #eee;
+  color: #333;
+  margin: 0 5px;
+  border-radius: 50% !important;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-custom .active .page-link {
+  background-color: var(--primary-red) !important;
+  border-color: var(--primary-red) !important;
+  color: white !important;
+}
+
+/* Bổ sung vào staffStyle.css */
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap; /* Giúp bảng to ra, không bị xuống dòng chữ */
+}
+
+.custom-table th {
+  background-color: var(--primary-red) !important;
+  color: #fff !important;
+  text-align: center;
+  font-size: 12px; /* Chữ nhỏ lại một chút cho chuyên nghiệp */
+}
+
+.custom-table td {
+  text-align: center;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Định dạng icon trong cột Chi tiết */
+.action-group {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  color: #333;
+}
+
+.eye-icon, .edit-icon {
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 0.2s;
+}
+
+.eye-icon:hover {
+  color: var(--primary-red);
+}
+
+.edit-icon:hover {
+  color: var(--primary-red);
+}
+
+/* Xử lý cho bảng to ra trong vùng chứa */
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* Cho phép cuộn ngang nếu màn hình quá nhỏ */
+  background: #fff;
+  border-radius: 8px;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+/* Làm mờ icon sửa khi bị khóa */
+.disabled-icon {
+    color: #ccc !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
+.action-group i {
+    margin: 0 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Màu sắc icon */
+.lock-icon:hover { color: gray !important; transform: scale(1.2); }
+.unlock-icon:hover { color: #7B121C !important; transform: scale(1.2); }
+
+.lock-icon { color: gray !important }
+.unlock-icon { color: #7B121C !important}
+
+
+/* Style cho dòng bị khóa nếu bạn muốn dòng đó tối hơn một chút */
+.row-locked {
+    background-color: #f9f9f9;
+    color: #888;
+}
+.status-active{
+   color:black; 
+   font-weight: normal;
+}
