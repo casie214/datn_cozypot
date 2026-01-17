@@ -1,7 +1,10 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
+import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
+import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
+import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
@@ -96,5 +99,35 @@ public class MonAnController {
     @PutMapping("/hotpotGeneral/{id}")
     public ResponseEntity<SetLauResponse> putLau(@PathVariable("id") int id, @RequestBody @Valid SetLauRequest request){
         return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.putLau(id ,request));
+    }
+
+    @PutMapping("/category/{id}")
+    public ResponseEntity<DanhMucResponse> putDanhMuc(@PathVariable("id") int id, @RequestBody DanhMucRequest request){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.putDanhMuc(id, request));
+    }
+
+    @PostMapping("/category")
+    public ResponseEntity<DanhMucResponse> addNewDanhMuc(@RequestBody @Valid DanhMucRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.addNewDanhMuc(request));
+    }
+
+    @PutMapping("/category/hotpotType/{id}")
+    public ResponseEntity<LoaiLauResponse> putLoaiLau(@PathVariable("id") int id, @RequestBody @Valid LoaiLauRequest request){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.putLoaiLau(id, request));
+    }
+
+    @PostMapping("/category/hotpotType")
+    public ResponseEntity<LoaiLauResponse> postNewLoaiLau(@RequestBody @Valid LoaiLauRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.addNewLoaiLau(request));
+    }
+
+    @PutMapping("/category/detail/{id}")
+    public ResponseEntity<DanhMucChiTietResponse> putDanhMucChiTiet(@PathVariable("id") int id, @RequestBody @Valid DanhMucChiTietRequest request){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.putDanhMucChiTiet(id, request));
+    }
+
+    @PostMapping("/category/detail")
+    public ResponseEntity<DanhMucChiTietResponse> postNewDanhMucChiTiet(@RequestBody @Valid DanhMucChiTietRequest request){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.addNewDanhMucChiTiet(request));
     }
 }

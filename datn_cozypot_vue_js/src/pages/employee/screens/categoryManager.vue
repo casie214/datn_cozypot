@@ -1,5 +1,5 @@
 <script setup>
-import { useCategoryTabManager } from '../screens/foodFunction';
+import { useCategoryTabManager } from '../../../services/foodFunction';
 
 const { currentTabName, currentComponent, changeTab } = useCategoryTabManager();
 </script>

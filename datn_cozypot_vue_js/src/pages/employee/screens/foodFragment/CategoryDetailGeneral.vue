@@ -1,7 +1,16 @@
 <script setup>
-import { useCategoryDetailManager } from '../foodFunction';
+import { useCategoryDetailManager } from '../../../../services/foodFunction';
+import CategoryDetailAddModal from '../../modal/FoodAddModals/CategoryDetailAddModal.vue';
+import CategoryDetailPutModal from '../../modal/FoodUpdateModals/CategoryDetailPutModal.vue';
+import CategoryPutModal from '../../modal/FoodUpdateModals/CategoryPutModal.vue';
 
-const { detailData, isModalOpen, selectedItem, openModal } = useCategoryDetailManager();
+const { detailData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategoriesDetail } = useCategoryDetailManager();
+
+const handleRefreshList = () => {
+    setTimeout(() => {
+        getAllCategoriesDetail();
+    }, 500);
+};
 </script>
 
 <template>
@@ -44,7 +53,7 @@ const { detailData, isModalOpen, selectedItem, openModal } = useCategoryDetailMa
     </div>
 
     <div class="action-row" style="margin-left: auto;">
-             <button class="btn-add" @click="openModal(null)">+ Thêm chi tiết</button>
+             <button class="btn-add" @click="isModalOpen = true">+ Thêm chi tiết</button>
     </div>
 
     <div class="table-container">
@@ -67,20 +76,37 @@ const { detailData, isModalOpen, selectedItem, openModal } = useCategoryDetailMa
             <td><b>{{ item.tenDanhMucChiTiet }}</b></td>
             <td style="color: #8B0000; font-weight: 500;">{{ item.tenDanhMuc }}</td>
             <td>{{ item.moTa }}</td>
-            <td :class="item.trangThai === 0 ? 'status-active' : 'status-inactive'">
-               {{ item.trangthai === 0 ? 'Hoạt động' : 'Ngưng' }}
+            <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
+              {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
             <td class="actions">
-               <button class="btn-icon" @click="openModal(item)">✏️</button>
-               <div class="toggle-switch" :class="{ 'on': item.trangthai === 1 }">
-                  <div class="toggle-knob"></div>
-               </div>
+              <button class="btn-icon" @click="openModal(item)">✏️</button>
+              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }"
+                            @click.stop="handleToggleStatus(item)">
+                            <div class="toggle-knob"></div>
+                        </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <CategoryDetailAddModal 
+            :isOpen="isModalOpen" 
+            :formData="addFormData" 
+            @close="isModalOpen = false" 
+            @save="handleAdd" 
+            @refresh="handleRefreshList"
+        />
+
+    <CategoryDetailPutModal 
+            :isOpen="isModalUpdateOpen" 
+            :formData="addFormData" 
+            :itemList="selectedItem"
+            @close="isModalUpdateOpen = false" 
+            @save="handleAdd" 
+            @refresh="handleRefreshList"
+        />
     </div>
 </template>
 

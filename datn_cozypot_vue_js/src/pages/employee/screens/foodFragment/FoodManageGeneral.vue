@@ -1,8 +1,8 @@
 <script setup>
 import { Alert } from 'bootstrap/dist/js/bootstrap.bundle.min';
-import foodModal from '../../modal/foodModal.vue';
+import foodModal from '../../modal/FoodUpdateModals/foodModal.vue';
 
-import { useFoodManager } from '../foodFunction';
+import { useFoodManager } from '../../../../services/foodFunction';
 import FoodAddModal from '../../modal/FoodAddModals/FoodAddModal.vue';
 
 const {
