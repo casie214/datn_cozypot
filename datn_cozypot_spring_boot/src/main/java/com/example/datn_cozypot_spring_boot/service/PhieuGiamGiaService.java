@@ -6,6 +6,8 @@ import com.example.datn_cozypot_spring_boot.entity.PhieuGiamGia;
 import com.example.datn_cozypot_spring_boot.repository.DotKhuyenMaiRepo;
 import com.example.datn_cozypot_spring_boot.repository.PhieuGiamGiaRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -67,89 +69,69 @@ public class PhieuGiamGiaService {
             }
         }
 
-        private void mapData(PhieuGiamGiaDTO dto, PhieuGiamGia entity) {
+    private void mapData(PhieuGiamGiaDTO dto, PhieuGiamGia entity) {
+        entity.setTenPhieuGiamGia(dto.getTenPhieuGiamGia().trim());
+        entity.setCodeGiamGia(dto.getCodeGiamGia().trim().toUpperCase()); // Thường code nên viết hoa
+        entity.setLoaiGiamGia(dto.getLoaiGiamGia());
+        entity.setGiaTriGiam(dto.getGiaTriGiam());
 
-            entity.setTenPhieuGiamGia(dto.getTenPhieuGiamGia().trim());
+        entity.setGiaTriGiamToiDa(dto.getGiaTriGiamToiDa() != null ? dto.getGiaTriGiamToiDa() : BigDecimal.ZERO);
+        entity.setDonHangToiThieu(dto.getDonHangToiThieu() != null ? dto.getDonHangToiThieu() : BigDecimal.ZERO);
 
-            entity.setCodeGiamGia(dto.getCodeGiamGia());
+        entity.setNgayBatDau(dto.getNgayBatDau());
+        entity.setNgayKetThuc(dto.getNgayKetThuc());
+        entity.setSoLuongPhatHanh(dto.getSoLuongPhatHanh());
+        entity.setTrangThai(dto.getTrangThai());
 
-            entity.setLoaiGiamGia(dto.getLoaiGiamGia());
-            entity.setGiaTriGiam(dto.getGiaTriGiam());
-
-            entity.setGiaTriGiamToiDa(
-                    dto.getGiaTriGiamToiDa() != null
-                            ? dto.getGiaTriGiamToiDa()
-                            : BigDecimal.ZERO
-            );
-
-            entity.setDonHangToiThieu(
-                    dto.getDonHangToiThieu() != null
-                            ? dto.getDonHangToiThieu()
-                            : BigDecimal.ZERO
-            );
-
-            entity.setNgayBatDau(dto.getNgayBatDau());
-            entity.setNgayKetThuc(dto.getNgayKetThuc());
-
-            entity.setSoLuongPhatHanh(dto.getSoLuongPhatHanh());
-
-            entity.setTrangThai(dto.getTrangThai());
-
-            if (dto.getIdDotKhuyenMai() != null) {
-                DotKhuyenMai dk = dotRepo.findById(dto.getIdDotKhuyenMai()).orElse(null);
-                entity.setIdDotKhuyenMai(dk);
-            }
+        // --- XỬ LÝ LIÊN KẾT ĐỢT KM ---
+        if (dto.getIdDotKhuyenMai() != null) {
+            DotKhuyenMai dk = dotRepo.findById(dto.getIdDotKhuyenMai())
+                    .orElseThrow(() -> new RuntimeException("Đợt khuyến mãi không tồn tại!"));
+            entity.setIdDotKhuyenMai(dk);
+        } else {
+            entity.setIdDotKhuyenMai(null);
         }
+    }
 
-        public List<PhieuGiamGiaDTO> searchAdvanced(String keyword, Integer status) {
+    public Page<PhieuGiamGiaDTO> searchAdvanced(String keyword, Integer status, Pageable pageable) {
+        String searchKey = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
 
-            String searchKey =
-                    (keyword == null || keyword.trim().isEmpty())
-                            ? null
-                            : keyword.trim();
+        Page<PhieuGiamGia> pageEntity = phieuRepo.searchFilter(searchKey, status, pageable);
 
-            List<PhieuGiamGiaDTO> dtos = new ArrayList<>();
-
-            for (PhieuGiamGia p : phieuRepo.searchFilter(searchKey, status)) {
-                dtos.add(convertToDto(p));
-            }
-
-            return dtos;
-        }
+        // Sử dụng map của Page để giữ nguyên cấu trúc phân trang
+        return pageEntity.map(this::convertToDto);
+    }
 
         private PhieuGiamGiaDTO convertToDto(PhieuGiamGia p) {
 
             PhieuGiamGiaDTO dto = new PhieuGiamGiaDTO();
 
             dto.setId(p.getId());
-
             dto.setMaPhieuGiamGia(p.getMaPhieuGiamGia());
             dto.setCodeGiamGia(p.getCodeGiamGia());
-
             dto.setTenPhieuGiamGia(p.getTenPhieuGiamGia());
             dto.setLoaiGiamGia(p.getLoaiGiamGia());
             dto.setGiaTriGiam(p.getGiaTriGiam());
             dto.setGiaTriGiamToiDa(p.getGiaTriGiamToiDa());
             dto.setDonHangToiThieu(p.getDonHangToiThieu());
-
             dto.setNgayBatDau(p.getNgayBatDau());
             dto.setNgayKetThuc(p.getNgayKetThuc());
-
             dto.setSoLuongPhatHanh(p.getSoLuongPhatHanh());
             dto.setSoLuongDaDung(p.getSoLuongDaDung());
-
             dto.setTrangThai(p.getTrangThai());
-
             dto.setNgayTao(p.getNgayTao());
             dto.setNgaySua(p.getNgaySua());
-
             dto.setNguoiTao(p.getNguoiTao());
             dto.setNguoiSua(p.getNguoiSua());
 
+            // --- SỬA TẠI ĐÂY ---
             if (p.getIdDotKhuyenMai() != null) {
                 dto.setIdDotKhuyenMai(p.getIdDotKhuyenMai().getId());
+                // Lấy tên từ bảng DotKhuyenMai để hiển thị trên Table Vue
+                dto.setTenDotKhuyenMai(p.getIdDotKhuyenMai().getTenDotKhuyenMai());
             }
 
             return dto;
         }
+
 }
