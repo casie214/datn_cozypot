@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "hoa_don_thanh_toan")
+@DynamicUpdate
 public class HoaDonThanhToan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

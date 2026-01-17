@@ -2,12 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
     {
-        path: "/manage/food",
-        name: "foodManager",
-        component: () =>
-            import("../src/pages/employee/screens/foodManager.vue")
-    },
-    {
         path: "/manage/orders",
         name: "orderManager",
         component: () => 

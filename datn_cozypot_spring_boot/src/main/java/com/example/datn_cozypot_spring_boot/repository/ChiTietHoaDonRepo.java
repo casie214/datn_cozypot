@@ -14,14 +14,12 @@ public interface ChiTietHoaDonRepo extends JpaRepository<ChiTietHoaDon, Integer>
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +
-            // --- XỬ LÝ TÊN MÓN ---
             "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.tenSetLau " +
             "     ELSE CONCAT(m.tenMonAn, ' - ', ctma.tenChiTietMonAn) END, " +
             "cthd.soLuong, " +
             "cthd.donGiaTaiThoiDiemBan, " +
             "cthd.thanhTien, " +
             "cthd.ghiChuMon, " +
-            // --- XỬ LÝ TRẠNG THÁI TEXT ---
             "CASE WHEN cthd.trangThaiMon = 1 THEN 'Chưa lên' " +
             "     WHEN cthd.trangThaiMon = 2 THEN 'Đã lên' " +
             "     ELSE 'Khác' END, " +
@@ -30,6 +28,13 @@ public interface ChiTietHoaDonRepo extends JpaRepository<ChiTietHoaDon, Integer>
             "LEFT JOIN cthd.idSetLau s " +
             "LEFT JOIN cthd.idChiTietMonAn ctma " +
             "LEFT JOIN ctma.idMonAnDiKem m " +
-            "WHERE cthd.idHoaDon.id = :idHoaDon") // Sửa: So khớp ID số của hóa đơn
+            "WHERE cthd.idHoaDon.id = :idHoaDon")
     List<ChiTietHoaDonResponse> findChiTietByHoaDonId(@Param("idHoaDon") Integer idHoaDon);
+
+    @Query("SELECT c FROM ChiTietHoaDon c WHERE c.idHoaDon.id = :idHoaDon")
+    List<ChiTietHoaDon> findByIdHoaDon(@Param("idHoaDon") Integer idHoaDon);
+
+    @Query("SELECT COUNT(c) > 0 FROM ChiTietHoaDon c WHERE c.idHoaDon.id = :idHoaDon AND c.trangThaiMon = :trangThai")
+    boolean existsByIdHoaDonAndTrangThaiMon(@Param("idHoaDon") Integer idHoaDon, @Param("trangThai") Integer trangThai);
+
 }

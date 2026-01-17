@@ -1,20 +1,24 @@
 <script setup>
-import Sidebar from '../../../components/sidebar.vue'; 
-import { useOrderManager } from './orderFunction';
+import Sidebar from "../../../components/sidebar.vue";
+import { useOrderManager } from "./orderFunction";
 
-import OrderDetailModal from '../modal/OrderDetailModal.vue'; 
+import OrderDetailModal from "../modal/OrderDetailModal.vue";
 
-import OrderHistoryModal from '../modal/OrderHistoryModal.vue';
+import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
 
-const { 
-  filters, 
-  orderList, 
-  handleSearch, 
+const {
+  filters,
+  orderList,
+  handleSearch,
   handleReset,
   handleViewDetail,
   orderDetails,
   handleViewHistory,
   handlePrintOrder,
+
+  handleUpdateMonDaLen,
+  handleUpdateTatCaDaLen,
+  handleHuyDon,
 
   isDetailModalOpen,
   selectedOrder,
@@ -25,16 +29,14 @@ const {
   historyEvents,
   closeHistoryModal,
   currentVAT,
-
 } = useOrderManager();
 
 const getStatusClass = (status) => {
-  if (status === 'Hoàn thành') return 'status-completed'; 
-  if (status === 'Đã xác nhận') return 'status-confirmed'; 
-  if (status === 'Đã hủy') return 'status-cancelled'; 
-  return ''; 
+  if (status === "Hoàn thành") return "status-completed";
+  if (status === "Đã xác nhận") return "status-confirmed";
+  if (status === "Đã hủy") return "status-cancelled";
+  return "";
 };
-
 </script>
 
 <template>
@@ -55,15 +57,25 @@ const getStatusClass = (status) => {
               <option>Đã hủy</option>
             </select>
           </div>
-          
+
           <div class="filter-group">
             <label>Từ ngày</label>
-            <input type="date" v-model="filters.fromDate" class="form-control" placeholder="dd/mm/yyyy" />
+            <input
+              type="date"
+              v-model="filters.fromDate"
+              class="form-control"
+              placeholder="dd/mm/yyyy"
+            />
           </div>
 
           <div class="filter-group">
             <label>Đến ngày</label>
-            <input type="date" v-model="filters.toDate" class="form-control" placeholder="dd/mm/yyyy" />
+            <input
+              type="date"
+              v-model="filters.toDate"
+              class="form-control"
+              placeholder="dd/mm/yyyy"
+            />
           </div>
         </div>
 
@@ -75,9 +87,9 @@ const getStatusClass = (status) => {
 
       <div class="table-card">
         <div class="table-responsive">
-            <table>
+          <table>
             <thead>
-                <tr>
+              <tr>
                 <th>MÃ ĐƠN</th>
                 <th>KHÁCH HÀNG</th>
                 <th>SĐT</th>
@@ -85,83 +97,100 @@ const getStatusClass = (status) => {
                 <th>TỔNG TIỀN</th>
                 <th>TRẠNG THÁI</th>
                 <th>THAO TÁC</th>
-                </tr>
+              </tr>
             </thead>
             <tbody>
-                <tr v-for="order in orderList" :key="order.id">
+              <tr v-for="order in orderList" :key="order.id">
                 <td>{{ order.id }}</td>
                 <td>{{ order.khachHang }}</td>
                 <td>{{ order.sdt }}</td>
-                <td><b>{{ order.ban }}</b></td>
-                <td><b>{{ order.tongTien }}</b></td>
-                
+                <td>
+                  <b>{{ order.ban }}</b>
+                </td>
+                <td>
+                  <b>{{ order.tongTien }}</b>
+                </td>
+
                 <td :class="getStatusClass(order.trangThai)">
-                    {{ order.trangThai }}
+                  {{ order.trangThai }}
                 </td>
-                
+
                 <td class="action-icons">
-                    <button class="icon-btn" title="Xem chi tiết" @click="handleViewDetail(order.id)">
-                        👁️
-                    </button>
-                    
-                    <button class="icon-btn" title="Lịch sử" @click="handleViewHistory(order.id)">
-                        🕒
-                    </button>
-                    
-                    <button class="icon-btn" title="In hóa đơn" @click="handlePrintOrder(order.id)">
-                        🖨️
-                    </button>
+                  <button
+                    class="icon-btn"
+                    title="Xem chi tiết"
+                    @click="handleViewDetail(order.id)"
+                  >
+                    👁️
+                  </button>
+
+                  <button
+                    class="icon-btn"
+                    title="Lịch sử"
+                    @click="handleViewHistory(order.id)"
+                  >
+                    🕒
+                  </button>
+
+                  <button
+                    class="icon-btn"
+                    title="In hóa đơn"
+                    @click="handlePrintOrder(order.id)"
+                  >
+                    🖨️
+                  </button>
                 </td>
-                </tr>
+              </tr>
             </tbody>
-            </table>
+          </table>
         </div>
 
         <div class="pagination">
-            <button class="page-btn prev">&lt;</button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn dot">...</button>
-            <button class="page-btn">7</button>
-            <button class="page-btn">8</button>
-            <button class="page-btn next">&gt;</button>
+          <button class="page-btn prev">&lt;</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn dot">...</button>
+          <button class="page-btn">7</button>
+          <button class="page-btn">8</button>
+          <button class="page-btn next">&gt;</button>
         </div>
       </div>
     </main>
 
-    <OrderDetailModal 
-        :isOpen="isDetailModalOpen"
-        :orderData="selectedOrder"
-        :orderDetailList="orderDetails"
-        :vatRate="currentVAT" 
-        @close="closeDetailModal"
+    <OrderDetailModal
+      :isOpen="isDetailModalOpen"
+      :orderData="selectedOrder"
+      :orderDetailList="orderDetails"
+      :vatRate="currentVAT"
+      @close="closeDetailModal"
+      @update-served="handleUpdateMonDaLen"
+      @update-all-served="handleUpdateTatCaDaLen"
+      @cancel-order="handleHuyDon"
     />
 
-    <OrderHistoryModal 
-        :isOpen="isHistoryModalOpen"
-        :orderData="selectedHistoryOrder"
-        :events="historyEvents"
-        @close="closeHistoryModal"
+    <OrderHistoryModal
+      :isOpen="isHistoryModalOpen"
+      :orderData="selectedHistoryOrder"
+      :events="historyEvents"
+      @close="closeHistoryModal"
     />
-
   </div>
 </template>
 
 <style scoped>
-
 .status-completed {
-    color: #28a745; 
-    font-weight: 700;
+  color: #28a745;
+  font-weight: 700;
 }
 
 .status-confirmed {
-    color: #ff9800; 
-    font-weight: 700;
+  color: #ff9800;
+  font-weight: 700;
 }
 
 .status-cancelled {
-    color: #dc3545; 
-    font-weight: 700;
+  color: #dc3545;
+  font-weight: 700;
 }
 
 .app-layout {
@@ -170,26 +199,25 @@ const getStatusClass = (status) => {
 }
 
 .main-content {
-  margin-left: 250px; 
+  margin-left: 250px;
   width: calc(100% - 250px);
   padding: 20px 30px;
   background-color: #fff;
 }
 
 .page-title {
-  color: #8B0000;
+  color: #8b0000;
   font-size: 24px;
   margin-bottom: 20px;
   font-weight: bold;
 }
-
 
 .filter-card {
   background: white;
   padding: 20px;
   border-radius: 8px;
   border: 1px solid #eee;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
@@ -224,7 +252,7 @@ const getStatusClass = (status) => {
 }
 
 .form-control:focus {
-  border-color: #8B0000;
+  border-color: #8b0000;
 }
 
 .filter-actions {
@@ -248,7 +276,7 @@ const getStatusClass = (status) => {
 }
 
 .btn-cancel {
-  background-color: #8B0000;
+  background-color: #8b0000;
   color: white;
   border: none;
   padding: 8px 20px;
@@ -257,15 +285,15 @@ const getStatusClass = (status) => {
   font-weight: 500;
 }
 
-.btn-search:hover, .btn-cancel:hover {
+.btn-search:hover,
+.btn-cancel:hover {
   opacity: 0.9;
 }
 
-
 .table-card {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    overflow: hidden;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .table-responsive {
@@ -280,7 +308,7 @@ table {
 }
 
 th {
-  background-color: #8B0000;
+  background-color: #8b0000;
   color: white;
   padding: 12px 15px;
   text-align: left;
@@ -300,7 +328,6 @@ td {
 tbody tr:hover {
   background-color: #f9f9f9;
 }
-
 
 .action-icons {
   display: flex;
@@ -348,9 +375,9 @@ tbody tr:hover {
 }
 
 .page-btn.active {
-  background-color: #8B0000;
+  background-color: #8b0000;
   color: white;
-  border-color: #8B0000;
+  border-color: #8b0000;
 }
 
 .page-btn.dot {
