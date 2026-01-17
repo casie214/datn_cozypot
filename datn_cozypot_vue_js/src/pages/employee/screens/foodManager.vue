@@ -1,12 +1,13 @@
 <script setup>
 import Sidebar from '../../../components/sidebar.vue';
-import { useTabManager } from '../../../services/foodFunction';
+import { useTabManager } from './foodFunction';
 
 const { currentTabName, currentComponent, changeTab } = useTabManager();
 </script>
 
 <template>
-  
+  <div class="app-layout">
+    <Sidebar />
 
     <main class="main-content">
       <h1 class="page-title">Quản lý thực đơn</h1>
@@ -19,16 +20,16 @@ const { currentTabName, currentComponent, changeTab } = useTabManager();
           ☰ Thực đơn
         </button>
         <button 
-          :class="{ active: currentTabName === 'chitiet' }" 
-          @click="changeTab('chitiet')"
-        >
-          ☰ Thực đơn chi tiết
-        </button>
-        <button 
           :class="{ active: currentTabName === 'setlau' }" 
           @click="changeTab('setlau')"
         >
           ☰ Set lẩu
+        </button>
+        <button 
+          :class="{ active: currentTabName === 'chitiet' }" 
+          @click="changeTab('chitiet')"
+        >
+          Thực đơn chi tiết
         </button>
       </div>
 
@@ -37,6 +38,7 @@ const { currentTabName, currentComponent, changeTab } = useTabManager();
       </div>
 
     </main>
+  </div>
 </template>
 
 <style src="../screens/foodFragment/foodManager.css">
