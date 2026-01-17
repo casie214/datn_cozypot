@@ -19,7 +19,7 @@ public class ThamSoHeThongController {
     public Map<String, Object> getGlobalParams() {
         Map<String, Object> params = new HashMap<>();
 
-        // 1. Lấy VAT (Chuyển String sang Double)
+        // Lấy VAT (Chuyển String sang Double)
         ThamSoHeThong vatParam = thamSoRepo.findByMaThamSo("VAT").orElse(null);
         if (vatParam != null) {
             try {
@@ -31,7 +31,7 @@ public class ThamSoHeThongController {
             params.put("VAT", 0.0); // Không tìm thấy thì 0%
         }
 
-        // 2. Lấy thời gian chờ (Chuyển String sang Int)
+        // Lấy thời gian chờ (Chuyển String sang Int)
         ThamSoHeThong timeParam = thamSoRepo.findByMaThamSo("MIN_RESERVE").orElse(null);
         if (timeParam != null) {
             try {
