@@ -9,6 +9,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -22,8 +23,7 @@ public class KhachHang {
     @Column(name = "id_khach_hang", nullable = false)
     private Integer id;
 
-    @Size(max = 50)
-    @Column(name = "ma_khach_hang", length = 50)
+    @Column(name = "ma_khach_hang", insertable = false, updatable = false)
     private String maKhachHang;
 
     @Size(max = 100)
@@ -80,4 +80,10 @@ public class KhachHang {
     @OneToMany(mappedBy = "idKhachHang")
     private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
 
+    //Lấy thời gian thực tế lúc tạo
+    @PrePersist
+    protected void onCreate() {
+        // Instant.now() sẽ khớp với kiểu dữ liệu Instant của trường ngayTaoTaiKhoan
+        this.ngayTaoTaiKhoan = Instant.now();
+    }
 }

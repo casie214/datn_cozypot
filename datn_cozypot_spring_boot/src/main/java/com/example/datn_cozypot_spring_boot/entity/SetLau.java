@@ -26,7 +26,7 @@ public class SetLau {
     private LoaiSetLau idLoaiSet;
 
     @Size(max = 50)
-    @Column(name = "ma_set_lau", length = 50, insertable = false, updatable = false)
+    @Column(name = "ma_set_lau", length = 50)
     private String maSetLau;
 
     @Size(max = 200)
