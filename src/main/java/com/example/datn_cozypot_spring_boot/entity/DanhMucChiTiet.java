@@ -25,7 +25,7 @@ public class DanhMucChiTiet {
     private DanhMuc idDanhMuc;
 
     @Size(max = 50)
-    @Column(name = "ma_danh_muc_chi_tiet", length = 50, insertable = false, updatable = false)
+    @Column(name = "ma_danh_muc_chi_tiet", length = 50)
     private String maDanhMucChiTiet;
 
     @Size(max = 100)

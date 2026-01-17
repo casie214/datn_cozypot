@@ -23,7 +23,7 @@ public class DanhMuc {
     private Integer id;
 
     @Size(max = 50)
-    @Column(name = "ma_danh_muc", length = 50, insertable = false, updatable = false)
+    @Column(name = "ma_danh_muc", length = 50)
     private String maDanhMuc;
 
     @Size(max = 100)

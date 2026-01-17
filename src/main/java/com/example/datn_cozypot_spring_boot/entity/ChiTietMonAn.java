@@ -26,7 +26,7 @@ public class ChiTietMonAn {
     private MonAnDiKem idMonAnDiKem;
 
     @Size(max = 50)
-    @Column(name = "ma_chi_tiet_mon_an", length = 50, insertable = false, updatable = false)
+    @Column(name = "ma_chi_tiet_mon_an", length = 50)
     private String maChiTietMonAn;
 
     @Size(max = 200)

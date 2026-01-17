@@ -22,7 +22,7 @@ public class LoaiSetLau {
     private Integer id;
 
     @Size(max = 50)
-    @Column(name = "ma_loai_set", length = 50, insertable = false, updatable = false)
+    @Column(name = "ma_loai_set", length = 50)
     private String maLoaiSet;
 
     @Size(max = 100)
