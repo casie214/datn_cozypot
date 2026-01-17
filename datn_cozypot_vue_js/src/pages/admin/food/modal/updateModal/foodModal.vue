@@ -1,7 +1,7 @@
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
-import { useFoodModal } from '../../../../services/foodFunction';
-import FoodDetailAddModal from '../FoodAddModals/FoodDetailAddModal.vue';
+import { useFoodModal } from '../../../../../services/foodFunction';
+import FoodDetailAddModal from '../addModal/FoodDetailAddModal.vue';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -218,4 +218,4 @@ const closeModal = () => {
     @refresh="handleRefresh" />
 </template>
 
-<style scoped></style>
+<style scoped src="/src/assets/foodModalManager.css"></style>

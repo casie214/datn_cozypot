@@ -1,5 +1,5 @@
 <script setup>
-import { useCategoryAddModal, useCategoryPutModal, useHotpotAddModal } from '../../../../services/foodFunction';
+import { useCategoryAddModal, useCategoryPutModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
@@ -64,4 +64,4 @@ const {
     </div>
 </template>
 
-<style scoped src="../foodModalManager.css"></style>
+<style scoped src="/src/assets/foodModalManager.css"></style>

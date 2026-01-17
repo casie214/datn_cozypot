@@ -1,8 +1,7 @@
 <script setup>
 import { useHotpotSetTypeManager } from '../../../../services/foodFunction';
-import CategoryHotpotAddModal from '../../modal/FoodAddModals/CategoryHotpotAddModal.vue';
-import CategoryHotpotPutModal from '../../modal/FoodUpdateModals/CategoryHotpotPutModal.vue';
-import CategoryPutModal from '../../modal/FoodUpdateModals/CategoryPutModal.vue';
+import CategoryHotpotAddModal from '../modal/addModal/CategoryHotpotAddModal.vue';
+import CategoryHotpotPutModal from '../modal/updateModal/CategoryHotpotPutModal.vue';
 
 const { hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllHotpotType } = useHotpotSetTypeManager();
 const handleRefreshList = () => {
@@ -101,4 +100,4 @@ const handleRefreshList = () => {
   </div>
 </template>
 
-<style scoped src="../foodFragment/foodManager.css"></style>
+<style scoped src="/src/assets/foodManager.css"></style>

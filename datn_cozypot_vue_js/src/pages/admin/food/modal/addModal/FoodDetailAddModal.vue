@@ -1,7 +1,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import axios from 'axios';
-import { useFoodAddModal, useFoodDetailAddModal } from '../../../../services/foodFunction';
+import { useFoodAddModal, useFoodDetailAddModal } from '../../../../../services/foodFunction';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -76,4 +76,4 @@ const {
   </div>
 </template>
 
-<style scoped src="../../modal/foodModalManager.css"></style>
+<style scoped src="/src/assets/foodModalManager.css"></style>

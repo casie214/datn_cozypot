@@ -1,26 +1,23 @@
 <script setup>
-import { useCategoryDetailPutModal, useCategoryHotpotPutModal } from '../../../../services/foodFunction';
+import { useCategoryDetailAddModal, useHotpotCategoryAddModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
 
-const props = defineProps({
-  isOpen: Boolean,
-  itemList: Object
-});
+// Nhận listDanhMucGoc từ cha
+const props = defineProps(['isOpen', 'formData', 'listDanhMucGoc']); 
 const emit = defineEmits(['close', 'save']);
 
-const {
-    formData,
-    handleSave,
-    closeModal,
-    listDanhMucGoc
-} = useCategoryDetailPutModal(props, emit);
+const { 
+  formData, 
+  handleSave,
+  listDanhMucGoc 
+} = useCategoryDetailAddModal(props, emit);
 </script>
 
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Cập Nhật Chi Tiết</h2>
+        <h2>Thêm Chi Tiết Danh Mục </h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
@@ -28,27 +25,23 @@ const {
         <div class="form-container">
             
             <div class="form-group full-width">
-                <label>Mã chi tiết</label>
-                <input :value="formData.maDanhMucChiTiet" type="text" disabled style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
-            </div>
-
-            <div class="form-group full-width">
                 <label>Tên chi tiết <span class="required">*</span></label>
-                <input v-model="formData.tenDanhMucChiTiet" type="text">
+                <input v-model="formData.tenDanhMucChiTiet" type="text" placeholder="VD: Bò Mỹ, Nấm kim châm...">
             </div>
 
             <div class="form-group full-width">
                 <label>Danh mục gốc <span class="required">*</span></label>
                 <select v-model="formData.idDanhMuc" class="form-control">
+                    <option value="" disabled>-- Chọn danh mục gốc --</option>
                     <option v-for="dm in listDanhMucGoc" :key="dm.id" :value="dm.id">
-                        {{ dm.tenDanhMuc }}
+                        {{ dm.tenDanhMuc }} 
                     </option>
                 </select>
             </div>
 
             <div class="form-group full-width">
                 <label>Mô tả</label>
-                <textarea v-model="formData.moTa" rows="3"></textarea>
+                <textarea v-model="formData.moTa" rows="3" placeholder="Mô tả..."></textarea>
             </div>
 
             <div class="form-group full-width">
@@ -67,11 +60,11 @@ const {
 
       <div class="modal-footer">
         <button class="btn-cancel" @click="$emit('close')">Hủy</button>
-        <button class="btn-confirm" @click="handleSave">Lưu thay đổi</button>
+        <button class="btn-confirm" @click="handleSave">Thêm mới</button>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped src="../foodModalManager.css">
+<style scoped src="/src/assets/foodModalManager.css">
 </style>

@@ -1,8 +1,11 @@
 <script setup>
+import { useRouter } from 'vue-router'; 
 import { ref } from 'vue';
 import { useHotpotManager } from '../../../../services/foodFunction';
-import FoodHotpotModal from '../../modal/FoodUpdateModals/foodHotpotModal.vue';
-import FoodHotpotAddModal from '../../modal/FoodAddModals/FoodHotpotAddModal.vue';
+import FoodHotpotModal from '../../food/modal/updateModal/foodHotpotModal.vue';
+import FoodHotpotAddModal from '../../food/modal/addModal/FoodHotpotAddModal.vue';
+
+const router = useRouter();
 
 const {
   hotpotData,
@@ -18,6 +21,10 @@ const handleRefreshList = () => {
     setTimeout(() => {
         getAllHotpot();
     }, 500);
+};
+
+const goToAddScreen = () => {
+    router.push({ name: 'addHotpotSet' });
 };
 
 </script>
@@ -43,7 +50,7 @@ const handleRefreshList = () => {
             <option>Tất cả</option>
           </select></div>
         <div class="filter-item"><label>Lọc theo</label><select>
-            <option>Số thứ tự giảm dần</option>
+            <option>Số thứ tự tăng dần</option>
           </select></div>
         <button class="btn-clear">Xóa bộ lọc</button>
       </div>
@@ -51,7 +58,7 @@ const handleRefreshList = () => {
     </div>
 
     <div class="action-row">
-      <button class="btn-add" @click="isAddHotpotModalOpen = true">Thêm set lẩu</button>
+      <button class="btn-add" @click="goToAddScreen">Thêm set lẩu</button>
     </div>
 
     <div class="table-container">
@@ -108,8 +115,6 @@ const handleRefreshList = () => {
 
   <FoodHotpotModal :isOpen="isModalOpen" :hotpotItem="selectedHotpot" @close="isModalOpen = false" @refresh="handleRefreshList" />
 
-  <FoodHotpotAddModal v-if="isAddHotpotModalOpen" :isOpen="isAddHotpotModalOpen" @close="isAddHotpotModalOpen = false"
-        @refresh="handleRefreshList" />
 </template>
 
-<style scoped src="../foodFragment/foodManager.css"></style>
+<style scoped src="/src/assets/foodManager.css"></style>

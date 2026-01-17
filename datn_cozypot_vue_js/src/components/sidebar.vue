@@ -1,35 +1,74 @@
 <script setup>
 import { ref } from 'vue';
-import { useRoute } from "vue-router";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
-const menuItems = [
-    { name: 'Tổng quan', icon: "fa-solid fa-house", routeName: 'dashboard' },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", routeName: 'booking' },
-    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", routeName: 'orders' },
-    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", routeName: 'checkin' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", routeName: 'tableManager' },
-    { name: 'Nhân viên', icon: "fa-solid fa-user", routeName: 'staff' },
-    { name: 'Khách hàng', icon: "fa-solid fa-users", routeName: 'customers' },
-    { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", routeName: 'foodManager' },
-    { name: 'Danh mục', icon: "fa-solid fa-table-list", routeName: 'categoryManager' }, 
-    { name: 'Nhắn tin', icon: "fa-solid fa-comments", routeName: 'chat' },
-    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", routeName: 'promotion' },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", routeName: 'statistics'}
-];
+// 1. Cập nhật cấu trúc menuItems
+const menuItems = ref([
+    { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
+    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
+    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/admin/tables' },
+    { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
+    { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' }, 
+    
+    { 
+        name: 'Thực đơn', 
+        icon: "fa-solid fa-bell-concierge", 
+        routeName: 'foodManager',
+        isOpen: false, 
+        children: [
+            { name: 'Danh sách món', tab: 'thucdon' },
+            { name: 'Thực đơn chi tiết', tab: 'chitietTD' },
+            { name: 'Set lẩu', tab: 'setlau' }
+        ]
+    },
+    // -----------------------------------
 
+    { 
+        name: 'Danh mục', 
+        icon: "fa-solid fa-table-list", 
+        routeName: 'categoryManager', 
+        isOpen: false,
+        children: [
+            { name: 'Danh mục gốc', tab: 'danhmuc' },
+            { name: 'Danh mục chi tiết', tab: 'chitietDM' },
+            { name: 'Loại Set Lẩu', tab: 'loaiset' }
+        ]
+    },
+    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotions' },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics'}
+]);
 
 const router = useRouter();
 const route = useRoute();
 
-function navigate(name) {
-  if (name) {
-    router.push({ name: name });
-  }
+function handleItemClick(item) {
+    if (item.children) {
+        item.isOpen = !item.isOpen;
+    } else {
+        navigate(item.routeName);
+    }
 }
 
-const isActive = (itemName) => {
-    return route.name === itemName;
+function navigate(name) {
+    if (name) router.push({ name: name });
+}
+
+function navigateToTab(routeName, tabName) {
+    router.push({ name: routeName, query: { tab: tabName } });
+}
+
+const isActive = (item) => {
+    if (item.children) {
+        return route.name === item.routeName;
+    }
+    return route.name === item.routeName;
+}
+
+const isSubActive = (tabName) => {
+    return route.query.tab === tabName || (tabName === 'thucdon' && !route.query.tab);
 }
 </script>
 
@@ -43,19 +82,34 @@ const isActive = (itemName) => {
     
         <nav class="container menu-list">
             <hr>
-            <div 
-                v-for="(item, index) in menuItems" 
-                :key="index" 
-                class="menu-item" 
-                :class="{ 'active': isActive(item.routeName) }"
-                @click="navigate(item.routeName)"
-            >
+            <div v-for="(item, index) in menuItems" :key="index">
                 
-                <i :class="item.icon" class="icon"></i>
-                
-                <span class="label">{{ item.name }}</span>
-                
-                <span v-if="isActive(item.routeName)" class="arrow"></span>
+                <div 
+                    class="menu-item" 
+                    :class="{ 'active': isActive(item) }"
+                    @click="handleItemClick(item)"
+                >
+                    <i :class="item.icon" class="icon"></i>
+                    <span class="label">{{ item.name }}</span>
+                    
+                    <span v-if="item.children" class="arrow-dropdown">
+                        <i :class="item.isOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
+                    </span>
+                    <span v-else-if="isActive(item)" class="arrow"></span>
+                </div>
+
+                <div v-if="item.children && item.isOpen" class="submenu">
+                    <div 
+                        v-for="(child, cIndex) in item.children" 
+                        :key="cIndex"
+                        class="submenu-item"
+                        :class="{ 'sub-active': isSubActive(child.tab) }"
+                        @click="navigateToTab(item.routeName, child.tab)"
+                    >
+                        • {{ child.name }}
+                    </div>
+                </div>
+
             </div>
         </nav>
     </aside>

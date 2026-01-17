@@ -1,6 +1,6 @@
 <script setup>
-import FoodDetailAddModal from '../../modal/FoodAddModals/FoodDetailAddModal.vue';
-import CategoryDetailModal from '../../modal/FoodUpdateModals/foodDetailModal.vue';
+import FoodDetailAddModal from '../../food/modal/addModal/FoodDetailAddModal.vue';
+import CategoryDetailModal from '../../food/modal/updateModal/foodDetailModal.vue';
 
 import { useFoodDetailManager } from '../../../../services/foodFunction';
 
@@ -56,7 +56,7 @@ const handleRefreshList = () => {
             <th>STT</th>
             <th>MÃ CHI TIẾT</th>
             <th>TÊN CHI TIẾT</th>
-            <th>MÓN ĂN GỐC (FK)</th>
+            <th>MÓN ĂN GỐC</th>
             <th>GIÁ BÁN</th>
             <th>KÍCH CỠ</th>
             <th>ĐƠN VỊ</th>
@@ -107,4 +107,4 @@ const handleRefreshList = () => {
   </div>
 </template>
 
-<style scoped src="../foodFragment/foodManager.css"></style>
+<style scoped src="/src/assets/foodManager.css"></style>

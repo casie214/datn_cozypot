@@ -1,7 +1,7 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-// Import file logic vừa tạo (nhớ chỉnh đúng đường dẫn)
-import { useFoodAddModal } from '../../../../services/foodFunction'; 
+import { useFoodAddModal } from '../../../../../services/foodFunction'; 
+import { Alert } from 'bootstrap/dist/js/bootstrap.bundle.min';
 
 const props = defineProps({
   isOpen: Boolean
@@ -15,6 +15,10 @@ const {
   filteredSubCategories, 
   handleSave 
 } = useFoodAddModal(props, emit);
+
+function alertaa(){
+  alert(filteredSubCategories)
+}
 
 </script>
 
@@ -91,5 +95,5 @@ const {
   </div>
 </template>
 
-<style scoped src="../../modal/foodModalManager.css">
+<style scoped src="/src/assets/foodModalManager.css">
 </style>
