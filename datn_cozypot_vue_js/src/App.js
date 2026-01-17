@@ -8,6 +8,12 @@ const routes = [
             import ("../src/pages/employee/screens/foodManager.vue")
     },
     {
+        path: "/manage/category",
+        name: "categoryManager",
+        component: () =>
+            import ("../src/pages/employee/screens/categoryManager.vue")
+    },
+    {
         path: "/test",
         name: "test",
         component: () =>

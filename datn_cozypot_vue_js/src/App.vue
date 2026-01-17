@@ -1,12 +1,14 @@
 <script setup>
-
-
+import Sidebar from './components/sidebar.vue';
 </script>
 
 <template>
-  <router-view />
+  <div class="app-layout">
+    <Sidebar />
+    <router-view />
+  </div>
 </template>
 
-<style scoped>
+<style scoped src="../src/assets/base.css">
 
 </style>

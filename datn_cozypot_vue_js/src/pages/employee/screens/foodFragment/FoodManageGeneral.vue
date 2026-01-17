@@ -1,15 +1,26 @@
 <script setup>
-import foodModal from '../../modal/foodModal.vue';
+import { Alert } from 'bootstrap/dist/js/bootstrap.bundle.min';
+import foodModal from '../../modal/FoodUpdateModals/foodModal.vue';
 
-import { useFoodManager } from '../foodFunction';
+import { useFoodManager } from '../../../../services/foodFunction';
+import FoodAddModal from '../../modal/FoodAddModals/FoodAddModal.vue';
 
-const { 
-  mockData, 
-  activeTab, 
-  isModalOpen, 
-  selectedItem, 
-  handleViewDetails 
+const {
+    mockData,
+    activeTab,
+    isModalOpen,
+    selectedItem,
+    isAddFoodModalOpen,
+    handleViewDetails,
+    getAllFood,
+    handleToggleStatus
 } = useFoodManager();
+
+const handleRefreshList = () => {
+    setTimeout(() => {
+        getAllFood();
+    }, 500);
+};
 </script>
 
 <template>
@@ -60,7 +71,7 @@ const {
 
     </div>
     <div class="action-row">
-        <button class="btn-add">Thêm món ăn</button>
+        <button class="btn-add" @click="isAddFoodModalOpen = true">Thêm món ăn</button>
     </div>
 
     <div class="table-container">
@@ -80,21 +91,23 @@ const {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="item in mockData" :key="item.ma">
-                    <td style="text-align: center;">{{ item.stt }}</td>
-                    <td>{{ item.ma }}</td>
-                    <td>{{ item.ten }}</td>
-                    <td>{{ item.gia }}</td>
-                    <td>{{ item.danhmuc }}</td>
-                    <td>{{ item.chitiet }}</td>
-                    <td>{{ item.tao }}</td>
-                    <td>{{ item.nguoi }}</td>
-                    <td :class="item.trangthai ? 'status-active' : 'status-inactive'">
-                        {{ item.trangthai ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+                <tr v-for="(item, index) in mockData" :key="item.id">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ item.maMonAn }}</td>
+                    <td>{{ item.tenMonAn }}</td>
+                    <td>{{ item.giaBan }}</td>
+                    <td>{{ item.tenDanhMuc }}</td>
+                    <td>{{ item.tenDanhMucChiTiet }}</td>
+                    <td>{{ item.ngayTao }}</td>
+                    <td>{{ item.nguoiTao }}</td>
+                    <td :class="item.trangThaiKinhDoanh === 1 ? 'status-active' : 'status-inactive'">
+                        {{ item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                     </td>
                     <td class="actions">
                         <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
-                        <div class="toggle-switch" :class="{ 'on': item.trangthai }">
+
+                        <div class="toggle-switch" :class="{ 'on': item.trangThaiKinhDoanh === 1 }"
+                            @click.stop="handleToggleStatus(item)">
                             <div class="toggle-knob"></div>
                         </div>
                     </td>
@@ -113,8 +126,11 @@ const {
         <button>&gt;</button>
     </div>
 
-    <foodModal :isOpen="isModalOpen" :foodItem="selectedItem" @close="isModalOpen = false" />
+    <foodModal v-if="isModalOpen && selectedItem" :isOpen="isModalOpen" :foodItem="selectedItem"
+        @close="isModalOpen = false" @refresh="handleRefreshList" />
+
+    <FoodAddModal v-if="isAddFoodModalOpen" :isOpen="isAddFoodModalOpen" @close="isAddFoodModalOpen = false"
+        @refresh="handleRefreshList" />
 </template>
 
-<style scoped src="../foodFragment/foodManager.css">
-</style>
+<style scoped src="../foodFragment/foodManager.css"></style>
