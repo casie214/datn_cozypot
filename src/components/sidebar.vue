@@ -1,8 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from "vue-router";
 
-// 1. Cập nhật cấu trúc menuItems
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
@@ -14,7 +13,7 @@ const menuItems = ref([
     
     { 
         name: 'Thực đơn', 
-        icon: "fa-solid fa-bell-concierge", 
+        icon: 'fa-solid fa-bell-concierge', 
         routeName: 'foodManager',
         isOpen: false, 
         children: [
@@ -23,7 +22,7 @@ const menuItems = ref([
             { name: 'Set lẩu', tab: 'setlau' }
         ]
     },
-    // -----------------------------------
+    // -----------------------------------mm
 
     { 
         name: 'Danh mục', 
@@ -48,7 +47,8 @@ function handleItemClick(item) {
     if (item.children) {
         item.isOpen = !item.isOpen;
     } else {
-        navigate(item.routeName);
+        if (item.path) router.push(item.path);
+        else if (item.routeName) router.push({ name: item.routeName });
     }
 }
 
@@ -62,14 +62,38 @@ function navigateToTab(routeName, tabName) {
 
 const isActive = (item) => {
     if (item.children) {
-        return route.name === item.routeName;
+        if (item.routeName) {
+            return route.name === item.routeName || route.meta?.parentMenu === item.routeName;
+        }
+        return false;
     }
-    return route.name === item.routeName;
+    if (item.path) {
+        return route.path === item.path;
+    }
+
+    return false;
 }
 
 const isSubActive = (tabName) => {
-    return route.query.tab === tabName || (tabName === 'thucdon' && !route.query.tab);
+    return route.query.tab === tabName || 
+           (tabName === 'thucdon' && !route.query.tab && route.name === 'foodManager') ||
+           route.meta?.activeTab === tabName;
 }
+const checkAndOpenMenu = () => {
+    menuItems.value.forEach(item => {
+        if (item.children && isActive(item)) {
+            item.isOpen = true;
+        }
+    });
+};
+
+onMounted(() => {
+    checkAndOpenMenu();
+});
+
+watch(() => route.name, () => {
+    checkAndOpenMenu();
+});
 </script>
 
 <template>
@@ -116,5 +140,5 @@ const isSubActive = (tabName) => {
 </template>
 
 <style scoped src="../assets/base.css">
-@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
+    @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 </style>

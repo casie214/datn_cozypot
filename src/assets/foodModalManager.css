@@ -510,7 +510,7 @@ select:disabled {
 }
 
 .page-container { padding: 20px; background: #fdfbfa; min-height: 100vh; display: flex; flex-direction: column; }
-.page-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
 .page-header h1 { color: #8B0000; margin: 0; }
 .btn-back { border: none; background: none; font-size: 1rem; cursor: pointer; color: #666; }
 
@@ -553,4 +553,388 @@ h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+}
+
+--- CSS BỔ SUNG CHO GIAO DIỆN MỚI ---
+
+/* Cấu trúc cột phải */
+.section-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%; /* Để scroll hoạt động tốt */
+}
+
+/* Phần Tìm kiếm & List Available */
+.ingredient-selector {
+    display: flex;
+    flex-direction: column;
+    height: 400px; /* Chiều cao cố định để scroll */
+    padding-bottom: 0;
+}
+
+.filter-tools {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.sort-select {
+    width: 120px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Scroll List Container */
+.scroll-list-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    background: #fafafa;
+    padding: 5px;
+}
+
+/* Card món ăn bé */
+.food-item-card {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 8px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.food-item-card:hover {
+    border-color: #B91C1C;
+    background-color: #fff5f5;
+    transform: translateX(2px);
+}
+
+.food-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 10px;
+    background: #eee;
+}
+
+.food-info {
+    flex: 1;
+}
+
+.food-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.food-meta {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.food-price {
+    color: #B91C1C;
+    font-weight: bold;
+}
+
+.btn-add-mini {
+    background: #B91C1C;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Phần Danh sách Đã Chọn */
+.selected-list-card {
+    flex: 1; /* Chiếm phần còn lại */
+    display: flex;
+    flex-direction: column;
+    min-height: 250px;
+}
+
+.selected-items-container {
+    flex: 1;
+    overflow-y: auto;
+    border-top: 1px solid #eee;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.selected-item-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.selected-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+    margin-right: 10px;
+}
+
+.selected-info {
+    flex: 1;
+}
+
+.selected-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.selected-unit {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.qty-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 15px;
+}
+
+.qty-control label {
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.qty-input-small {
+    width: 50px;
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn-remove-icon {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 5px;
+}
+
+.btn-remove-icon:hover {
+    color: red;
+}
+
+.empty-state, .empty-text {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.scroll-list-container::-webkit-scrollbar,
+.selected-items-container::-webkit-scrollbar {
+    width: 6px;
+}
+.scroll-list-container::-webkit-scrollbar-thumb,
+.selected-items-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.page-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 100%;
+}
+
+/* --- Style cho phần Hero Card (Thông tin chi tiết) --- */
+.info-hero-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    gap: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-left: 5px solid #B91C1C; /* Điểm nhấn màu đỏ */
+}
+
+.hero-image img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.hero-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.hero-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.code-badge {
+    font-size: 0.9rem;
+    background: #f0f0f0;
+    color: #666;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: normal;
+}
+
+/* Status Badge */
+.status-badge {
+    font-size: 0.85rem;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+.status-badge.active { background: #e6f4ea; color: #1e7e34; }
+.status-badge.inactive { background: #fbe9e7; color: #c62828; }
+
+/* Grid thông tin */
+.hero-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 cột */
+    gap: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.meta-item .label {
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.meta-item .value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.meta-item .value.price {
+    color: #B91C1C;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.hero-description p {
+    margin: 5px 0 0 0;
+    color: #555;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.upload-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* Custom nút chọn file */
+.custom-file-upload {
+    border: 1px solid #ccc;
+    display: inline-block;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    background: #f9f9f9;
+    font-size: 0.9rem;
+    color: #333;
+    transition: 0.2s;
+}
+.custom-file-upload:hover {
+    background: #e9e9e9;
+    border-color: #999;
+}
+/* Ẩn input file mặc định xấu xí */
+.custom-file-upload input[type="file"] {
+    display: none;
+}
+
+/* Nút xóa ảnh */
+.btn-clear-img {
+    background: white;
+    border: 1px solid #ff4d4f;
+    color: #ff4d4f;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.btn-clear-img:hover {
+    background: #fff1f0;
+}
+
+/* Khung Preview */
+.image-preview-box {
+    width: 100%;
+    height: 180px; /* Chiều cao cố định */
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fafafa;
+    overflow: hidden;
+    position: relative;
+}
+
+.image-preview-box.empty {
+    color: #aaa;
+    font-style: italic;
+}
+
+.preview-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Giữ tỉ lệ ảnh */
+    display: block;
 }

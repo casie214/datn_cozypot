@@ -7,7 +7,7 @@ import axios from 'axios';
 import CategoryGeneral from '../pages/admin/category/screens/CategoryGeneral.vue';
 import CategoryDetailGeneral from '../pages/admin/category/screens/CategoryDetailGeneral.vue';
 import CategoryHotpotGeneral from '../pages/admin/category/screens/CategoryHotpotGeneral.vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 const API_BASE_EMPLOYEE = "http://localhost:8080/api/manage";
 
 export function getAllFoodGeneral() {
@@ -20,6 +20,10 @@ export function getFoodGeneralModalById(id) {
 
 export function getAllHotpotGeneral() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
+}
+
+export function getHotpotById(id) {
+    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
 }
 
 export function getAllFoodDetail() {
@@ -510,6 +514,12 @@ export function useFoodDetailModal(props, emit) {
 export function useHotpotManager() {
     const hotpotData = ref([]);
 
+    const searchQuery = ref('');
+    const sortOption = ref('newest');
+    const currentPage = ref(1);
+    const itemsPerPage = 5; 
+
+
     function getAllHotpot() {
         getAllHotpotGeneral()
             .then(async res => {
@@ -522,6 +532,78 @@ export function useHotpotManager() {
     onMounted(() => {
         getAllHotpot();
     })
+
+    const filteredAndSortedData = computed(() => {
+        let result = [...hotpotData.value];
+
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(item => 
+                (item.tenSetLau && item.tenSetLau.toLowerCase().includes(query)) ||
+                (item.maSetLau && item.maSetLau.toLowerCase().includes(query))
+            );
+        }
+
+        switch (sortOption.value) {
+            case 'price_asc':
+                result.sort((a, b) => a.giaBan - b.giaBan);
+                break;
+            case 'price_desc': 
+                result.sort((a, b) => b.giaBan - a.giaBan);
+                break;
+            case 'name_asc': 
+                result.sort((a, b) => a.tenSetLau.localeCompare(b.tenSetLau));
+                break;
+            default: 
+                break;
+        }
+
+        return result;
+    });
+
+    
+    watch([searchQuery, sortOption], () => {
+        currentPage.value = 1;
+    });
+
+    const paginatedData = computed(() => {
+        const start = (currentPage.value - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        return filteredAndSortedData.value.slice(start, end);
+    });
+
+    const totalPages = computed(() => {
+        return Math.ceil(filteredAndSortedData.value.length / itemsPerPage);
+    });
+
+    const goToPage = (page) => {
+        if (page >= 1 && page <= totalPages.value) currentPage.value = page;
+    };
+
+    const visiblePages = computed(() => {
+        const total = totalPages.value;
+        const current = currentPage.value;
+        const delta = 1;
+        const range = [];
+        const rangeWithDots = [];
+        let l;
+
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+                range.push(i);
+            }
+        }
+
+        for (let i of range) {
+            if (l) {
+                if (i - l === 2) rangeWithDots.push(l + 1);
+                else if (i - l !== 1) rangeWithDots.push('...');
+            }
+            rangeWithDots.push(i);
+            l = i;
+        }
+        return rangeWithDots;
+    });
 
     const isModalOpen = ref(false);
     const selectedHotpot = ref(null);
@@ -536,11 +618,9 @@ export function useHotpotManager() {
         const oldStatus = item.trangThai;
         const newStatus = oldStatus === 1 ? 0 : 1;
         item.trangThai = newStatus;
-
         try {
             const payload = {...item, trangThai: newStatus };
             await putNewHotpot(item.id, payload);
-
         } catch (error) {
             console.error("Lỗi: ", error);
             item.trangThai = oldStatus;
@@ -549,86 +629,217 @@ export function useHotpotManager() {
 
     return {
         hotpotData,
+        getAllHotpot,
         isModalOpen,
         selectedHotpot,
         isAddHotpotModalOpen,
-        getAllHotpot,
         handleViewDetails,
-        handleToggleStatus
+        handleToggleStatus,
+
+        searchQuery,
+        sortOption,
+        paginatedData,
+        currentPage,
+        totalPages,
+        visiblePages,
+        itemsPerPage,
+        goToPage
     };
 }
 
-export function useHotpotModal(props, emit) {
+export function useHotpotUpdate() { 
+    const router = useRouter();
+    const route = useRoute();
+    const hotpotId = route.params.id;
+    const hotpotInfo = ref(null);
+    
 
     const formData = ref({
-        maSetLau: '',
+        id: null,
         tenSetLau: '',
         idLoaiSet: '',
         giaBan: 0,
-        moTa: '',
-        moTaChiTiet: '',
         hinhAnh: '',
+        moTa: '',
         trangThai: 1
     });
 
-    const listLoaiSet = ref([]);
+    const listLoaiSet = ref([]);       
+    const listFoodDetails = ref([]);   
+    
+    const selectedIngredients = ref([]); 
+    const currentIngredientId = ref('');
+    const isLoading = ref(true);
 
-    function getAllCategoriesHotpot() {
-        getAllCategoryHotpot()
-            .then(async res => {
-                listLoaiSet.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
-    onMounted(() => {
-        getAllCategoriesHotpot();
-    })
+    const searchQuery = ref("");
+    const sortOption = ref("name_asc");
 
-    watch(() => props.hotpotItem, (newItem) => {
-        if (newItem) {
-            formData.value = {...newItem };
-
-            if (newItem.idLoaiSet && typeof newItem.idLoaiSet === 'object') {
-                formData.value.idLoaiSet = newItem.idLoaiSet.id;
-            }
-        } else {
-            formData.value = {
-                maSetLau: '',
-                tenSetLau: '',
-                idLoaiSet: '',
-                giaBan: 0,
-                moTa: '',
-                moTaChiTiet: '',
-                hinhAnh: '',
-                trangThai: 1
-            };
+    const filteredFoodList = computed(() => {
+        let result = listFoodDetails.value;
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(item => 
+                (item.tenChiTietMonAn || item.tenDanhMucChiTiet).toLowerCase().includes(query)
+            );
         }
-    }, { immediate: true });
+        return result;
+    });
 
-    const handleSave = async() => {
+    const fetchDetailData = async () => {
         try {
-            await putNewHotpot(formData.value.id, formData.value);
+            isLoading.value = true;
+            const [resDetail, resLoaiSet, resFoodDetail] = await Promise.all([
+                getHotpotById(hotpotId),
+                getAllCategoryHotpot(),
+                getAllFoodDetail()
+            ]);
 
-            console.log("Dữ liệu thêm mới:", formData.value);
+            listLoaiSet.value = resLoaiSet.data;
+            listFoodDetails.value = resFoodDetail.data;
 
-            emit('refresh');
-            emit('close');
+            const data = resDetail.data;
+            
+            // 2. Lưu dữ liệu gốc vào biến này để hiển thị ở Header
+            hotpotInfo.value = data; 
+
+            // Map vào FormData (để sửa)
+            formData.value = {
+                id: data.id,
+                tenSetLau: data.tenSetLau,
+                idLoaiSet: data.loaiSet ? data.loaiSet.id : data.idLoaiSet,
+                giaBan: data.giaBan,
+                hinhAnh: data.hinhAnh,
+                moTa: data.moTa,
+                trangThai: data.trangThai
+            };
+
+            // Map danh sách chi tiết (giữ nguyên code cũ của bạn)
+            if (data.listChiTietSetLau && data.listChiTietSetLau.length > 0) {
+                selectedIngredients.value = data.listChiTietSetLau.map(item => {
+                     // ... logic map giữ nguyên ...
+                     // Nhớ check null item.chiTietMonAn như bài trước
+                     if (!item.chiTietMonAn) return null;
+                     return {
+                        id: item.chiTietMonAn.id,
+                        ten: item.chiTietMonAn.tenChiTietMonAn,
+                        donVi: item.chiTietMonAn.donVi,
+                        giaBan: item.chiTietMonAn.giaBan,
+                        hinhAnh: item.chiTietMonAn.hinhAnh,
+                        soLuong: item.soLuong
+                    };
+                }).filter(i => i !== null);
+            }
+
         } catch (e) {
-            console.error("Lỗi thêm món ăn:", e);
-            alert("Đã xảy ra lỗi khi thêm mới!");
+            console.error(e);
+            router.back();
+        } finally {
+            isLoading.value = false;
         }
     };
 
-    const closeModal = () => {
-        emit('close');
+    onMounted(() => {
+        if (hotpotId) {
+            fetchDetailData();
+        }
+    });
+
+    const addIngredient = (foodItem) => {
+        const exists = selectedIngredients.value.find(item => item.id === foodItem.id);
+        if (exists) {
+            exists.soLuong += 1;
+        } else {
+            selectedIngredients.value.push({
+                id: foodItem.id,
+                ten: foodItem.tenChiTietMonAn || foodItem.tenDanhMucChiTiet,
+                donVi: foodItem.donVi || 'Phần',
+                giaBan: foodItem.giaBan,
+                hinhAnh: foodItem.hinhAnh,
+                soLuong: 1 
+            });
+        }
+    };
+
+    const removeIngredient = (index) => {
+        selectedIngredients.value.splice(index, 1);
+    };
+
+    const totalComponentsPrice = computed(() => {
+        return selectedIngredients.value.reduce((sum, item) => sum + (item.giaBan * item.soLuong), 0);
+    });
+
+    // --- HÀM CẬP NHẬT (PUT) ---
+    const handleUpdate = async () => {
+        try {
+            if (!formData.value.tenSetLau || !formData.value.idLoaiSet) {
+                alert("Vui lòng điền đủ thông tin!");
+                return;
+            }
+
+            const payload = {
+                ...formData.value,
+                // Map lại danh sách món để gửi về Backend
+                listChiTietSetLau: selectedIngredients.value.map(item => ({
+                    idChiTietMonAn: item.id,
+                    soLuong: item.soLuong
+                }))
+            };
+
+            await putNewHotpot(hotpotId, payload); // Gọi API PUT
+
+            alert("Cập nhật thành công!");
+            router.push({ name: 'foodManager', query: { tab: 'setlau' } });
+
+        } catch (e) {
+            console.error(e);
+            alert("Lỗi khi cập nhật!");
+        }
+    };
+
+    const goBack = () => router.back();
+
+    const categoryName = computed(() => {
+        if (!hotpotInfo.value) return 'Đang tải...';
+
+        if (hotpotInfo.value.loaiSet && hotpotInfo.value.loaiSet.tenLoaiSet) {
+            return hotpotInfo.value.loaiSet.tenLoaiSet;
+        }
+
+        const idToFind = hotpotInfo.value.idLoaiSet || (hotpotInfo.value.loaiSet ? hotpotInfo.value.loaiSet.id : null);
+
+        if (idToFind && listLoaiSet.value.length > 0) {
+            const found = listLoaiSet.value.find(cat => cat.id === idToFind);
+            if (found) return found.tenLoaiSet;
+        }
+
+        return 'Chưa phân loại';
+    });
+
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.match('image.*')) {
+            alert("Vui lòng chọn file hình ảnh!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (e) => {
+            formData.value.hinhAnh = e.target.result;
+        };
+
+        reader.onerror = (error) => {
+            console.error('Lỗi đọc file:', error);
+        };
     };
 
     return {
-        formData,
-        listLoaiSet,
-        handleSave,
-        closeModal
+        formData, listLoaiSet, selectedIngredients, 
+        totalComponentsPrice, searchQuery, sortOption, filteredFoodList, hotpotInfo, categoryName, handleFileUpload,
+        addIngredient, removeIngredient, handleUpdate, goBack, isLoading
     };
 }
 
@@ -904,9 +1115,11 @@ export function useFoodAddModal(props, emit) {
         handleSave
     };
 }
-export function useHotpotAdd() {
+
+export function useHotpotAdd() { 
     const router = useRouter();
 
+    // ... (Giữ nguyên phần formData, listLoaiSet...) ...
     const formData = ref({
         tenSetLau: '',
         idLoaiSet: '',
@@ -918,16 +1131,61 @@ export function useHotpotAdd() {
 
     const listLoaiSet = ref([]);       
     const listFoodDetails = ref([]);   
-
-    // --- 3. STATE QUẢN LÝ MÓN TRONG SET (N-N) ---
-    // Mảng chứa các món đã chọn: [{ id, ten, soLuong, ... }]
     const selectedIngredients = ref([]); 
-    const currentIngredientId = ref(''); // Biến tạm cho dropdown chọn món
 
-    // --- 4. HÀM LOAD DỮ LIỆU BAN ĐẦU ---
+    // --- MỚI: State cho tìm kiếm và sắp xếp ---
+    const searchQuery = ref("");
+    const sortOption = ref("name_asc"); // name_asc, price_asc, price_desc
+
+    // --- MỚI: Computed để lọc danh sách món ăn hiển thị ---
+    const filteredFoodList = computed(() => {
+        let result = listFoodDetails.value;
+
+        // 1. Lọc theo tên tìm kiếm
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(item => 
+                (item.tenChiTietMonAn || item.tenDanhMucChiTiet).toLowerCase().includes(query)
+            );
+        }
+
+        // 2. Sắp xếp
+        return result.sort((a, b) => {
+            const nameA = (a.tenChiTietMonAn || a.tenDanhMucChiTiet).toLowerCase();
+            const nameB = (b.tenChiTietMonAn || b.tenDanhMucChiTiet).toLowerCase();
+            
+            if (sortOption.value === 'name_asc') return nameA.localeCompare(nameB);
+            if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
+            if (sortOption.value === 'price_desc') return b.giaBan - a.giaBan;
+            return 0;
+        });
+    });
+
+    // --- CẬP NHẬT: Hàm thêm món (nhận object item thay vì ID từ dropdown) ---
+    const addIngredient = (foodItem) => {
+        // Kiểm tra đã có trong danh sách chọn chưa
+        const exists = selectedIngredients.value.find(item => item.id === foodItem.id);
+        
+        if (exists) {
+            // Nếu có rồi thì tăng số lượng lên 1 (UX mượt hơn là báo lỗi)
+            exists.soLuong += 1;
+        } else {
+            // Nếu chưa có thì thêm mới
+            selectedIngredients.value.push({
+                id: foodItem.id,
+                ten: foodItem.tenChiTietMonAn || foodItem.tenDanhMucChiTiet,
+                donVi: foodItem.donVi || 'Phần',
+                giaBan: foodItem.giaBan,
+                hinhAnh: foodItem.hinhAnh, // Lưu thêm hình ảnh để hiển thị
+                soLuong: 1 
+            });
+        }
+    };
+
+    // ... (Giữ nguyên các hàm fetchInitialData, removeIngredient, handleSave...) ...
+
     const fetchInitialData = async () => {
         try {
-            // Gọi song song 2 API để tiết kiệm thời gian
             const [resLoaiSet, resFoodDetail] = await Promise.all([
                 getAllCategoryHotpot(),
                 getAllFoodDetail()
@@ -943,44 +1201,16 @@ export function useHotpotAdd() {
         fetchInitialData();
     });
 
-    // --- 5. LOGIC THÊM/XÓA MÓN VÀO SET ---
-    
-    // Thêm món từ dropdown vào bảng
-    const addIngredient = () => {
-        if (!currentIngredientId.value) return;
-
-        // Check trùng
-        const exists = selectedIngredients.value.find(item => item.id === currentIngredientId.value);
-        if (exists) {
-            alert("Món này đã có trong set, vui lòng tăng số lượng ở bảng bên dưới!");
-            return;
-        }
-
-        // Lấy thông tin chi tiết món
-        const foodItem = listFoodDetails.value.find(item => item.id === currentIngredientId.value);
-        if (foodItem) {
-            selectedIngredients.value.push({
-                id: foodItem.id,
-                ten: foodItem.tenChiTietMonAn || foodItem.tenDanhMucChiTiet,
-                donVi: foodItem.donVi || 'Phần',
-                giaBan: foodItem.giaBan,
-                soLuong: 1 // Mặc định số lượng là 1
-            });
-        }
-        currentIngredientId.value = ''; // Reset dropdown
-    };
-
-    // Xóa món khỏi bảng
     const removeIngredient = (index) => {
         selectedIngredients.value.splice(index, 1);
     };
 
-    // Tính tổng giá trị món lẻ (Optional - để tham khảo giá vốn)
     const totalComponentsPrice = computed(() => {
         return selectedIngredients.value.reduce((sum, item) => sum + (item.giaBan * item.soLuong), 0);
     });
 
     const handleSave = async () => {
+        // ... (Giữ nguyên logic save cũ của bạn) ...
         try {
             if (!formData.value.tenSetLau || !formData.value.idLoaiSet || !formData.value.giaBan) {
                 alert("Vui lòng nhập đủ: Tên set, Loại set và Giá bán!");
@@ -990,7 +1220,6 @@ export function useHotpotAdd() {
                 alert("Vui lòng thêm ít nhất 1 món ăn vào Set!");
                 return;
             }
-
             const payload = {
                 ...formData.value,
                 listChiTietSetLau: selectedIngredients.value.map(item => ({
@@ -998,34 +1227,47 @@ export function useHotpotAdd() {
                     soLuong: item.soLuong
                 }))
             };
-
-            console.log("Payload gửi đi:", payload);
             await postNewHotpot(payload);
-
             alert("Thêm mới thành công!");
             router.push({ name: 'foodManager', query: { tab: 'setlau' } });
-
         } catch (e) {
-            console.error("Lỗi thêm món ăn:", e);
-            alert("Đã xảy ra lỗi khi thêm mới!");
+            console.error(e);
+            alert("Lỗi khi thêm mới!");
         }
     };
 
-    const goBack = () => {
-        router.back();
+    const goBack = () => router.back();
+
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.match('image.*')) {
+            alert("Vui lòng chọn file hình ảnh!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = (e) => {
+            formData.value.hinhAnh = e.target.result;
+        };
+
+        reader.onerror = (error) => {
+            console.error('Lỗi đọc file:', error);
+        };
     };
 
     return {
-        formData,
-        listLoaiSet,
-        listFoodDetails,
-        selectedIngredients,
-        currentIngredientId,
-        totalComponentsPrice,
+        formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
+        // Các biến mới return ra
+        searchQuery, 
+        sortOption,
+        filteredFoodList,
         addIngredient,
         removeIngredient,
-        handleSave,
-        goBack
+        handleSave, goBack, handleFileUpload
     };
 }
 
