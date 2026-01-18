@@ -15,7 +15,7 @@ export function useOrderManager() {
   const orderList = ref([]);
   const orderDetails = ref([]);
   const currentVAT = ref(0);
-  
+
   const isHistoryModalOpen = ref(false);
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
@@ -31,12 +31,9 @@ export function useOrderManager() {
     if (!dateString) return "---";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Ngày lỗi";
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const year = date.getUTCFullYear();
-    const hours = String(date.getUTCHours()).padStart(2, "0");
-    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-    return `${hours}:${minutes} ${day}/${month}/${year}`;
+    return new Intl.DateTimeFormat('vi-VN', {
+        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+    }).format(date);
   };
 
   const formatCurrency = (value) => {
@@ -48,7 +45,7 @@ export function useOrderManager() {
   };
 
   const mapOrderType = (typeInt) => {
-    const type = Number(typeInt); 
+    const type = Number(typeInt);
     if (type === 1) return "Online";
     if (type === 2) return "Tại quầy";
     return "Khác";
@@ -62,7 +59,6 @@ export function useOrderManager() {
   const processOrderData = (data) => {
     if (!data) return [];
     return data.map((item) => {
-      // const finalPrice = item.trangThaiHoaDon === 0 ? 0 : item.tongTienThanhToan || 0;
       return {
         id: item.maHoaDon,
         dbId: item.id,
@@ -92,16 +88,47 @@ export function useOrderManager() {
     try {
       const data = await BeGetAllHoaDon();
       orderList.value = processOrderData(data);
-      // console.log(data);
     } catch (error) {
-      console.error("Lỗi khi tải danh sách hóa đơn:", error);
+      console.error("Lỗi tải danh sách:", error);
+    }
+  };
+
+  const loadOrderHistory = async (order) => {
+    if (!order) return;
+    try {
+      const data = await BeGetLichSuHoaDon(order.dbId);
+      
+      const events = data.map((item) => {
+        let type = 'bg-gray'; 
+        const act = (item.hanhDong || "").toLowerCase();
+        if (act.includes("tạo")) type = "create";
+        else if (act.includes("hủy") || act.includes("xóa")) type = "delete";
+        else if (act.includes("thanh toán")) type = "payment";
+
+        return {
+          id: item.idLog || item.idChiTietHD,
+          action: item.hanhDong,
+          title: item.tieuDe || item.hanhDong,
+          time: formatDate(item.thoiGianThucHien || item.thoiGian),
+          user: item.nguoiThucHien || (item.idNhanVien ? item.idNhanVien.hoTen : 'Hệ thống'),
+          detail: item.lyDoThucHien || item.lyDo || item.chiTietMon,
+          type: type, 
+        };
+      });
+
+      historyEvents.value = events; 
+      
+    } catch (error) {
+      console.error("Lỗi tải lịch sử:", error);
+      historyEvents.value = [];
     }
   };
 
   const handleSearch = async () => {
     try {
       const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
-      const trangThaiInt = filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
+      const trangThaiInt =
+        filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
 
       const tuNgayISO = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
       const denNgayISO = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
@@ -117,6 +144,7 @@ export function useOrderManager() {
     filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
     fetchOrders();
   };
+
   const handleViewDetail = async (dbId) => {
     try {
       const data = await BeGetChiTietHoaDon(dbId);
@@ -125,8 +153,15 @@ export function useOrderManager() {
       if (orderList.value.length === 0) {
         await fetchOrders();
       }
-      
-      selectedOrder.value = orderList.value.find((item) => item.dbId === Number(dbId));
+
+      selectedOrder.value = orderList.value.find(
+        (item) => item.dbId === Number(dbId),
+      );
+
+      if (selectedOrder.value) {
+        await loadOrderHistory(selectedOrder.value);
+      }
+
     } catch (error) {
       console.error("Lỗi lấy chi tiết:", error);
     }
@@ -135,38 +170,10 @@ export function useOrderManager() {
   const handleViewHistory = async (maHoaDon) => {
     const order = orderList.value.find((item) => item.id === maHoaDon);
     if (!order) return;
-    
+
     selectedHistoryOrder.value = order;
-    try {
-      const data = await BeGetLichSuHoaDon(order.dbId);
-      const events = data.map((item) => ({
-        id: item.idLog || item.idChiTietHD,
-        action: item.hanhDong,
-        title: item.tieuDe || item.hanhDong,
-        time: formatDate(item.thoiGian),
-        user: item.nguoiThucHien,
-        detail: item.lyDo || item.chiTietMon,
-        orderCode: item.maHoaDon,
-        type: item.loaiHanhDong,
-      }));
-
-      if (!events.some((e) => e.type === "create")) {
-        events.push({
-          id: "create-" + order.dbId,
-          action: "Tạo đơn",
-          title: "Tạo đơn hàng mới",
-          time: order.ngayTao,
-          user: "Hệ thống",
-          detail: "Khởi tạo đơn hàng trên hệ thống",
-          type: "create",
-        });
-      }
-
-      historyEvents.value = events;
-      isHistoryModalOpen.value = true;
-    } catch (error) {
-      alert("Không thể tải lịch sử!");
-    }
+    await loadOrderHistory(order);
+    isHistoryModalOpen.value = true;
   };
 
   const handleUpdateMonDaLen = async (idChiTietHD) => {
@@ -197,7 +204,7 @@ export function useOrderManager() {
     const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
     const payload = {
       idHoaDon: order.dbId,
-      idNhanVien: 1,
+      idNhanVien: 1, 
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: "Nhân viên hủy đơn/Khách đổi ý",
       trangThaiLichSuTruocDo: statusMap[order.trangThai],
@@ -208,7 +215,10 @@ export function useOrderManager() {
       await BeHuyHoaDon(payload);
       alert("Hủy hóa đơn thành công!");
       await fetchOrders();
-      await handleViewDetail(order.dbId);
+      
+      if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
+          await handleViewDetail(order.dbId);
+      }
     } catch (error) {
       alert("Thất bại: " + error.message);
     }

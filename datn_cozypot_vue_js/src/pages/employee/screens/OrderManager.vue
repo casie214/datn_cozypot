@@ -2,9 +2,9 @@
 import Sidebar from "../../../components/sidebar.vue";
 import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
-const router = useRouter();
-
 import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
+
+const router = useRouter();
 
 const {
   filters,
@@ -13,140 +13,123 @@ const {
   handleReset,
   handleViewHistory,
   handlePrintOrder,
-
   isHistoryModalOpen,
   selectedHistoryOrder,
   historyEvents,
   closeHistoryModal,
-  currentVAT,
 } = useOrderManager();
 </script>
 
 <template>
-  <div class="app-layout">
+  <div class="d-flex bg-light" style="min-height: 100vh;">
     <Sidebar />
 
-    <main class="main-content">
-      <h1 class="page-title">Quản lý đơn hàng</h1>
+    <main class="flex-grow-1 p-4 main-offset">
+      <h1 class="page-title mb-4">Quản lý đơn hàng</h1>
 
-      <div class="filter-card">
-        <div class="filter-inputs">
-          <div class="filter-group">
-            <label>Tìm kiếm</label>
-            <input
-              type="text"
-              v-model="filters.search"
-              class="form-control search-input"
-              placeholder="Mã ĐH, tên KH, SĐT"
-            />
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label text-muted small fw-bold">Tìm kiếm</label>
+              <input 
+                type="text" 
+                v-model="filters.search" 
+                class="form-control" 
+                placeholder="Mã ĐH, tên KH, SĐT"
+              >
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label text-muted small fw-bold">Trạng thái</label>
+              <select v-model="filters.status" class="form-select">
+                <option>Tất cả</option>
+                <option>Đã xác nhận</option>
+                <option>Hoàn thành</option>
+                <option>Đã hủy</option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label text-muted small fw-bold">Từ ngày</label>
+              <input type="date" v-model="filters.fromDate" class="form-control">
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label text-muted small fw-bold">Đến ngày</label>
+              <input type="date" v-model="filters.toDate" class="form-control">
+            </div>
+
+            <div class="col-md-2 d-flex gap-2">
+              <button class="btn btn-custom-red text-white flex-grow-1" @click="handleSearch">
+                🔍 Tìm kiếm
+              </button>
+              <button class="btn btn-outline-custom flex-grow-1" @click="handleReset">
+                Hủy
+              </button>
+            </div>
           </div>
-
-          <div class="filter-group">
-            <label>Trạng thái</label>
-            <select v-model="filters.status" class="form-control">
-              <option>Tất cả</option>
-              <option>Đã xác nhận</option>
-              <option>Hoàn thành</option>
-              <option>Đã hủy</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Từ ngày</label>
-            <input
-              type="date"
-              v-model="filters.fromDate"
-              class="form-control"
-              placeholder="dd/mm/yyyy"
-            />
-          </div>
-
-          <div class="filter-group">
-            <label>Đến ngày</label>
-            <input
-              type="date"
-              v-model="filters.toDate"
-              class="form-control"
-              placeholder="dd/mm/yyyy"
-            />
-          </div>
-        </div>
-
-        <div class="filter-actions">
-          <button class="btn-search" @click="handleSearch">🔍 Tìm kiếm</button>
-          <button class="btn-cancel" @click="handleReset">Hủy</button>
         </div>
       </div>
 
-      <div class="table-card">
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>STT</th>
-                <th>MÃ ĐƠN</th>
-                <th>KHÁCH HÀNG</th>
-                <th>SĐT</th>
-                <th>BÀN</th>
-                <th>LOẠI</th>
-                <th>TỔNG TIỀN</th>
-                <th>TRẠNG THÁI</th>
-                <th>THAO TÁC</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(order, index) in orderList" :key="order.id">
-                <td><b>{{ index + 1 }}</b></td>
-                <td>{{ order.id }}</td>
-                <td>{{ order.khachHang }}</td>
-                <td>{{ order.sdt }}</td>
-                <td>{{ order.ban }}</td>
-                <td>{{ order.loai }}</td>
-                <td>{{ order.tongTien }}</td>
-                <td>{{ order.trangThai }}</td>
-                <td class="action-icons">
-                  <button
-                    class="icon-btn"
-                    title="Xem chi tiết"
-                    @click="
-                      router.push({
-                        name: 'OrderDetail',
-                        params: { id: order.dbId },
-                      })
-                    "
-                  >
-                    👁️
-                  </button>
-
-                  <button
-                    class="icon-btn"
-                    title="Lịch sử"
-                    @click="handleViewHistory(order.id)"
-                  >
-                    🕒
-                  </button>
-
-                  <button
-                    class="icon-btn"
-                    title="In hóa đơn"
-                    @click="handlePrintOrder(order.id)"
-                  >
-                    🖨️
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-header-red">
+                <tr>
+                  <th class="py-3 ps-4">STT</th>
+                  <th class="py-3">MÃ ĐƠN</th>
+                  <th class="py-3">KHÁCH HÀNG</th>
+                  <th class="py-3">SĐT</th>
+                  <th class="py-3">BÀN</th>
+                  <th class="py-3">LOẠI</th>
+                  <th class="py-3">TỔNG TIỀN</th>
+                  <th class="py-3">TRẠNG THÁI</th>
+                  <th class="py-3 text-center">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(order, index) in orderList" :key="order.id">
+                  <td class="ps-4 fw-bold">{{ index + 1 }}</td>
+                  <td>{{ order.id }}</td>
+                  <td>{{ order.khachHang }}</td>
+                  <td>{{ order.sdt }}</td>
+                  <td>{{ order.ban }}</td>
+                  <td>{{ order.loai }}</td>
+                  <td class="fw-bold">{{ order.tongTien }}</td>
+                  <td>{{ order.trangThai }}</td> <td class="text-center">
+                    <div class="d-flex justify-content-center gap-2">
+                      <button class="btn btn-icon" title="Xem chi tiết"
+                        @click="router.push({ name: 'OrderDetail', params: { id: order.dbId } })">
+                        👁️
+                      </button>
+                      
+                      <button class="btn btn-icon" title="Lịch sử"
+                        @click="handleViewHistory(order.id)">
+                        🕒
+                      </button>
+                      
+                      <button class="btn btn-icon" title="In hóa đơn"
+                        @click="handlePrintOrder(order.id)">
+                        🖨️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div class="pagination">
-          <button class="page-btn prev">&lt;</button>
-          <button class="page-btn active">1</button>
-          <button class="page-btn">2</button>
-          <button class="page-btn dot">...</button>
-          <button class="page-btn">7</button>
-          <button class="page-btn">8</button>
-          <button class="page-btn next">&gt;</button>
+        <div class="card-footer bg-white border-0 py-3">
+          <ul class="pagination justify-content-center mb-0">
+            <li class="page-item"><button class="page-link text-dark">&lt;</button></li>
+            <li class="page-item active"><button class="page-link bg-custom-red border-custom-red">1</button></li>
+            <li class="page-item"><button class="page-link text-dark">2</button></li>
+            <li class="page-item"><button class="page-link text-dark">...</button></li>
+            <li class="page-item"><button class="page-link text-dark">&gt;</button></li>
+          </ul>
         </div>
       </div>
     </main>
@@ -161,199 +144,78 @@ const {
 </template>
 
 <style scoped>
-.app-layout {
-  min-height: 100vh;
-  background-color: #f8f9fa;
-}
-
-.main-content {
-  margin-left: 250px;
-  width: calc(100% - 250px);
-  padding: 20px 30px;
-  background-color: #fff;
+.main-offset {
+  margin-left: 250px; 
 }
 
 .page-title {
   color: #8b0000;
   font-size: 24px;
-  margin-bottom: 20px;
   font-weight: bold;
 }
 
-.filter-card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.filter-inputs {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filter-group label {
-  font-size: 13px;
-  color: #666;
-}
-
-.form-control {
-  padding: 8px 12px;
+.form-control, .form-select {
+  border-radius: 4px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  min-width: 200px;
-  outline: none;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #8b0000; 
+  box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1);
 }
 
-.form-control:focus {
-  border-color: #8b0000;
-}
-
-.filter-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.btn-search {
+.btn-custom-red {
   background-color: #720e1e;
-  color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  justify-content: center;
+}
+.btn-custom-red:hover {
+  background-color: #5c0b18;
+  color: white;
 }
 
-.btn-cancel {
+.btn-outline-custom {
   background-color: #8b0000;
   color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
 }
-
-.btn-search:hover,
-.btn-cancel:hover {
+.btn-outline-custom:hover {
   opacity: 0.9;
+  color: white;
 }
 
-.table-card {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-th {
+.table-header-red th {
   background-color: #8b0000;
   color: white;
-  padding: 12px 15px;
-  text-align: left;
   font-size: 13px;
   text-transform: uppercase;
   font-weight: 600;
+  border-bottom: none;
 }
 
-td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-  color: #333;
-  font-size: 14px;
-  vertical-align: middle;
-}
-
-tbody tr:hover {
-  background-color: #f9f9f9;
-}
-
-.action-icons {
-  display: flex;
-  gap: 10px;
-}
-
-.icon-btn {
-  background: none;
+.btn-icon {
+  background: transparent;
   border: none;
-  cursor: pointer;
   font-size: 16px;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 4px 8px;
   transition: background 0.2s;
 }
-
-.icon-btn:hover {
+.btn-icon:hover {
   background-color: #eee;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  padding: 15px;
-  background: white;
-}
-
-.page-btn {
-  width: 35px;
-  height: 35px;
-  border: 1px solid #ddd;
-  background: white;
-  color: #333;
   border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.page-btn:hover {
+.bg-custom-red {
+  background-color: #8b0000 !important;
+  border-color: #8b0000 !important;
+  color: white !important;
+}
+.page-link {
+  color: #333;
+  border: 1px solid #ddd;
+  margin: 0 2px;
+  border-radius: 4px;
+}
+.page-link:hover {
   background-color: #f0f0f0;
-}
-
-.page-btn.active {
-  background-color: #8b0000;
-  color: white;
-  border-color: #8b0000;
-}
-
-.page-btn.dot {
-  border: none;
-  cursor: default;
-}
-
-.search-input {
-  min-width: 450px;
+  color: #333;
 }
 </style>
