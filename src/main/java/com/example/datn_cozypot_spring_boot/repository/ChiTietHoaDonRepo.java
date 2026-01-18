@@ -22,6 +22,7 @@ public interface ChiTietHoaDonRepo extends JpaRepository<ChiTietHoaDon, Integer>
             "cthd.ghiChuMon, " +
             "CASE WHEN cthd.trangThaiMon = 1 THEN 'Chưa lên' " +
             "     WHEN cthd.trangThaiMon = 2 THEN 'Đã lên' " +
+            "     WHEN cthd.trangThaiMon = 0 THEN 'Đã huy' " +
             "     ELSE 'Khác' END, " +
             "cthd.trangThaiMon) " +
             "FROM ChiTietHoaDon cthd " +
