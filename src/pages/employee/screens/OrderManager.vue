@@ -1,8 +1,8 @@
 <script setup>
 import Sidebar from "../../../components/sidebar.vue";
 import { useOrderManager } from "./orderFunction";
-
-import OrderDetailModal from "../modal/OrderDetailModal.vue";
+import { useRouter } from "vue-router";
+const router = useRouter();
 
 import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
 
@@ -11,18 +11,8 @@ const {
   orderList,
   handleSearch,
   handleReset,
-  handleViewDetail,
-  orderDetails,
   handleViewHistory,
   handlePrintOrder,
-
-  handleUpdateMonDaLen,
-  handleUpdateTatCaDaLen,
-  handleHuyDon,
-
-  isDetailModalOpen,
-  selectedOrder,
-  closeDetailModal,
 
   isHistoryModalOpen,
   selectedHistoryOrder,
@@ -30,13 +20,6 @@ const {
   closeHistoryModal,
   currentVAT,
 } = useOrderManager();
-
-const getStatusClass = (status) => {
-  if (status === "Hoàn thành") return "status-completed";
-  if (status === "Đã xác nhận") return "status-confirmed";
-  if (status === "Đã hủy") return "status-cancelled";
-  return "";
-};
 </script>
 
 <template>
@@ -48,6 +31,16 @@ const getStatusClass = (status) => {
 
       <div class="filter-card">
         <div class="filter-inputs">
+          <div class="filter-group">
+            <label>Tìm kiếm</label>
+            <input
+              type="text"
+              v-model="filters.search"
+              class="form-control search-input"
+              placeholder="Mã ĐH, tên KH, SĐT"
+            />
+          </div>
+
           <div class="filter-group">
             <label>Trạng thái</label>
             <select v-model="filters.status" class="form-control">
@@ -90,36 +83,37 @@ const getStatusClass = (status) => {
           <table>
             <thead>
               <tr>
+                <th>STT</th>
                 <th>MÃ ĐƠN</th>
                 <th>KHÁCH HÀNG</th>
                 <th>SĐT</th>
                 <th>BÀN</th>
+                <th>LOẠI</th>
                 <th>TỔNG TIỀN</th>
                 <th>TRẠNG THÁI</th>
                 <th>THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="order in orderList" :key="order.id">
+              <tr v-for="(order, index) in orderList" :key="order.id">
+                <td><b>{{ index + 1 }}</b></td>
                 <td>{{ order.id }}</td>
                 <td>{{ order.khachHang }}</td>
                 <td>{{ order.sdt }}</td>
-                <td>
-                  <b>{{ order.ban }}</b>
-                </td>
-                <td>
-                  <b>{{ order.tongTien }}</b>
-                </td>
-
-                <td :class="getStatusClass(order.trangThai)">
-                  {{ order.trangThai }}
-                </td>
-
+                <td>{{ order.ban }}</td>
+                <td>{{ order.loai }}</td>
+                <td>{{ order.tongTien }}</td>
+                <td>{{ order.trangThai }}</td>
                 <td class="action-icons">
                   <button
                     class="icon-btn"
                     title="Xem chi tiết"
-                    @click="handleViewDetail(order.id)"
+                    @click="
+                      router.push({
+                        name: 'OrderDetail',
+                        params: { id: order.dbId },
+                      })
+                    "
                   >
                     👁️
                   </button>
@@ -157,17 +151,6 @@ const getStatusClass = (status) => {
       </div>
     </main>
 
-    <OrderDetailModal
-      :isOpen="isDetailModalOpen"
-      :orderData="selectedOrder"
-      :orderDetailList="orderDetails"
-      :vatRate="currentVAT"
-      @close="closeDetailModal"
-      @update-served="handleUpdateMonDaLen"
-      @update-all-served="handleUpdateTatCaDaLen"
-      @cancel-order="handleHuyDon"
-    />
-
     <OrderHistoryModal
       :isOpen="isHistoryModalOpen"
       :orderData="selectedHistoryOrder"
@@ -178,21 +161,6 @@ const getStatusClass = (status) => {
 </template>
 
 <style scoped>
-.status-completed {
-  color: #28a745;
-  font-weight: 700;
-}
-
-.status-confirmed {
-  color: #ff9800;
-  font-weight: 700;
-}
-
-.status-cancelled {
-  color: #dc3545;
-  font-weight: 700;
-}
-
 .app-layout {
   min-height: 100vh;
   background-color: #f8f9fa;
@@ -383,5 +351,9 @@ tbody tr:hover {
 .page-btn.dot {
   border: none;
   cursor: default;
+}
+
+.search-input {
+  min-width: 450px;
 }
 </style>

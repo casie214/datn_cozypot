@@ -39,7 +39,6 @@ const menuItems = [
                 
                 <span class="label">{{ item.name }}</span>
                 
-                <span class="arrow" v-if="$route.path === item.path">▼</span>
             </router-link>
         </nav>
     </aside>

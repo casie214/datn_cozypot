@@ -11,17 +11,17 @@ import {
 } from "./orderService";
 
 export function useOrderManager() {
-  const isDetailModalOpen = ref(false);
   const selectedOrder = ref(null);
+  const orderList = ref([]);
+  const orderDetails = ref([]);
+  const currentVAT = ref(0);
+  
   const isHistoryModalOpen = ref(false);
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
 
-  const orderList = ref([]);
-  const orderDetails = ref([]);
-  const currentVAT = ref(0);
-
   const filters = ref({
+    search: "",
     status: "Tất cả",
     fromDate: "",
     toDate: "",
@@ -30,15 +30,12 @@ export function useOrderManager() {
   const formatDate = (dateString) => {
     if (!dateString) return "---";
     const date = new Date(dateString);
-
     if (isNaN(date.getTime())) return "Ngày lỗi";
-
     const day = String(date.getUTCDate()).padStart(2, "0");
     const month = String(date.getUTCMonth() + 1).padStart(2, "0");
     const year = date.getUTCFullYear();
     const hours = String(date.getUTCHours()).padStart(2, "0");
     const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-
     return `${hours}:${minutes} ${day}/${month}/${year}`;
   };
 
@@ -50,33 +47,31 @@ export function useOrderManager() {
     }).format(value);
   };
 
+  const mapOrderType = (typeInt) => {
+    const type = Number(typeInt); 
+    if (type === 1) return "Online";
+    if (type === 2) return "Tại quầy";
+    return "Khác";
+  };
+
   const mapStatus = (statusInt) => {
-    switch (statusInt) {
-      case 0:
-        return "Đã hủy";
-      case 1:
-        return "Đã xác nhận";
-      case 2:
-        return "Hoàn thành";
-      default:
-        return "Không xác định";
-    }
+    const statuses = { 0: "Đã hủy", 1: "Đã xác nhận", 2: "Hoàn thành" };
+    return statuses[statusInt] || "Không xác định";
   };
 
   const processOrderData = (data) => {
     if (!data) return [];
     return data.map((item) => {
-      // Ép tiền về 0 nếu trạng thái là "Đã hủy" (0)
-      const finalPrice =
-        item.trangThaiHoaDon === 0 ? 0 : item.tongTienThanhToan || 0;
+      // const finalPrice = item.trangThaiHoaDon === 0 ? 0 : item.tongTienThanhToan || 0;
       return {
         id: item.maHoaDon,
         dbId: item.id,
         khachHang: item.tenKhachHang,
         sdt: item.sdtKhachHang,
         ban: item.tenBan,
-        tongTien: formatCurrency(finalPrice),
-        tongTienRaw: finalPrice,
+        loai: mapOrderType(item.hinhThucDat),
+        tongTien: formatCurrency(item.tongTienThanhToan),
+        tongTienRaw: item.tongTienThanhToan,
         soTienDaGiam: item.soTienDaGiam || 0,
         trangThai: mapStatus(item.trangThaiHoaDon),
         ngayTao: formatDate(item.thoiGianTao),
@@ -88,9 +83,7 @@ export function useOrderManager() {
     try {
       const config = await BeGetThamSoHeThong();
       currentVAT.value = Number(config.VAT || 10);
-      console.log("VAT hệ thống:", currentVAT.value);
     } catch (error) {
-      console.error("Lỗi lấy config:", error);
       currentVAT.value = 10;
     }
   };
@@ -99,6 +92,7 @@ export function useOrderManager() {
     try {
       const data = await BeGetAllHoaDon();
       orderList.value = processOrderData(data);
+      // console.log(data);
     } catch (error) {
       console.error("Lỗi khi tải danh sách hóa đơn:", error);
     }
@@ -107,124 +101,82 @@ export function useOrderManager() {
   const handleSearch = async () => {
     try {
       const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
-      const trangThaiInt =
-        filters.value.status !== "Tất cả"
-          ? statusMap[filters.value.status]
-          : null;
+      const trangThaiInt = filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
 
-      let tuNgayISO = null;
-      let denNgayISO = null;
+      const tuNgayISO = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
+      const denNgayISO = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
 
-      if (filters.value.fromDate) {
-        tuNgayISO = `${filters.value.fromDate}T00:00:00Z`;
-      }
-
-      if (filters.value.toDate) {
-        denNgayISO = `${filters.value.toDate}T23:59:59Z`;
-      }
-
-      const data = await BeSearchHoaDon(trangThaiInt, tuNgayISO, denNgayISO);
+      const data = await BeSearchHoaDon(filters.value.search, trangThaiInt, tuNgayISO, denNgayISO);
       orderList.value = processOrderData(data);
     } catch (error) {
-      console.error("Lỗi tìm kiếm:", error);
-      alert("Tìm kiếm thất bại! Kiểm tra lại kết nối Backend.");
+      alert("Tìm kiếm thất bại!");
     }
   };
 
   const handleReset = () => {
-    filters.value = { status: "Tất cả", fromDate: "", toDate: "" };
-    fetchOrders(); // Load lại toàn bộ data ban đầu
+    filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
+    fetchOrders();
   };
+  const handleViewDetail = async (dbId) => {
+    try {
+      const data = await BeGetChiTietHoaDon(dbId);
+      orderDetails.value = data;
 
-  const handleViewDetail = async (maHoaDon) => {
-    const order = orderList.value.find((item) => item.id === maHoaDon);
-    if (order) {
-      selectedOrder.value = order;
-      try {
-        orderDetails.value = [];
-        const data = await BeGetChiTietHoaDon(order.dbId);
-        orderDetails.value = data;
-        isDetailModalOpen.value = true;
-      } catch (error) {
-        console.error("Lỗi lấy chi tiết:", error);
-        alert("Không thể tải chi tiết món ăn!");
+      if (orderList.value.length === 0) {
+        await fetchOrders();
       }
+      
+      selectedOrder.value = orderList.value.find((item) => item.dbId === Number(dbId));
+    } catch (error) {
+      console.error("Lỗi lấy chi tiết:", error);
     }
-  };
-
-  const closeDetailModal = () => {
-    isDetailModalOpen.value = false;
-    selectedOrder.value = null;
   };
 
   const handleViewHistory = async (maHoaDon) => {
     const order = orderList.value.find((item) => item.id === maHoaDon);
-    if (order) {
-      selectedHistoryOrder.value = order;
-      try {
-        historyEvents.value = [];
+    if (!order) return;
+    
+    selectedHistoryOrder.value = order;
+    try {
+      const data = await BeGetLichSuHoaDon(order.dbId);
+      const events = data.map((item) => ({
+        id: item.idLog || item.idChiTietHD,
+        action: item.hanhDong,
+        title: item.tieuDe || item.hanhDong,
+        time: formatDate(item.thoiGian),
+        user: item.nguoiThucHien,
+        detail: item.lyDo || item.chiTietMon,
+        orderCode: item.maHoaDon,
+        type: item.loaiHanhDong,
+      }));
 
-        // 1. Gọi API lấy dữ liệu từ bảng lich_su_hoa_don (Service mới)
-        const data = await BeGetLichSuHoaDon(order.dbId);
-
-        // 2. Map dữ liệu từ Backend
-        const events = data.map((item) => ({
-          id: item.idLog || item.idChiTietHD, // Khớp với DTO LichSuHoaDonResponse
-          action: item.hanhDong,
-          title: item.tieuDe || item.hanhDong,
-          time: formatDate(item.thoiGian),
-          user: item.nguoiThucHien,
-          detail: item.lyDo || item.chiTietMon, // Hiển thị lý do thực hiện từ bảng Log
-          orderCode: item.maHoaDon,
-          type: item.loaiHanhDong,
-        }));
-
-        // 3. KIỂM TRA TRƯỚC KHI THÊM THỦ CÔNG:
-        // Nếu trong DB chưa có bản ghi "Tạo đơn" thì mới push thủ công
-        const hasCreateEvent = events.some((e) => e.type === "create");
-        if (!hasCreateEvent) {
-          events.push({
-            id: "create-order-" + order.dbId,
-            action: "Tạo đơn",
-            title: "Tạo đơn hàng mới",
-            time: order.ngayTao,
-            user: "Hệ thống",
-            detail: "Khởi tạo đơn hàng trên hệ thống",
-            orderCode: order.id,
-            type: "create",
-          });
-        }
-
-        // Cập nhật lại danh sách hiển thị
-        historyEvents.value = events;
-        isHistoryModalOpen.value = true;
-      } catch (error) {
-        console.error("Lỗi lấy lịch sử:", error);
-        alert("Không thể tải lịch sử đơn hàng!");
+      if (!events.some((e) => e.type === "create")) {
+        events.push({
+          id: "create-" + order.dbId,
+          action: "Tạo đơn",
+          title: "Tạo đơn hàng mới",
+          time: order.ngayTao,
+          user: "Hệ thống",
+          detail: "Khởi tạo đơn hàng trên hệ thống",
+          type: "create",
+        });
       }
+
+      historyEvents.value = events;
+      isHistoryModalOpen.value = true;
+    } catch (error) {
+      alert("Không thể tải lịch sử!");
     }
-  };
-
-  const closeHistoryModal = () => {
-    isHistoryModalOpen.value = false;
-    selectedHistoryOrder.value = null;
-  };
-
-  const handlePrintOrder = (maHoaDon) => {
-    console.log("In hóa đơn:", maHoaDon);
   };
 
   const handleUpdateMonDaLen = async (idChiTietHD) => {
     try {
       await BeUpdateMonDaLen(idChiTietHD);
-      // Tải lại chi tiết để cập nhật giao diện modal
       if (selectedOrder.value) {
-        const data = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-        orderDetails.value = data;
+        orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
       }
     } catch (error) {
-      console.error("Lỗi cập nhật món:", error);
-      alert("Không thể cập nhật trạng thái món!");
+      alert("Lỗi cập nhật món!");
     }
   };
 
@@ -232,23 +184,20 @@ export function useOrderManager() {
     if (!selectedOrder.value) return;
     try {
       await BeUpdateTatCaDaLen(selectedOrder.value.dbId);
-      const data = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-      orderDetails.value = data;
-      alert("Đã xác nhận tất cả món đã lên bàn!");
+      orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
+      alert("Đã xác nhận tất cả món!");
     } catch (error) {
-      console.error("Lỗi cập nhật tất cả món:", error);
       alert("Cập nhật thất bại!");
     }
   };
 
   const handleHuyDon = async (order) => {
-    if (!confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`)) return;
+    if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`)) return;
 
     const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
-
     const payload = {
       idHoaDon: order.dbId,
-      idNhanVien: 1, // ID tạm thời, sau này lấy từ thông tin đăng nhập
+      idNhanVien: 1,
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: "Nhân viên hủy đơn/Khách đổi ý",
       trangThaiLichSuTruocDo: statusMap[order.trangThai],
@@ -258,10 +207,9 @@ export function useOrderManager() {
     try {
       await BeHuyHoaDon(payload);
       alert("Hủy hóa đơn thành công!");
-      await fetchOrders(); // Tải lại danh sách hóa đơn ở màn hình chính
-      if (isDetailModalOpen.value) closeDetailModal(); // Đóng modal nếu đang mở
+      await fetchOrders();
+      await handleViewDetail(order.dbId);
     } catch (error) {
-      // Hiển thị thông báo: "Không thể hủy hóa đơn vì đã có món ăn được phục vụ!"
       alert("Thất bại: " + error.message);
     }
   };
@@ -274,22 +222,20 @@ export function useOrderManager() {
   return {
     filters,
     orderList,
-    isDetailModalOpen,
     selectedOrder,
-    handleViewDetail,
     orderDetails,
-    closeDetailModal,
+    currentVAT,
     isHistoryModalOpen,
     selectedHistoryOrder,
     historyEvents,
+    handleViewDetail,
     handleViewHistory,
-    closeHistoryModal,
+    closeHistoryModal: () => { isHistoryModalOpen.value = false; },
     handleSearch,
     handleReset,
-    handlePrintOrder,
+    handlePrintOrder: (id) => console.log("In:", id),
     handleUpdateMonDaLen,
-    handleUpdateTatCaDaLen, 
+    handleUpdateTatCaDaLen,
     handleHuyDon,
-    currentVAT,
   };
 }
