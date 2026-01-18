@@ -78,7 +78,7 @@ public class ChiTietMonAn {
     @JsonIgnore
     private List<ChiTietSetLau> cacSetLauChuaMonNay;
 
-    @Column(name = "url_hinh_anh")
+    @Column(name = "url_hinh_anh", columnDefinition = "NVARCHAR(MAX)")
     private String hinhAnh;
 
 }

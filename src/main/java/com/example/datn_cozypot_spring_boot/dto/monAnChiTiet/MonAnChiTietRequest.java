@@ -35,4 +35,6 @@ public class MonAnChiTietRequest {
 
     @NotNull(message = "Trạng thái không được để trống")
     private Integer trangThai;
+
+    private String hinhAnh;
 }
