@@ -32,5 +32,7 @@ public class MonAnChiTietResponse {
     private String nguoiTao;
     private String nguoiSua;
 
+    private String hinhAnh;
+
     private Integer trangThai;
 }

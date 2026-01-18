@@ -17,13 +17,26 @@ const routes = [
         path: '/manage/food/hotpot/add',
         name: 'addHotpotSet',
         component: () =>
-            import ("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue")
+            import ("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
+        meta: { 
+        parentMenu: 'foodManager',
+        activeTab: 'setlau'       
+        }
     },
     {
         path: "/test",
         name: "test",
         component: () =>
             import ("./components/testConnection.vue")
+    },
+    {
+    path: '/manage/food/hotpot/update/:id',
+    name: 'updateHotpotSet',
+    component: () => import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+    meta: { 
+      parentMenu: 'foodManager',
+      activeTab: 'setlau'       
+    }
     },
 ];
 

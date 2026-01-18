@@ -12,13 +12,18 @@ import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest
 import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietRequest;
+import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietResponse;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.*;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -28,6 +33,7 @@ public class MonAnServiceImplementation implements MonAnService {
     private final MonAnChiTietRepository monAnChiTietRepository;
     private final SetLauRepository setLauRepository;
     private final LoaiLauRepository loaiLauRepository;
+    private final SetLauChiTietRepository setLauChiTietRepository;
     private final DanhMucRepository danhMucRepository;
     private final DanhMucChiTietRepository danhMucChiTietRepository;
     private final ModelMapper modelMapper;
@@ -128,14 +134,43 @@ public class MonAnServiceImplementation implements MonAnService {
     }
 
     @Override
+    @Transactional
     public SetLauResponse createSetLau(SetLauRequest request) {
-        SetLau setLau = modelMapper.map(request, SetLau.class);
-        setLau.setId(null);
-        setLauRepository.save(setLau);
-        SetLauResponse setLauResponse = modelMapper.map(setLau, SetLauResponse.class);
-        LoaiLauResponse loaiLauResponse = loaiLauRepository.findById(setLauResponse.getIdLoaiSet()).map(loaiSetLau -> modelMapper.map(loaiSetLau, LoaiLauResponse.class)).orElse(null);
-        setLauResponse.setTenLoaiSet(loaiLauResponse.getTenLoaiSet());
-        return setLauResponse;
+        SetLau setLau = new SetLau();
+        setLau.setTenSetLau(request.getTenSetLau());
+        setLau.setGiaBan(request.getGiaBan());
+        setLau.setHinhAnh(request.getHinhAnh());
+        setLau.setMoTa(request.getMoTa());
+        setLau.setTrangThai(request.getTrangThai());
+        setLau.setNgayTao(Instant.now());
+
+        if (request.getIdLoaiSet() != null) {
+            LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy loại set!"));
+            setLau.setIdLoaiSet(loaiSet);
+        }
+
+        SetLau savedSetLau = setLauRepository.save(setLau);
+
+        if (request.getListChiTietSetLau() != null && !request.getListChiTietSetLau().isEmpty()) {
+
+            List<ChiTietSetLau> listToSave = new ArrayList<>();
+
+            for (SetLauChiTietRequest itemRequest : request.getListChiTietSetLau()) {
+                ChiTietMonAn monAn = monAnChiTietRepository.findById(itemRequest.getIdChiTietMonAn())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn ID: " + itemRequest.getIdChiTietMonAn()));
+
+                ChiTietSetLau detail = new ChiTietSetLau();
+                detail.setSetLau(savedSetLau);
+                detail.setChiTietMonAn(monAn);
+                detail.setSoLuong(itemRequest.getSoLuong());
+
+                listToSave.add(detail);
+            }
+            setLauChiTietRepository.saveAll(listToSave);
+        }
+
+        return new SetLauResponse();
     }
 
     @Override
@@ -182,19 +217,40 @@ public class MonAnServiceImplementation implements MonAnService {
     }
 
     @Override
+    @Transactional
     public SetLauResponse putLau(int id, SetLauRequest request) {
-        return setLauRepository.findById(id)
-                .map(setLau -> {
-                    setLau.setTenSetLau(request.getTenSetLau());
-                    setLau.setGiaBan(request.getGiaBan());
-                    setLau.setMoTa(request.getMoTa());
-                    setLau.setMoTaChiTiet(request.getMoTaChiTiet());
-                    setLau.setTrangThai(request.getTrangThai());
-                    setLau.setIdLoaiSet(loaiLauRepository.findById(request.getIdLoaiSet()).get());
-                    setLau.setHinhAnh(request.getHinhAnh());
-                    setLauRepository.save(setLau);
-                    return modelMapper.map(setLau, SetLauResponse.class);
-                }).orElse(null);
+        SetLau existingSet = setLauRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID: " + id));
+
+        existingSet.setTenSetLau(request.getTenSetLau());
+        existingSet.setGiaBan(request.getGiaBan());
+        existingSet.setHinhAnh(request.getHinhAnh());
+        existingSet.setMoTa(request.getMoTa());
+        existingSet.setTrangThai(request.getTrangThai());
+
+        if (request.getIdLoaiSet() != null) {
+            LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
+                    .orElseThrow(() -> new RuntimeException("Loại set không tồn tại"));
+            existingSet.setIdLoaiSet(loaiSet);
+        }
+
+        existingSet.getListChiTietSetLau().clear();
+
+        if (request.getListChiTietSetLau() != null) {
+            for (SetLauChiTietRequest itemReq : request.getListChiTietSetLau()) {
+                ChiTietMonAn monAn = monAnChiTietRepository.findById(itemReq.getIdChiTietMonAn())
+                        .orElseThrow(() -> new RuntimeException("Món ăn ID " + itemReq.getIdChiTietMonAn() + " không tồn tại"));
+
+                ChiTietSetLau newDetail = new ChiTietSetLau();
+                newDetail.setSetLau(existingSet);
+                newDetail.setChiTietMonAn(monAn);
+                newDetail.setSoLuong(itemReq.getSoLuong());
+
+                existingSet.getListChiTietSetLau().add(newDetail);
+            }
+        }
+        SetLau savedSet = setLauRepository.save(existingSet);
+        return modelMapper.map(savedSet, SetLauResponse.class);
     }
 
     @Override
@@ -262,5 +318,58 @@ public class MonAnServiceImplementation implements MonAnService {
         danhMucChiTiet.setMaDanhMucChiTiet(null);
         danhMucChiTietRepository.save(danhMucChiTiet);
         return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
+    }
+
+    @Override
+    @Transactional // Quan trọng để tránh lỗi Lazy Loading
+    public SetLauResponse findSetLauById(int id) {
+        // 1. Tìm Entity SetLau
+        SetLau setLau = setLauRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID: " + id));
+
+        // 2. Map các trường cơ bản sang DTO
+        SetLauResponse response = new SetLauResponse();
+        response.setId(setLau.getId());
+        response.setTenSetLau(setLau.getTenSetLau());
+        response.setGiaBan(setLau.getGiaBan());
+        response.setHinhAnh(setLau.getHinhAnh());
+        response.setMoTa(setLau.getMoTa());
+        response.setTrangThai(setLau.getTrangThai());
+
+        // Map Loại Set
+        if (setLau.getIdLoaiSet() != null) {
+            LoaiLauResponse loaiRes = new LoaiLauResponse();
+            loaiRes.setId(setLau.getIdLoaiSet().getId());
+            loaiRes.setTenLoaiSet(setLau.getIdLoaiSet().getTenLoaiSet());
+            response.setIdLoaiSet(loaiRes.getId());
+        }
+
+        List<SetLauChiTietResponse> listDetailResponse = new ArrayList<>();
+
+        if (setLau.getListChiTietSetLau() != null) {
+            for (ChiTietSetLau detailEntity : setLau.getListChiTietSetLau()) {
+                SetLauChiTietResponse detailDTO = new SetLauChiTietResponse();
+                detailDTO.setId(detailEntity.getId());
+                detailDTO.setSoLuong(detailEntity.getSoLuong());
+
+                ChiTietMonAn monAn = detailEntity.getChiTietMonAn();
+                if (monAn != null) {
+                    MonAnChiTietResponse monAnDTO = new MonAnChiTietResponse();
+                    monAnDTO.setId(monAn.getId());
+                    monAnDTO.setTenChiTietMonAn(monAn.getTenChiTietMonAn());
+                    monAnDTO.setGiaBan(monAn.getGiaBan());
+                    monAnDTO.setDonVi(monAn.getDonVi());
+                    monAnDTO.setHinhAnh(monAn.getHinhAnh());
+
+                    detailDTO.setChiTietMonAn(monAnDTO);
+                }
+
+                listDetailResponse.add(detailDTO);
+            }
+        }
+
+        response.setListChiTietSetLau(listDetailResponse);
+
+        return response;
     }
 }
