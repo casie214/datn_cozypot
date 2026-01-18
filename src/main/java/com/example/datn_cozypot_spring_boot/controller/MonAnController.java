@@ -43,6 +43,12 @@ public class MonAnController {
         return ResponseEntity.ok(setLauResponses);
     }
 
+    @GetMapping("/hotpotGeneral/{id}")
+    public ResponseEntity<SetLauResponse> findSetLauById(@PathVariable int id){
+        SetLauResponse setLauResponses = monAnService.findSetLauById(id);
+        return ResponseEntity.ok(setLauResponses);
+    }
+
     @GetMapping("/foodDetail")
     public ResponseEntity<List<MonAnChiTietResponse>> findMonAnFoodDetail(){
         List<MonAnChiTietResponse> monAnChiTietResponses = monAnService.findAllChiTietMonAn();
