@@ -26,7 +26,6 @@ const formatMoney = (value) => {
   }).format(value);
 };
 
-//  Tạm tính
 const subTotal = computed(() => {
   if (!props.orderDetailList || props.orderDetailList.length === 0) return 0;
   return props.orderDetailList.reduce(
@@ -35,22 +34,18 @@ const subTotal = computed(() => {
   );
 });
 
-// Tiền thuế
 const taxAmount = computed(() => {
   return subTotal.value * (props.vatRate / 100);
 });
 
-// Giảm giá
 const discount = computed(() => {
   return props.orderData?.soTienDaGiam || 0;
 });
 
-// Tổng cộng
 const total = computed(() => {
   return subTotal.value + taxAmount.value - discount.value;
 });
 
-// --- LOGIC TRẠNG THÁI ---
 const isCancelled = computed(() => props.orderData?.trangThai === "Đã hủy");
 const isCompleted = computed(() => props.orderData?.trangThai === "Hoàn thành");
 const isReadOnly = computed(() => isCancelled.value || isCompleted.value);
@@ -78,7 +73,6 @@ const hasServedDish = computed(() => {
   return props.orderDetailList?.some((item) => item.trangThaiCode === 2);
 });
 
-// Hàm xử lý Hủy đơn
 const handleCancelOrder = () => {
   if (hasServedDish.value) {
     alert("Không thể hủy hóa đơn vì đã có món ăn được phục vụ lên bàn!");
