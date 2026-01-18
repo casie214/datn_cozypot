@@ -34,6 +34,7 @@ public class HoaDonThanhToanController {
 
     @GetMapping("/search")
     public List<HoaDonThanhToanResponse> search(
+            @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay) {
@@ -41,7 +42,7 @@ public class HoaDonThanhToanController {
         Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
         Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
 
-        return hoaDonThanhToanService.searchHoaDon(trangThai, start, end);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end);
     }
 
     @GetMapping("/get-by-id/{id}")

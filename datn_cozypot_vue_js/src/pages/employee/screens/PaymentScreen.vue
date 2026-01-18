@@ -2,7 +2,6 @@
 import Sidebar from '../../../components/sidebar.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-// Import từ orderService vì file này mới chứa các hàm export
 import { BeGetHoaDonById, BeGetChiTietHoaDon, BeXacNhanThanhToan } from "./orderService"; 
 
 const route = useRoute();
@@ -25,13 +24,8 @@ const formatMoney = (value) => {
 onMounted(async () => {
     try {
         loading.value = true;
-        // 1. Lấy thông tin tổng quan (tên khách, bàn, tổng tiền) từ DTO HoaDonThanhToanResponse
         const data = await BeGetHoaDonById(orderId);
-        
-        // 2. Lấy danh sách món ăn chi tiết
         const items = await BeGetChiTietHoaDon(orderId);
-        
-        // 3. Gộp lại vào orderDetails để hiển thị
         orderDetails.value = {
             ...data,
             items: items
@@ -48,7 +42,7 @@ const handleConfirmPayment = async () => {
     try {
         const payload = {
             idHoaDon: orderId,
-            idNhanVien: 1, // M có thể lấy từ store nếu đã làm phần Đăng nhập
+            idNhanVien: 1, // Sua khi co dang nhap
             hanhDong: "Thanh toán",
             thoiGianThucHien: new Date().toISOString()
         };

@@ -2,7 +2,7 @@ package com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan;
 
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.Instant; // Sửa thành Instant cho khớp Entity
+import java.time.Instant;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,4 +20,5 @@ public class HoaDonThanhToanResponse {
     private BigDecimal soTienDaGiam;
     private Integer trangThaiHoaDon;
     private Instant thoiGianTao;
+    private Integer hinhThucDat;
 }

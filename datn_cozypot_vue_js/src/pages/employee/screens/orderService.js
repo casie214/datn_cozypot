@@ -18,8 +18,11 @@ export const BeGetHoaDonById = async (id) => {
     return await result.json();
 };
 
-export const BeSearchHoaDon = async (trangThai, tuNgay, denNgay) => {
+export const BeSearchHoaDon = async (key, trangThai, tuNgay, denNgay) => {
     const params = new URLSearchParams();
+    if (key !== null && key !== undefined && key !== "") {
+        params.append("key", key);
+    }
     if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
         params.append("trangThai", trangThai);
     }

@@ -2,11 +2,9 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
-import com.example.datn_cozypot_spring_boot.entity.BanAn;
-import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
-import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
-import com.example.datn_cozypot_spring_boot.entity.NhanVien;
+import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepo;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepo;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepo;
 import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepo;
 import jakarta.transaction.Transactional;
@@ -25,6 +23,9 @@ public class HoaDonThanhToanService {
     ChiTietHoaDonService chiTietHoaDonService;
 
     @Autowired
+    ChiTietHoaDonRepo chiTietHoaDonRepo;
+
+    @Autowired
     LichSuHoaDonRepo lichSuHoaDonRepo;
 
     @Autowired
@@ -34,8 +35,8 @@ public class HoaDonThanhToanService {
         return hoaDonThanhToanRepo.getAllHoaDon();
     }
 
-    public List<HoaDonThanhToanResponse> searchHoaDon(Integer trangThai, Instant tuNgay, Instant denNgay){
-        return hoaDonThanhToanRepo.searchHoaDon(trangThai, tuNgay, denNgay);
+    public List<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgay, Instant denNgay){
+        return hoaDonThanhToanRepo.searchHoaDon(key, trangThai, tuNgay, denNgay);
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
@@ -54,6 +55,14 @@ public class HoaDonThanhToanService {
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
 
         hd.setTrangThaiHoaDon(0);
+
+        List<ChiTietHoaDon> listgetAllMonAn = chiTietHoaDonRepo.findByIdHoaDon(hd.getId());
+        for (ChiTietHoaDon chiTietHoaDon : listgetAllMonAn){
+            chiTietHoaDon.setTrangThaiMon(0);
+        }
+
+        chiTietHoaDonRepo.saveAll(listgetAllMonAn);
+
         hoaDonThanhToanRepo.save(hd);
 
         if (hd.getIdBanAn()!= null){
@@ -63,12 +72,10 @@ public class HoaDonThanhToanService {
 
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong(request.getHanhDong()); // "Hủy hóa đơn"
+        log.setHanhDong(request.getHanhDong());
         log.setLyDoThucHien(request.getLyDoThucHien());
-        log.setThoiGianThucHien(request.getThoiGianThucHien() != null ?
-                request.getThoiGianThucHien() : Instant.now());
-
-        log.setTrangThaiTruocDo(request.getTrangThaiLichSuTruocDo());
+        log.setThoiGianThucHien(Instant.now());
+        log.setTrangThaiTruocDo(trangThaiHDCu);
         log.setTrangThaiMoi(0);
 
         if (request.getIdNhanVien() != null) {

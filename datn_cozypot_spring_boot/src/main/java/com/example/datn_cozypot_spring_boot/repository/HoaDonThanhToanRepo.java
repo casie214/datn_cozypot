@@ -12,6 +12,7 @@ import java.util.List;
 
 @Repository
 public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Integer> {
+
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
             "hd.id, " +
             "hd.maHoaDon, " +
@@ -21,43 +22,60 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "hd.tongTienThanhToan, " +
             "hd.soTienDaGiam, " +
             "hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao) " +
+            "hd.thoiGianTao, " +
+            "pdb.hinhThucDat) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
-            "ORDER BY " +
-            "CASE " +
-            "  WHEN hd.trangThaiHoaDon = 1 THEN 1 " + // Đã xác nhận lên đầu
-            "  WHEN hd.trangThaiHoaDon = 2 THEN 2 " + // Hoàn thành thứ 2
-            "  ELSE 3 " +                             // Hủy xuống cuối
-            "END ASC, " +
-            "hd.thoiGianTao DESC")
+            "LEFT JOIN hd.idPhieuDatBan pdb " +
+            "ORDER BY hd.thoiGianTao ASC")
     List<HoaDonThanhToanResponse> getAllHoaDon();
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
-            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
-            "hd.tongTienThanhToan, hd.soTienDaGiam, hd.trangThaiHoaDon, hd.thoiGianTao) " +
+            "hd.id, " +
+            "hd.maHoaDon, " +
+            "kh.tenKhachHang, " +
+            "kh.soDienThoai, " +
+            "b.tenBan, " +
+            "hd.tongTienThanhToan, " +
+            "hd.soTienDaGiam, " +
+            "hd.trangThaiHoaDon, " +
+            "hd.thoiGianTao, " +
+            "pdb.hinhThucDat) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
+            "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
             "AND (CAST(:tuNgay AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgay) " +
             "AND (CAST(:denNgay AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgay) " +
-            "ORDER BY " +
-            "CASE WHEN hd.trangThaiHoaDon = 1 THEN 1 WHEN hd.trangThaiHoaDon = 2 THEN 2 ELSE 3 END ASC, " +
-            "hd.thoiGianTao DESC")
+            "AND (:keyword IS NULL OR :keyword = '' " +
+            "     OR LOWER(hd.maHoaDon) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "     OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "ORDER BY hd.thoiGianTao ASC")
     List<HoaDonThanhToanResponse> searchHoaDon(
+            @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
             @Param("tuNgay") Instant tuNgay,
             @Param("denNgay") Instant denNgay
     );
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
-            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
-            "hd.tongTienThanhToan, hd.soTienDaGiam, hd.trangThaiHoaDon, hd.thoiGianTao) " +
+            "hd.id, " +
+            "hd.maHoaDon, " +
+            "kh.tenKhachHang, " +
+            "kh.soDienThoai, " +
+            "b.tenBan, " +
+            "hd.tongTienThanhToan, " +
+            "hd.soTienDaGiam, " +
+            "hd.trangThaiHoaDon, " +
+            "hd.thoiGianTao, " +
+            "pdb.hinhThucDat) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
+            "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 }
