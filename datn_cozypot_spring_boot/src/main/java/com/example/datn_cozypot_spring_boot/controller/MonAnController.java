@@ -55,6 +55,12 @@ public class MonAnController {
         return ResponseEntity.ok(monAnChiTietResponses);
     }
 
+    @GetMapping("/foodDetail/{id}")
+    public ResponseEntity<MonAnChiTietResponse> findMonAnFoodDetailById(@PathVariable("id") int id){
+        MonAnChiTietResponse monAnChiTietResponses = monAnService.findChiTietMonAnById(id);
+        return ResponseEntity.ok(monAnChiTietResponses);
+    }
+
     @GetMapping("/modal/{id}")
     public ResponseEntity<List<MonAnChiTietResponse>> findMonAnModal(@PathVariable int id){
         MonAnResponse monAnResponse = monAnService.findMonAnById(id);

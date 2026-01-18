@@ -186,18 +186,32 @@ public class MonAnServiceImplementation implements MonAnService {
     public MonAnChiTietResponse putMonAnChiTiet(int id, MonAnChiTietRequest request) {
         return monAnChiTietRepository.findById(id)
                 .map(chiTietMonAn -> {
+                    // 1. Update các trường cơ bản
                     chiTietMonAn.setTenChiTietMonAn(request.getTenChiTietMonAn());
-                    chiTietMonAn.setIdMonAnDiKem(monAnRepository.findById(request.getIdMonAnDiKem()).get());
                     chiTietMonAn.setGiaBan(request.getGiaBan());
                     chiTietMonAn.setGiaVon(request.getGiaVon());
                     chiTietMonAn.setKichCo(request.getKichCo());
                     chiTietMonAn.setDonVi(request.getDonVi());
                     chiTietMonAn.setTrangThai(request.getTrangThai());
 
-                    monAnChiTietRepository.save(chiTietMonAn);
-                    return modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class);
+                    // 2. Xử lý Món Ăn Đi Kèm (An toàn hơn)
+                    // Tìm món cha, nếu không thấy thì báo lỗi (hoặc giữ nguyên cái cũ tùy logic)
+                    MonAnDiKem monAnCha = monAnRepository.findById(request.getIdMonAnDiKem())
+                            .orElseThrow(() -> new RuntimeException("Món ăn cha ID " + request.getIdMonAnDiKem() + " không tồn tại"));
+                    chiTietMonAn.setIdMonAnDiKem(monAnCha);
+
+                    // 3. Xử lý Hình ảnh (Logic thông minh)
+                    // Chỉ update nếu request có gửi ảnh lên.
+                    // Nếu frontend gửi null hoặc rỗng (do user xóa ảnh), ta cũng set rỗng theo.
+                    if (request.getHinhAnh() != null) {
+                        chiTietMonAn.setHinhAnh(request.getHinhAnh());
+                    }
+
+                    // 4. Lưu và Map
+                    ChiTietMonAn savedItem = monAnChiTietRepository.save(chiTietMonAn);
+                    return modelMapper.map(savedItem, MonAnChiTietResponse.class);
                 })
-                .orElse(null);
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Chi tiết món ID: " + id));
     }
 
     @Override
@@ -371,5 +385,11 @@ public class MonAnServiceImplementation implements MonAnService {
         response.setListChiTietSetLau(listDetailResponse);
 
         return response;
+    }
+
+    @Override
+    public MonAnChiTietResponse findChiTietMonAnById(int id) {
+        return monAnChiTietRepository.findById(id)
+                .map(chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)).get();
     }
 }

@@ -59,4 +59,6 @@ public interface MonAnService {
     DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request);
 
     SetLauResponse findSetLauById(int id);
+
+    MonAnChiTietResponse findChiTietMonAnById(int id);
 }
