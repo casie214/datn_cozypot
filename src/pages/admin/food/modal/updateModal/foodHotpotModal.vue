@@ -20,7 +20,10 @@ const {
 } = useHotpotUpdate();
 
 const getImg = (url) => {
-  return url && url.startsWith('http') ? url : 'https://placehold.co/50x50?text=No+Img';
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+        return url;
+    }
+    return 'https://placehold.co/100x100?text=No+Img';
 }
 </script>
 
@@ -36,7 +39,7 @@ const getImg = (url) => {
 
     <div class="info-hero-card" v-if="hotpotInfo" style="margin-bottom: 2em;">
       <div class="hero-image">
-        <img :src="formData.hinhAnh" alt="Ảnh Set Lẩu">
+        <img :src="getImg(hotpotInfo.hinhAnh)" alt="Ảnh Set Lẩu">
       </div>
       <div class="hero-details">
         <div class="hero-header">

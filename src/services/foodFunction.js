@@ -30,6 +30,10 @@ export function getAllFoodDetail() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
 }
 
+export function getFoodDetailById(id){
+    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
+}
+
 export function getAllCategory() {
     return axios.get(`${API_BASE_EMPLOYEE}/food/category`);
 }
@@ -119,6 +123,61 @@ export function useTabManager() {
 
 export function useFoodDetailManager() {
     const detailData = ref([]);
+    
+    const searchQuery = ref('');
+    const currentPage = ref(1);
+    const itemsPerPage = ref(5);
+
+    const filteredData = computed(() => {
+        if (!searchQuery.value) return detailData.value;
+        const lowerSearch = searchQuery.value.toLowerCase();
+        return detailData.value.filter(item => 
+            (item.tenChiTietMonAn && item.tenChiTietMonAn.toLowerCase().includes(lowerSearch)) ||
+            (item.maChiTietMonAn && item.maChiTietMonAn.toLowerCase().includes(lowerSearch))
+        );
+    });
+
+    const totalPages = computed(() => {
+        return Math.ceil(filteredData.value.length / itemsPerPage.value) || 1;
+    });
+
+    const paginatedData = computed(() => {
+        const start = (currentPage.value - 1) * itemsPerPage.value;
+        const end = start + itemsPerPage.value;
+        return filteredData.value.slice(start, end);
+    });
+
+    const visiblePages = computed(() => {
+        const total = totalPages.value;
+        const current = currentPage.value;
+        const delta = 2; 
+        const range = [];
+        const rangeWithDots = [];
+        let l;
+
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+                range.push(i);
+            }
+        }
+
+        range.forEach(i => {
+            if (l) {
+                if (i - l === 2) { rangeWithDots.push(l + 1); }
+                else if (i - l !== 1) { rangeWithDots.push('...'); }
+            }
+            rangeWithDots.push(i);
+            l = i;
+        });
+
+        return rangeWithDots;
+    });
+
+    const changePage = (page) => {
+        if (page >= 1 && page <= totalPages.value) {
+            currentPage.value = page;
+        }
+    };
 
     function getAllFoodDetails() {
         getAllFoodDetail()
@@ -133,7 +192,6 @@ export function useFoodDetailManager() {
         getAllFoodDetails();
     })
 
-
     const isModalOpen = ref(false);
     const selectedDetail = ref(null);
     const isAddModalOpen = ref(false);
@@ -145,8 +203,6 @@ export function useFoodDetailManager() {
 
     const handleSaveData = (data) => {
         isModalOpen.value = false;
-        emit('refresh');
-        emit('close');
     };
 
     const handleToggleStatus = async(item) => {
@@ -160,7 +216,6 @@ export function useFoodDetailManager() {
                 payload.idMonAnDiKem = item.monAnDiKem.id;
             }
             await putNewFoodDetail(item.id, payload);
-
         } catch (error) {
             console.error("Lỗi: ", error);
             item.trangThai = oldStatus;
@@ -169,6 +224,13 @@ export function useFoodDetailManager() {
 
     return {
         detailData,
+        searchQuery,
+        paginatedData,
+        currentPage,
+        totalPages,
+        visiblePages,
+        itemsPerPage,
+        changePage,
         isModalOpen,
         isAddModalOpen,
         selectedDetail,
@@ -178,7 +240,6 @@ export function useFoodDetailManager() {
         handleToggleStatus
     };
 }
-
 export function useFoodManager() {
     const mockData = ref([]);
     const activeTab = ref('thucdon');
@@ -429,85 +490,160 @@ export function useFoodModal(itemSource) {
     };
 }
 
-export function useFoodDetailModal(props, emit) {
+export function useFoodDetailUpdate() {
+    const router = useRouter();
+    const route = useRoute();
+    const detailId = route.params.id; // Lấy ID từ URL
 
     const formData = ref({
+        id: null,
+        maChiTietMonAn: '',
         tenChiTietMonAn: '',
         idMonAnDiKem: '',
-        giaBan: '',
-        giaVon: '',
+        giaBan: 0,
+        giaVon: 0,
         kichCo: '',
         donVi: '',
+        hinhAnh: '',
         trangThai: 1
     });
 
-    const listMonAn = ref([]);
-    const dataChiTiet = ref([]);
+    const listMonAn = ref([]); 
+    const originalInfo = ref(null);
+    const isLoading = ref(true);
 
-    function getAllFood() {
-        getAllFoodGeneral()
-            .then(async res => {
-                listMonAn.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
-
-    function getAllFoodDetails() {
-        getAllFoodDetail()
-            .then(async res => {
-                dataChiTiet.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
-
-    onMounted(() => {
-        getAllFood();
-        getAllFoodDetail();
-    })
-
-
-    watch(() => props.detailItem, (newVal) => {
-        if (newVal) {
-            formData.value = {...newVal };
-        } else {
-            formData.value = {
-                tenChiTietMonAn: '',
-                idMonAnDiKem: '',
-                giaBan: '',
-                giaVon: '',
-                kichCo: '',
-                donVi: '',
-                trangThai: 1
-            };
-        }
+    // --- Computed: Lấy tên món cha (để hiện trên Hero Card) ---
+    const parentName = computed(() => {
+        if (!originalInfo.value) return '...';
+        // Nếu backend trả về object monAnDiKem
+        if (originalInfo.value.monAnDiKem) return originalInfo.value.monAnDiKem.tenMonAn;
+        
+        // Hoặc tìm trong list dropdown
+        const found = listMonAn.value.find(m => m.id === formData.value.idMonAnDiKem);
+        return found ? found.tenMonAn : 'Chưa xác định';
     });
 
-    const handleSave = () => {
+    // --- FETCH DATA ---
+    const fetchDetailData = async () => {
         try {
-            if (!formData.value.tenChiTietMonAn || !formData.value.giaBan) {
-                alert("Vui lòng nhập tên món và chọn danh mục chi tiết!");
+            isLoading.value = true;
+            // Gọi song song: Lấy chi tiết món & Lấy danh sách món cha
+            const [resDetail, resListFood] = await Promise.all([
+                getFoodDetailById(detailId),
+                getAllFoodGeneral()
+            ]);
+
+            listMonAn.value = resListFood.data;
+            const data = resDetail.data;
+            
+            originalInfo.value = data; // Lưu gốc
+
+            // Map vào Form
+            formData.value = {
+                id: data.id,
+                maChiTietMonAn: data.maChiTietMonAn,
+                tenChiTietMonAn: data.tenChiTietMonAn,
+                // Xử lý idMonAnDiKem tùy theo backend trả về object hay id
+                idMonAnDiKem: data.monAnDiKem ? data.monAnDiKem.id : data.idMonAnDiKem,
+                giaBan: data.giaBan,
+                giaVon: data.giaVon,
+                kichCo: data.kichCo,
+                donVi: data.donVi,
+                hinhAnh: data.hinhAnh,
+                trangThai: data.trangThai
+            };
+
+        } catch (e) {
+            console.error("Lỗi load dữ liệu:", e);
+            alert("Không tìm thấy chi tiết món ăn!");
+            router.back();
+        } finally {
+            isLoading.value = false;
+        }
+    };
+
+    onMounted(() => {
+        if (detailId) fetchDetailData();
+    });
+
+    // --- UPLOAD ẢNH ---
+    const resizeImage = (file, maxWidth = 800) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
+                };
+            };
+        });
+    };
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.match('image.*')) {
+            alert("Vui lòng chọn file hình ảnh!");
+            return;
+        }
+
+        try {
+            const resizedBase64 = await resizeImage(file);
+            console.log("Kích thước sau nén:", resizedBase64.length);
+            formData.value.hinhAnh = resizedBase64; 
+        } catch (e) {
+            console.error("Lỗi xử lý ảnh:", e);
+        }
+    };
+
+    const handleUpdate = async () => {
+        try {
+            if (!formData.value.tenChiTietMonAn || !formData.value.idMonAnDiKem) {
+                alert("Vui lòng nhập đủ thông tin!");
                 return;
             }
 
-            putNewFoodDetail(formData.value.id, formData.value);
+            await putNewFoodDetail(detailId, formData.value);
 
-            console.log("Dữ liệu cập nhật:", formData.value);
+            alert("Cập nhật thành công!");
+            router.push({ name: 'foodManager', query: { tab: 'chitietTD' } });
 
-            emit('refresh');
-            emit('close');
         } catch (e) {
-            console.error("Lỗi thêm món ăn:", e);
-            alert("Đã xảy ra lỗi khi thêm mới!");
+            console.error("Lỗi cập nhật:", e);
+            alert("Đã xảy ra lỗi khi cập nhật!");
         }
     };
+
+    const goBack = () => router.back();
 
     return {
         formData,
         listMonAn,
-        getAllFoodDetails,
-        handleSave
+        originalInfo,
+        parentName,
+        isLoading,
+        handleUpdate,
+        goBack,
+        handleFileUpload
     };
 }
 
@@ -1271,84 +1407,99 @@ export function useHotpotAdd() {
     };
 }
 
-export function useFoodDetailAddModal(props, emit) {
+export function useFoodDetailAdd() {
+    const router = useRouter();
+    const route = useRoute();
+    
+    // Lấy ID món cha từ URL (nếu gọi từ trang chi tiết món cha)
+    // Ví dụ: /food/detail-add?parentId=10
+    const parentIdFromUrl = route.query.parentId;
 
     const formData = ref({
         tenChiTietMonAn: '',
-        idMonAnDiKem: '',
+        idMonAnDiKem: '', // ID món cha
         moTaChiTiet: '',
         giaBan: 0,
         giaVon: 0,
         kichCo: '',
         donVi: '',
+        hinhAnh: '', // Thêm hình ảnh nếu muốn
         trangThai: 1
     });
 
-    const listDanhMuc = ref([]);
-    const isParentLocked = ref(false);
+    const listMonAn = ref([]); // Danh sách món cha để chọn
+    const isParentLocked = ref(false); // Khóa dropdown nếu đã có parentId
+    const parentFoodName = ref('');
 
-    function getAllFoodDetails() {
-        getAllFoodGeneral()
-            .then(async res => {
-                listDanhMuc.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
+    // --- FETCH DATA ---
+    const fetchInitialData = async () => {
+        try {
+            // 1. Lấy danh sách tất cả món ăn (để nạp vào dropdown)
+            const resAllFood = await getAllFoodGeneral();
+            listMonAn.value = resAllFood.data;
 
+            // 2. Nếu có parentId trên URL -> Tự động chọn và khóa dropdown
+            if (parentIdFromUrl) {
+                formData.value.idMonAnDiKem = parseInt(parentIdFromUrl);
+                isParentLocked.value = true;
+                
+                // Tìm tên món cha để hiển thị
+                const parent = listMonAn.value.find(f => f.id === parseInt(parentIdFromUrl));
+                if (parent) parentFoodName.value = parent.tenMonAn;
+            }
+        } catch (e) {
+            console.error("Lỗi load dữ liệu:", e);
+        }
+    };
 
     onMounted(() => {
-        getAllFoodDetails();
-        // alert(props.foodItem.id)
-    })
+        fetchInitialData();
+    });
 
+    // --- UPLOAD ẢNH (Optional - Giống Set Lẩu) ---
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => { formData.value.hinhAnh = e.target.result; };
+    };
 
-    watch(() => props.isOpen, (val) => {
-        if (val) {
-            formData.value = {
-                tenChiTietMonAn: '',
-                idMonAnDiKem: '',
-                moTaChiTiet: '',
-                giaBan: 0,
-                giaVon: 0,
-                kichCo: '',
-                donVi: '',
-                trangThai: 1
-            };
-
-            if (props.foodItem && props.foodItem.id) {
-                formData.value.idMonAnDiKem = props.foodItem.id;
-                isParentLocked.value = true;
-            } else {
-                isParentLocked.value = false;
-            }
-        }
-    }, { immediate: true });
-
-    const handleSave = async() => {
+    // --- SAVE ---
+    const handleSave = async () => {
         try {
             if (!formData.value.tenChiTietMonAn || !formData.value.idMonAnDiKem) {
-                alert("Vui lòng nhập tên set và chọn loại set chi tiết!");
+                alert("Vui lòng nhập Tên chi tiết và chọn Món ăn cha!");
                 return;
+            }
+            if (formData.value.giaBan < 0 || formData.value.giaVon < 0) {
+                 alert("Giá bán/Giá vốn không được âm!");
+                 return;
             }
 
             await postNewFoodDetail(formData.value);
 
-            console.log("Dữ liệu thêm mới:", formData.value);
+            alert("Thêm chi tiết thành công!");
+            // Quay về trang danh sách hoặc trang trước đó
+            router.back(); 
+            // Hoặc về danh sách: router.push({ name: 'foodManager', query: { tab: 'chitietTD' } });
 
-            emit('refresh');
-            emit('close');
         } catch (e) {
-            console.error("Lỗi thêm món ăn:", e);
-            alert("Đã xảy ra lỗi khi thêm mới!");
+            console.error("Lỗi thêm mới:", e);
+            alert("Đã xảy ra lỗi khi lưu dữ liệu!");
         }
     };
 
+    const goBack = () => router.back();
+
     return {
         formData,
-        listDanhMuc,
+        listMonAn,
         isParentLocked,
-        handleSave
+        parentFoodName,
+        handleSave,
+        goBack,
+        handleFileUpload
     };
 }
 

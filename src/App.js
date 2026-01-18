@@ -30,14 +30,32 @@ const routes = [
             import ("./components/testConnection.vue")
     },
     {
-    path: '/manage/food/hotpot/update/:id',
-    name: 'updateHotpotSet',
-    component: () => import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
-    meta: { 
-      parentMenu: 'foodManager',
-      activeTab: 'setlau'       
-    }
+        path: '/manage/food/hotpot/update/:id',
+        name: 'updateHotpotSet',
+        component: () => import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+        meta: { 
+        parentMenu: 'foodManager',
+        activeTab: 'setlau'       
+        }
     },
+    {
+        path: '/admin/food/detail/add',
+        name: 'addFoodDetail',
+        component: () => import('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
+        meta: { 
+            parentMenu: 'foodManager', 
+            activeTab: 'chitietTD'
+        }
+    },
+    {
+        path: '/admin/food/detail/update/:id',
+        name: 'updateFoodDetail',
+        component: () => import('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+        meta: { 
+            parentMenu: 'foodManager', 
+            activeTab: 'chitietTD' 
+        }
+    }
 ];
 
 const router = createRouter({

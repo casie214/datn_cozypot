@@ -6,17 +6,15 @@ import FoodHotpotModal from '../../food/modal/updateModal/foodHotpotModal.vue';
 const router = useRouter();
 
 const {
-  // Biến cũ
   isModalOpen,
   selectedHotpot,
   handleViewDetails,
   handleToggleStatus,
   getAllHotpot,
   
-  // Biến mới thêm vào
-  paginatedData,    // Loop cái này thay vì hotpotData
-  searchQuery,      // v-model tìm kiếm
-  sortOption,       // v-model sắp xếp
+  paginatedData,    
+  searchQuery,      
+  sortOption,       
   currentPage,
   totalPages,
   visiblePages,
