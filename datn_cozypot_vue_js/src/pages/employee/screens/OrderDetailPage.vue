@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import Sidebar from "../../../components/sidebar.vue";
 import { useOrderManager } from "./orderFunction";
 
 const route = useRoute();
@@ -75,8 +74,6 @@ const formatDateTime = (dateString) => {
 
 <template>
   <div class="d-flex bg-light min-vh-100">
-    <Sidebar />
-
     <main class="flex-grow-1 p-4 main-offset">
       <h1 class="page-title mb-4">Quản lý hóa đơn chi tiết</h1>
 
@@ -167,7 +164,7 @@ const formatDateTime = (dateString) => {
               </thead>
               <tbody>
                 <tr v-for="(item, index) in orderDetails" :key="index">
-                  <td class="text-center">{{ index + 1 }}</td>
+                  <td class="fw-bold text-center">{{ index + 1 }}</td>
                   <td>
                     <div class="d-flex flex-column">
                       <span class="fw-medium">{{ item.tenMon }}</span>
@@ -366,10 +363,6 @@ const formatDateTime = (dateString) => {
 </template>
 
 <style scoped>
-.main-offset {
-  margin-left: 250px;
-}
-
 .page-title {
   color: #8b0000;
   font-size: 24px;

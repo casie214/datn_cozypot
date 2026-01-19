@@ -1,8 +1,6 @@
 <script setup>
-import Sidebar from "../../../components/sidebar.vue";
 import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
-// import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
 
 const router = useRouter();
 
@@ -11,12 +9,7 @@ const {
   orderList,
   handleSearch,
   handleReset,
-  // handleViewHistory,
   handlePrintOrder,
-  // isHistoryModalOpen,
-  // selectedHistoryOrder,
-  // historyEvents,
-  // closeHistoryModal,
   currentPage,
   totalPages,
   handlePageChange,
@@ -25,8 +18,6 @@ const {
 
 <template>
   <div class="d-flex bg-light" style="min-height: 100vh">
-    <Sidebar />
-
     <main class="flex-grow-1 p-4 main-offset">
       <h1 class="page-title mb-4">Quản lý hóa đơn</h1>
 
@@ -144,14 +135,6 @@ const {
                         👁️
                       </button>
 
-                      <!-- <button
-                        class="btn btn-icon"
-                        title="Lịch sử"
-                        @click="handleViewHistory(order.id)"
-                      >
-                        🕒
-                      </button> -->
-
                       <button
                         class="btn btn-icon"
                         title="In hóa đơn"
@@ -213,9 +196,7 @@ const {
 </template>
 
 <style scoped>
-.main-offset {
-  margin-left: 250px;
-}
+
 .page-title {
   color: #8b0000;
   font-size: 24px;

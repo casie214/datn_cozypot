@@ -1,10 +1,8 @@
 <script setup>
-import Sidebar from '../../../components/sidebar.vue';
 import { useRouter } from 'vue-router';
 import { ref, computed } from 'vue';
 
 const router = useRouter();
-
 
 const foods = ref([
   { id: 1, name: 'Lẩu tôm chua cay', priceStr: '320.000 đ', rawPrice: 320000, time: 'Dự kiến 30p', icon: '🍲' },
@@ -15,28 +13,18 @@ const foods = ref([
   { id: 6, name: 'Cơm chiên dương châu', priceStr: '120.000 đ', rawPrice: 120000, time: 'Dự kiến 15p', icon: '🍚' },
 ]);
 
-
 const selectedItems = ref([]);
 
-//  Hàm thêm món vào danh sách
+// --- Logic giữ nguyên ---
 const addToOrder = (food) => {
-    // Kiểm tra món đã có trong list chưa
     const existingItem = selectedItems.value.find(item => item.id === food.id);
-    
     if (existingItem) {
-        // Nếu có rồi -> Tăng số lượng
         existingItem.quantity++;
     } else {
-        // Nếu chưa -> Thêm mới vào mảng
-        selectedItems.value.push({
-            ...food,
-            quantity: 1,
-            note: ''
-        });
+        selectedItems.value.push({ ...food, quantity: 1, note: '' });
     }
 };
 
-//  Các hàm tăng giảm số lượng / Xóa
 const increaseQty = (index) => {
     selectedItems.value[index].quantity++;
 };
@@ -45,7 +33,6 @@ const decreaseQty = (index) => {
     if (selectedItems.value[index].quantity > 1) {
         selectedItems.value[index].quantity--;
     } else {
-        // Nếu giảm về 0 thì hỏi xóa
         removeItem(index);
     }
 };
@@ -60,15 +47,13 @@ const clearAll = () => {
     }
 };
 
-// Tính toán tiền tự động (Computed)
 const subTotal = computed(() => {
     return selectedItems.value.reduce((total, item) => total + (item.rawPrice * item.quantity), 0);
 });
 
-const tax = computed(() => subTotal.value * 0.1); // 10% thuế
+const tax = computed(() => subTotal.value * 0.1);
 const total = computed(() => subTotal.value + tax.value);
 
-// Hàm format tiền tệ (VND)
 const formatMoney = (amount) => {
     return amount.toLocaleString('vi-VN') + ' đ';
 };
@@ -82,91 +67,135 @@ const handleConfirmAdd = () => {
         alert("Vui lòng chọn ít nhất 1 món!");
         return;
     }
-    // Logic lưu vào DB hoặc API ở đây
     alert("Đã thêm món thành công!");
     router.back();
 };
 </script>
 
 <template>
-  <div class="app-layout">
-    <Sidebar />
-
-    <main class="main-content">
-      <div class="header-section">
+  <div class="d-flex" style="background-color: #f8f9fa; min-height: 100vh;">
+    <main class="flex-grow-1 p-4" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      
+      <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h1 class="page-title">Thêm món</h1>
-            <p class="sub-title">Thêm món vào đơn hàng</p>
+            <h2 class="fw-bold mb-0 text-custom-red">Thêm món</h2>
+            <small class="text-muted">Chọn món ăn để thêm vào đơn hàng hiện tại</small>
           </div>
-          <button class="btn-back" @click="handleBack">⬅ Quay lại</button>
+          <button class="btn btn-secondary fw-bold shadow-sm" @click="handleBack">
+            <i class="fa-solid fa-arrow-left me-2"></i>Quay lại
+          </button>
       </div>
 
-      <div class="add-food-container">
+      <div class="row g-3 flex-grow-1" style="min-height: 0;"> 
         
-        <div class="left-panel">
-            <div class="panel-header">
-                <h3>🍴 Chọn món ăn</h3>
-            </div>
-            <div class="search-box">
-                <input type="text" placeholder="Tìm kiếm món ăn..." class="form-control" />
-            </div>
-            
-            <div class="food-grid">
-                <div v-for="food in foods" :key="food.id" class="food-card" @click="addToOrder(food)">
-                    <div class="food-icon">{{ food.icon }}</div>
-                    <div class="food-details">
-                        <b>{{ food.name }}</b>
-                        <span class="price">{{ food.priceStr }}</span>
-                        <span class="time">{{ food.time }}</span>
+        <div class="col-lg-8 d-flex flex-column h-100">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 p-3 pb-0">
+                     <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-utensils me-2 text-custom-red"></i>Menu Món Ăn</h5>
+                     </div>
+                     <div class="input-group mb-2">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0 bg-light" placeholder="Tìm kiếm tên món ăn..." />
+                     </div>
+                </div>
+
+                <div class="card-body overflow-auto custom-scrollbar p-3">
+                    <div class="row g-3">
+                        <div v-for="food in foods" :key="food.id" class="col-md-6 col-xl-4">
+                            <div class="card h-100 food-card border cursor-pointer position-relative" @click="addToOrder(food)">
+                                <div class="card-body d-flex align-items-center gap-3 p-3">
+                                    <div class="food-icon rounded-3 bg-light d-flex align-items-center justify-content-center flex-shrink-0">
+                                        {{ food.icon }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="fw-bold mb-1 text-dark line-clamp-2">{{ food.name }}</h6>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-custom-red fw-bold">{{ food.priceStr }}</span>
+                                        </div>
+                                        <small class="text-muted" style="font-size: 0.75rem;">
+                                            <i class="fa-regular fa-clock me-1"></i>{{ food.time }}
+                                        </small>
+                                    </div>
+                                    <div class="add-icon-overlay">
+                                        <i class="fa-solid fa-plus text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="right-panel">
-            <h3>Tóm tắt</h3>
-            
-            <div class="selected-list">
-                
-                <div v-if="selectedItems.length === 0" class="empty-state">
-                    Chưa có món nào được chọn
+        <div class="col-lg-4 d-flex flex-column h-100">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-custom-red text-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-receipt me-2"></i>Món đã chọn</h5>
                 </div>
 
-                <div v-for="(item, index) in selectedItems" :key="item.id" class="summary-card">
-                    <div class="summary-item">
-                        <div class="item-header">
-                            <b>{{ item.name }}</b>
-                            <div class="qty-control">
-                                <button @click="decreaseQty(index)">-</button> 
-                                <span>{{ item.quantity }}</span> 
-                                <button class="btn-plus" @click="increaseQty(index)">+</button> 
-                                <button class="btn-x" @click="removeItem(index)">✖</button>
-                            </div>
-                        </div>
-                        <div class="item-price-row">
-                             {{ formatMoney(item.rawPrice * item.quantity) }}
-                        </div>
-                        <input type="text" v-model="item.note" placeholder="Ghi chú cho món này..." class="note-input" />
+                <div class="card-body overflow-auto custom-scrollbar p-0 flex-grow-1 bg-light">
+                    <div v-if="selectedItems.length === 0" class="d-flex flex-column align-items-center justify-content-center h-100 text-muted opacity-50">
+                        <i class="fa-solid fa-basket-shopping display-4 mb-3"></i>
+                        <p>Chưa có món nào được chọn</p>
                     </div>
+
+                    <ul v-else class="list-group list-group-flush">
+                        <li v-for="(item, index) in selectedItems" :key="item.id" class="list-group-item p-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="fw-bold text-dark">{{ item.name }}</span>
+                                <span class="fw-bold text-dark">{{ formatMoney(item.rawPrice * item.quantity) }}</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <input 
+                                    type="text" 
+                                    v-model="item.note" 
+                                    class="form-control form-control-sm bg-light border-0" 
+                                    placeholder="Ghi chú..." 
+                                    style="font-size: 0.85rem;"
+                                />
+
+                                <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                    <button type="button" class="btn btn-white border" @click="decreaseQty(index)">-</button>
+                                    <button type="button" class="btn btn-white border px-3 fw-bold disabled text-dark" style="opacity: 1; background: #fff;">{{ item.quantity }}</button>
+                                    <button type="button" class="btn btn-custom-red text-white" @click="increaseQty(index)">+</button>
+                                </div>
+                                
+                                <button class="btn btn-sm btn-outline-danger border-0" @click="removeItem(index)">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </li>
+                    </ul>
                 </div>
 
-            </div>
+                <div class="card-footer bg-white border-top p-3 shadow-top">
+                    <div class="d-flex justify-content-between mb-1 small text-muted">
+                        <span>Tạm tính:</span>
+                        <span>{{ formatMoney(subTotal) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 small text-muted">
+                        <span>Thuế (10%):</span>
+                        <span>{{ formatMoney(tax) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pt-2 border-top">
+                        <span class="fw-bold fs-5 text-dark">Tổng cộng:</span>
+                        <span class="fw-bold fs-4 text-custom-red">{{ formatMoney(total) }}</span>
+                    </div>
 
-            <div class="footer-summary">
-                <div class="summary-totals">
-                    <div class="row"><span>Tạm tính:</span> <b>{{ formatMoney(subTotal) }}</b></div>
-                    <div class="row"><span>Thuế(10%):</span> <b>{{ formatMoney(tax) }}</b></div>
-                    <div class="row total"><span>Tổng cộng:</span> <b class="red">{{ formatMoney(total) }}</b></div>
-                </div>
+                    <div class="mb-3">
+                        <textarea class="form-control form-control-sm bg-light" rows="2" placeholder="Ghi chú chung cho đơn hàng..."></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label>Ghi chú chung</label>
-                    <textarea class="form-control" placeholder="Ghi chú đơn hàng..." rows="2"></textarea>
-                </div>
-
-                <div class="action-buttons">
-                    <button class="btn-confirm-add" @click="handleConfirmAdd">Thêm món</button>
-                    <button class="btn-clear-all" @click="clearAll">Xóa tất cả</button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-light text-muted fw-bold flex-grow-1" @click="clearAll">
+                            Hủy bỏ
+                        </button>
+                        <button class="btn btn-custom-red text-white fw-bold flex-grow-1 py-2" @click="handleConfirmAdd">
+                            <i class="fa-solid fa-check me-2"></i>Xác nhận thêm
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -177,65 +206,58 @@ const handleConfirmAdd = () => {
 </template>
 
 <style scoped>
-.app-layout { min-height: 100vh; background-color: #fff; }
-.main-content { margin-left: 250px; width: calc(100% - 250px); padding: 30px 40px; }
+.text-custom-red { color: #8B0000 !important; }
+.bg-custom-red { background-color: #8B0000 !important; }
+.btn-custom-red {
+    background-color: #8B0000;
+    border-color: #8B0000;
+}
+.btn-custom-red:hover {
+    background-color: #6d0000;
+    border-color: #6d0000;
+}
 
-.header-section { display: flex; justify-content: space-between; margin-bottom: 20px; }
-.page-title { color: #8B0000; margin: 0; font-size: 24px; }
-.sub-title { color: #8B0000; font-size: 14px; margin-top: 5px; }
-.btn-back { background: #e0e0e0; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; height: fit-content; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8B0000; }
 
-.add-food-container { display: flex; gap: 20px; height: calc(100vh - 150px);  }
+.food-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+}
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.food-card { transition: all 0.2s; border: 1px solid #eee; }
+.food-card:hover {
+    border-color: #8B0000 !important;
+    background-color: #fff5f5;
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
 
+.add-icon-overlay {
+    position: absolute;
+    top: -10px; right: -10px;
+    width: 30px; height: 30px;
+    background-color: #8B0000;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.food-card:hover .add-icon-overlay {
+    opacity: 1;
+    top: -8px; right: -8px;
+}
 
-.left-panel { flex: 2; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #fff; display: flex; flex-direction: column; height: 100%; }
-.panel-header { background: #8B0000; color: white; padding: 10px; text-align: center; border-radius: 4px; margin-bottom: 15px; }
-.panel-header h3 { margin: 0; font-size: 16px; }
-.search-box { margin-bottom: 20px; }
-.form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
-
-.food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; overflow-y: auto; padding-right: 5px; }
-.food-card { border: 1px solid #eee; border-radius: 8px; padding: 10px; display: flex; gap: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); height: fit-content; }
-.food-card:hover { border-color: #8B0000; background: #fff5f5; transform: translateY(-2px); }
-.food-card:active { transform: scale(0.98); }
-.food-icon { width: 50px; height: 50px; background: #ddd; display: flex; align-items: center; justify-content: center; font-size: 24px; border-radius: 4px; }
-.food-details { display: flex; flex-direction: column; }
-.food-details b { font-size: 13px; margin-bottom: 2px; }
-.food-details .price { color: #d32f2f; font-weight: bold; font-size: 13px; }
-.food-details .time { font-size: 11px; color: #888; }
-
-
-.right-panel { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #f9f9f9; display: flex; flex-direction: column; height: 100%; }
-.right-panel h3 { margin-top: 0; font-size: 16px; margin-bottom: 15px; }
-
-
-.selected-list { flex: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 5px; }
-.empty-state { text-align: center; color: #999; font-style: italic; margin-top: 50px; }
-
-.summary-card { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
-.item-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; align-items: center; }
-.qty-control { display: flex; gap: 5px; align-items: center; }
-.qty-control button { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 4px; font-weight: bold; }
-.qty-control button:hover { background: #eee; }
-.btn-plus { background: #8B0000 !important; color: white; border-color: #8B0000 !important; }
-.btn-x { background: #fff !important; color: #d32f2f !important; border-color: #ddd !important; font-size: 12px; margin-left: 5px; }
-
-.item-price-row { font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #333; }
-.note-input { width: 100%; padding: 6px; border: 1px solid #eee; font-size: 12px; outline: none; border-radius: 4px; background: #fcfcfc; }
-
-
-.footer-summary { border-top: 2px solid #ddd; padding-top: 15px; }
-
-.summary-totals .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-.summary-totals .total { font-size: 18px; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; }
-.red { color: #d32f2f; }
-
-.form-group { margin: 15px 0; }
-.form-group label { font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px; }
-
-.action-buttons { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
-.btn-confirm-add { background: #b71c1c; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-.btn-confirm-add:hover { background: #8B0000; }
-.btn-clear-all { background: #e0e0e0; color: #333; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-.btn-clear-all:hover { background: #d0d0d0; }
+.shadow-top {
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+}
 </style>
