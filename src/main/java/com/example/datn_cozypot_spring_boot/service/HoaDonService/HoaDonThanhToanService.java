@@ -1,12 +1,13 @@
-package com.example.datn_cozypot_spring_boot.service;
+package com.example.datn_cozypot_spring_boot.service.HoaDonService;
 
-import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepo;
 import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepo;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepo;
 import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepo;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
