@@ -3,10 +3,12 @@ package com.example.datn_cozypot_spring_boot.Controller;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
-import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse;
-import com.example.datn_cozypot_spring_boot.service.ChiTietHoaDonService;
-import com.example.datn_cozypot_spring_boot.service.HoaDonThanhToanService;
-import com.example.datn_cozypot_spring_boot.service.LichSuHoaDonService;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +32,9 @@ public class HoaDonThanhToanController {
 
     @Autowired
     LichSuHoaDonService lichSuHoaDonService;
+
+    @Autowired
+    LichSuThanhToanService lichSuThanhToanService;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(@RequestParam(name = "page", required = false, defaultValue = "0") Integer page){
@@ -76,6 +81,11 @@ public class HoaDonThanhToanController {
     public ResponseEntity<List<LichSuHoaDonResponse>> getLichSuDonHang(@PathVariable Integer idHoaDon) {
         List<LichSuHoaDonResponse> history = lichSuHoaDonService.layLichSuDonHang(idHoaDon);
         return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/lich-su-thanh-toan/{id}")
+    public ResponseEntity<List<LichSuThanhToanResponse>> getLichSuThanhToan(@PathVariable Integer id){
+        return ResponseEntity.ok(lichSuThanhToanService.getAllLichSuThanhToan(id));
     }
 
     @PutMapping("/huy-don")

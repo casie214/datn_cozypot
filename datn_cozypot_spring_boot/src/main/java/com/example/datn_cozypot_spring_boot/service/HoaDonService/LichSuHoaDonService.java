@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.service;
+package com.example.datn_cozypot_spring_boot.service.HoaDonService;
 
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;

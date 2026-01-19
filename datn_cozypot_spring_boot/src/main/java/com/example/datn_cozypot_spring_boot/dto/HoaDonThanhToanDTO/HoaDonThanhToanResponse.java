@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan;
+package com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO;
 
 import lombok.*;
 import java.math.BigDecimal;

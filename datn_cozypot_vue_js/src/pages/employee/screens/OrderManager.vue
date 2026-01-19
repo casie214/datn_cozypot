@@ -2,7 +2,7 @@
 import Sidebar from "../../../components/sidebar.vue";
 import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
-import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
+// import OrderHistoryModal from "../modal/OrderHistoryModal.vue";
 
 const router = useRouter();
 
@@ -11,40 +11,44 @@ const {
   orderList,
   handleSearch,
   handleReset,
-  handleViewHistory,
+  // handleViewHistory,
   handlePrintOrder,
-  isHistoryModalOpen,
-  selectedHistoryOrder,
-  historyEvents,
-  closeHistoryModal,
+  // isHistoryModalOpen,
+  // selectedHistoryOrder,
+  // historyEvents,
+  // closeHistoryModal,
   currentPage,
   totalPages,
-  handlePageChange
+  handlePageChange,
 } = useOrderManager();
 </script>
 
 <template>
-  <div class="d-flex bg-light" style="min-height: 100vh;">
+  <div class="d-flex bg-light" style="min-height: 100vh">
     <Sidebar />
 
     <main class="flex-grow-1 p-4 main-offset">
-      <h1 class="page-title mb-4">Quản lý đơn hàng</h1>
+      <h1 class="page-title mb-4">Quản lý hóa đơn</h1>
 
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
           <div class="row g-3 align-items-end">
             <div class="col-md-4">
-              <label class="form-label text-muted small fw-bold">Tìm kiếm</label>
-              <input 
-                type="text" 
-                v-model="filters.search" 
-                class="form-control" 
-                placeholder="Mã ĐH, tên KH, SĐT"
+              <label class="form-label text-muted small fw-bold"
+                >Tìm kiếm</label
               >
+              <input
+                type="text"
+                v-model="filters.search"
+                class="form-control"
+                placeholder="Mã ĐH, tên KH, SĐT"
+              />
             </div>
 
             <div class="col-md-2">
-              <label class="form-label text-muted small fw-bold">Trạng thái</label>
+              <label class="form-label text-muted small fw-bold"
+                >Trạng thái</label
+              >
               <select v-model="filters.status" class="form-select">
                 <option>Tất cả</option>
                 <option>Đã xác nhận</option>
@@ -55,19 +59,35 @@ const {
 
             <div class="col-md-2">
               <label class="form-label text-muted small fw-bold">Từ ngày</label>
-              <input type="date" v-model="filters.fromDate" class="form-control">
+              <input
+                type="date"
+                v-model="filters.fromDate"
+                class="form-control"
+              />
             </div>
 
             <div class="col-md-2">
-              <label class="form-label text-muted small fw-bold">Đến ngày</label>
-              <input type="date" v-model="filters.toDate" class="form-control">
+              <label class="form-label text-muted small fw-bold"
+                >Đến ngày</label
+              >
+              <input
+                type="date"
+                v-model="filters.toDate"
+                class="form-control"
+              />
             </div>
 
             <div class="col-md-2 d-flex gap-2">
-              <button class="btn btn-custom-red text-white flex-grow-1" @click="handleSearch">
+              <button
+                class="btn btn-custom-red text-white flex-grow-1"
+                @click="handleSearch"
+              >
                 🔍 Tìm kiếm
               </button>
-              <button class="btn btn-outline-custom flex-grow-1" @click="handleReset">
+              <button
+                class="btn btn-outline-custom flex-grow-1"
+                @click="handleReset"
+              >
                 Hủy
               </button>
             </div>
@@ -94,30 +114,49 @@ const {
               </thead>
               <tbody>
                 <tr v-if="orderList.length === 0">
-                    <td colspan="9" class="text-center py-4 text-muted">Không tìm thấy dữ liệu</td>
+                  <td colspan="9" class="text-center py-4 text-muted">
+                    Không tìm thấy dữ liệu
+                  </td>
                 </tr>
                 <tr v-for="(order, index) in orderList" :key="order.id">
-                  <td class="ps-4 fw-bold">{{ index + 1 + (currentPage * 5) }}</td> <td>{{ order.id }}</td>
+                  <td class="ps-4 fw-bold">
+                    {{ index + 1 + currentPage * 5 }}
+                  </td>
+                  <td>{{ order.id }}</td>
                   <td>{{ order.khachHang }}</td>
                   <td>{{ order.sdt }}</td>
                   <td>{{ order.ban }}</td>
                   <td>{{ order.loai }}</td>
                   <td class="fw-bold">{{ order.tongTien }}</td>
-                  <td>{{ order.trangThai }}</td> 
+                  <td>{{ order.trangThai }}</td>
                   <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
-                      <button class="btn btn-icon" title="Xem chi tiết"
-                        @click="router.push({ name: 'OrderDetail', params: { id: order.dbId } })">
+                      <button
+                        class="btn btn-icon"
+                        title="Xem chi tiết"
+                        @click="
+                          router.push({
+                            name: 'OrderDetail',
+                            params: { id: order.dbId },
+                          })
+                        "
+                      >
                         👁️
                       </button>
-                      
-                      <button class="btn btn-icon" title="Lịch sử"
-                        @click="handleViewHistory(order.id)">
+
+                      <!-- <button
+                        class="btn btn-icon"
+                        title="Lịch sử"
+                        @click="handleViewHistory(order.id)"
+                      >
                         🕒
-                      </button>
-                      
-                      <button class="btn btn-icon" title="In hóa đơn"
-                        @click="handlePrintOrder(order.id)">
+                      </button> -->
+
+                      <button
+                        class="btn btn-icon"
+                        title="In hóa đơn"
+                        @click="handlePrintOrder(order.id)"
+                      >
                         🖨️
                       </button>
                     </div>
@@ -130,68 +169,123 @@ const {
 
         <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 0">
           <ul class="pagination justify-content-center mb-0">
-            
             <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button class="page-link text-dark" 
-                      @click="handlePageChange(currentPage - 1)"
-                      :disabled="currentPage === 0">
+              <button
+                class="page-link text-dark"
+                @click="handlePageChange(currentPage - 1)"
+                :disabled="currentPage === 0"
+              >
                 &lt;
               </button>
             </li>
 
             <li class="page-item" v-for="page in totalPages" :key="page">
-              <button 
-                class="page-link" 
-                :class="currentPage === (page - 1) ? 'bg-custom-red border-custom-red text-white' : 'text-dark'"
+              <button
+                class="page-link"
+                :class="
+                  currentPage === page - 1
+                    ? 'bg-custom-red border-custom-red text-white'
+                    : 'text-dark'
+                "
                 @click="handlePageChange(page - 1)"
               >
                 {{ page }}
               </button>
             </li>
 
-            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-              <button class="page-link text-dark" 
-                      @click="handlePageChange(currentPage + 1)"
-                      :disabled="currentPage === totalPages - 1">
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 }"
+            >
+              <button
+                class="page-link text-dark"
+                @click="handlePageChange(currentPage + 1)"
+                :disabled="currentPage === totalPages - 1"
+              >
                 &gt;
               </button>
             </li>
-
           </ul>
         </div>
       </div>
     </main>
-
-    <OrderHistoryModal
-      :isOpen="isHistoryModalOpen"
-      :orderData="selectedHistoryOrder"
-      :events="historyEvents"
-      @close="closeHistoryModal"
-    />
   </div>
 </template>
 
 <style scoped>
-.main-offset { margin-left: 250px; }
-.page-title { color: #8b0000; font-size: 24px; font-weight: bold; }
-.form-control, .form-select { border-radius: 4px; border: 1px solid #ddd; }
-.form-control:focus, .form-select:focus { border-color: #8b0000; box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1); }
-.btn-custom-red { background-color: #720e1e; border: none; }
-.btn-custom-red:hover { background-color: #5c0b18; color: white; }
-.btn-outline-custom { background-color: #8b0000; color: white; border: none; }
-.btn-outline-custom:hover { opacity: 0.9; color: white; }
-.table-header-red th { background-color: #8b0000; color: white; font-size: 13px; text-transform: uppercase; font-weight: 600; border-bottom: none; }
-.btn-icon { background: transparent; border: none; font-size: 16px; padding: 4px 8px; transition: background 0.2s; }
-.btn-icon:hover { background-color: #eee; border-radius: 4px; }
-.bg-custom-red { background-color: #8b0000 !important; border-color: #8b0000 !important; color: white !important; }
+.main-offset {
+  margin-left: 250px;
+}
+.page-title {
+  color: #8b0000;
+  font-size: 24px;
+  font-weight: bold;
+}
+.form-control,
+.form-select {
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: #8b0000;
+  box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1);
+}
+.btn-custom-red {
+  background-color: #720e1e;
+  border: none;
+}
+.btn-custom-red:hover {
+  background-color: #5c0b18;
+  color: white;
+}
+.btn-outline-custom {
+  background-color: #8b0000;
+  color: white;
+  border: none;
+}
+.btn-outline-custom:hover {
+  opacity: 0.9;
+  color: white;
+}
+.table-header-red th {
+  background-color: #8b0000;
+  color: white;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-bottom: none;
+}
+.btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  padding: 4px 8px;
+  transition: background 0.2s;
+}
+.btn-icon:hover {
+  background-color: #eee;
+  border-radius: 4px;
+}
+.bg-custom-red {
+  background-color: #8b0000 !important;
+  border-color: #8b0000 !important;
+  color: white !important;
+}
 
-.page-link { 
-  color: #333; 
-  border: 1px solid #ddd; 
-  margin: 0 2px; 
-  border-radius: 4px; 
+.page-link {
+  color: #333;
+  border: 1px solid #ddd;
+  margin: 0 2px;
+  border-radius: 4px;
   cursor: pointer;
 }
-.page-link:hover { background-color: #f0f0f0; }
-.page-item.disabled .page-link { color: #ccc; pointer-events: none; background-color: #fff; }
+.page-link:hover {
+  background-color: #f0f0f0;
+}
+.page-item.disabled .page-link {
+  color: #ccc;
+  pointer-events: none;
+  background-color: #fff;
+}
 </style>

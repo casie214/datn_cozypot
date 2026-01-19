@@ -8,12 +8,14 @@ import {
   BeUpdateMonDaLen,
   BeUpdateTatCaDaLen,
   BeHuyHoaDon,
+  BeGetHoaDonById,
+  BeGetLichSuThanhToan,
 } from "./orderService";
 
 export function useOrderManager() {
   const currentPage = ref(0);
   const totalPages = ref(0);
-  
+
   const selectedOrder = ref(null);
   const orderList = ref([]);
   const orderDetails = ref([]);
@@ -22,6 +24,7 @@ export function useOrderManager() {
   const isHistoryModalOpen = ref(false);
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
+  const paymentHistory = ref([]);
 
   const filters = ref({
     search: "",
@@ -34,8 +37,12 @@ export function useOrderManager() {
     if (!dateString) return "---";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Ngày lỗi";
-    return new Intl.DateTimeFormat('vi-VN', {
-      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+    return new Intl.DateTimeFormat("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     }).format(date);
   };
 
@@ -91,7 +98,7 @@ export function useOrderManager() {
     try {
       const response = await BeGetAllHoaDon(currentPage.value);
       orderList.value = processOrderData(response.content);
-      totalPages.value = response.totalPages; 
+      totalPages.value = response.totalPages;
     } catch (error) {
       console.error("Lỗi tải danh sách:", error);
     }
@@ -105,17 +112,23 @@ export function useOrderManager() {
 
       const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
       const trangThaiInt =
-        filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
+        filters.value.status !== "Tất cả"
+          ? statusMap[filters.value.status]
+          : null;
 
-      const tuNgayISO = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
-      const denNgayISO = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
+      const tuNgayISO = filters.value.fromDate
+        ? `${filters.value.fromDate}T00:00:00Z`
+        : null;
+      const denNgayISO = filters.value.toDate
+        ? `${filters.value.toDate}T23:59:59Z`
+        : null;
 
       const response = await BeSearchHoaDon(
-        filters.value.search, 
-        trangThaiInt, 
-        tuNgayISO, 
-        denNgayISO, 
-        currentPage.value
+        filters.value.search,
+        trangThaiInt,
+        tuNgayISO,
+        denNgayISO,
+        currentPage.value,
       );
 
       orderList.value = processOrderData(response.content);
@@ -130,22 +143,22 @@ export function useOrderManager() {
 
   const handlePageChange = async (page) => {
     currentPage.value = page;
-    const hasFilters = 
-        filters.value.search || 
-        filters.value.status !== "Tất cả" || 
-        filters.value.fromDate || 
-        filters.value.toDate;
+    const hasFilters =
+      filters.value.search ||
+      filters.value.status !== "Tất cả" ||
+      filters.value.fromDate ||
+      filters.value.toDate;
 
     if (hasFilters) {
-        await performSearch(false); 
+      await performSearch(false);
     } else {
-        await fetchOrders(); 
+      await fetchOrders();
     }
   };
 
   const handleReset = () => {
     filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
-    currentPage.value = 0; 
+    currentPage.value = 0;
     fetchOrders();
   };
 
@@ -154,7 +167,7 @@ export function useOrderManager() {
     try {
       const data = await BeGetLichSuHoaDon(order.dbId);
       const events = data.map((item) => {
-        let type = 'bg-gray'; 
+        let type = "bg-gray";
         const act = (item.hanhDong || "").toLowerCase();
         if (act.includes("tạo")) type = "create";
         else if (act.includes("hủy") || act.includes("xóa")) type = "delete";
@@ -165,12 +178,14 @@ export function useOrderManager() {
           action: item.hanhDong,
           title: item.tieuDe || item.hanhDong,
           time: formatDate(item.thoiGianThucHien || item.thoiGian),
-          user: item.nguoiThucHien || (item.idNhanVien ? item.idNhanVien.hoTen : 'Hệ thống'),
+          user:
+            item.nguoiThucHien ||
+            (item.idNhanVien ? item.idNhanVien.hoTen : "Hệ thống"),
           detail: item.lyDoThucHien || item.lyDo || item.chiTietMon,
-          type: type, 
+          type: type,
         };
       });
-      historyEvents.value = events; 
+      historyEvents.value = events;
     } catch (error) {
       console.error("Lỗi tải lịch sử:", error);
       historyEvents.value = [];
@@ -179,24 +194,45 @@ export function useOrderManager() {
 
   const handleViewDetail = async (dbId) => {
     try {
-      const data = await BeGetChiTietHoaDon(dbId);
-      orderDetails.value = data;
-      if (orderList.value.length === 0) {
-        await fetchOrders();
+      const details = await BeGetChiTietHoaDon(dbId);
+      orderDetails.value = details;
+      const invoiceInfo = await BeGetHoaDonById(dbId);
+
+      if (invoiceInfo) {
+        selectedOrder.value = {
+           id: invoiceInfo.maHoaDon,
+           dbId: invoiceInfo.id,
+           khachHang: invoiceInfo.tenKhachHang || "Khách vãng lai",
+           sdt: invoiceInfo.sdtKhachHang || "---",
+           ban: invoiceInfo.tenBan,
+           loai: mapOrderType(invoiceInfo.hinhThucDat),
+           tongTien: formatCurrency(invoiceInfo.tongTienThanhToan),
+           tongTienRaw: invoiceInfo.tongTienThanhToan,
+           soTienDaGiam: invoiceInfo.soTienDaGiam || 0,
+           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
+           ngayTao: formatDate(invoiceInfo.thoiGianTao),
+        };
+        
+        await Promise.all([
+            loadOrderHistory(selectedOrder.value),
+            loadPaymentHistory(dbId) 
+        ]);
       }
-
-      selectedOrder.value = orderList.value.find(
-        (item) => item.dbId === Number(dbId),
-      );
-
-      if (selectedOrder.value) {
-        await loadOrderHistory(selectedOrder.value);
-      }
-
     } catch (error) {
       console.error("Lỗi lấy chi tiết:", error);
+      selectedOrder.value = null;
     }
   };
+
+  const loadPaymentHistory = async (idHoaDon) => {
+      try {
+          const data = await BeGetLichSuThanhToan(idHoaDon);
+          paymentHistory.value = data;
+      } catch (error) {
+          console.error("Lỗi tải lịch sử thanh toán:", error);
+          paymentHistory.value = [];
+      }
+  }
 
   const handleViewHistory = async (maHoaDon) => {
     const order = orderList.value.find((item) => item.id === maHoaDon);
@@ -229,12 +265,13 @@ export function useOrderManager() {
   };
 
   const handleHuyDon = async (order) => {
-    if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`)) return;
+    if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`))
+      return;
 
     const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
     const payload = {
       idHoaDon: order.dbId,
-      idNhanVien: 1, 
+      idNhanVien: 1,
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: "Nhân viên hủy đơn/Khách đổi ý",
       trangThaiLichSuTruocDo: statusMap[order.trangThai],
@@ -245,13 +282,13 @@ export function useOrderManager() {
       await BeHuyHoaDon(payload);
       alert("Hủy hóa đơn thành công!");
       if (filters.value.search || filters.value.status !== "Tất cả") {
-          performSearch(false);
+        performSearch(false);
       } else {
-          fetchOrders();
+        fetchOrders();
       }
-      
+
       if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
-          await handleViewDetail(order.dbId);
+        await handleViewDetail(order.dbId);
       }
     } catch (error) {
       alert("Thất bại: " + error.message);
@@ -268,6 +305,7 @@ export function useOrderManager() {
     totalPages,
     filters,
     orderList,
+    paymentHistory,
     selectedOrder,
     orderDetails,
     currentVAT,
@@ -276,10 +314,12 @@ export function useOrderManager() {
     historyEvents,
     handleViewDetail,
     handleViewHistory,
-    closeHistoryModal: () => { isHistoryModalOpen.value = false; },
+    closeHistoryModal: () => {
+      isHistoryModalOpen.value = false;
+    },
     handleSearch,
     handleReset,
-    handlePageChange, 
+    handlePageChange,
     handlePrintOrder: (id) => console.log("In:", id),
     handleUpdateMonDaLen,
     handleUpdateTatCaDaLen,

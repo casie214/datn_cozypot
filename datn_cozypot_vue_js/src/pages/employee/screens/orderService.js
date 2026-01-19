@@ -58,6 +58,15 @@ export const BeXacNhanThanhToan = async (payload) => {
     return true;
 };
 
+export const BeGetLichSuThanhToan = async (id) => {
+    const result = await fetch(`${getUrl}/lich-su-thanh-toan/${id}`);
+    if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(result.status + ": " + errorText);
+    }
+    return await result.json();
+};
+
 export const BeGetLichSuHoaDon = async (idHoaDon) => {
     const result = await fetch(`${getUrl}/lich-su/${idHoaDon}`);
     if (!result.ok) {

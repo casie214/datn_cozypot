@@ -1,6 +1,6 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
-import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,12 +10,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.List;
 
 @Repository
 public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Integer> {
 
-    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
+    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
             "hd.tongTienThanhToan, hd.soTienDaGiam, hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, pdb.hinhThucDat) " +
@@ -25,7 +24,7 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "LEFT JOIN hd.idPhieuDatBan pdb")
     Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
-    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
+    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, " +
             "hd.maHoaDon, " +
             "kh.tenKhachHang, " +
@@ -56,7 +55,7 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             Pageable pageable
     );
 
-    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
+    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, " +
             "hd.maHoaDon, " +
             "kh.tenKhachHang, " +
