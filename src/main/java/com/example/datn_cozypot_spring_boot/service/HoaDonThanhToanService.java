@@ -9,6 +9,8 @@ import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepo;
 import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepo;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,12 +33,12 @@ public class HoaDonThanhToanService {
     @Autowired
     BanAnRepo banAnRepo;
 
-    public List<HoaDonThanhToanResponse> getAllHoaDon(){
-        return hoaDonThanhToanRepo.getAllHoaDon();
+    public Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable){
+        return hoaDonThanhToanRepo.getAllHoaDon(pageable);
     }
 
-    public List<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgay, Instant denNgay){
-        return hoaDonThanhToanRepo.searchHoaDon(key, trangThai, tuNgay, denNgay);
+    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgay, Instant denNgay, Pageable pageable){
+        return hoaDonThanhToanRepo.searchHoaDon(key, trangThai, tuNgay, denNgay, pageable);
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {

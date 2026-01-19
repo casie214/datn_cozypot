@@ -2,6 +2,8 @@ package com.example.datn_cozypot_spring_boot.repository;
 
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,22 +16,14 @@ import java.util.List;
 public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Integer> {
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
-            "hd.id, " +
-            "hd.maHoaDon, " +
-            "kh.tenKhachHang, " +
-            "kh.soDienThoai, " +
-            "b.tenBan, " +
-            "hd.tongTienThanhToan, " +
-            "hd.soTienDaGiam, " +
-            "hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, " +
-            "pdb.hinhThucDat) " +
+            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
+            "hd.tongTienThanhToan, hd.soTienDaGiam, hd.trangThaiHoaDon, " +
+            "hd.thoiGianTao, pdb.hinhThucDat) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
-            "LEFT JOIN hd.idPhieuDatBan pdb " +
-            "ORDER BY hd.thoiGianTao ASC")
-    List<HoaDonThanhToanResponse> getAllHoaDon();
+            "LEFT JOIN hd.idPhieuDatBan pdb")
+    Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
             "hd.id, " +
@@ -54,11 +48,12 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "ORDER BY hd.thoiGianTao ASC")
-    List<HoaDonThanhToanResponse> searchHoaDon(
+    Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
             @Param("tuNgay") Instant tuNgay,
-            @Param("denNgay") Instant denNgay
+            @Param("denNgay") Instant denNgay,
+            Pageable pageable
     );
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToan.HoaDonThanhToanResponse(" +
