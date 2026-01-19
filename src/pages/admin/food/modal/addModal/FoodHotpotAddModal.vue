@@ -18,7 +18,10 @@ const {
 } = useHotpotAdd();
 
 const getImg = (url) => {
-    return url && url.startsWith('http') ? url : 'https://placehold.co/50x50?text=No+Img';
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+        return url;
+    }
+    return 'https://placehold.co/100x100?text=No+Img';
 }
 </script>
 

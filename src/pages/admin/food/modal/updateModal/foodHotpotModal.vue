@@ -16,6 +16,7 @@ const {
   categoryName,
   goBack,
   isLoading,
+  isViewMode,
   handleFileUpload
 } = useHotpotUpdate();
 
@@ -31,7 +32,7 @@ const getImg = (url) => {
   <div class="main-content">
     <div class="page-header">
       <div class="header-title">
-        <h1>Cập nhật Set Lẩu</h1>
+        <h1>{{ isViewMode ? 'Chi Tiết Set Lẩu' : 'Cập nhật Set Lẩu' }}</h1>
         <p class="subtitle">Chỉnh sửa thông tin và thành phần món ăn</p>
       </div>
       <button class="btn-back" @click="goBack">← Quay lại</button>
@@ -90,28 +91,28 @@ const getImg = (url) => {
           <div class="form-container">
             <div class="form-group">
               <label>Tên Set Lẩu <span class="required">*</span></label>
-              <input v-model="formData.tenSetLau" type="text">
+              <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text">
             </div>
             <div class="form-group">
               <label>Loại Set</label>
-              <select v-model="formData.idLoaiSet" class="form-control">
+              <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control">
                 <option v-for="cat in listLoaiSet" :key="cat.id" :value="cat.id">{{ cat.tenLoaiSet }}</option>
               </select>
             </div>
             <div class="form-group">
               <label>Giá bán</label>
-              <input v-model="formData.giaBan" type="number">
-              <div class="price-hint">Giá linh kiện: {{ totalComponentsPrice.toLocaleString() }} đ</div>
+              <input :disabled="isViewMode" v-model="formData.giaBan" type="number">
+              <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
             </div>
             <div class="form-group">
               <label>Hình ảnh</label>
-              <div class="upload-container">
+              <div class="upload-container" v-if = "!isViewMode">
                 <label class="custom-file-upload">
                   <input type="file" accept="image/*" @change="handleFileUpload" />
                   <i class="fas fa-cloud-upload-alt"></i> Chọn ảnh từ máy
                 </label>
 
-                <button v-if="formData.hinhAnh" class="btn-clear-img" @click="formData.hinhAnh = ''">
+                <button v-if="formData.hinhAnh && !isViewMode" class="btn-clear-img" @click="formData.hinhAnh = ''">
                   Xóa ảnh
                 </button>
               </div>
@@ -126,7 +127,7 @@ const getImg = (url) => {
             </div>
             <div class="form-group">
               <label>Trạng thái</label>
-              <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
+              <div v-if="!isViewMode" class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
                   <div class="toggle-knob"></div>
                 </div>
@@ -139,13 +140,14 @@ const getImg = (url) => {
 
       <div class="section-right">
 
-        <div class="card ingredient-selector" style="margin-bottom: 1.4em;">
+        <div class="card ingredient-selector" style="margin-bottom: 1.4em;" v-if="!isViewMode">
           <h3>Thêm món vào Set</h3>
           <div class="filter-tools">
             <input v-model="searchQuery" type="text" class="search-input" placeholder="Tìm món...">
             <select v-model="sortOption" class="sort-select">
               <option value="name_asc">A-Z</option>
               <option value="price_asc">Giá tăng</option>
+              <option value="price_desc">Giá giảm</option>
             </select>
           </div>
           <div class="scroll-list-container">
@@ -172,7 +174,7 @@ const getImg = (url) => {
               <div class="qty-control">
                 <input type="number" v-model="item.soLuong" min="1" class="qty-input-small">
               </div>
-              <button class="btn-remove-icon" @click="removeIngredient(index)">✕</button>
+              <button class="btn-remove-icon" @click="removeIngredient(index)" v-if="!isViewMode">✕</button>
             </div>
           </div>
         </div>
@@ -181,7 +183,7 @@ const getImg = (url) => {
 
     <div class="page-footer">
       <button class="btn-large btn-cancel" @click="goBack">Hủy bỏ</button>
-      <button class="btn-large btn-save" @click="handleUpdate">Cập nhật</button>
+      <button class="btn-large btn-save" @click="handleUpdate" v-if="!isViewMode">Cập nhật</button>
     </div>
   </div>
 </template>
