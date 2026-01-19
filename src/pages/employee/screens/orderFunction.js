@@ -1,4 +1,4 @@
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import {
   BeGetAllHoaDon,
   BeGetChiTietHoaDon,
@@ -11,6 +11,9 @@ import {
 } from "./orderService";
 
 export function useOrderManager() {
+  const currentPage = ref(0);
+  const totalPages = ref(0);
+  
   const selectedOrder = ref(null);
   const orderList = ref([]);
   const orderDetails = ref([]);
@@ -32,7 +35,7 @@ export function useOrderManager() {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Ngày lỗi";
     return new Intl.DateTimeFormat('vi-VN', {
-        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
     }).format(date);
   };
 
@@ -86,18 +89,70 @@ export function useOrderManager() {
 
   const fetchOrders = async () => {
     try {
-      const data = await BeGetAllHoaDon();
-      orderList.value = processOrderData(data);
+      const response = await BeGetAllHoaDon(currentPage.value);
+      orderList.value = processOrderData(response.content);
+      totalPages.value = response.totalPages; 
     } catch (error) {
       console.error("Lỗi tải danh sách:", error);
     }
+  };
+
+  const performSearch = async (isNewSearch = false) => {
+    try {
+      if (isNewSearch) {
+        currentPage.value = 0; // Reset về trang đầu nếu bấm nút tìm
+      }
+
+      const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
+      const trangThaiInt =
+        filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
+
+      const tuNgayISO = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
+      const denNgayISO = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
+
+      const response = await BeSearchHoaDon(
+        filters.value.search, 
+        trangThaiInt, 
+        tuNgayISO, 
+        denNgayISO, 
+        currentPage.value
+      );
+
+      orderList.value = processOrderData(response.content);
+      totalPages.value = response.totalPages;
+    } catch (error) {
+      alert("Tìm kiếm thất bại!");
+    }
+  };
+  const handleSearch = () => {
+    performSearch(true);
+  };
+
+  const handlePageChange = async (page) => {
+    currentPage.value = page;
+    const hasFilters = 
+        filters.value.search || 
+        filters.value.status !== "Tất cả" || 
+        filters.value.fromDate || 
+        filters.value.toDate;
+
+    if (hasFilters) {
+        await performSearch(false); 
+    } else {
+        await fetchOrders(); 
+    }
+  };
+
+  const handleReset = () => {
+    filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
+    currentPage.value = 0; 
+    fetchOrders();
   };
 
   const loadOrderHistory = async (order) => {
     if (!order) return;
     try {
       const data = await BeGetLichSuHoaDon(order.dbId);
-      
       const events = data.map((item) => {
         let type = 'bg-gray'; 
         const act = (item.hanhDong || "").toLowerCase();
@@ -115,41 +170,17 @@ export function useOrderManager() {
           type: type, 
         };
       });
-
       historyEvents.value = events; 
-      
     } catch (error) {
       console.error("Lỗi tải lịch sử:", error);
       historyEvents.value = [];
     }
   };
 
-  const handleSearch = async () => {
-    try {
-      const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
-      const trangThaiInt =
-        filters.value.status !== "Tất cả" ? statusMap[filters.value.status] : null;
-
-      const tuNgayISO = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
-      const denNgayISO = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
-
-      const data = await BeSearchHoaDon(filters.value.search, trangThaiInt, tuNgayISO, denNgayISO);
-      orderList.value = processOrderData(data);
-    } catch (error) {
-      alert("Tìm kiếm thất bại!");
-    }
-  };
-
-  const handleReset = () => {
-    filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
-    fetchOrders();
-  };
-
   const handleViewDetail = async (dbId) => {
     try {
       const data = await BeGetChiTietHoaDon(dbId);
       orderDetails.value = data;
-
       if (orderList.value.length === 0) {
         await fetchOrders();
       }
@@ -170,7 +201,6 @@ export function useOrderManager() {
   const handleViewHistory = async (maHoaDon) => {
     const order = orderList.value.find((item) => item.id === maHoaDon);
     if (!order) return;
-
     selectedHistoryOrder.value = order;
     await loadOrderHistory(order);
     isHistoryModalOpen.value = true;
@@ -214,7 +244,11 @@ export function useOrderManager() {
     try {
       await BeHuyHoaDon(payload);
       alert("Hủy hóa đơn thành công!");
-      await fetchOrders();
+      if (filters.value.search || filters.value.status !== "Tất cả") {
+          performSearch(false);
+      } else {
+          fetchOrders();
+      }
       
       if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
           await handleViewDetail(order.dbId);
@@ -230,6 +264,8 @@ export function useOrderManager() {
   });
 
   return {
+    currentPage,
+    totalPages,
     filters,
     orderList,
     selectedOrder,
@@ -243,6 +279,7 @@ export function useOrderManager() {
     closeHistoryModal: () => { isHistoryModalOpen.value = false; },
     handleSearch,
     handleReset,
+    handlePageChange, 
     handlePrintOrder: (id) => console.log("In:", id),
     handleUpdateMonDaLen,
     handleUpdateTatCaDaLen,

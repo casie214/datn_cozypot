@@ -17,6 +17,9 @@ const {
   selectedHistoryOrder,
   historyEvents,
   closeHistoryModal,
+  currentPage,
+  totalPages,
+  handlePageChange
 } = useOrderManager();
 </script>
 
@@ -90,15 +93,18 @@ const {
                 </tr>
               </thead>
               <tbody>
+                <tr v-if="orderList.length === 0">
+                    <td colspan="9" class="text-center py-4 text-muted">Không tìm thấy dữ liệu</td>
+                </tr>
                 <tr v-for="(order, index) in orderList" :key="order.id">
-                  <td class="ps-4 fw-bold">{{ index + 1 }}</td>
-                  <td>{{ order.id }}</td>
+                  <td class="ps-4 fw-bold">{{ index + 1 + (currentPage * 5) }}</td> <td>{{ order.id }}</td>
                   <td>{{ order.khachHang }}</td>
                   <td>{{ order.sdt }}</td>
                   <td>{{ order.ban }}</td>
                   <td>{{ order.loai }}</td>
                   <td class="fw-bold">{{ order.tongTien }}</td>
-                  <td>{{ order.trangThai }}</td> <td class="text-center">
+                  <td>{{ order.trangThai }}</td> 
+                  <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
                       <button class="btn btn-icon" title="Xem chi tiết"
                         @click="router.push({ name: 'OrderDetail', params: { id: order.dbId } })">
@@ -122,13 +128,35 @@ const {
           </div>
         </div>
 
-        <div class="card-footer bg-white border-0 py-3">
+        <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 0">
           <ul class="pagination justify-content-center mb-0">
-            <li class="page-item"><button class="page-link text-dark">&lt;</button></li>
-            <li class="page-item active"><button class="page-link bg-custom-red border-custom-red">1</button></li>
-            <li class="page-item"><button class="page-link text-dark">2</button></li>
-            <li class="page-item"><button class="page-link text-dark">...</button></li>
-            <li class="page-item"><button class="page-link text-dark">&gt;</button></li>
+            
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <button class="page-link text-dark" 
+                      @click="handlePageChange(currentPage - 1)"
+                      :disabled="currentPage === 0">
+                &lt;
+              </button>
+            </li>
+
+            <li class="page-item" v-for="page in totalPages" :key="page">
+              <button 
+                class="page-link" 
+                :class="currentPage === (page - 1) ? 'bg-custom-red border-custom-red text-white' : 'text-dark'"
+                @click="handlePageChange(page - 1)"
+              >
+                {{ page }}
+              </button>
+            </li>
+
+            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+              <button class="page-link text-dark" 
+                      @click="handlePageChange(currentPage + 1)"
+                      :disabled="currentPage === totalPages - 1">
+                &gt;
+              </button>
+            </li>
+
           </ul>
         </div>
       </div>
@@ -144,78 +172,26 @@ const {
 </template>
 
 <style scoped>
-.main-offset {
-  margin-left: 250px; 
-}
+.main-offset { margin-left: 250px; }
+.page-title { color: #8b0000; font-size: 24px; font-weight: bold; }
+.form-control, .form-select { border-radius: 4px; border: 1px solid #ddd; }
+.form-control:focus, .form-select:focus { border-color: #8b0000; box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1); }
+.btn-custom-red { background-color: #720e1e; border: none; }
+.btn-custom-red:hover { background-color: #5c0b18; color: white; }
+.btn-outline-custom { background-color: #8b0000; color: white; border: none; }
+.btn-outline-custom:hover { opacity: 0.9; color: white; }
+.table-header-red th { background-color: #8b0000; color: white; font-size: 13px; text-transform: uppercase; font-weight: 600; border-bottom: none; }
+.btn-icon { background: transparent; border: none; font-size: 16px; padding: 4px 8px; transition: background 0.2s; }
+.btn-icon:hover { background-color: #eee; border-radius: 4px; }
+.bg-custom-red { background-color: #8b0000 !important; border-color: #8b0000 !important; color: white !important; }
 
-.page-title {
-  color: #8b0000;
-  font-size: 24px;
-  font-weight: bold;
+.page-link { 
+  color: #333; 
+  border: 1px solid #ddd; 
+  margin: 0 2px; 
+  border-radius: 4px; 
+  cursor: pointer;
 }
-
-.form-control, .form-select {
-  border-radius: 4px;
-  border: 1px solid #ddd;
-}
-.form-control:focus, .form-select:focus {
-  border-color: #8b0000; 
-  box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1);
-}
-
-.btn-custom-red {
-  background-color: #720e1e;
-  border: none;
-}
-.btn-custom-red:hover {
-  background-color: #5c0b18;
-  color: white;
-}
-
-.btn-outline-custom {
-  background-color: #8b0000;
-  color: white;
-  border: none;
-}
-.btn-outline-custom:hover {
-  opacity: 0.9;
-  color: white;
-}
-
-.table-header-red th {
-  background-color: #8b0000;
-  color: white;
-  font-size: 13px;
-  text-transform: uppercase;
-  font-weight: 600;
-  border-bottom: none;
-}
-
-.btn-icon {
-  background: transparent;
-  border: none;
-  font-size: 16px;
-  padding: 4px 8px;
-  transition: background 0.2s;
-}
-.btn-icon:hover {
-  background-color: #eee;
-  border-radius: 4px;
-}
-
-.bg-custom-red {
-  background-color: #8b0000 !important;
-  border-color: #8b0000 !important;
-  color: white !important;
-}
-.page-link {
-  color: #333;
-  border: 1px solid #ddd;
-  margin: 0 2px;
-  border-radius: 4px;
-}
-.page-link:hover {
-  background-color: #f0f0f0;
-  color: #333;
-}
+.page-link:hover { background-color: #f0f0f0; }
+.page-item.disabled .page-link { color: #ccc; pointer-events: none; background-color: #fff; }
 </style>
