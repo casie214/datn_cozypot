@@ -218,7 +218,7 @@ const formatDateTime = (dateString) => {
                 <div class="card-header bg-white border-bottom py-3 fw-bold">
                     🕒 Lịch sử hóa đơn
                 </div>
-                <div class="card-body p-3 h-100" style="overflow-y: auto">
+                <div class="card-body p-3 h-100" style="max-height: 310px; overflow-y: auto;">
                     <div v-if="!historyEvents || historyEvents.length === 0" class="text-center text-muted py-4">
                         <small>Chưa có lịch sử ghi nhận</small>
                     </div>
