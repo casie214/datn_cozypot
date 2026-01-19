@@ -1,8 +1,9 @@
 <script setup>
 import foodModal from '../../food/modal/updateModal/foodModal.vue';
-
-import { useFoodManager } from '../../../../services/foodFunction';
+import { useFoodManager, usePriceFilter } from '../../../../services/foodFunction';
 import FoodAddModal from '../../food/modal/addModal/FoodAddModal.vue';
+import Slider from '@vueform/slider';
+import "@vueform/slider/themes/default.css";
 
 const {
     mockData,
@@ -18,7 +19,18 @@ const {
     goToPage,
     handleViewDetails,
     getAllFood,
-    handleToggleStatus
+    handleToggleStatus,
+
+    // Lọc & Sort cũ
+    searchQuery,
+    sortOption,
+    statusFilter,
+    clearFilters,
+
+    // 2. LẤY BIẾN CHO THANH KÉO GIÁ (MỚI)
+    selectedPriceRange,
+    globalMinPrice,
+    globalMaxPrice
 } = useFoodManager();
 
 const handleRefreshList = () => {
@@ -26,34 +38,67 @@ const handleRefreshList = () => {
         getAllFood();
     }, 500);
 };
+
+const formatPriceRange = (item) => {
+    const min = item.giaThapNhat || 0;
+    const max = item.giaCaoNhat || 0;
+    if (min === 0 && max === 0) return 'Chưa cập nhật';
+    if (min === max) return min.toLocaleString() + ' đ';
+    return `${min.toLocaleString()} - ${max.toLocaleString()} đ`;
+};
+
+
 </script>
 
 <template>
     <div class="filter-box">
-      <div class="filter-row">
-        <div class="filter-item search">
-          <label>Tìm kiếm</label>
-          <div class="input-group">
-            <input type="text" class="form-search form-control" placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn">🔍</button>
-          </div>
-        </div>
-        <div class="filter-item"><label>Trạng thái</label><select>
-            <option>Tất cả</option>
-          </select></div>
-        <div class="filter-item"><label>Loại set lẩu</label><select>
-            <option>Tất cả</option>
-          </select></div>
-        <div class="filter-item"><label>Người tạo</label><select>
-            <option>Tất cả</option>
-          </select></div>
-        <div class="filter-item"><label>Lọc theo</label><select>
-            <option>Số thứ tự tăng dần</option>
-          </select></div>
-        <button class="btn-clear">Xóa bộ lọc</button>
-      </div>
+        <div class="filter-row">
+            <div class="filter-item search">
+                <label>Tìm kiếm</label>
+                <div class="input-group">
+                    <input v-model="searchQuery" type="text" class="form-search form-control"
+                        placeholder="Tìm kiếm món (mã, tên)" />
+                    <button class="search-btn">🔍</button>
+                </div>
+            </div>
 
+            <div class="filter-item">
+                <label>Trạng thái</label>
+                <select v-model="statusFilter" class="form-control">
+                    <option value="all">Tất cả</option>
+                    <option value="1">Đang kinh doanh</option>
+                    <option value="0">Ngưng kinh doanh</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label>Sắp xếp theo</label>
+                <select v-model="sortOption" class="form-control">
+                    <option value="newest">Mới nhất</option>
+                    <option value="name_asc">Tên (A-Z)</option>
+                    <option value="price_asc">Giá tăng dần</option>
+                    <option value="price_desc">Giá giảm dần</option>
+                </select>
+            </div>
+
+            <div class="filter-item price-filter-item">
+                <label>
+                    Giá tiền (Thấp nhất):
+                    <span class="price-range-text">
+                        {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+                    </span>
+                </label>
+
+                <div class="slider-wrapper">
+                    <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="10000"
+                        :tooltips="false" />
+                </div>
+            </div>
+
+            <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
+        </div>
     </div>
+
     <div class="action-row">
         <button class="btn-add" @click="isAddFoodModalOpen = true">Thêm món ăn</button>
     </div>
@@ -78,7 +123,7 @@ const handleRefreshList = () => {
 
                     <td>{{ item.maMonAn }}</td>
                     <td>{{ item.tenMonAn }}</td>
-                    <td>{{ item.giaBan?.toLocaleString() }} đ</td>
+                    <td>{{ formatPriceRange(item) }}</td>
                     <td>{{ item.tenDanhMuc }}</td>
                     <td>{{ item.tenDanhMucChiTiet }}</td>
 
@@ -127,3 +172,53 @@ const handleRefreshList = () => {
 </template>
 
 <style scoped src="/src/assets/foodManager.css"></style>
+<style scoped>
+/* Container bao ngoài slider */
+.slider-wrapper {
+    width: 200px;
+    padding: 0 10px;
+    margin-top: 5px;
+
+    /* --- CÁCH 1: Dùng biến CSS (Khuyên dùng - Chuẩn nhất) --- */
+    --slider-connect-bg: #d32f2f;  /* Màu thanh nối */
+    --slider-tooltip-bg: #d32f2f;  /* Màu tooltip */
+    --slider-handle-ring-color: rgba(211, 47, 47, 0.3); /* Màu vòng focus */
+    --slider-height: 6px;          /* Độ dày thanh */
+}
+
+/* Nếu Cách 1 không chạy (do phiên bản cũ), dùng Cách 2 dưới đây: */
+
+/* --- CÁCH 2: Dùng :deep (Ghi đè cưỡng bức) --- */
+:deep(.slider-connect) {
+    background: #d32f2f !important;
+}
+
+:deep(.slider-base) {
+    background-color: #e5e7eb !important;
+    height: 6px !important;
+}
+
+:deep(.slider-handle) {
+    background: #d32f2f !important;
+    box-shadow: none !important;
+    border: 2px solid white;
+}
+
+:deep(.slider-handle:focus) {
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
+}
+
+/* Chỉnh lại layout ô lọc giá */
+.price-filter-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 20px;
+}
+
+.price-range-text {
+    font-weight: bold;
+    color: #d32f2f;
+    margin-left: 5px;
+}
+</style>
