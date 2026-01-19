@@ -34,21 +34,27 @@ const subTotal = computed(() => {
   );
 });
 
-const taxAmount = computed(() => {
-  return subTotal.value * (props.vatRate / 100);
-});
-
-const discount = computed(() => {
-  return props.orderData?.soTienDaGiam || 0;
-});
-
-const total = computed(() => {
-  return subTotal.value + taxAmount.value - discount.value;
-});
+const taxAmount = computed(() => subTotal.value * (props.vatRate / 100));
+const discount = computed(() => props.orderData?.soTienDaGiam || 0);
+const total = computed(() => subTotal.value + taxAmount.value - discount.value);
 
 const isCancelled = computed(() => props.orderData?.trangThai === "Đã hủy");
 const isCompleted = computed(() => props.orderData?.trangThai === "Hoàn thành");
 const isReadOnly = computed(() => isCancelled.value || isCompleted.value);
+
+const hasServedDish = computed(() => {
+  return props.orderDetailList?.some((item) => item.trangThaiCode === 2);
+});
+
+const isAllServed = computed(() => {
+  if (!props.orderDetailList || props.orderDetailList.length === 0) return false;
+  return props.orderDetailList.every((item) => item.trangThaiCode === 2);
+});
+
+const hasUnservedDish = computed(() => {
+  if (!props.orderDetailList) return false;
+  return props.orderDetailList.some((item) => item.trangThaiCode === 1);
+});
 
 const goToPayment = () => {
   if (props.orderData?.dbId) {
@@ -69,10 +75,6 @@ const goToAddFood = () => {
   }
 };
 
-const hasServedDish = computed(() => {
-  return props.orderDetailList?.some((item) => item.trangThaiCode === 2);
-});
-
 const handleCancelOrder = () => {
   if (hasServedDish.value) {
     alert("Không thể hủy hóa đơn vì đã có món ăn được phục vụ lên bàn!");
@@ -80,517 +82,208 @@ const handleCancelOrder = () => {
   }
   emit("cancel-order", props.orderData);
 };
-
-const isAllServed = computed(() => {
-  if (!props.orderDetailList || props.orderDetailList.length === 0)
-    return false;
-  return props.orderDetailList.every((item) => item.trangThaiCode === 2);
-});
-
-const hasUnservedDish = computed(() => {
-  if (!props.orderDetailList) return false;
-  return props.orderDetailList.some((item) => item.trangThaiCode === 1);
-});
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="header-text">
-          <h2 style="color: white">Chi tiết đơn hàng</h2>
-          <span class="order-id">{{ orderData?.id || "---" }}</span>
-        </div>
-        <button class="btn-close" @click="emit('close')">X</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="info-box">
-          <div class="info-row">
-            <div class="info-col">
-              <label>Khách hàng</label>
-              <b>{{ orderData?.khachHang || "Khách vãng lai" }}</b>
-            </div>
-            <div class="info-col">
-              <label>Bàn</label>
-              <b>{{ orderData?.ban || "---" }}</b>
-            </div>
+  <div v-if="isOpen" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" @click.self="emit('close')">
+    <div class="modal-dialog modal-dialog-centered modal-lg"> <div class="modal-content shadow">
+        
+        <div class="modal-header text-white" style="background-color: #8b0000;">
+          <div class="d-flex flex-column">
+            <h5 class="modal-title fw-bold mb-0">Chi tiết đơn hàng</h5>
+            <small class="opacity-75">{{ orderData?.id || "---" }}</small>
           </div>
-          <div class="info-row mt-2">
-            <div class="info-col">
-              <label>Trạng thái</label>
-              <b
-                :class="{
-                  'text-red': isCancelled,
-                  'text-green': isCompleted,
-                  'text-yellow': !isReadOnly,
-                }"
-              >
-                {{ orderData?.trangThai || "---" }}
-              </b>
-            </div>
-            <div class="info-col">
-              <label>Ngày tạo</label>
-              <b>{{ orderData?.ngayTao || "---" }}</b>
-            </div>
-          </div>
+          <button type="button" class="btn-close btn-close-white" @click="emit('close')"></button>
         </div>
 
-        <div class="section-title">
-          <div class="title-left"><span>🍴</span> <b>Danh sách món</b></div>
-          <div class="title-actions" v-if="!isReadOnly">
-            <button class="btn-add-food" @click="goToAddFood">
-              ➕ Thêm món
-            </button>
-            <button
-              class="btn-check-all"
-              v-if="!isReadOnly && !isAllServed"
-              @click="emit('update-all-served')"
-            >
-              ✔ Đã lên tất cả
-            </button>
-          </div>
-        </div>
-
-        <div class="food-list" v-if="!isCancelled">
-          <div
-            v-for="(item, index) in orderDetailList"
-            :key="item.id || index"
-            class="food-item"
-          >
-            <input
-              v-if="!isReadOnly"
-              type="checkbox"
-              class="checkbox"
-              :checked="item.trangThaiCode === 2"
-              :disabled="item.trangThaiCode === 2"
-              @change="emit('update-served', item.id)"
-            />
-
-            <div class="food-img-placeholder">
-              <img
-                v-if="item.hinhAnh"
-                :src="item.hinhAnh"
-                alt="img"
-                class="food-img"
-              />
-              <span v-else>🍴</span>
-            </div>
-            <div class="food-info">
-              <div class="food-name-row">
-                <b>{{ item.tenMon }}</b>
-                <span
-                  class="badge-status"
-                  :class="{
-                    'bg-yellow': item.trangThaiCode === 1,
-                    'bg-green': item.trangThaiCode === 2,
-                  }"
-                >
-                  {{ item.trangThaiText }}
-                </span>
-              </div>
-              <div class="food-meta">
-                <div v-if="item.ghiChu" class="food-note">
-                  Note: {{ item.ghiChu }}
+        <div class="modal-body custom-scroll">
+          
+          <div class="card bg-light border-0 mb-3">
+            <div class="card-body py-2">
+              <div class="row g-2">
+                <div class="col-6">
+                  <small class="text-muted d-block">Khách hàng</small>
+                  <span class="fw-bold">{{ orderData?.khachHang || "Khách vãng lai" }}</span>
                 </div>
-                <span
-                  >SL: <b>{{ item.soLuong }}</b></span
-                >
-                <span class="food-price-orig"
-                  >Đơn giá: {{ formatMoney(item.donGia) }}</span
-                >
+                <div class="col-6">
+                  <small class="text-muted d-block">Bàn</small>
+                  <span class="fw-bold">{{ orderData?.ban || "---" }}</span>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Trạng thái</small>
+                  <span class="fw-bold" 
+                    :class="{
+                      'text-danger': isCancelled,
+                      'text-success': isCompleted,
+                      'text-warning': !isReadOnly
+                    }">
+                    {{ orderData?.trangThai || "---" }}
+                  </span>
+                </div>
+                <div class="col-6">
+                  <small class="text-muted d-block">Ngày tạo</small>
+                  <span class="fw-bold">{{ orderData?.ngayTao || "---" }}</span>
+                </div>
               </div>
             </div>
-            <div class="food-total">
-              <b>{{ formatMoney(item.thanhTien) }}</b>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="h6 mb-0 d-flex align-items-center gap-2">
+              <span>🍴</span> <b>Danh sách món</b>
             </div>
+            <div v-if="!isReadOnly" class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-danger fw-bold" @click="goToAddFood">
+                ➕ Thêm món
+              </button>
+              <button 
+                v-if="!isAllServed"
+                class="btn btn-sm text-white" 
+                style="background-color: #8b0000;"
+                @click="emit('update-all-served')"
+              >
+                ✔ Đã lên tất cả
+              </button>
+            </div>
+          </div>
 
-            <button
-              v-if="!isReadOnly && item.trangThaiCode === 1"
-              class="btn-remove-item"
-              @click="emit('remove-item', item.id)"
+          <div v-if="!isCancelled" class="list-group mb-3">
+            <div 
+              v-for="(item, index) in orderDetailList" 
+              :key="item.id || index"
+              class="list-group-item d-flex align-items-center gap-3 p-2 position-relative"
             >
-              ✖
+              <input 
+                v-if="!isReadOnly"
+                type="checkbox" 
+                class="form-check-input mt-0" 
+                style="transform: scale(1.2); cursor: pointer;"
+                :checked="item.trangThaiCode === 2"
+                :disabled="item.trangThaiCode === 2"
+                @change="emit('update-served', item.id)"
+              />
+
+              <div class="food-img-wrapper rounded bg-secondary-subtle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; overflow: hidden;">
+                <img v-if="item.hinhAnh" :src="item.hinhAnh" class="w-100 h-100 object-fit-cover" alt="img" />
+                <span v-else class="text-muted fs-5">🍴</span>
+              </div>
+
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="fw-bold text-dark">{{ item.tenMon }}</span>
+                  <span class="badge" 
+                    :class="item.trangThaiCode === 2 ? 'bg-success' : 'bg-warning text-dark'">
+                    {{ item.trangThaiText }}
+                  </span>
+                </div>
+                
+                <div class="small text-muted d-flex gap-3 flex-wrap">
+                  <span v-if="item.ghiChu" class="text-danger w-100 mb-1">Note: {{ item.ghiChu }}</span>
+                  <span>SL: <b>{{ item.soLuong }}</b></span>
+                  <span>Đơn giá: {{ formatMoney(item.donGia) }}</span>
+                </div>
+              </div>
+
+              <div class="text-end">
+                <div class="fw-bold">{{ formatMoney(item.thanhTien) }}</div>
+              </div>
+              
+              <button 
+                v-if="!isReadOnly && item.trangThaiCode === 1"
+                class="btn btn-sm text-muted position-absolute top-0 end-0 p-1 lh-1"
+                title="Xóa món"
+                @click="emit('remove-item', item.id)"
+              >
+                ✖
+              </button>
+            </div>
+            
+            <div v-if="!orderDetailList || orderDetailList.length === 0" class="text-center text-muted py-4">
+              Chưa có món ăn nào.
+            </div>
+          </div>
+          
+          <div v-else class="alert alert-danger text-center fw-bold">
+            ⚠️ Đơn hàng này đã bị hủy.
+          </div>
+
+          <div v-if="!isCancelled" class="card bg-light border">
+            <div class="card-body p-3">
+              <h6 class="card-title border-bottom pb-2 mb-2">Tổng kết</h6>
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Tạm tính:</span>
+                <span class="fw-bold">{{ formatMoney(subTotal) }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Thuế ({{ vatRate }}%):</span>
+                <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-1" v-if="discount !== 0">
+                <span class="text-muted">Giảm giá:</span>
+                <span class="fw-bold text-success">-{{ formatMoney(discount) }}</span>
+              </div>
+              <hr class="my-2">
+              <div class="d-flex justify-content-between fs-5">
+                <span class="fw-bold">Tổng cộng:</span>
+                <span class="fw-bold text-danger">{{ formatMoney(total) }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer bg-light">
+          <template v-if="isCompleted">
+            <span class="text-success fw-bold me-auto">✅ Đơn hàng đã thanh toán thành công</span>
+            <button class="btn btn-secondary" @click="emit('close')">Đóng</button>
+          </template>
+
+          <template v-else-if="isCancelled">
+            <button class="btn btn-secondary" @click="emit('close')">Đóng</button>
+          </template>
+
+          <template v-else>
+            <button 
+              class="btn text-white fw-bold" 
+              style="background-color: #8b0000;"
+              :class="{ 'opacity-50': hasServedDish }"
+              :disabled="hasServedDish"
+              :title="hasServedDish ? 'Món đã lên bàn, không thể hủy đơn' : ''"
+              @click="handleCancelOrder"
+            >
+              ✖ Hủy đơn
             </button>
-          </div>
-          <div
-            v-if="!orderDetailList || orderDetailList.length === 0"
-            class="empty-food"
-          >
-            Chưa có món ăn nào.
-          </div>
+            <button 
+              class="btn btn-danger fw-bold"
+              :disabled="hasUnservedDish"
+              :title="hasUnservedDish ? 'Vui lòng xác nhận tất cả món đã lên bàn' : ''"
+              @click="goToPayment"
+            >
+              💳 Tiến hành thanh toán
+            </button>
+          </template>
         </div>
-        <div v-else class="cancelled-message">⚠️ Đơn hàng này đã bị hủy.</div>
 
-        <div class="summary-box" v-if="!isCancelled">
-          <div class="summary-row"><span>Tổng kết</span></div>
-          <div class="summary-row">
-            <span class="label-light">Tạm tính:</span>
-            <b>{{ formatMoney(subTotal) }}</b>
-          </div>
-          <div class="summary-row">
-            <span class="label-light">Thuế ({{ vatRate }}%):</span>
-            <b>{{ formatMoney(taxAmount) }}</b>
-          </div>
-          <div class="summary-row" v-if="discount !== 0">
-            <span class="label-light">Giảm giá / Voucher:</span>
-            <b class="text-green">-{{ formatMoney(discount) }}</b>
-          </div>
-          <div class="divider"></div>
-          <div class="summary-row total-row">
-            <b>Tổng cộng:</b>
-            <b class="text-red">{{ formatMoney(total) }}</b>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer" v-if="!isReadOnly">
-        <button
-          class="btn-cancel-order"
-          :class="{ 'btn-disabled': hasServedDish }"
-          :title="hasServedDish ? 'Món đã lên bàn, không thể hủy đơn' : ''"
-          @click="handleCancelOrder"
-        >
-          ✖ Hủy đơn
-        </button>
-        <button
-          class="btn-payment"
-          :class="{ 'btn-disabled': hasUnservedDish }"
-          :disabled="hasUnservedDish"
-          @click="goToPayment"
-          :title="
-            hasUnservedDish
-              ? 'Vui lòng xác nhận tất cả món đã lên bàn trước khi thanh toán'
-              : ''
-          "
-        >
-          💳 Tiến hành thanh toán
-        </button>
-      </div>
-      <div class="modal-footer completed-footer" v-else-if="isCompleted">
-        <span class="success-text">✅ Đơn hàng đã thanh toán thành công</span>
-        <button class="btn-close-modal" @click="emit('close')">Đóng</button>
-      </div>
-      <div class="modal-footer cancel-footer" v-else>
-        <button class="btn-close-modal" @click="emit('close')">Đóng</button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.btn-disabled {
-  background-color: #cccccc !important;
-  cursor: not-allowed !important;
-  opacity: 0.6;
-}
-
-.checkbox:disabled {
-  cursor: default;
-}
-.text-green {
-  color: #2e7d32 !important;
-}
-.text-yellow {
-  color: #fbc02d;
-}
-.food-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 4px;
-}
-.food-note {
-  color: #d32f2f;
-  font-size: 11px;
-  margin-bottom: 2px;
-}
-.empty-food {
-  text-align: center;
-  color: #999;
-  padding: 20px;
-}
-.completed-footer {
-  justify-content: space-between;
-  background: #e8f5e9;
-}
-.cancel-footer {
-  justify-content: flex-end;
-}
-.success-text {
-  color: #2e7d32;
-  font-weight: bold;
-  align-self: center;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-.modal-content {
-  background: white;
-  width: 700px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  animation: slideIn 0.2s ease-out;
-}
-.modal-header {
-  background-color: #8b0000;
-  color: white;
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-.header-text h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-}
-.order-id {
-  font-size: 12px;
-  opacity: 0.9;
-  color: white;
-}
-.btn-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-}
-.modal-body {
-  padding: 20px;
-  background-color: white;
+.modal-body.custom-scroll {
   max-height: 60vh;
   overflow-y: auto;
 }
-.info-box {
-  background: #f5f5f5;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
-.info-row {
-  display: flex;
-  justify-content: space-between;
-}
-.info-col {
-  width: 48%;
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-}
-.info-col label {
-  color: #666;
-  margin-bottom: 2px;
-  font-size: 12px;
-}
-.mt-2 {
-  margin-top: 10px;
-}
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.title-left {
-  font-size: 16px;
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.title-actions {
-  display: flex;
-  gap: 10px;
-}
-.btn-check-all {
-  background: #8b0000;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.btn-add-food {
-  background: white;
-  border: 1px solid #8b0000;
-  color: #8b0000;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
-}
-.btn-add-food:hover {
-  background: #ffebee;
-}
-.food-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  border: 1px solid #eee;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  position: relative;
-}
-.food-img-placeholder {
-  width: 50px;
-  height: 50px;
-  background: #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 20px;
-  color: #999;
-  overflow: hidden;
-}
-.food-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.food-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.badge-status {
-  background: #eee;
-  color: #555;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: bold;
-}
-.bg-yellow {
-  background-color: #fff3cd;
-  color: #856404;
-}
-.bg-green {
-  background-color: #d4edda;
-  color: #155724;
-}
-.food-meta {
-  font-size: 13px;
-  color: #666;
-}
-.food-total {
-  font-size: 14px;
-  font-weight: bold;
-  margin-right: 20px;
-}
-.btn-remove-item {
-  background: none;
-  border: none;
-  color: #999;
-  cursor: pointer;
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  font-size: 16px;
-}
-.btn-remove-item:hover {
-  color: red;
-}
-.cancelled-message {
-  text-align: center;
-  color: #dc3545;
-  background-color: #fff5f5;
-  padding: 20px;
-  border: 1px dashed #dc3545;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-weight: bold;
-}
-.summary-box {
-  background: #f9f9f9;
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #eee;
-}
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-.label-light {
-  color: #666;
-}
-.divider {
-  height: 1px;
-  background: #ddd;
-  margin: 10px 0;
-}
-.total-row {
-  font-size: 16px;
-  margin-bottom: 0;
-}
-.text-red {
-  color: #d32f2f;
-  font-size: 18px;
-}
-.modal-footer {
-  padding: 15px 20px;
-  background: #f5f5f5;
-  border-top: 1px solid #ddd;
-  display: flex;
-  justify-content: space-between;
-}
-.btn-cancel-order {
-  background: #8b0000;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.btn-payment {
-  background: #d32f2f;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.btn-close-modal {
-  background: #666;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+
+.modal.show .modal-dialog {
+  animation: slideIn 0.2s ease-out;
 }
 @keyframes slideIn {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.object-fit-cover {
+  object-fit: cover;
 }
 </style>
