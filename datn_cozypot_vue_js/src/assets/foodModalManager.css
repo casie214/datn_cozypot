@@ -15,6 +15,7 @@
     margin-bottom: 20px;
 }
 
+
 .tabs button {
     background: none;
     border: none;
@@ -41,11 +42,37 @@
     margin-bottom: 20px;
 }
 
+.price-filter-item {
+    min-width: 250px;     /* Rộng hơn một chút để thanh trượt thoải mái */
+    margin-right: 15px;   /* Đẩy nút Xóa bộ lọc ra xa */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* 3. Style chữ hiển thị khoảng giá */
+.price-range-text {
+    font-weight: bold;
+    color: #d32f2f;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
 .filter-row {
     display: flex;
-    gap: 15px;
     align-items: flex-end;
+    gap: 20px; /* Cách các phần tử ra 20px */
     flex-wrap: wrap;
+}
+
+.price-filter-item {
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    /* Thêm margin để chắc chắn không bị dính */
+    margin-right: 20px; 
 }
 
 .filter-item {
@@ -64,7 +91,7 @@
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    min-width: 120px;
+    min-width: 120px
 }
 
 .input-group {
@@ -938,3 +965,70 @@ h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-
     object-fit: contain; /* Giữ tỉ lệ ảnh */
     display: block;
 }
+
+
+/* --- LAYOUT CHÍNH (Sửa lỗi layout) --- */
+.subtitle { margin: 0; font-size: 0.9rem; color: #666; }
+
+.full-height-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* --- COMPONENT STYLES --- */
+.card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+.form-container { display: flex; flex-direction: column; gap: 15px; }
+.form-row-2 { display: flex; gap: 15px; }
+.form-row-2 .form-group { flex: 1; }
+
+.selected-display {
+    border: 1px solid #ddd;
+    background: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+}
+.selected-display.has-data { border-color: #28a745; background-color: #e8f5e9; color: #2e7d32; }
+.placeholder-text { color: #888; font-style: italic; font-weight: normal; }
+
+/* Ảnh Preview */
+.upload-box-wrapper { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+.upload-container { display: flex; gap: 10px; align-items: center; }
+.large-preview-container {
+    width: 100%; height: 180px; /* Giới hạn chiều cao ảnh */
+    border: 2px dashed #ddd; border-radius: 6px;
+    display: flex; justify-content: center; align-items: center;
+    background: #fafafa;
+}
+.large-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* List bên phải */
+.filter-tools { display: flex; gap: 10px; margin-bottom: 10px; }
+.search-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+.scroll-list-container {
+    flex: 1;
+    overflow-y: auto; /* Scroll riêng cho list */
+    padding-right: 5px;
+}
+.food-item-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px; border: 1px solid #eee; border-radius: 6px;
+    margin-bottom: 8px; cursor: pointer; background: white;
+}
+.food-item-card:hover { border-color: #28a745; background: #f9fff9; }
+.food-item-card.active { border: 2px solid #28a745; background-color: #e8f5e9; }
+.food-thumb { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; }
+.food-info { flex: 1; overflow: hidden; }
+.food-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.food-price { color: #d32f2f; font-weight: bold; font-size: 0.85rem; }
+
+.action-footer { margin-top: auto; }
+.btn-save:hover { background: #b71c1c; }

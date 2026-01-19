@@ -22,9 +22,12 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +45,10 @@ public class MonAnServiceImplementation implements MonAnService {
     public List<MonAnResponse> findAllMonAn() {
         return monAnRepository.findAll().stream()
                 .map(entity -> {
+                    // 1. Map thông tin cơ bản (Code cũ)
                     MonAnResponse response = modelMapper.map(entity, MonAnResponse.class);
+
+                    // 2. Map tên danh mục (Code cũ)
                     if (entity.getIdDanhMucChiTiet() != null) {
                         response.setTenDanhMucChiTiet(entity.getIdDanhMucChiTiet().getTenDanhMucChiTiet());
                         if (entity.getIdDanhMucChiTiet().getIdDanhMuc() != null) {
@@ -50,6 +56,36 @@ public class MonAnServiceImplementation implements MonAnService {
                             response.setTenDanhMuc(tenDanhMuc);
                         }
                     }
+
+                    // --- 3. PHẦN MỚI: TÍNH KHOẢNG GIÁ (MIN - MAX) ---
+                    // Giả sử trong Entity MonAn bạn đã có quan hệ @OneToMany với ChiTietMonAn
+                    // và tên getter là getChiTietMonAns() hoặc getListChiTietMonAn()
+                    Set<ChiTietMonAn> chiTiets = entity.getChiTietMonAns();
+
+                    if (chiTiets != null && !chiTiets.isEmpty()) {
+                        // Tìm giá thấp nhất
+                        BigDecimal min = chiTiets.stream()
+                                .map(ChiTietMonAn::getGiaBan)
+                                .filter(Objects::nonNull) // Lọc bỏ giá trị null để tránh lỗi
+                                .min(BigDecimal::compareTo)
+                                .orElse(BigDecimal.ZERO);
+
+                        // Tìm giá cao nhất
+                        BigDecimal max = chiTiets.stream()
+                                .map(ChiTietMonAn::getGiaBan)
+                                .filter(Objects::nonNull)
+                                .max(BigDecimal::compareTo)
+                                .orElse(BigDecimal.ZERO);
+
+                        response.setGiaThapNhat(min);
+                        response.setGiaCaoNhat(max);
+                    } else {
+                        // Nếu món này chưa có chi tiết nào (Size/Topping)
+                        response.setGiaThapNhat(BigDecimal.ZERO);
+                        response.setGiaCaoNhat(BigDecimal.ZERO);
+                    }
+                    // ------------------------------------------------
+
                     return response;
                 })
                 .toList();
@@ -391,5 +427,36 @@ public class MonAnServiceImplementation implements MonAnService {
     public MonAnChiTietResponse findChiTietMonAnById(int id) {
         return monAnChiTietRepository.findById(id)
                 .map(chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)).get();
+    }
+
+    public MonAnResponse convertToResponse(MonAnDiKem entity) {
+        MonAnResponse dto = new MonAnResponse();
+        // ... map các trường khác ...
+
+        // LOGIC TÍNH KHOẢNG GIÁ
+        Set<ChiTietMonAn> chiTiets = entity.getChiTietMonAns(); // Giả sử quan hệ OneToMany đã map
+
+        if (chiTiets != null && !chiTiets.isEmpty()) {
+            // Tìm giá thấp nhất
+            BigDecimal min = chiTiets.stream()
+                    .map(ChiTietMonAn::getGiaBan)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+
+            // Tìm giá cao nhất
+            BigDecimal max = chiTiets.stream()
+                    .map(ChiTietMonAn::getGiaBan)
+                    .max(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+
+            dto.setGiaThapNhat(min);
+            dto.setGiaCaoNhat(max);
+        } else {
+            // Nếu không có chi tiết nào
+            dto.setGiaThapNhat(BigDecimal.ZERO);
+            dto.setGiaCaoNhat(BigDecimal.ZERO);
+        }
+
+        return dto;
     }
 }

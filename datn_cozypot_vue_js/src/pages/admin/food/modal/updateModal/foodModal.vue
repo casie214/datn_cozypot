@@ -2,6 +2,7 @@
 import { defineProps, defineEmits, ref } from 'vue';
 import { useFoodModal } from '../../../../../services/foodFunction';
 import FoodDetailAddModal from '../addModal/FoodDetailAddModal.vue';
+import { useRouter } from 'vue-router';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -45,6 +46,11 @@ const closeModal = () => {
   backToList();
   emit('close');
 };
+
+const router = useRouter();
+
+const goToAddScreen = () => router.push({ name: 'addFoodDetail' });
+
 </script>
 
 <template>
@@ -82,7 +88,7 @@ const closeModal = () => {
               <div class="v-price">{{ v.giaBan }} VNĐ</div>
             </div>
 
-            <div class="variant-card add-card" @click="openAddModal">
+            <div class="variant-card add-card" @click="goToAddScreen">
               <div class="icon-plus">+</div>
               <div>Thêm loại</div>
             </div>

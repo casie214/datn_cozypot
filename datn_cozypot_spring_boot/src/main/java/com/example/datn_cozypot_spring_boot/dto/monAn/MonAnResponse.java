@@ -32,4 +32,7 @@ public class MonAnResponse {
     private String nguoiSua;
 
     private Integer trangThai;
+
+    private BigDecimal giaThapNhat;
+    private BigDecimal giaCaoNhat;
 }
