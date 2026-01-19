@@ -8,6 +8,10 @@ import com.example.datn_cozypot_spring_boot.service.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.LichSuHoaDonService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,21 +32,25 @@ public class HoaDonThanhToanController {
     LichSuHoaDonService lichSuHoaDonService;
 
     @GetMapping("/get-all")
-    public List<HoaDonThanhToanResponse> getAll(){
-        return hoaDonThanhToanService.getAllHoaDon();
+    public Page<HoaDonThanhToanResponse> getAll(@RequestParam(name = "page", required = false, defaultValue = "0") Integer page){
+        int pageSize = 5;
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("thoiGianTao").ascending());
+        return hoaDonThanhToanService.getAllHoaDon(pageable);
     }
 
     @GetMapping("/search")
-    public List<HoaDonThanhToanResponse> search(
+    public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
             @RequestParam(required = false) String tuNgay,
-            @RequestParam(required = false) String denNgay) {
-
+            @RequestParam(required = false) String denNgay,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page) {
         Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
         Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
 
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end);
+        int pageSize = 5;
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
     @GetMapping("/get-by-id/{id}")
