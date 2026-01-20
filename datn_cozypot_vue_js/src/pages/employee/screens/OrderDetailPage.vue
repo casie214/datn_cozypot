@@ -104,11 +104,6 @@ const formatDateTime = (dateString) => {
               <label class="d-block text-muted small mb-1">Trạng thái</label>
               <p
                 class="mb-0 fw-bold"
-                :class="{
-                  'text-success': selectedOrder?.trangThai === 'Hoàn thành',
-                  'text-danger': selectedOrder?.trangThai === 'Đã hủy',
-                  'text-warning': selectedOrder?.trangThai === 'Đã xác nhận',
-                }"
               >
                 {{ selectedOrder?.trangThai }}
               </p>
