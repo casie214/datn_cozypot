@@ -97,7 +97,7 @@ const handleViewDetailUpdate = (item) => {
     </div>
 
     <div class="action-row">
-      <button class="btn-add" @click="goToAddScreen">Thêm set lẩu</button>
+      <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
     </div>
 
     <div class="table-container" style="min-height: 305px;">
@@ -115,7 +115,7 @@ const handleViewDetailUpdate = (item) => {
         </thead>
         <tbody>
           <tr v-for="(item, index) in paginatedData" :key="item.id || index">
-            <td align="center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+            <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             
             <td>{{ item.maSetLau }}</td>
             <td><b>{{ item.tenSetLau }}</b></td>

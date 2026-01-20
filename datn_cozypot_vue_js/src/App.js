@@ -59,6 +59,16 @@ const routes = [{
         }
     },
     {
+        path: '/admin/food/add',
+        name: 'addFood',
+        component: () =>
+            import ('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
+        meta: {
+            parentMenu: 'foodManager',
+            activeTab: 'thucdon'
+        }
+    },
+    {
         path: '/admin/food/detail/update/:id',
         name: 'updateFoodDetail',
         component: () =>

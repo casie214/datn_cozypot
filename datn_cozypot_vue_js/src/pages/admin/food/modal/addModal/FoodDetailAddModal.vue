@@ -47,7 +47,7 @@ const getImg = (url) => {
                                 :class="{ 'locked': isParentLocked, 'has-data': formData.idMonAnDiKem }">
                                 <span v-if="formData.idMonAnDiKem">
                                     {{listMonAn.find(f => f.id === formData.idMonAnDiKem)?.tenMonAn || parentFoodName
-                                    || 'Đang tải...' }}
+                                        || 'Đang tải...'}}
                                 </span>
                                 <span v-else class="placeholder-text">
                                     <i class="fas fa-arrow-right"></i> Chọn món từ danh sách bên phải
@@ -124,9 +124,7 @@ const getImg = (url) => {
                     </div>
                 </div>
 
-                <div class="action-footer">
-                    <button class="btn-large btn-save full-width" @click="handleSave">Lưu Chi Tiết</button>
-                </div>
+
             </div>
 
             <div class="section-right">
@@ -165,6 +163,11 @@ const getImg = (url) => {
                             Không tìm thấy món nào
                         </div>
                     </div>
+                </div>
+
+                <div class="page-footer">
+                    <button class="btn-cancel-large" @click="goBack">Hủy bỏ</button>    
+                    <button class="btn-large btn-save full-width" @click="handleSave">Lưu chi tiết</button>
                 </div>
             </div>
         </div>
