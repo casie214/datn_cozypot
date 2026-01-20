@@ -53,6 +53,10 @@ public class HoaDonThanhToanController {
         Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
         Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
 
+        if (key != null) {
+            key = key.trim();
+        }
+        
         int pageSize = 5;
         Pageable pageable = PageRequest.of(page, pageSize);
         return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
