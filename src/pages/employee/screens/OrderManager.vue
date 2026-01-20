@@ -42,7 +42,8 @@ const {
               >
               <select v-model="filters.status" class="form-select">
                 <option>Tất cả</option>
-                <option>Đã xác nhận</option>
+                <option>Chờ nhận bàn</option>
+                <option>Đang phục vụ</option>
                 <option>Hoàn thành</option>
                 <option>Đã hủy</option>
               </select>

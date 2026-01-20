@@ -62,7 +62,7 @@ export function useOrderManager() {
   };
 
   const mapStatus = (statusInt) => {
-    const statuses = { 0: "Đã hủy", 1: "Đã xác nhận", 2: "Hoàn thành" };
+    const statuses = { 0: "Đã hủy", 1: "Đang phục vụ", 2: "Hoàn thành" , 3: 'Chờ nhận bàn'};
     return statuses[statusInt] || "Không xác định";
   };
 
@@ -110,7 +110,7 @@ export function useOrderManager() {
         currentPage.value = 0; // Reset về trang đầu nếu bấm nút tìm
       }
 
-      const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
+      const statusMap = { "Đã hủy": 0, "Đang phục vụ": 1, "Hoàn thành": 2 , 'Chờ nhận bàn': 3};
       const trangThaiInt =
         filters.value.status !== "Tất cả"
           ? statusMap[filters.value.status]
@@ -268,7 +268,7 @@ export function useOrderManager() {
     if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`))
       return;
 
-    const statusMap = { "Đã hủy": 0, "Đã xác nhận": 1, "Hoàn thành": 2 };
+    const statusMap = { "Đã hủy": 0, "Đang phục vụ": 1, "Hoàn thành": 2 , 'Chờ nhận bàn': 3};
     const payload = {
       idHoaDon: order.dbId,
       idNhanVien: 1,
