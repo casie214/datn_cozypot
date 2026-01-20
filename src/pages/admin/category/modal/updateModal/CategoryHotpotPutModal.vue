@@ -1,26 +1,44 @@
 <script setup>
 import { useCategoryHotpotPutModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
+// 1. Import GlobalDialogue
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const props = defineProps({
   isOpen: Boolean,
   itemList: Object
 });
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']);
 
 const {
     formData,
     handleSave,
-    closeModal
+    closeModal,
+    // 2. Lấy biến Dialog
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
 } = useCategoryHotpotPutModal(props, emit);
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
+      
+      <GlobalDialogue 
+        :show="dialogVisible"
+        :type="dialogConfig?.type"
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title"
+        :message="dialogConfig?.message"
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm"
+      />
+
       <div class="modal-header">
         <h2>Cập Nhật Loại Set</h2>
-        <button class="btn-close" @click="$emit('close')">✕</button>
+        <button class="btn-close" @click="closeModal">✕</button>
       </div>
 
       <div class="modal-body">
@@ -28,7 +46,8 @@ const {
             
             <div class="form-group full-width">
                 <label>Mã loại</label>
-                <input :value="formData.maLoaiSet" type="text" disabled style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
+                <input :value="formData.maLoaiSet" type="text" disabled 
+                    style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
             </div>
 
             <div class="form-group full-width">

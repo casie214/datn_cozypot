@@ -1,19 +1,37 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
-import { useCategoryAddModal} from '../../../../../services/foodFunction';
+import { useCategoryAddModal } from '../../../../../services/foodFunction';
+// 1. Import Component Dialog
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const props = defineProps(['isOpen', 'formData']);
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']); // Thêm 'refresh' vào emits
 
 const { 
   formData, 
-  handleSave 
+  handleSave,
+  // 2. Lấy biến Dialog từ composable
+  dialogVisible,
+  dialogConfig,
+  handleDialogConfirm,
+  handleDialogClose
 } = useCategoryAddModal(props, emit);
 </script>
 
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
+      
+      <GlobalDialogue 
+        :show="dialogVisible"
+        :type="dialogConfig?.type"
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title"
+        :message="dialogConfig?.message"
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm"
+      />
+
       <div class="modal-header">
         <h2>Thêm Danh Mục Mới</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>

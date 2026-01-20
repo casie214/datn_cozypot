@@ -1,27 +1,45 @@
 <script setup>
 import { useCategoryDetailPutModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
+// 1. Import GlobalDialogue
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const props = defineProps({
   isOpen: Boolean,
   itemList: Object
 });
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']);
 
 const {
     formData,
     handleSave,
     closeModal,
-    listDanhMucGoc
+    listDanhMucGoc,
+    // 2. Lấy biến Dialog
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
 } = useCategoryDetailPutModal(props, emit);
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
+      
+      <GlobalDialogue 
+        :show="dialogVisible"
+        :type="dialogConfig?.type"
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title"
+        :message="dialogConfig?.message"
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm"
+      />
+
       <div class="modal-header">
         <h2>Cập Nhật Chi Tiết</h2>
-        <button class="btn-close" @click="$emit('close')">✕</button>
+        <button class="btn-close" @click="closeModal">✕</button>
       </div>
 
       <div class="modal-body">
@@ -29,7 +47,8 @@ const {
             
             <div class="form-group full-width">
                 <label>Mã chi tiết</label>
-                <input :value="formData.maDanhMucChiTiet" type="text" disabled style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
+                <input :value="formData.maDanhMucChiTiet" type="text" disabled 
+                    style="background-color: #f5f5f5; color: #666; cursor: not-allowed;">
             </div>
 
             <div class="form-group full-width">
@@ -66,7 +85,7 @@ const {
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" @click="$emit('close')">Hủy</button>
+        <button class="btn-cancel" @click="closeModal">Hủy</button>
         <button class="btn-confirm" @click="handleSave">Lưu thay đổi</button>
       </div>
     </div>

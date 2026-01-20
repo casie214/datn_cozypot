@@ -1,26 +1,44 @@
 <script setup>
-import { useCategoryAddModal, useCategoryPutModal } from '../../../../../services/foodFunction';
+import { useCategoryPutModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
+// 1. Import GlobalDialogue
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const props = defineProps({
   isOpen: Boolean,
   itemList: Object
 });
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']);
 
 const {
     formData,
     handleSave,
-    closeModal
+    closeModal,
+    // 2. Lấy biến Dialog
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
 } = useCategoryPutModal(props, emit);
 </script>
 
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+    <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content">
+            
+            <GlobalDialogue 
+                :show="dialogVisible"
+                :type="dialogConfig?.type"
+                :variant="dialogConfig?.variant"
+                :title="dialogConfig?.title"
+                :message="dialogConfig?.message"
+                @close="handleDialogClose"
+                @confirm="handleDialogConfirm"
+            />
+
             <div class="modal-header">
                 <h2>Cập Nhật Danh Mục</h2>
-                <button class="btn-close" @click="$emit('close')">✕</button>
+                <button class="btn-close" @click="closeModal">✕</button>
             </div>
 
             <div class="modal-body">

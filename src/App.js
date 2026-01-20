@@ -49,7 +49,7 @@ const routes = [{
         }
     },
     {
-        path: '/admin/food/detail/add',
+        path: '/manage/food/detail/add',
         name: 'addFoodDetail',
         component: () =>
             import ('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
@@ -59,7 +59,7 @@ const routes = [{
         }
     },
     {
-        path: '/admin/food/add',
+        path: '/manage/food/add',
         name: 'addFood',
         component: () =>
             import ('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
@@ -69,8 +69,40 @@ const routes = [{
         }
     },
     {
-        path: '/admin/food/detail/update/:id',
+        path: '/manage/food/update/:id',
+        name: 'updateFood',
+        component: () =>
+            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+        meta: {
+                title: 'Cập nhật Món Ăn',
+                parentMenu: 'foodManager',
+                activeTab: 'thucdon'
+            }
+    },
+    {
+        path: '/manage/food/view/:id',
+        name: 'viewFood',
+        component: () =>
+            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+        meta: { 
+            title: 'Chi tiết Món Ăn', 
+            parentMenu: 'foodManager',
+            activeTab: 'thucdon' 
+        }
+    },
+    {
+        path: '/manage/food/detail/update/:id',
         name: 'updateFoodDetail',
+        component: () =>
+            import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+        meta: {
+            parentMenu: 'foodManager',
+            activeTab: 'chitietTD'
+        }
+    },
+    {
+        path: '/manage/food/detail/view/:id',
+        name: 'viewFoodDetail',
         component: () =>
             import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
