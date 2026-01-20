@@ -61,4 +61,6 @@ public interface MonAnService {
     SetLauResponse findSetLauById(int id);
 
     MonAnChiTietResponse findChiTietMonAnById(int id);
+
+    void deleteFoodDetailById(int id);
 }

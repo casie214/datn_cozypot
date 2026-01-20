@@ -61,6 +61,12 @@ public class MonAnController {
         return ResponseEntity.ok(monAnChiTietResponses);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<MonAnResponse> findMonAnFoodById(@PathVariable("id") int id){
+        MonAnResponse monAnResponses = monAnService.findMonAnById(id);
+        return ResponseEntity.ok(monAnResponses);
+    }
+
     @GetMapping("/modal/{id}")
     public ResponseEntity<List<MonAnChiTietResponse>> findMonAnModal(@PathVariable int id){
         MonAnResponse monAnResponse = monAnService.findMonAnById(id);
@@ -142,4 +148,5 @@ public class MonAnController {
     public ResponseEntity<DanhMucChiTietResponse> postNewDanhMucChiTiet(@RequestBody @Valid DanhMucChiTietRequest request){
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(monAnService.addNewDanhMucChiTiet(request));
     }
+
 }
