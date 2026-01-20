@@ -1505,89 +1505,130 @@ export function useHotpotSetTypeManager() {
     };
 }
 
-export function useFoodAddModal(props, emit) {
+export function useFoodAddScreen() {
+    const router = useRouter();
 
+    // --- 1. FOOD INFORMATION ---
     const formData = ref({
         tenMonAn: '',
         idDanhMuc: '',
         idDanhMucChiTiet: '',
-        giaBan: 0,
         moTa: '',
-        hinhAnh: '',
+        giaBan: 0,
+        hinhAnh: '', // Will store Base64 string
         trangThaiKinhDoanh: 1
     });
 
+    // --- 2. MANAGE DETAIL LIST (VARIANTS) ---
+    const listChiTiet = ref([]); 
+    
+    const newDetail = ref({
+        tenChiTiet: '', 
+        giaBan: 0,
+        giaVon: 0,
+        kichCo: '',
+        donVi: 'Cốc',
+        trangThai: 1
+    });
+
+    const addDetailToList = () => {
+        if (!newDetail.value.tenChiTiet || !newDetail.value.kichCo) {
+            alert("Vui lòng nhập tên chi tiết và kích cỡ!");
+            return;
+        }
+        listChiTiet.value.push({ ...newDetail.value });
+        newDetail.value = { tenChiTiet: '', giaBan: 0, giaVon: 0, kichCo: '', donVi: 'Cốc', trangThai: 1 };
+    };
+
+    const removeDetailFromList = (index) => {
+        listChiTiet.value.splice(index, 1);
+    };
+
+    // --- 3. CATEGORIES ---
     const listDanhMuc = ref([]);
     const listDanhMucChiTiet = ref([]);
 
-    function getAllCategories() {
-        getAllCategory()
-            .then(async res => {
-                listDanhMuc.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
-
-    function getAllCategoriesDetail() {
-        getAllCategoryDetail()
-            .then(async res => {
-                listDanhMucChiTiet.value = res.data;
-                await nextTick();
-            })
-            .catch(console.error);
-    }
+    function getAllCategories() { getAllCategory().then(res => listDanhMuc.value = res.data); }
+    function getAllCategoriesDetail() { getAllCategoryDetail().then(res => listDanhMucChiTiet.value = res.data); }
 
     onMounted(() => {
         getAllCategories();
         getAllCategoriesDetail();
-    })
+    });
 
     const filteredSubCategories = computed(() => {
         if (!formData.value.idDanhMuc) return [];
-        return listDanhMucChiTiet.value.filter(item => item.idDanhMuc === formData.value.idDanhMuc);
+        return listDanhMucChiTiet.value.filter(item => item.idDanhMuc == formData.value.idDanhMuc);
     });
 
-    watch(() => props.isOpen, (val) => {
-        if (val) {
-            formData.value = {
-                tenMonAn: '',
-                idDanhMuc: '',
-                idDanhMucChiTiet: '',
-                moTa: '',
-                giaBan: 0,
-                hinhAnh: '',
-                trangThaiKinhDoanh: 1
+    // --- 4. HANDLE IMAGE UPLOAD (NEW) ---
+    const resizeImage = (file, maxWidth = 800) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
+                };
             };
-        }
-    });
+        });
+    };
 
-    const handleSave = async() => {
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.match('image.*')) {
+            alert("Vui lòng chọn file hình ảnh!"); return;
+        }
+        try {
+            // Resize and convert to Base64
+            const resizedBase64 = await resizeImage(file);
+            formData.value.hinhAnh = resizedBase64; 
+        } catch (e) { console.error(e); }
+    };
+
+    // --- 5. SAVE ACTION ---
+    const handleSave = async () => {
         try {
             if (!formData.value.tenMonAn || !formData.value.idDanhMucChiTiet) {
                 alert("Vui lòng nhập tên món và chọn danh mục chi tiết!");
                 return;
             }
 
-            // Gọi API Thêm mới (Example)
-            // await axios.post('http://localhost:8080/api/manage/food', formData.value);
-            postNewFood(formData.value);
+            const payload = {
+                ...formData.value,
+                listChiTiet: listChiTiet.value 
+            };
 
-            console.log("Dữ liệu thêm mới:", formData.value);
+            await postNewFood(payload);
 
-            emit('refresh');
-            emit('close');
+            alert("Thêm mới thành công!");
+            router.back(); 
         } catch (e) {
             console.error("Lỗi thêm món ăn:", e);
             alert("Đã xảy ra lỗi khi thêm mới!");
         }
     };
 
+    const goBack = () => router.back();
+
     return {
-        formData,
-        listDanhMuc,
-        filteredSubCategories,
-        handleSave
+        formData, listDanhMuc, filteredSubCategories, handleSave, goBack,
+        listChiTiet, newDetail, addDetailToList, removeDetailFromList,
+        handleFileUpload // Export function
     };
 }
 

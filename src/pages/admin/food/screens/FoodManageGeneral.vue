@@ -4,6 +4,9 @@ import { useFoodManager, usePriceFilter } from '../../../../services/foodFunctio
 import FoodAddModal from '../../food/modal/addModal/FoodAddModal.vue';
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const {
     mockData,
@@ -32,6 +35,10 @@ const {
     globalMinPrice,
     globalMaxPrice
 } = useFoodManager();
+
+const goToAddScreen = () => {
+    router.push({ name: 'addFood' });
+};
 
 const handleRefreshList = () => {
     setTimeout(() => {
@@ -100,7 +107,7 @@ const formatPriceRange = (item) => {
     </div>
 
     <div class="action-row">
-        <button class="btn-add" @click="isAddFoodModalOpen = true">Thêm món ăn</button>
+        <button class="btn-add" @click="goToAddScreen">+ Thêm món ăn</button>
     </div>
 
     <div class="table-container" style="min-height: 305px;">
@@ -166,9 +173,6 @@ const formatPriceRange = (item) => {
 
     <foodModal v-if="isModalOpen && selectedItem" :isOpen="isModalOpen" :foodItem="selectedItem"
         @close="isModalOpen = false" @refresh="handleRefreshList" />
-
-    <FoodAddModal v-if="isAddFoodModalOpen" :isOpen="isAddFoodModalOpen" @close="isAddFoodModalOpen = false"
-        @refresh="handleRefreshList" />
 </template>
 
 <style scoped src="/src/assets/foodManager.css"></style>

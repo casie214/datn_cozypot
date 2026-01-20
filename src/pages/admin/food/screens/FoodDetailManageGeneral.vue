@@ -97,7 +97,7 @@ const handleViewDetails = (item) => router.push({ name: 'updateFoodDetail', para
         </thead>
         <tbody>
           <tr v-for="(item, index) in paginatedData" :key="item.id">
-            <td align="center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+            <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maChiTietMonAn }}</td>
             <td><b>{{ item.tenChiTietMonAn }}</b></td>
             <td>{{ item.monAnDiKem ? item.monAnDiKem.tenMonAn : (item.tenMonAnDiKem || '---') }}</td>
