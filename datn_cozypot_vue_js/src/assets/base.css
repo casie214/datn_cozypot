@@ -224,3 +224,38 @@ body {
 .menu-item[aria-expanded="true"] .arrow-dropdown i {
   transform: rotate(180deg);
 }
+
+.dialog-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.dialog-content {
+  background: white; width: 400px; max-width: 90%;
+  padding: 25px; border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  text-align: center;
+  animation: slideIn 0.3s ease-out;
+}
+
+.dialog-icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+.dialog-header h3 { margin: 0 0 10px 0; font-size: 1.5rem; }
+.dialog-body p { color: #555; font-size: 1rem; line-height: 1.5; margin-bottom: 25px; }
+
+.dialog-footer { display: flex; justify-content: center; gap: 15px; }
+
+button {
+  padding: 10px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 0.95rem;
+}
+.btn-cancel { background: #e0e0e0; color: #333; }
+.btn-cancel:hover { background: #d0d0d0; }
+
+.btn-confirm { color: white; }
+.btn-confirm.success { background: #2e7d32; }
+.btn-confirm.error { background: #d32f2f; }
+.btn-confirm.warning { background: #ed6c02; } /* Cam cho cảnh báo */
+.btn-confirm:hover { filter: brightness(90%); }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }

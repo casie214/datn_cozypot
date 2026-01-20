@@ -158,14 +158,46 @@ public class MonAnServiceImplementation implements MonAnService {
     }
 
     @Override
+    @Transactional // Quan trọng: Để nếu lưu chi tiết lỗi thì rollback cả món ăn
     public MonAnResponse createMonAn(MonAnRequest request) {
+        // 1. Map và Lưu Món Ăn Gốc (Parent)
         MonAnDiKem monAn = modelMapper.map(request, MonAnDiKem.class);
-        monAn.setId(null);
-        monAnRepository.save(monAn);
-        MonAnResponse monAnResponse = modelMapper.map(monAn, MonAnResponse.class);
-        DanhMucChiTietResponse danhMucChiTietResponse = danhMucChiTietRepository.findById(monAnResponse.getIdDanhMucChiTiet()).map(danhMucChiTiet -> modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class)).orElse(null);
-        monAnResponse.setTenDanhMucChiTiet(danhMucChiTietResponse.getTenDanhMucChiTiet());
-        monAnResponse.setTenDanhMuc(danhMucChiTietResponse.getTenDanhMuc());
+        monAn.setId(null); // Đảm bảo tạo mới
+
+        // Lưu xuống DB để sinh ra ID
+        MonAnDiKem savedMonAn = monAnRepository.save(monAn);
+
+        // 2. Xử lý lưu danh sách Chi Tiết (Children)
+        if (request.getListChiTiet() != null && !request.getListChiTiet().isEmpty()) {
+            List<ChiTietMonAn> listEntityChiTiet = new ArrayList<>();
+
+            for (MonAnChiTietRequest detailReq : request.getListChiTiet()) {
+                // Map từ DTO sang Entity
+                ChiTietMonAn detailEntity = modelMapper.map(detailReq, ChiTietMonAn.class);
+
+                // QUAN TRỌNG: Gán khóa ngoại (ID của món ăn vừa tạo) cho chi tiết
+                detailEntity.setIdMonAnDiKem(savedMonAn);
+                // Hoặc nếu entity dùng ID long/int: detailEntity.setIdMonAnDiKem(savedMonAn.getId());
+
+                listEntityChiTiet.add(detailEntity);
+            }
+
+            // Lưu tất cả chi tiết xuống DB
+            monAnChiTietRepository.saveAll(listEntityChiTiet);
+        }
+
+        // 3. Trả về Response
+        MonAnResponse monAnResponse = modelMapper.map(savedMonAn, MonAnResponse.class);
+
+        // Map thêm tên danh mục (như code cũ của bạn)
+        if (savedMonAn.getIdDanhMucChiTiet() != null) {
+            danhMucChiTietRepository.findById(savedMonAn.getIdDanhMucChiTiet().getId())
+                    .ifPresent(danhMuc -> {
+                        monAnResponse.setTenDanhMucChiTiet(danhMuc.getTenDanhMucChiTiet());
+                        monAnResponse.setTenDanhMuc(danhMuc.getTenDanhMucChiTiet());
+                    });
+        }
+
         return monAnResponse;
     }
 
@@ -427,6 +459,11 @@ public class MonAnServiceImplementation implements MonAnService {
     public MonAnChiTietResponse findChiTietMonAnById(int id) {
         return monAnChiTietRepository.findById(id)
                 .map(chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)).get();
+    }
+
+    @Override
+    public void deleteFoodDetailById(int id) {
+        monAnChiTietRepository.deleteById(id);
     }
 
     public MonAnResponse convertToResponse(MonAnDiKem entity) {

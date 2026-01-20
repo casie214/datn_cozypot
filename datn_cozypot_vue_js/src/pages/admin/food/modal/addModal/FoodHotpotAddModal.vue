@@ -1,4 +1,5 @@
 <script setup>
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useHotpotAdd } from '../../../../../services/foodFunction';
 
 const {
@@ -6,7 +7,6 @@ const {
     listLoaiSet,
     selectedIngredients,
     totalComponentsPrice,
-    // Các biến mới
     searchQuery,
     sortOption,
     filteredFoodList,
@@ -14,9 +14,14 @@ const {
     removeIngredient,
     handleSave,
     goBack,
-    handleFileUpload
-} = useHotpotAdd();
+    handleFileUpload,
 
+    // LẤY CÁC BIẾN DIALOG
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
+} = useHotpotAdd();
 const getImg = (url) => {
     if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
         return url;
@@ -27,6 +32,17 @@ const getImg = (url) => {
 
 <template>
     <div class="main-content">
+
+        <GlobalDialogue 
+            :show="dialogVisible"
+            :type="dialogConfig?.type"
+            :variant="dialogConfig?.variant"
+            :title="dialogConfig?.title"
+            :message="dialogConfig?.message"
+            @close="handleDialogClose"
+            @confirm="handleDialogConfirm"
+        />
+        
         <div class="page-header">
             <div class="header-title">
                 <h1>Thêm Set Lẩu Mới</h1>

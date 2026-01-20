@@ -1,5 +1,6 @@
 <script setup>
 import { useFoodDetailAdd } from '../../../../../services/foodFunction';
+import GlobalDialogue from '../../../../../components/globalDialogue.vue'; // Import Dialog
 
 const {
     formData,
@@ -12,7 +13,13 @@ const {
     selectParentFood,
     handleSave,
     goBack,
-    handleFileUpload
+    handleFileUpload,
+
+    // Lấy biến Dialog
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
 } = useFoodDetailAdd();
 
 const getImg = (url) => {
@@ -24,6 +31,17 @@ const getImg = (url) => {
 
 <template>
     <div class="main-content">
+        
+        <GlobalDialogue 
+            :show="dialogVisible"
+            :type="dialogConfig?.type"
+            :variant="dialogConfig?.variant"
+            :title="dialogConfig?.title"
+            :message="dialogConfig?.message"
+            @close="handleDialogClose"
+            @confirm="handleDialogConfirm"
+        />
+
         <div class="page-header">
             <div class="header-title">
                 <h1>Thêm Chi Tiết Món Ăn</h1>
@@ -32,7 +50,6 @@ const getImg = (url) => {
                 <i class="fas fa-arrow-left"></i> Quay lại
             </button>
         </div>
-
 
         <div class="page-content">
 
@@ -46,8 +63,7 @@ const getImg = (url) => {
                             <div class="selected-display"
                                 :class="{ 'locked': isParentLocked, 'has-data': formData.idMonAnDiKem }">
                                 <span v-if="formData.idMonAnDiKem">
-                                    {{listMonAn.find(f => f.id === formData.idMonAnDiKem)?.tenMonAn || parentFoodName
-                                        || 'Đang tải...'}}
+                                    {{ listMonAn.find(f => f.id === formData.idMonAnDiKem)?.tenMonAn || parentFoodName || 'Đang tải...' }}
                                 </span>
                                 <span v-else class="placeholder-text">
                                     <i class="fas fa-arrow-right"></i> Chọn món từ danh sách bên phải
@@ -61,8 +77,7 @@ const getImg = (url) => {
 
                         <div class="form-group">
                             <label>Tên chi tiết <span class="required">*</span></label>
-                            <input v-model="formData.tenChiTietMonAn" type="text"
-                                placeholder="VD: Size L, Thêm trứng...">
+                            <input v-model="formData.tenChiTietMonAn" type="text" placeholder="VD: Size L, Thêm trứng...">
                         </div>
 
                         <div class="form-row-2">
@@ -94,7 +109,8 @@ const getImg = (url) => {
 
                         <div class="form-group">
                             <label>Trạng thái</label>
-                            <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
+                            <div class="toggle-wrapper" 
+                                 @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
                                     <div class="toggle-knob"></div>
                                 </div>
@@ -110,8 +126,7 @@ const getImg = (url) => {
                                         <input type="file" accept="image/*" @change="handleFileUpload" />
                                         <i class="fas fa-cloud-upload-alt"></i> Chọn ảnh
                                     </label>
-                                    <button v-if="formData.hinhAnh" class="btn-clear-img"
-                                        @click="formData.hinhAnh = ''">
+                                    <button v-if="formData.hinhAnh" class="btn-clear-img" @click="formData.hinhAnh = ''">
                                         <i class="fas fa-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -123,8 +138,6 @@ const getImg = (url) => {
 
                     </div>
                 </div>
-
-
             </div>
 
             <div class="section-right">

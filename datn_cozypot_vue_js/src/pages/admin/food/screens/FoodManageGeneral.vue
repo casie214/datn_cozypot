@@ -23,6 +23,7 @@ const {
     handleViewDetails,
     getAllFood,
     handleToggleStatus,
+    handleEditFood,
 
     // Lọc & Sort cũ
     searchQuery,
@@ -33,7 +34,12 @@ const {
     // 2. LẤY BIẾN CHO THANH KÉO GIÁ (MỚI)
     selectedPriceRange,
     globalMinPrice,
-    globalMaxPrice
+    globalMaxPrice,
+    isCategoryFilterOpen,
+    listRootCategories,
+    selectedRootCate,
+    selectedSubCate,
+    availableSubCategories
 } = useFoodManager();
 
 const goToAddScreen = () => {
@@ -88,21 +94,48 @@ const formatPriceRange = (item) => {
                 </select>
             </div>
 
-            <div class="filter-item price-filter-item">
-                <label>
-                    Giá tiền (Thấp nhất):
-                    <span class="price-range-text">
-                        {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
-                    </span>
-                </label>
+            <div class="filter-item">
+                <label>Danh mục</label>
+                <button class="btn-filter-category" @click="isCategoryFilterOpen = true">
+                    <span v-if="!selectedRootCate">Chọn danh mục</span>
+                    <span v-else class="active-filter-text">Đang lọc...</span>
 
-                <div class="slider-wrapper">
-                    <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="10000"
-                        :tooltips="false" />
-                </div>
+                </button>
             </div>
 
             <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
+        </div>
+    </div>
+
+    <div v-if="isCategoryFilterOpen" class="category-modal-overlay" @click.self="isCategoryFilterOpen = false">
+        <div class="category-modal">
+            <div class="modal-header">
+                <h3>Lọc theo Danh Mục</h3>
+                <button class="close-btn" @click="isCategoryFilterOpen = false">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Danh mục gốc</label>
+                    <select v-model="selectedRootCate" class="form-control" @change="selectedSubCate = ''">
+                        <option value="">-- Tất cả --</option>
+                        <option v-for="cat in listRootCategories" :key="cat.id" :value="cat.id">
+                            {{ cat.tenDanhMuc }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Danh mục chi tiết</label>
+                    <select v-model="selectedSubCate" class="form-control" :disabled="!selectedRootCate">
+                        <option value="">-- Tất cả --</option>
+                        <option v-for="sub in availableSubCategories" :key="sub.id" :value="sub.id">
+                            {{ sub.tenDanhMucChiTiet }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -138,7 +171,13 @@ const formatPriceRange = (item) => {
                         {{ item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                     </td>
                     <td class="actions">
-                        <button class="btn-icon" @click="handleViewDetails(item)">👁️</button>
+                        <button class="btn-icon view" title="Xem chi tiết" @click="handleViewDetails(item)">
+                            👁️
+                        </button>
+
+                        <button class="btn-icon edit" title="Cập nhật" @click="handleEditFood(item)">
+                            ✏️
+                        </button>
 
                         <div class="toggle-switch" :class="{ 'on': item.trangThaiKinhDoanh === 1 }"
                             @click.stop="handleToggleStatus(item)">
@@ -147,7 +186,16 @@ const formatPriceRange = (item) => {
                     </td>
                 </tr>
                 <tr v-if="paginatedData.length === 0">
-                    <td colspan="8" style="text-align: center; padding: 20px;">Không tìm thấy dữ liệu</td>
+                    <td colspan="8" class="empty-state-cell">
+                        <div class="empty-state-content">
+                            <div class="empty-icon">🍜</div>
+                            <h3>Không tìm thấy món nào!</h3>
+                            <p>Thử thay đổi bộ lọc hoặc tìm kiếm từ khóa khác xem sao nhé.</p>
+                            <button class="btn-reset-empty" @click="clearFilters">
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                    </td>
                 </tr>
             </tbody>
         </table>
@@ -170,29 +218,20 @@ const formatPriceRange = (item) => {
             &gt;
         </button>
     </div>
-
-    <foodModal v-if="isModalOpen && selectedItem" :isOpen="isModalOpen" :foodItem="selectedItem"
-        @close="isModalOpen = false" @refresh="handleRefreshList" />
 </template>
 
 <style scoped src="/src/assets/foodManager.css"></style>
 <style scoped>
-/* Container bao ngoài slider */
 .slider-wrapper {
     width: 200px;
     padding: 0 10px;
     margin-top: 5px;
-
-    /* --- CÁCH 1: Dùng biến CSS (Khuyên dùng - Chuẩn nhất) --- */
-    --slider-connect-bg: #d32f2f;  /* Màu thanh nối */
-    --slider-tooltip-bg: #d32f2f;  /* Màu tooltip */
-    --slider-handle-ring-color: rgba(211, 47, 47, 0.3); /* Màu vòng focus */
-    --slider-height: 6px;          /* Độ dày thanh */
+    --slider-connect-bg: #d32f2f;
+    --slider-tooltip-bg: #d32f2f;
+    --slider-handle-ring-color: rgba(211, 47, 47, 0.3);
+    --slider-height: 6px;
 }
 
-/* Nếu Cách 1 không chạy (do phiên bản cũ), dùng Cách 2 dưới đây: */
-
-/* --- CÁCH 2: Dùng :deep (Ghi đè cưỡng bức) --- */
 :deep(.slider-connect) {
     background: #d32f2f !important;
 }
@@ -212,7 +251,6 @@ const formatPriceRange = (item) => {
     box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
 }
 
-/* Chỉnh lại layout ô lọc giá */
 .price-filter-item {
     display: flex;
     flex-direction: column;
@@ -224,5 +262,64 @@ const formatPriceRange = (item) => {
     font-weight: bold;
     color: #d32f2f;
     margin-left: 5px;
+}
+
+.btn-primary {
+    background: #8B0000;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: #b71c1c;
+}
+
+.btn-secondary {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #f0f0f0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.btn-filter-category {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    min-width: 140px;
+    height: 43px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
 }
 </style>

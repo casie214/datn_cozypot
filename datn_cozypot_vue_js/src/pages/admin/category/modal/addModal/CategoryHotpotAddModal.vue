@@ -1,19 +1,37 @@
 <script setup>
 import { useHotpotCategoryAddModal } from '../../../../../services/foodFunction';
 import { defineProps, defineEmits } from 'vue';
+// 1. Import GlobalDialogue
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const props = defineProps(['isOpen', 'formData']);
-const emit = defineEmits(['close', 'save']);
+const emit = defineEmits(['close', 'save', 'refresh']);
 
 const { 
-  formData, 
-  handleSave 
+    formData, 
+    handleSave,
+    // 2. Lấy biến Dialog
+    dialogVisible,
+    dialogConfig,
+    handleDialogConfirm,
+    handleDialogClose
 } = useHotpotCategoryAddModal(props, emit);
 </script>
 
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content">
+      
+      <GlobalDialogue 
+        :show="dialogVisible"
+        :type="dialogConfig?.type"
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title"
+        :message="dialogConfig?.message"
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm"
+      />
+
       <div class="modal-header">
         <h2>Thêm Loại Set Lẩu Mới</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>

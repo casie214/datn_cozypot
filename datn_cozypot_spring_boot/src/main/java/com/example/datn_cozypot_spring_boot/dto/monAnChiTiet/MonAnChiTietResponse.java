@@ -35,4 +35,6 @@ public class MonAnChiTietResponse {
     private String hinhAnh;
 
     private Integer trangThai;
+
+
 }

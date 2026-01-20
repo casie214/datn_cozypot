@@ -1,227 +1,198 @@
 <script setup>
-import { defineProps, defineEmits, ref } from 'vue';
-import { useFoodModal } from '../../../../../services/foodFunction';
-import FoodDetailAddModal from '../addModal/FoodDetailAddModal.vue';
-import { useRouter } from 'vue-router';
-
-const props = defineProps({
-  isOpen: Boolean,
-  foodItem: Object
-});
-
-const emit = defineEmits(['close', 'refresh']);
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
+import { useFoodUpdate } from '../../../../../services/foodFunction';
 
 const {
-  currentView,
-  selectedVariant,
+  isViewMode,
+  isLoading,
+  formData,
+  foodInfo,
   variants,
-  openEditMode,
-  parentFormData,
+  listDanhMuc,
   filteredSubCategories,
-  backToList,
-  fetchVariants,
-  handleSave,
-  listDanhMuc
-} = useFoodModal(props.foodItem);
+  categoryName,
+  handleUpdate,
+  goBack,
+  goToAddDetail,
+  handleToggleDetailStatus,
+  
+  // Dialog Variables
+  dialogVisible,
+  dialogConfig,
+  handleDialogConfirm,
+  handleDialogClose
+} = useFoodUpdate();
 
-const isAddModalOpen = ref(false);
-const isSelfVisible = ref(true);
-
-const openAddModal = () => {
-  isSelfVisible.value = false;
-  isAddModalOpen.value = true;
-};
-
-const handleCloseAddModal = () => {
-  isAddModalOpen.value = false;
-  isSelfVisible.value = true;
-};
-
-const handleRefresh = () => {
-  fetchVariants();
-  handleCloseAddModal();
-};
-
-const closeModal = () => {
-  backToList();
-  emit('close');
-};
-
-const router = useRouter();
-
-const goToAddScreen = () => router.push({ name: 'addFoodDetail' });
-
+// Helper hiển thị ảnh
+const getImg = (url) => {
+  if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+    return url;
+  }
+  return 'https://placehold.co/100x100?text=No+Img';
+}
 </script>
 
 <template>
-  <div v-if="isOpen && isSelfVisible" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content">
+  <div class="main-content">
+    
+    <GlobalDialogue 
+        :show="dialogVisible"
+        :type="dialogConfig?.type"
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title"
+        :message="dialogConfig?.message"
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm"
+    />
 
-      <div class="modal-header">
-        <div class="header-left">
-          <button v-if="currentView === 'update'" @click="backToList" class="btn-back">←</button>
-          <h2>{{ currentView === 'list' ? 'Chi tiết' : 'Cập nhật loại chi tiết' }}</h2>
+    <div class="page-header">
+      <div class="header-title">
+        <h1>{{ isViewMode ? 'Chi Tiết Món Ăn' : 'Cập Nhật Món Ăn' }}</h1>
+        <p class="subtitle">{{ isViewMode ? 'Xem thông tin và các biến thể' : 'Chỉnh sửa thông tin chung' }}</p>
+      </div>
+      <button class="btn-back" @click="goBack">← Quay lại</button>
+    </div>
+
+    <div v-if="isLoading" class="loading-state">Đang tải dữ liệu...</div>
+
+    <div v-else>
+      <div class="info-hero-card" v-if="foodInfo" style="margin-bottom: 30px;">
+        <div class="hero-image">
+          <img :src="getImg(foodInfo.hinhAnh)" alt="Food Img">
         </div>
-        <button class="btn-close" @click="closeModal">✕</button>
+        <div class="hero-details">
+          <div class="hero-header">
+            <h2 class="hero-title">
+              {{ foodInfo.tenMonAn || formData.tenMonAn }}
+              <span class="code-badge">#{{ foodInfo.maMonAn }}</span>
+            </h2>
+            <span :class="['status-badge', formData.trangThaiKinhDoanh === 1 ? 'active' : 'inactive']">
+              {{ formData.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
+            </span>
+          </div>
+          <div class="hero-meta-grid">
+            <div class="meta-item">
+              <span class="label">Danh mục:</span>
+              <span class="value">{{ categoryName }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Số lượng biến thể:</span>
+              <span class="value">{{ variants.length }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-body">
+      <div class="page-content" :class="{ 'view-mode': isViewMode }">
 
-        <div v-if="currentView === 'list'">
-          <div class="info-grid">
-            <div class="info-item"><span>Món ăn</span> <b>{{ foodItem?.tenMonAn || 'N/A' }}</b></div>
-            <div class="info-item"><span>Mã món ăn</span> <b>{{ foodItem?.maMonAn || 'N/A' }}</b></div>
-            <div class="info-item"><span>Mô tả</span> <span class="text-gray">{{ foodItem?.moTa }}</span></div>
-            <div class="info-item"><span>Danh mục</span> <b>{{ foodItem?.tenDanhMuc || 'N/A' }}</b></div>
-            <div class="info-item"><span>Chi tiết danh mục</span> <b>{{ foodItem?.tenDanhMucChiTiet || 'N/A' }}</b>
-            </div>
-          </div>
-
-          <hr class="divider">
-
-          <div class="variants-grid">
-            <div v-for="v in variants" :key="v.id" class="variant-card">
-              <div class="v-header">
-                <b>{{ v.tenChiTietMonAn }}</b>
-                <span class="icon-edit">🏷️</span>
-              </div>
-              <div class="v-price">{{ v.giaBan }} VNĐ</div>
-            </div>
-
-            <div class="variant-card add-card" @click="goToAddScreen">
-              <div class="icon-plus">+</div>
-              <div>Thêm loại</div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="update-view">
-          <div v-if="selectedVariant" class="form-container">
-
-            <div class="form-row">
+        <div class="section-left">
+          <div class="card">
+            <h3>Thông tin chung</h3>
+            <div class="form-container">
               <div class="form-group">
-                <label>Tên chi tiết <span class="required">*</span></label>
-                <input v-model="selectedVariant.tenChiTietMonAn" type="text" placeholder="VD: Size L">
+                <label>Tên món ăn <span class="required" v-if="!isViewMode">*</span></label>
+                <input :disabled="isViewMode" v-model="formData.tenMonAn" type="text">
               </div>
-              <div class="form-group">
-                <label>Mã chi tiết</label>
-                <input v-model="selectedVariant.maChiTietMonAn" type="text" disabled style="background: #e9ecef">
-              </div>
-            </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label>Thuộc món ăn</label>
-                <input :value="foodItem?.tenMonAn" type="text" disabled style="background: #e9ecef">
-              </div>
-              <div class="form-group">
-                <label>Danh mục</label>
-                <input :value="foodItem?.tenDanhMuc" type="text" disabled style="background: #e9ecef">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Giá bán <span class="required">*</span></label>
-                <input v-model.number="selectedVariant.giaBan" type="number">
-              </div>
-              <div class="form-group">
-                <label>Giá vốn</label>
-                <input v-model.number="selectedVariant.giaVon" type="number">
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>Kích cỡ</label>
-                <input v-model="selectedVariant.kichCo" type="text" placeholder="L, M, S">
-              </div>
-              <div class="form-group">
-                <label>Đơn vị tính</label>
-                <input v-model="selectedVariant.donVi" type="text" placeholder="Cái, Đĩa">
-              </div>
-            </div>
-
-            <div class="form-group full-width">
-              <label>Trạng thái kinh doanh</label>
-              <div class="toggle-wrapper">
-                <span>{{ selectedVariant.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
-                <div class="toggle-switch" :class="{ 'on': selectedVariant.trangThai === 1 }"
-                  @click="selectedVariant.trangThai = (selectedVariant.trangThai === 1 ? 0 : 1)">
-                  <div class="toggle-knob"></div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label>Danh mục gốc</label>
+                  <select :disabled="isViewMode" v-model="formData.idDanhMuc" class="form-control">
+                    <option v-for="c in listDanhMuc" :key="c.id" :value="c.id">{{ c.tenDanhMuc }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Chi tiết</label>
+                  <select :disabled="isViewMode" v-model="formData.idDanhMucChiTiet" class="form-control">
+                    <option v-for="s in filteredSubCategories" :key="s.id" :value="s.id">{{ s.tenDanhMucChiTiet }}
+                    </option>
+                  </select>
                 </div>
               </div>
-            </div>
 
-          </div>
-        </div>
-
-        <div class="form-container">
-
-          <div class="form-group full-width">
-            <label>Tên món ăn <span class="required">*</span></label>
-            <input type="text" v-model="parentFormData.tenMonAn" placeholder="Nhập tên món ăn">
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Danh mục gốc</label>
-              <select v-model="parentFormData.idDanhMuc" class="form-control">
-                <option value="">-- Chọn danh mục --</option>
-                <option v-for="dm in listDanhMuc" :key="dm.id" :value="dm.id">
-                  {{ dm.tenDanhMuc }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Danh mục chi tiết <span class="required">*</span></label>
-              <select v-model="parentFormData.idDanhMucChiTiet" :disabled="!parentFormData.idDanhMuc"
-                class="form-control">
-                <option value="">-- Chọn chi tiết --</option>
-                <option v-for="sub in filteredSubCategories" :key="sub.id" :value="sub.id">
-                  {{ sub.tenDanhMucChiTiet }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group full-width">
-            <label>Giá bán <span class="required">*</span></label>
-            <input type="number" v-model.number="parentFormData.giaBan" placeholder="0">
-          </div>
-
-          <div class="form-group full-width">
-            <label>Mô tả</label>
-            <textarea v-model="parentFormData.moTa" class="form-control" rows="3"
-              placeholder="Mô tả món ăn..."></textarea>
-          </div>
-
-          <div class="form-group full-width">
-            <label>Trạng thái kinh doanh</label>
-            <div class="toggle-wrapper">
-              <span :class="{ 'text-active': parentFormData.trangThaiKinhDoanh === 1 }">
-                {{ parentFormData.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
-              </span>
-
-              <div class="toggle-switch" :class="{ 'on': parentFormData.trangThaiKinhDoanh === 1 }"
-                @click="parentFormData.trangThaiKinhDoanh = (parentFormData.trangThaiKinhDoanh === 1 ? 0 : 1)">
-                <div class="toggle-knob"></div>
+              <div class="form-group">
+                <label>Mô tả</label>
+                <textarea :disabled="isViewMode" v-model="formData.moTa" rows="3" class="form-control"></textarea>
               </div>
+
+              <div class="form-group">
+                <label>Trạng thái</label>
+                <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
+                  @click="!isViewMode && (formData.trangThaiKinhDoanh = formData.trangThaiKinhDoanh === 1 ? 0 : 1)">
+                  
+                  <div class="toggle-switch" :class="{ 'on': formData.trangThaiKinhDoanh === 1 }">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  
+                  <span>{{ formData.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}</span>
+                </div>
+              </div>
+
             </div>
           </div>
-
         </div>
+
+        <div class="section-right">
+          <div class="card">
+            <div class="card-header-row">
+              <h3>Các biến thể ({{ variants.length }})</h3>
+              <button v-if="!isViewMode" class="btn-add" @click="goToAddDetail">
+                + Thêm loại
+              </button>
+            </div>
+
+            <div class="variants-list">
+              <div v-for="v in variants" :key="v.id" class="variant-item">
+                <div class="v-thumb">
+                  <img :src="getImg(v.hinhAnh)" alt="Ảnh" class="img-fit">
+                </div>
+
+                <div class="v-info">
+                  <div class="v-name">{{ v.tenChiTietMonAn }}</div>
+                  <div class="v-meta">
+                    <span class="badge-size">{{ v.kichCo }}</span>
+                    <span class="text-unit">{{ v.donVi }}</span>
+                  </div>
+                </div>
+                <div class="v-price">
+                  {{ v.giaBan?.toLocaleString() }} đ
+                </div>
+
+                <div class="action-col">
+                  <div v-if="!isViewMode" class="toggle-switch small" :class="{ 'on': v.trangThai === 1 }"
+                    @click.stop="handleToggleDetailStatus(v)" title="Bật/Tắt kinh doanh biến thể này">
+                    <div class="toggle-knob"></div>
+                  </div>
+
+                  <span v-else class="status-dot" :class="v.trangThai === 1 ? 'green' : 'red'">
+                    ●
+                  </span>
+                </div>
+              </div>
+
+              <div v-if="variants.length === 0" class="empty-text">Chưa có biến thể nào.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div class="modal-footer">
-        <button class="btn-cancel" @click="closeModal">Hủy</button>
-        <button class="btn-confirm" @click="handleSave(emit)">Xác nhận thay đổi</button>
+      <div class="page-footer">
+        <button class="btn-large btn-cancel" @click="goBack">
+          {{ isViewMode ? 'Quay lại danh sách' : 'Hủy bỏ' }}
+        </button>
+        <button v-if="!isViewMode" class="btn-large btn-save" @click="handleUpdate">Cập nhật</button>
       </div>
     </div>
   </div>
-  <FoodDetailAddModal v-if="isAddModalOpen" :isOpen="isAddModalOpen" :foodItem="foodItem" @close="handleCloseAddModal"
-    @refresh="handleRefresh" />
 </template>
 
-<style scoped src="/src/assets/foodModalManager.css"></style>
+<style scoped>
+@import url("/src/assets/foodModalManager.css");
+
+@media (max-width: 900px) {
+  .page-content {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
