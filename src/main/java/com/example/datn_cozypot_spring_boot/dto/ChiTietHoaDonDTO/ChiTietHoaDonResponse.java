@@ -18,4 +18,5 @@ public class ChiTietHoaDonResponse {
     private String ghiChu;
     private String trangThaiText;
     private Integer trangThaiCode;
+    private Integer idSetLau;
 }

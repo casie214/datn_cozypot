@@ -15,9 +15,20 @@ import java.time.Instant;
 public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Integer> {
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
-            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
-            "hd.tongTienThanhToan, hd.soTienDaGiam, hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, pdb.hinhThucDat) " +
+            "hd.id, " +
+            "hd.maHoaDon, " +
+            "kh.tenKhachHang, " +
+            "kh.soDienThoai, " +
+            "b.tenBan, " +
+            "hd.tongTienChuaGiam, " +
+            "hd.soTienDaGiam, " +
+            "hd.tongTienThanhToan, " +
+            "hd.tienCoc, " +
+            "hd.tienHoanTra, " +
+            "hd.trangThaiHoanTien, " +
+            "hd.trangThaiHoaDon, " +
+            "hd.thoiGianTao, " +
+            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
@@ -30,11 +41,15 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "kh.tenKhachHang, " +
             "kh.soDienThoai, " +
             "b.tenBan, " +
-            "hd.tongTienThanhToan, " +
+            "hd.tongTienChuaGiam, " +
             "hd.soTienDaGiam, " +
+            "hd.tongTienThanhToan, " +
+            "hd.tienCoc, " +
+            "hd.tienHoanTra, " +
+            "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat) " +
+            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
@@ -61,11 +76,15 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "kh.tenKhachHang, " +
             "kh.soDienThoai, " +
             "b.tenBan, " +
-            "hd.tongTienThanhToan, " +
+            "hd.tongTienChuaGiam, " +
             "hd.soTienDaGiam, " +
+            "hd.tongTienThanhToan, " +
+            "hd.tienCoc, " +
+            "hd.tienHoanTra, " +
+            "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat) " +
+            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +

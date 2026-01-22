@@ -59,8 +59,20 @@ public class HoaDonThanhToan {
     @Column(name = "so_tien_da_giam", precision = 18)
     private BigDecimal soTienDaGiam;
 
+    @Column(name = "tien_coc", precision = 18)
+    private BigDecimal tienCoc;
+
+    @Column(name = "tien_hoan_tra", precision = 18)
+    private BigDecimal tienHoanTra;
+
+    @Column(name = "trang_thai_hoan_tien")
+    private Integer trangThaiHoanTien;
+
     @Column(name = "tong_tien_thanh_toan", precision = 18)
     private BigDecimal tongTienThanhToan;
+
+    @Column(name = "vat_ap_dung", precision = 18)
+    private BigDecimal vatApDung;
 
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;

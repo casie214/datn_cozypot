@@ -16,9 +16,15 @@ public class HoaDonThanhToanResponse {
     private String tenKhachHang;
     private String sdtKhachHang;
     private String tenBan;
-    private BigDecimal tongTienThanhToan;
+    private BigDecimal tongTienChuaGiam;
     private BigDecimal soTienDaGiam;
-    private Integer trangThaiHoaDon;
+    private BigDecimal tongTienThanhToan;
+    private BigDecimal tienCoc;
+    private BigDecimal tienHoanTra;
+    private Integer trangThaiHoanTien;     // 0: Ko cần hoàn, 1: Chờ hoàn, 2: Đã hoàn, 3: Không hoàn
+    private Integer trangThaiHoaDon;       // 0: Hủy, 1: Đang phục vụ, 2: Hoàn thành, 3: Chờ nhận bàn
     private Instant thoiGianTao;
     private Integer hinhThucDat;
+    private Integer soLuongKhach;
+    private BigDecimal vatApDung;
 }

@@ -1,10 +1,12 @@
 package com.example.datn_cozypot_spring_boot.Controller;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
+import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
@@ -56,7 +58,7 @@ public class HoaDonThanhToanController {
         if (key != null) {
             key = key.trim();
         }
-        
+
         int pageSize = 5;
         Pageable pageable = PageRequest.of(page, pageSize);
         return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
@@ -105,6 +107,11 @@ public class HoaDonThanhToanController {
     @GetMapping("/chi-tiet-hoa-don/{idHoaDon}")
     public List<ChiTietHoaDonResponse> getAllChiTiet(@PathVariable Integer idHoaDon){
         return chiTietHoaDonService.getAllChiTietHoaDon(idHoaDon);
+    }
+
+    @GetMapping("/chi-tiet-hoa-don/chi-tiet-set-lau/{idSetLau}")
+    public ResponseEntity<List<ChiTietSetLauResponse>> getChiTietSetLau(@PathVariable Integer idSetLau){
+        return ResponseEntity.ok(chiTietHoaDonService.getChiTietSetLau(idSetLau));
     }
 
     @PutMapping("/chi-tiet-hoa-don/cap-nhat-da-len/{id}")
