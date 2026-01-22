@@ -16,7 +16,7 @@ public interface LichSuThanhToanRepo extends JpaRepository<LichSuThanhToan, Inte
             "lstt.tenPhuongThuc, " +
             "lstt.soTienThanhToan, " +
             "lstt.ngayThanhToan, " +
-            "lstt.trangThai) " +
+            "lstt.trangThai, lstt.loaiGiaoDich, lstt.ghiChu) " +
             "FROM LichSuThanhToan lstt " +
             "WHERE lstt.idHoaDon.id = :idHoaDon " +
             "ORDER BY lstt.ngayThanhToan DESC")

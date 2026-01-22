@@ -38,7 +38,7 @@ const {
 
             <div class="col-md-2">
               <label class="form-label text-muted small fw-bold"
-                >Trạng thái</label
+                >Trạng thái hóa đơn</label
               >
               <select v-model="filters.status" class="form-select">
                 <option>Tất cả</option>
@@ -98,8 +98,10 @@ const {
                   <th class="py-3">KHÁCH HÀNG</th>
                   <th class="py-3">SĐT</th>
                   <th class="py-3">BÀN</th>
+                  <th class="py-3">SL KHÁCH</th>
                   <th class="py-3">LOẠI</th>
                   <th class="py-3">TỔNG TIỀN</th>
+                  <th class="py-3">TIỀN CỌC</th>
                   <th class="py-3">TRẠNG THÁI</th>
                   <th class="py-3 text-center">THAO TÁC</th>
                 </tr>
@@ -118,8 +120,10 @@ const {
                   <td>{{ order.khachHang }}</td>
                   <td>{{ order.sdt }}</td>
                   <td>{{ order.ban }}</td>
+                  <td class="ps-4">{{ order.soLuongKhach }}</td>
                   <td>{{ order.loai }}</td>
                   <td class="fw-bold">{{ order.tongTien }}</td>
+                  <td class="fw-bold">{{ order.tienCoc }}</td>
                   <td>{{ order.trangThai }}</td>
                   <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">

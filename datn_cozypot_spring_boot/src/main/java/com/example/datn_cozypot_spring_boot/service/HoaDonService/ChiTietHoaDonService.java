@@ -1,9 +1,12 @@
 package com.example.datn_cozypot_spring_boot.service.HoaDonService;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
+import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
 import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepo;
+import com.example.datn_cozypot_spring_boot.repository.SetLauChiTietRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,8 +19,15 @@ public class ChiTietHoaDonService {
     @Autowired
     ChiTietHoaDonRepo chiTietHoaDonRepo;
 
+    @Autowired
+    SetLauChiTietRepository setLauChiTietRepository;
+
     public List<ChiTietHoaDonResponse> getAllChiTietHoaDon(Integer idHoaDon){
         return chiTietHoaDonRepo.findChiTietByHoaDonId(idHoaDon);
+    }
+
+    public List<ChiTietSetLauResponse> getChiTietSetLau(Integer idSetLau){
+        return setLauChiTietRepository.findChiTietBySetId(idSetLau);
     }
 
     @Transactional

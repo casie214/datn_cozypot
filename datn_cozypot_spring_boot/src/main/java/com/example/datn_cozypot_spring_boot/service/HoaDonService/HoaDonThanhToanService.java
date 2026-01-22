@@ -75,7 +75,7 @@ public class HoaDonThanhToanService {
 
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong(request.getHanhDong());
+        log.setHanhDong("Hủy hóa đơn");
         log.setLyDoThucHien(request.getLyDoThucHien());
         log.setThoiGianThucHien(Instant.now());
         log.setTrangThaiTruocDo(trangThaiHDCu);
@@ -109,7 +109,7 @@ public class HoaDonThanhToanService {
         log.setIdHoaDon(hd);
         log.setHanhDong("Thanh toán");
         log.setTrangThaiTruocDo(1);
-        log.setTrangThaiMoi(4);
+        log.setTrangThaiMoi(2);
         log.setThoiGianThucHien(now);
         System.out.println(now);
         if (request.getIdNhanVien() != null) {

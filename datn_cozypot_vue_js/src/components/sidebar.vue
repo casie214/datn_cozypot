@@ -7,7 +7,7 @@ const route = useRoute();
 const menuItems = [
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
-    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
+    { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
     { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/admin/tables' },
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },

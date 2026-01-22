@@ -1,4 +1,8 @@
 import { ref, onMounted, watch } from "vue";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+dayjs.locale("vi");
+
 import {
   BeGetAllHoaDon,
   BeGetChiTietHoaDon,
@@ -35,15 +39,9 @@ export function useOrderManager() {
 
   const formatDate = (dateString) => {
     if (!dateString) return "---";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Ngày lỗi";
-    return new Intl.DateTimeFormat("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
+    const date = dayjs(dateString);
+    if (!date.isValid()) return "Ngày lỗi";
+    return date.format("HH:mm DD/MM/YYYY");
   };
 
   const formatCurrency = (value) => {
@@ -62,7 +60,12 @@ export function useOrderManager() {
   };
 
   const mapStatus = (statusInt) => {
-    const statuses = { 0: "Đã hủy", 1: "Đang phục vụ", 2: "Hoàn thành" , 3: 'Chờ nhận bàn'};
+    const statuses = {
+      0: "Đã hủy",
+      1: "Đang phục vụ",
+      2: "Hoàn thành",
+      3: "Chờ nhận bàn",
+    };
     return statuses[statusInt] || "Không xác định";
   };
 
@@ -76,11 +79,18 @@ export function useOrderManager() {
         sdt: item.sdtKhachHang,
         ban: item.tenBan,
         loai: mapOrderType(item.hinhThucDat),
+        soLuongKhach: item.soLuongKhach,
         tongTien: formatCurrency(item.tongTienThanhToan),
         tongTienRaw: item.tongTienThanhToan,
+        tongTienHangRaw: item.tongTienChuaGiam || 0,
         soTienDaGiam: item.soTienDaGiam || 0,
+        tienCoc: formatCurrency(item.tienCoc),
+        tienCocRaw: item.tienCoc || 0,
+        tienHoanTra: formatCurrency(item.tienHoanTra),
+        trangThaiHoanTien: item.trangThaiHoanTien,
         trangThai: mapStatus(item.trangThaiHoaDon),
         ngayTao: formatDate(item.thoiGianTao),
+        vatApDung: item.vatApDung,
       };
     });
   };
@@ -110,7 +120,12 @@ export function useOrderManager() {
         currentPage.value = 0; // Reset về trang đầu nếu bấm nút tìm
       }
 
-      const statusMap = { "Đã hủy": 0, "Đang phục vụ": 1, "Hoàn thành": 2 , 'Chờ nhận bàn': 3};
+      const statusMap = {
+        "Đã hủy": 0,
+        "Đang phục vụ": 1,
+        "Hoàn thành": 2,
+        "Chờ nhận bàn": 3,
+      };
       const trangThaiInt =
         filters.value.status !== "Tất cả"
           ? statusMap[filters.value.status]
@@ -197,25 +212,32 @@ export function useOrderManager() {
       const details = await BeGetChiTietHoaDon(dbId);
       orderDetails.value = details;
       const invoiceInfo = await BeGetHoaDonById(dbId);
-
+      console.log(invoiceInfo);
       if (invoiceInfo) {
         selectedOrder.value = {
-           id: invoiceInfo.maHoaDon,
-           dbId: invoiceInfo.id,
-           khachHang: invoiceInfo.tenKhachHang || "Khách vãng lai",
-           sdt: invoiceInfo.sdtKhachHang || "---",
-           ban: invoiceInfo.tenBan,
-           loai: mapOrderType(invoiceInfo.hinhThucDat),
-           tongTien: formatCurrency(invoiceInfo.tongTienThanhToan),
-           tongTienRaw: invoiceInfo.tongTienThanhToan,
-           soTienDaGiam: invoiceInfo.soTienDaGiam || 0,
-           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
-           ngayTao: formatDate(invoiceInfo.thoiGianTao),
+          id: invoiceInfo.maHoaDon,
+          dbId: invoiceInfo.id,
+          khachHang: invoiceInfo.tenKhachHang || "Khách vãng lai",
+          sdt: invoiceInfo.sdtKhachHang || "---",
+          ban: invoiceInfo.tenBan,
+          loai: mapOrderType(invoiceInfo.hinhThucDat),
+          soLuongKhach: invoiceInfo.soLuongKhach,
+          tongTien: formatCurrency(invoiceInfo.tongTienThanhToan),
+          tongTienRaw: invoiceInfo.tongTienThanhToan,
+          tongTienHangRaw: invoiceInfo.tongTienChuaGiam || 0,
+          soTienDaGiam: invoiceInfo.soTienDaGiam || 0,
+          tienCoc: formatCurrency(invoiceInfo.tienCoc),
+          tienCocRaw: invoiceInfo.tienCoc || 0,
+          tienHoanTra: formatCurrency(invoiceInfo.tienHoanTra),
+          trangThaiHoanTien: invoiceInfo.trangThaiHoanTien,
+          trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
+          ngayTao: formatDate(invoiceInfo.thoiGianTao),
+          vatApDung: invoiceInfo.vatApDung,
         };
-        
+
         await Promise.all([
-            loadOrderHistory(selectedOrder.value),
-            loadPaymentHistory(dbId) 
+          loadOrderHistory(selectedOrder.value),
+          loadPaymentHistory(dbId),
         ]);
       }
     } catch (error) {
@@ -225,14 +247,14 @@ export function useOrderManager() {
   };
 
   const loadPaymentHistory = async (idHoaDon) => {
-      try {
-          const data = await BeGetLichSuThanhToan(idHoaDon);
-          paymentHistory.value = data;
-      } catch (error) {
-          console.error("Lỗi tải lịch sử thanh toán:", error);
-          paymentHistory.value = [];
-      }
-  }
+    try {
+      const data = await BeGetLichSuThanhToan(idHoaDon);
+      paymentHistory.value = data;
+    } catch (error) {
+      console.error("Lỗi tải lịch sử thanh toán:", error);
+      paymentHistory.value = [];
+    }
+  };
 
   const handleViewHistory = async (maHoaDon) => {
     const order = orderList.value.find((item) => item.id === maHoaDon);
@@ -268,7 +290,12 @@ export function useOrderManager() {
     if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`))
       return;
 
-    const statusMap = { "Đã hủy": 0, "Đang phục vụ": 1, "Hoàn thành": 2 , 'Chờ nhận bàn': 3};
+    const statusMap = {
+      "Đã hủy": 0,
+      "Đang phục vụ": 1,
+      "Hoàn thành": 2,
+      "Chờ nhận bàn": 3,
+    };
     const payload = {
       idHoaDon: order.dbId,
       idNhanVien: 1,
