@@ -1,8 +1,13 @@
 <script setup>
-import { onMounted, computed } from "vue";
+import { onMounted, computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useOrderManager } from "./orderFunction";
-
+import { BeGetChiTietSetLau } from "./orderService";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.locale("vi");
+dayjs.extend(relativeTime);
 const route = useRoute();
 const router = useRouter();
 
@@ -32,21 +37,29 @@ const formatMoney = (value) => {
   }).format(value);
 };
 
-// Tính toán tiền
-const subTotal = computed(() => {
-  return (
-    orderDetails.value?.reduce((sum, item) => {
-      if (item.trangThaiCode === 0) return sum; 
-      return sum + (item.thanhTien || 0);
-    }, 0) || 0
-  );
+const appliedVAT = computed(() => {
+  if (
+    selectedOrder.value?.vatApDung !== undefined &&
+    selectedOrder.value?.vatApDung !== null
+  ) {
+    return Number(selectedOrder.value.vatApDung);
+  }
+  return Number(currentVAT.value || 0);
 });
 
-const taxAmount = computed(() => subTotal.value * (currentVAT.value / 100));
+const subTotal = computed(() => {
+  return selectedOrder.value?.tongTienHangRaw || 0;
+});
+
 const discount = computed(() => selectedOrder.value?.soTienDaGiam || 0);
-const finalTotal = computed(
-  () => subTotal.value + taxAmount.value - discount.value,
-);
+
+const finalTotal = computed(() => selectedOrder.value?.tongTienRaw || 0);
+
+const deposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
+
+const taxAmount = computed(() => {
+  return finalTotal.value + deposit.value + discount.value - subTotal.value;
+});
 
 const isReadOnly = computed(
   () =>
@@ -67,8 +80,40 @@ const getEventColor = (type) => {
 };
 
 const formatDateTime = (dateString) => {
-  if (!dateString) return "";
-  return new Date(dateString).toLocaleString("vi-VN");
+  if (!dateString) return "---";
+  return dayjs(dateString).format("HH:mm - DD/MM/YYYY");
+};
+
+const showModalSet = ref(false);
+const setDetails = ref([]);
+const currentSetName = ref("");
+const isLoadingSet = ref(false);
+
+const handleOpenSetDetail = async (item) => {
+  if (!item.idSetLau) {
+    alert("Đây là món lẻ, không có thành phần chi tiết!");
+    return;
+  }
+
+  currentSetName.value = item.tenMon;
+  setDetails.value = [];
+  isLoadingSet.value = true;
+  showModalSet.value = true;
+
+  try {
+    const data = await BeGetChiTietSetLau(item.idSetLau);
+    setDetails.value = data;
+  } catch (error) {
+    console.error("Lỗi tải chi tiết set:", error);
+    alert("Không thể tải thông tin chi tiết set này.");
+    showModalSet.value = false;
+  } finally {
+    isLoadingSet.value = false;
+  }
+};
+
+const handleCloseSetModal = () => {
+  showModalSet.value = false;
 };
 </script>
 
@@ -102,9 +147,7 @@ const formatDateTime = (dateString) => {
             </div>
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Trạng thái</label>
-              <p
-                class="mb-0 fw-bold"
-              >
+              <p class="mb-0 fw-bold">
                 {{ selectedOrder?.trangThai }}
               </p>
             </div>
@@ -145,9 +188,7 @@ const formatDateTime = (dateString) => {
                   <th class="text-end py-3 text-custom-red border-bottom-red">
                     THÀNH TIỀN
                   </th>
-                  <th
-                    class="text-end py-3 text-custom-red border-bottom-red"
-                  >
+                  <th class="text-end py-3 text-custom-red border-bottom-red">
                     TRẠNG THÁI
                   </th>
                   <th
@@ -183,8 +224,8 @@ const formatDateTime = (dateString) => {
                         item.trangThaiCode === 2
                           ? 'bg-success-subtle text-success'
                           : item.trangThaiCode === 1
-                          ? 'bg-warning-subtle text-warning'
-                          :'bg-danger-subtle text-danger'
+                            ? 'bg-warning-subtle text-warning'
+                            : 'bg-danger-subtle text-danger'
                       "
                     >
                       {{ item.trangThaiText }}
@@ -192,11 +233,14 @@ const formatDateTime = (dateString) => {
                   </td>
                   <td class="text-center">
                     <button
+                      v-if="item.idSetLau"
                       class="btn btn-icon"
                       title="Xem chi tiết"
+                      @click="handleOpenSetDetail(item)"
                     >
                       👁️
                     </button>
+                    <span v-else class="text-muted small">---</span>
                   </td>
                 </tr>
               </tbody>
@@ -206,68 +250,98 @@ const formatDateTime = (dateString) => {
       </div>
 
       <div class="row g-4 mb-4 align-items-stretch">
-        
         <div class="col-md-6 d-flex flex-column gap-4">
-            
-            <div class="card border-0 shadow-sm flex-grow-1">
-                <div class="card-header bg-white border-bottom py-3 fw-bold">
-                    🕒 Lịch sử hóa đơn
-                </div>
-                <div class="card-body p-3 h-100" style="max-height: 310px; overflow-y: auto;">
-                    <div v-if="!historyEvents || historyEvents.length === 0" class="text-center text-muted py-4">
-                        <small>Chưa có lịch sử ghi nhận</small>
-                    </div>
-                    <div v-else>
-                        <div v-for="(event, index) in historyEvents" :key="index" class="d-flex mb-3 position-relative">
-                            <div class="flex-shrink-0 mt-1">
-                                <div class="rounded-circle" :class="getEventColor(event.type)" style="width: 12px; height: 12px"></div>
-                            </div>
-                            <div class="ms-3">
-                                <div class="fw-bold small">{{ event.title }}</div>
-                                <div class="text-muted" style="font-size: 0.8rem">
-                                    {{ event.time }} - <span class="fw-medium">{{ event.user }}</span>
-                                </div>
-                                <div v-if="event.detail" class="text-secondary fst-italic mt-1" style="font-size: 0.85rem">
-                                    "{{ event.detail }}"
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+          <div class="card border-0 shadow-sm flex-grow-1">
+            <div class="card-header bg-white border-bottom py-3 fw-bold">
+              🕒 Lịch sử hóa đơn
             </div>
-
-            <div v-if="paymentHistory && paymentHistory.length > 0" class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3 fw-bold">
-                    💳 Lịch sử thanh toán
-                </div>
-                <div class="card-body p-3">
-                    <div v-for="(pay, index) in paymentHistory" :key="index" class="d-flex align-items-start mb-3 pb-3 border-bottom-dashed last-no-border">
-                        <div class="me-3">
-                            <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <i class="fa-solid fa-check small"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between">
-                                <span class="fw-bold text-warning">
-                                    {{ formatMoney(pay.soTienThanhToan) }}
-                                </span>
-                                <span class="text-muted small">{{ formatDateTime(pay.ngayThanhToan) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <span class="small text-dark">
-                                    {{ pay.tenPhuongThuc }} 
-                                    <span class="badge bg-warning ms-1">Thanh toán</span>
-                                </span>
-                            </div>
-                            <div class="small text-muted fst-italic mt-1">
-                                Mã GD: {{ pay.maGiaoDich || '---' }}
-                            </div>
-                        </div>
+            <div
+              class="card-body p-3 h-100"
+              style="max-height: 310px; overflow-y: auto"
+            >
+              <div
+                v-if="!historyEvents || historyEvents.length === 0"
+                class="text-center text-muted py-4"
+              >
+                <small>Chưa có lịch sử ghi nhận</small>
+              </div>
+              <div v-else>
+                <div
+                  v-for="(event, index) in historyEvents"
+                  :key="index"
+                  class="d-flex mb-3 position-relative"
+                >
+                  <div class="flex-shrink-0 mt-1">
+                    <div
+                      class="rounded-circle"
+                      :class="getEventColor(event.type)"
+                      style="width: 12px; height: 12px"
+                    ></div>
+                  </div>
+                  <div class="ms-3">
+                    <div class="fw-bold small">{{ event.title }}</div>
+                    <div class="text-muted" style="font-size: 0.8rem">
+                      {{ event.time }} -
+                      <span class="fw-medium">{{ event.user }}</span>
                     </div>
+                    <div
+                      v-if="event.detail"
+                      class="text-secondary fst-italic mt-1"
+                      style="font-size: 0.85rem"
+                    >
+                      "{{ event.detail }}"
+                    </div>
+                  </div>
                 </div>
+              </div>
             </div>
+          </div>
 
+          <div
+            v-if="paymentHistory && paymentHistory.length > 0"
+            class="card border-0 shadow-sm"
+          >
+            <div class="card-header bg-white border-bottom py-3 fw-bold">
+              💳 Lịch sử thanh toán
+            </div>
+            <div class="card-body p-3">
+              <div
+                v-for="(pay, index) in paymentHistory"
+                :key="index"
+                class="d-flex align-items-start mb-3 pb-3 border-bottom-dashed last-no-border"
+              >
+                <div class="me-3">
+                  <div
+                    class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
+                    style="width: 32px; height: 32px"
+                  >
+                    <i class="fa-solid fa-check small"></i>
+                  </div>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between">
+                    <span class="fw-bold text-warning">
+                      {{ formatMoney(pay.soTienThanhToan) }}
+                    </span>
+                    <span class="text-muted small">{{
+                      formatDateTime(pay.ngayThanhToan)
+                    }}</span>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between align-items-center mt-1"
+                  >
+                    <span class="small text-dark">
+                      {{ pay.tenPhuongThuc }}
+                      <span class="badge bg-warning ms-1">Thanh toán</span>
+                    </span>
+                  </div>
+                  <div class="small text-muted fst-italic mt-1">
+                    Mã GD: {{ pay.maGiaoDich || "---" }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="col-md-6">
@@ -290,7 +364,7 @@ const formatDateTime = (dateString) => {
 
               <div class="d-flex justify-content-between mb-3">
                 <span class="text-muted fw-medium"
-                  >Thuế VAT ({{ currentVAT }}%):</span
+                  >Thuế VAT ({{ appliedVAT }}%):</span
                 >
                 <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
               </div>
@@ -308,6 +382,16 @@ const formatDateTime = (dateString) => {
               </div>
 
               <hr class="border-secondary border-opacity-25 my-3" />
+
+              <div
+                v-if="deposit > 0"
+                class="d-flex justify-content-between mb-3"
+              >
+                <span class="text-muted fw-medium">Đã đặt cọc:</span>
+                <span class="fw-bold text-danger"
+                  >- {{ formatMoney(deposit) }}</span
+                >
+              </div>
 
               <div
                 class="d-flex justify-content-between align-items-center mb-1"
@@ -351,6 +435,62 @@ const formatDateTime = (dateString) => {
           >
             In hóa đơn
           </button>
+        </div>
+      </div>
+      <div v-if="showModalSet" class="modal-backdrop fade show"></div>
+      <div v-if="showModalSet" class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-custom-red text-white">
+              <h5 class="modal-title fw-bold">📦 {{ currentSetName }}</h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                @click="handleCloseSetModal"
+              ></button>
+            </div>
+
+            <div class="modal-body p-0">
+              <div v-if="isLoadingSet" class="text-center py-4">
+                <div class="spinner-border text-custom-red" role="status"></div>
+                <p class="mt-2 text-muted small">Đang tải dữ liệu...</p>
+              </div>
+
+              <table v-else class="table table-striped mb-0">
+                <thead class="bg-light">
+                  <tr>
+                    <th class="ps-4">Tên món thành phần</th>
+                    <th class="text-center">Đơn vị</th>
+                    <th class="text-center pe-4">Định lượng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(detail, index) in setDetails" :key="index">
+                    <td class="ps-4 fw-medium">
+                      {{ detail.tenMon || "Tên lỗi" }}
+                    </td>
+
+                    <td class="text-center text-muted small">
+                      {{ detail.donVi || "-" }}
+                    </td>
+
+                    <td class="text-center fw-bold text-custom-red pe-4">
+                      x{{ detail.soLuong }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="modal-footer bg-light py-2">
+              <button
+                class="btn btn-secondary btn-sm px-4"
+                @click="handleCloseSetModal"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -404,5 +544,14 @@ const formatDateTime = (dateString) => {
 }
 .border-bottom-dashed {
   border-bottom: 1px dashed #eee;
+}
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+.bg-custom-red {
+  background-color: #8b0000 !important;
 }
 </style>

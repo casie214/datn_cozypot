@@ -48,6 +48,15 @@ export const BeGetChiTietHoaDon = async (idHoaDon) => {
     return await result.json();
 };
 
+export const BeGetChiTietSetLau = async (idSetLau) => {
+    const result = await fetch(`${getUrl}/chi-tiet-hoa-don/chi-tiet-set-lau/${idSetLau}`);
+    if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(result.status + ": " + errorText);
+    }
+    return await result.json();
+};
+
 export const BeXacNhanThanhToan = async (payload) => {
     const result = await fetch(`${getUrl}/xac-nhan-thanh-toan`, {
         method: 'PUT',
