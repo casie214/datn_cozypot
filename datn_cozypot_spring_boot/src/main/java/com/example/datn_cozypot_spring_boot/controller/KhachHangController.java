@@ -73,4 +73,12 @@ public class KhachHangController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    // Thêm phương thức này để xử lý lỗi đỏ trong Console của bạn
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveCustomers() {
+        // Giả sử service của bạn có hàm lấy khách hàng đang hoạt động để tặng Voucher
+        return ResponseEntity.ok(service.findAllActive());
+    }
+
 }

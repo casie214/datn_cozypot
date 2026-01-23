@@ -1,5 +1,7 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -11,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -68,6 +71,7 @@ public class KhachHang {
     @Column(name = "dia_chi")
     private String diaChi;
 
+    @JsonBackReference
     @OneToMany(mappedBy = "idKhachHang")
     private Set<DanhGia> danhGias = new LinkedHashSet<>();
 
@@ -77,8 +81,9 @@ public class KhachHang {
     @OneToMany(mappedBy = "idKhachHang")
     private Set<PhieuDatBan> phieuDatBans = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "idKhachHang")
-    private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
+    @JsonManagedReference
+    @OneToMany(mappedBy = "khachHang")
+    private List<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans;
 
     //Lấy thời gian thực tế lúc tạo
     @PrePersist
@@ -86,4 +91,5 @@ public class KhachHang {
         // Instant.now() sẽ khớp với kiểu dữ liệu Instant của trường ngayTaoTaiKhoan
         this.ngayTaoTaiKhoan = Instant.now();
     }
+
 }
