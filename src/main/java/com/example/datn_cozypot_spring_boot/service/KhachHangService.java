@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class KhachHangService {
@@ -88,5 +90,15 @@ public class KhachHangService {
         KhachHangResponse res = new KhachHangResponse();
         BeanUtils.copyProperties(kh, res);
         return res;
+    }
+
+    public List<KhachHangResponse> findAllActive() {
+        // 1. Gọi repository để lấy danh sách khách hàng có trangThai = 1
+        List<KhachHang> listEntity = repo.findAllByTrangThaiActive();
+
+        // 2. Chuyển đổi từ Entity sang Response (Sử dụng hàm convertToResponse bạn đã viết sẵn)
+        return listEntity.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 }

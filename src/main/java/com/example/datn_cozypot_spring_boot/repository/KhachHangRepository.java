@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
@@ -31,4 +32,8 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     // Kiểm tra trùng lặp dữ liệu
     boolean existsBySoDienThoai(String soDienThoai);
     boolean existsByTenDangNhap(String tenDangNhap);
+
+    @Query("SELECT k FROM KhachHang k WHERE k.trangThai = 1")
+    List<KhachHang> findAllByTrangThaiActive();
+
 }
