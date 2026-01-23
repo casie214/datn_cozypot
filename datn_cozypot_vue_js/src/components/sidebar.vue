@@ -16,7 +16,7 @@ const menuItems = [
     { name: 'Thực đơn', icon: "fa-solid fa-bell-concierge", path: '/admin/menu' },
     { name: 'Danh mục', icon: "fa-solid fa-table-list", path: '/admin/categories' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
-    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotions' },
+    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotion' },
     { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics'}
 ];
 
