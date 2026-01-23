@@ -1,6 +1,7 @@
 import { ref, onMounted, watch } from "vue";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
+import Swal from "sweetalert2";
 dayjs.locale("vi");
 
 import {
@@ -30,13 +31,26 @@ export function useOrderManager() {
   const historyEvents = ref([]);
   const paymentHistory = ref([]);
 
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener("mouseenter", Swal.stopTimer);
+      toast.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
+
   const cancelModalState = ref({
     isOpen: false,
     orderData: null,
     isDeposit: false,
-    isWarning: false, // Cờ cảnh báo sát giờ
-    warningMessage: "", // Nội dung cảnh báo
+    isWarning: false,
+    warningMessage: "",
     reason: "",
+    isSafe: false
   });
 
   const filters = ref({
@@ -276,7 +290,7 @@ export function useOrderManager() {
           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
-          thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao
+          thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao,
         };
 
         await Promise.all([
@@ -330,52 +344,68 @@ export function useOrderManager() {
     }
   };
 
-  const openCancelModal = async (order) => {
+const openCancelModal = async (order) => {
     if (!order) return;
 
-    // --- 1. XỬ LÝ KHÔNG CỌC (Hủy luôn, không cần Modal chọn lý do) ---
     if (!order.tienCocRaw || order.tienCocRaw === 0) {
-        if (confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`)) {
-            // -- ĐOẠN CODE GỌI API HỦY TRỰC TIẾP --
-            const payload = {
-                idHoaDon: order.dbId,
-                idNhanVien: 1, // Có thể lấy từ User Store nếu cần
-                hanhDong: "Hủy hóa đơn",
-                lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
-                isLoiDoQuan: false,
-                trangThaiLichSuTruocDo: 1, // Mặc định trạng thái cũ
-                thoiGianThucHien: new Date().toISOString(),
-            };
+      // Hiện Popup hỏi xác nhận
+      Swal.fire({
+        title: 'Xác nhận hủy đơn?',
+        text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#8b0000', 
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Đồng ý hủy',
+        cancelButtonText: 'Thoát'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const payload = {
+            idHoaDon: order.dbId,
+            idNhanVien: 1, // Lấy ID nhân viên sau
+            hanhDong: "Hủy hóa đơn",
+            lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
+            isLoiDoQuan: false,
+            trangThaiLichSuTruocDo: 1, 
+            thoiGianThucHien: new Date().toISOString(),
+          };
 
-            try {
-                await BeHuyHoaDon(payload);
-                alert("Hủy hóa đơn thành công!");
-                
-                // Reload dữ liệu sau khi hủy
-                if (filters.value.search || filters.value.status !== "Tất cả") {
-                    performSearch(false);
-                } else {
-                    fetchOrders();
-                }
-                // Nếu đang xem chi tiết đơn này thì reload lại
-                if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
-                    await handleViewDetail(order.dbId);
-                }
-            } catch (error) {
-                console.error(error);
-                alert("Lỗi khi hủy: " + (error.response?.data?.message || error.message));
+          try {
+            await BeHuyHoaDon(payload);
+            
+            // Hiện thông báo thành công (Góc phải)
+            Toast.fire({
+              icon: 'success',
+              title: 'Thành công',
+              text: 'Hủy hóa đơn thành công!'
+            });
+
+            if (filters.value.search || filters.value.status !== "Tất cả") {
+              performSearch(false);
+            } else {
+              fetchOrders();
             }
-            // --------------------------------------
+            if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
+              await handleViewDetail(order.dbId);
+            }
+          } catch (error) {
+            console.error(error);
+            // Hiện thông báo lỗi (Góc phải)
+            Toast.fire({
+              icon: 'error',
+              title: 'Lỗi',
+              text: error.response?.data?.message || error.message
+            });
+          }
         }
-        return; 
+      });
+      return; 
     }
 
-    // --- 2. XỬ LÝ CÓ CỌC (Hiện Modal) ---
     const hasDeposit = true;
-    const bookingTime = dayjs(order.thoiGianDat); 
+    const bookingTime = dayjs(order.thoiGianDat);
     const now = dayjs();
-    
-    // Tính chênh lệch
+
     const diffHours = bookingTime.diff(now, "hour", true);
     const diffMinutes = bookingTime.diff(now, "minute", true);
 
@@ -384,8 +414,7 @@ export function useOrderManager() {
 
     // LOGIC CẢNH BÁO
     if (diffHours < 0) {
-      // Đã quá giờ
-      if (Math.abs(diffHours) <= 0.25) { 
+      if (Math.abs(diffHours) <= 0.25) {
         isWarning = true;
         const minutesLate = Math.round(Math.abs(diffMinutes));
         message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong 15p giữ bàn). Khách hủy => MẤT CỌC.`;
@@ -393,20 +422,20 @@ export function useOrderManager() {
         message = `Đã quá thời gian giữ bàn (15p). Đơn lẽ ra đã bị hủy tự động.`;
       }
     } else if (diffHours < 2) {
-      // Sát giờ (dưới 2 tiếng)
       isWarning = true;
       let timeDisplay = "";
       if (diffHours < 1) {
-          const minutesLeft = Math.round(diffMinutes);
-          timeDisplay = minutesLeft <= 1 ? "vài giây" : `${minutesLeft} phút`;
+        const minutesLeft = Math.round(diffMinutes);
+        timeDisplay = minutesLeft <= 1 ? "vài giây" : `${minutesLeft} phút`;
       } else {
-          timeDisplay = `${diffHours.toFixed(1)} giờ`;
+        timeDisplay = `${diffHours.toFixed(1)} giờ`;
       }
       message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước 2h). Khách hủy lúc này sẽ MẤT CỌC.`;
     }
 
-    // Biến xác định "Hủy đúng hạn" (An toàn) để UI hiển thị nút xanh
-    const isSafe = !isWarning; 
+    if(diffHours > 24) isWarning = false;
+
+    const isSafe = !isWarning;
 
     cancelModalState.value = {
       isOpen: true,
@@ -415,57 +444,60 @@ export function useOrderManager() {
       isWarning: isWarning,
       warningMessage: message,
       reason: "",
-      isSafe: isSafe 
+      isSafe: isSafe,
     };
   };
 
-  const confirmCancelOrder = async (source) => {
-    const { orderData, reason } = cancelModalState.value;
-
-    if (!reason || reason.trim() === "") {
-      alert("Vui lòng nhập lý do hủy!");
-      return;
+const confirmCancelOrder = async (loiDoAi) => {
+    // Validate lý do
+    if (!cancelModalState.value.reason.trim()) {
+        Toast.fire({
+            icon: 'warning',
+            title: 'Thiếu thông tin',
+            text: 'Vui lòng nhập lý do hủy đơn!'
+        });
+        return;
     }
 
-
-    const isLoiDoQuan = source === "quan";
-
-    const statusMap = {
-      "Đã hủy": 0,
-      "Đang phục vụ": 1,
-      "Hoàn thành": 2,
-      "Chờ nhận bàn": 3,
-    };
-
+    const isLoiDoQuan = loiDoAi === 'quan';
     const payload = {
-      idHoaDon: orderData.dbId,
-      idNhanVien: 1, // Lấy ID nhân viên từ đăng nhập
-      hanhDong: "Hủy hóa đơn",
-      lyDoThucHien: reason,
-      isLoiDoQuan: isLoiDoQuan, 
-      trangThaiLichSuTruocDo: statusMap[orderData.trangThai],
-      thoiGianThucHien: new Date().toISOString(),
+        idHoaDon: cancelModalState.value.orderData.dbId,
+        idNhanVien: 1, 
+        hanhDong: "Hủy hóa đơn",
+        lyDoThucHien: cancelModalState.value.reason,
+        isLoiDoQuan: isLoiDoQuan,
+        thoiGianThucHien: new Date().toISOString(),
     };
 
     try {
-      await BeHuyHoaDon(payload);
+        await BeHuyHoaDon(payload);
+        
+        // Đóng Modal Vue
+        closeCancelModal();
+        
+        // Hiện Toast thông báo thành công
+        Toast.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: isLoiDoQuan ? 'Đã hủy & Hoàn tiền cọc!' : 'Đã hủy & Giữ tiền cọc!'
+        });
 
-      const msgType = isLoiDoQuan ? "Sẽ hoàn lại cọc" : "Không hoàn cọc";
-      alert(`Hủy hóa đơn thành công! (${msgType})`);
+        if (filters.value.search || filters.value.status !== "Tất cả") {
+             performSearch(false);
+        } else {
+             fetchOrders();
+        }
+        if (selectedOrder.value && selectedOrder.value.dbId === payload.idHoaDon) {
+            await handleViewDetail(payload.idHoaDon);
+        }
 
-      cancelModalState.value.isOpen = false;
-
-      if (filters.value.search || filters.value.status !== "Tất cả") {
-        performSearch(false);
-      } else {
-        fetchOrders();
-      }
-
-      if (selectedOrder.value && selectedOrder.value.dbId === orderData.dbId) {
-        await handleViewDetail(orderData.dbId);
-      }
     } catch (error) {
-      alert("Thất bại: " + (error.response?.data?.message || error.message));
+        console.error(error);
+        Toast.fire({
+            icon: 'error',
+            title: 'Lỗi',
+            text: error.response?.data?.message || 'Không thể hủy hóa đơn'
+        });
     }
   };
 
