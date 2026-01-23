@@ -30,9 +30,19 @@ export function useOrderManager() {
   const historyEvents = ref([]);
   const paymentHistory = ref([]);
 
+  const cancelModalState = ref({
+    isOpen: false,
+    orderData: null,
+    isDeposit: false,
+    isWarning: false, // Cờ cảnh báo sát giờ
+    warningMessage: "", // Nội dung cảnh báo
+    reason: "",
+  });
+
   const filters = ref({
     search: "",
     status: "Tất cả",
+    refundStatus: "Tất cả",
     fromDate: "",
     toDate: "",
   });
@@ -69,6 +79,16 @@ export function useOrderManager() {
     return statuses[statusInt] || "Không xác định";
   };
 
+  const mapStatusRefund = (statusInt) => {
+    const statuses = {
+      0: "Không cần hoàn",
+      1: "Chờ hoàn",
+      2: "Đã hoàn",
+      3: "Không hoàn tiền",
+    };
+    return statuses[statusInt] || "Không xác định";
+  };
+
   const processOrderData = (data) => {
     if (!data) return [];
     return data.map((item) => {
@@ -87,10 +107,11 @@ export function useOrderManager() {
         tienCoc: formatCurrency(item.tienCoc),
         tienCocRaw: item.tienCoc || 0,
         tienHoanTra: formatCurrency(item.tienHoanTra),
-        trangThaiHoanTien: item.trangThaiHoanTien,
+        trangThaiHoanTien: mapStatusRefund(item.trangThaiHoanTien),
         trangThai: mapStatus(item.trangThaiHoaDon),
         ngayTao: formatDate(item.thoiGianTao),
         vatApDung: item.vatApDung,
+        thoiGianDat: item.thoiGianDat || item.thoiGianTao,
       };
     });
   };
@@ -126,9 +147,22 @@ export function useOrderManager() {
         "Hoàn thành": 2,
         "Chờ nhận bàn": 3,
       };
+
+      const refundStatusMap = {
+        "Không cần hoàn": 0,
+        "Chờ hoàn": 1,
+        "Đã hoàn": 2,
+        "Không hoàn tiền": 3,
+      };
+
       const trangThaiInt =
         filters.value.status !== "Tất cả"
           ? statusMap[filters.value.status]
+          : null;
+
+      const trangThaiHoanTienInt =
+        filters.value.refundStatus !== "Tất cả"
+          ? refundStatusMap[filters.value.refundStatus]
           : null;
 
       const tuNgayISO = filters.value.fromDate
@@ -141,6 +175,7 @@ export function useOrderManager() {
       const response = await BeSearchHoaDon(
         filters.value.search,
         trangThaiInt,
+        trangThaiHoanTienInt,
         tuNgayISO,
         denNgayISO,
         currentPage.value,
@@ -149,6 +184,7 @@ export function useOrderManager() {
       orderList.value = processOrderData(response.content);
       totalPages.value = response.totalPages;
     } catch (error) {
+      console.error(error);
       alert("Tìm kiếm thất bại!");
     }
   };
@@ -161,6 +197,7 @@ export function useOrderManager() {
     const hasFilters =
       filters.value.search ||
       filters.value.status !== "Tất cả" ||
+      filters.value.refundStatus !== "Tất cả" ||
       filters.value.fromDate ||
       filters.value.toDate;
 
@@ -172,7 +209,13 @@ export function useOrderManager() {
   };
 
   const handleReset = () => {
-    filters.value = { search: "", status: "Tất cả", fromDate: "", toDate: "" };
+    filters.value = {
+      search: "",
+      status: "Tất cả",
+      refundStatus: "Tất cả",
+      fromDate: "",
+      toDate: "",
+    };
     currentPage.value = 0;
     fetchOrders();
   };
@@ -229,10 +272,11 @@ export function useOrderManager() {
           tienCoc: formatCurrency(invoiceInfo.tienCoc),
           tienCocRaw: invoiceInfo.tienCoc || 0,
           tienHoanTra: formatCurrency(invoiceInfo.tienHoanTra),
-          trangThaiHoanTien: invoiceInfo.trangThaiHoanTien,
+          trangThaiHoanTien: mapStatusRefund(invoiceInfo.trangThaiHoanTien),
           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
+          thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao
         };
 
         await Promise.all([
@@ -286,9 +330,105 @@ export function useOrderManager() {
     }
   };
 
-  const handleHuyDon = async (order) => {
-    if (!order || !confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`))
+  const openCancelModal = async (order) => {
+    if (!order) return;
+
+    // --- 1. XỬ LÝ KHÔNG CỌC (Hủy luôn, không cần Modal chọn lý do) ---
+    if (!order.tienCocRaw || order.tienCocRaw === 0) {
+        if (confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`)) {
+            // -- ĐOẠN CODE GỌI API HỦY TRỰC TIẾP --
+            const payload = {
+                idHoaDon: order.dbId,
+                idNhanVien: 1, // Có thể lấy từ User Store nếu cần
+                hanhDong: "Hủy hóa đơn",
+                lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
+                isLoiDoQuan: false,
+                trangThaiLichSuTruocDo: 1, // Mặc định trạng thái cũ
+                thoiGianThucHien: new Date().toISOString(),
+            };
+
+            try {
+                await BeHuyHoaDon(payload);
+                alert("Hủy hóa đơn thành công!");
+                
+                // Reload dữ liệu sau khi hủy
+                if (filters.value.search || filters.value.status !== "Tất cả") {
+                    performSearch(false);
+                } else {
+                    fetchOrders();
+                }
+                // Nếu đang xem chi tiết đơn này thì reload lại
+                if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
+                    await handleViewDetail(order.dbId);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Lỗi khi hủy: " + (error.response?.data?.message || error.message));
+            }
+            // --------------------------------------
+        }
+        return; 
+    }
+
+    // --- 2. XỬ LÝ CÓ CỌC (Hiện Modal) ---
+    const hasDeposit = true;
+    const bookingTime = dayjs(order.thoiGianDat); 
+    const now = dayjs();
+    
+    // Tính chênh lệch
+    const diffHours = bookingTime.diff(now, "hour", true);
+    const diffMinutes = bookingTime.diff(now, "minute", true);
+
+    let isWarning = false;
+    let message = "";
+
+    // LOGIC CẢNH BÁO
+    if (diffHours < 0) {
+      // Đã quá giờ
+      if (Math.abs(diffHours) <= 0.25) { 
+        isWarning = true;
+        const minutesLate = Math.round(Math.abs(diffMinutes));
+        message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong 15p giữ bàn). Khách hủy => MẤT CỌC.`;
+      } else {
+        message = `Đã quá thời gian giữ bàn (15p). Đơn lẽ ra đã bị hủy tự động.`;
+      }
+    } else if (diffHours < 2) {
+      // Sát giờ (dưới 2 tiếng)
+      isWarning = true;
+      let timeDisplay = "";
+      if (diffHours < 1) {
+          const minutesLeft = Math.round(diffMinutes);
+          timeDisplay = minutesLeft <= 1 ? "vài giây" : `${minutesLeft} phút`;
+      } else {
+          timeDisplay = `${diffHours.toFixed(1)} giờ`;
+      }
+      message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước 2h). Khách hủy lúc này sẽ MẤT CỌC.`;
+    }
+
+    // Biến xác định "Hủy đúng hạn" (An toàn) để UI hiển thị nút xanh
+    const isSafe = !isWarning; 
+
+    cancelModalState.value = {
+      isOpen: true,
+      orderData: order,
+      isDeposit: hasDeposit,
+      isWarning: isWarning,
+      warningMessage: message,
+      reason: "",
+      isSafe: isSafe 
+    };
+  };
+
+  const confirmCancelOrder = async (source) => {
+    const { orderData, reason } = cancelModalState.value;
+
+    if (!reason || reason.trim() === "") {
+      alert("Vui lòng nhập lý do hủy!");
       return;
+    }
+
+
+    const isLoiDoQuan = source === "quan";
 
     const statusMap = {
       "Đã hủy": 0,
@@ -296,30 +436,41 @@ export function useOrderManager() {
       "Hoàn thành": 2,
       "Chờ nhận bàn": 3,
     };
+
     const payload = {
-      idHoaDon: order.dbId,
-      idNhanVien: 1,
+      idHoaDon: orderData.dbId,
+      idNhanVien: 1, // Lấy ID nhân viên từ đăng nhập
       hanhDong: "Hủy hóa đơn",
-      lyDoThucHien: "Nhân viên hủy đơn/Khách đổi ý",
-      trangThaiLichSuTruocDo: statusMap[order.trangThai],
+      lyDoThucHien: reason,
+      isLoiDoQuan: isLoiDoQuan, 
+      trangThaiLichSuTruocDo: statusMap[orderData.trangThai],
       thoiGianThucHien: new Date().toISOString(),
     };
 
     try {
       await BeHuyHoaDon(payload);
-      alert("Hủy hóa đơn thành công!");
+
+      const msgType = isLoiDoQuan ? "Sẽ hoàn lại cọc" : "Không hoàn cọc";
+      alert(`Hủy hóa đơn thành công! (${msgType})`);
+
+      cancelModalState.value.isOpen = false;
+
       if (filters.value.search || filters.value.status !== "Tất cả") {
         performSearch(false);
       } else {
         fetchOrders();
       }
 
-      if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
-        await handleViewDetail(order.dbId);
+      if (selectedOrder.value && selectedOrder.value.dbId === orderData.dbId) {
+        await handleViewDetail(orderData.dbId);
       }
     } catch (error) {
-      alert("Thất bại: " + error.message);
+      alert("Thất bại: " + (error.response?.data?.message || error.message));
     }
+  };
+
+  const closeCancelModal = () => {
+    cancelModalState.value.isOpen = false;
   };
 
   onMounted(async () => {
@@ -350,6 +501,9 @@ export function useOrderManager() {
     handlePrintOrder: (id) => console.log("In:", id),
     handleUpdateMonDaLen,
     handleUpdateTatCaDaLen,
-    handleHuyDon,
+    cancelModalState,
+    openCancelModal,
+    confirmCancelOrder,
+    closeCancelModal,
   };
 }

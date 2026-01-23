@@ -23,8 +23,8 @@ const {
 
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-4">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
               <label class="form-label text-muted small fw-bold"
                 >Tìm kiếm</label
               >
@@ -50,6 +50,19 @@ const {
             </div>
 
             <div class="col-md-2">
+              <label class="form-label text-muted small fw-bold"
+                >Trạng thái Hoàn tiền</label
+              >
+              <select v-model="filters.refundStatus" class="form-select">
+                <option>Tất cả</option>
+                <option>Không cần hoàn</option>
+                <option>Chờ hoàn</option>
+                <option>Đã hoàn</option>
+                <option>Không hoàn tiền</option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
               <label class="form-label text-muted small fw-bold">Từ ngày</label>
               <input
                 type="date"
@@ -69,19 +82,23 @@ const {
               />
             </div>
 
-            <div class="col-md-2 d-flex gap-2">
-              <button
-                class="btn btn-custom-red text-white flex-grow-1"
-                @click="handleSearch"
-              >
-                🔍 Tìm kiếm
-              </button>
-              <button
-                class="btn btn-outline-custom flex-grow-1"
-                @click="handleReset"
-              >
-                Hủy
-              </button>
+            <div class="col-md-1">
+              <div class="d-flex flex-column gap-1">
+                <button
+                  class="btn btn-custom-red btn-sm text-white w-100"
+                  @click="handleSearch"
+                  title="Tìm kiếm"
+                >
+                  <i class="fas fa-search"></i> Tìm
+                </button>
+                <button
+                  class="btn btn-outline-custom btn-sm w-100"
+                  @click="handleReset"
+                  title="Làm mới"
+                >
+                  <i class="fas fa-undo"></i> Hủy
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -201,7 +218,6 @@ const {
 </template>
 
 <style scoped>
-
 .page-title {
   color: #8b0000;
   font-size: 24px;

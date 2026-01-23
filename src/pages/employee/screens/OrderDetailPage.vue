@@ -16,7 +16,10 @@ const {
   orderDetails,
   currentVAT,
   handleViewDetail,
-  handleHuyDon,
+  openCancelModal,
+  confirmCancelOrder,
+  closeCancelModal,
+  cancelModalState,
   handlePrintOrder,
   historyEvents,
   paymentHistory,
@@ -58,6 +61,7 @@ const finalTotal = computed(() => selectedOrder.value?.tongTienRaw || 0);
 const deposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
 
 const taxAmount = computed(() => {
+  if (subTotal.value === 0) return 0;
   return finalTotal.value + deposit.value + discount.value - subTotal.value;
 });
 
@@ -146,9 +150,19 @@ const handleCloseSetModal = () => {
               <p class="mb-0 fw-bold">{{ selectedOrder?.ban }}</p>
             </div>
             <div class="col-md">
+              <label class="d-block text-muted small mb-1">Tiền cọc</label>
+              <p class="mb-0 fw-bold">{{ selectedOrder?.tienCoc }}</p>
+            </div>
+            <div class="col-md">
               <label class="d-block text-muted small mb-1">Trạng thái</label>
               <p class="mb-0 fw-bold">
                 {{ selectedOrder?.trangThai }}
+              </p>
+            </div>
+            <div class="col-md">
+              <label class="d-block text-muted small mb-1">Trạng thái hoàn tiền</label>
+              <p class="mb-0 fw-bold">
+                {{ selectedOrder?.trangThaiHoanTien }}
               </p>
             </div>
             <div class="col-md">
@@ -206,7 +220,7 @@ const handleCloseSetModal = () => {
                       <span class="fw-medium">{{ item.tenMon }}</span>
                       <small
                         v-if="item.ghiChu"
-                        class="text-danger"
+                        class="text-custom-red"
                         style="font-size: 0.8rem"
                         >Ghi chú: {{ item.ghiChu }}</small
                       >
@@ -225,7 +239,7 @@ const handleCloseSetModal = () => {
                           ? 'bg-success-subtle text-success'
                           : item.trangThaiCode === 1
                             ? 'bg-warning-subtle text-warning'
-                            : 'bg-danger-subtle text-danger'
+                            : 'bg-custom-red-subtle text-custom-red'
                       "
                     >
                       {{ item.trangThaiText }}
@@ -372,7 +386,7 @@ const handleCloseSetModal = () => {
               <div v-if="discount > 0">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-muted fw-medium">Giảm giá:</span>
-                  <span class="fw-bold text-danger"
+                  <span class="fw-bold text-custom-red"
                     >({{ formatMoney(discount) }})</span
                   >
                 </div>
@@ -384,11 +398,11 @@ const handleCloseSetModal = () => {
               <hr class="border-secondary border-opacity-25 my-3" />
 
               <div
-                v-if="deposit > 0"
+                v-if="deposit > 0 && subTotal > 0"
                 class="d-flex justify-content-between mb-3"
               >
                 <span class="text-muted fw-medium">Đã đặt cọc:</span>
-                <span class="fw-bold text-danger"
+                <span class="fw-bold text-custom-red"
                   >- {{ formatMoney(deposit) }}</span
                 >
               </div>
@@ -413,8 +427,8 @@ const handleCloseSetModal = () => {
         <div>
           <button
             v-if="!isReadOnly"
-            class="btn btn-outline-danger px-4 py-2 fw-medium"
-            @click="handleHuyDon(selectedOrder)"
+            class="btn btn-outline-custom px-4 py-2 fw-medium"
+            @click="openCancelModal(selectedOrder)"
             :disabled="hasServedDish"
           >
             Hủy hóa đơn
@@ -493,23 +507,166 @@ const handleCloseSetModal = () => {
           </div>
         </div>
       </div>
+
+      <div
+        v-if="cancelModalState.isOpen"
+        class="modal-backdrop fade show"
+        style="z-index: 1050"
+      ></div>
+      <div
+        v-if="cancelModalState.isOpen"
+        class="modal fade show d-block"
+        tabindex="-1"
+        style="z-index: 1055"
+      >
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-custom-red text-white">
+              <h5 class="modal-title">
+                Xác nhận hủy hóa đơn: {{ cancelModalState.orderData?.id }}
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                @click="closeCancelModal"
+              ></button>
+            </div>
+
+            <div class="modal-body">
+              <div
+                v-if="cancelModalState.isWarning"
+                class="alert alert-warning d-flex align-items-start border-warning mb-3"
+              >
+                <i
+                  class="fas fa-exclamation-triangle mt-1 me-2 text-warning"
+                ></i>
+                <div>
+                  <strong>Cảnh báo hủy đơn:</strong><br />
+                  {{ cancelModalState.warningMessage }}
+                </div>
+              </div>
+
+              <div
+                v-if="cancelModalState.isDeposit"
+                class="mb-3 p-2 bg-light rounded border"
+              >
+                <span
+                  >Khách đã cọc:
+                  <strong class="text-custom-red">{{
+                    cancelModalState.orderData?.tienCoc
+                  }}</strong></span
+                >
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold"
+                  >Lý do hủy đơn <span class="text-custom-red">*</span></label
+                >
+                <textarea
+                  v-model="cancelModalState.reason"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Nhập chi tiết lý do (VD: Khách đổi ý, Hết bàn, ...)"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="modal-footer d-flex justify-content-between">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                @click="closeCancelModal"
+              >
+                Đóng
+              </button>
+
+              <div class="d-flex gap-2">
+                <template v-if="!cancelModalState.isSafe">
+                  <button
+                    type="button"
+                    class="btn btn-outline-custom"
+                    @click="confirmCancelOrder('khach')"
+                    title="Khách vi phạm -> Mất cọc"
+                  >
+                    Lỗi do Khách <br />
+                    <small style="font-size: 0.7rem">(Không hoàn cọc)</small>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-custom"
+                    @click="confirmCancelOrder('quan')"
+                    title="Lỗi quán -> Hoàn cọc"
+                  >
+                    Lỗi do Quán <br />
+                    <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
+                  </button>
+                </template>
+
+                <template v-else>
+                  <div
+                    class="d-flex align-items-center me-2 text-warning small fw-bold"
+                  >
+                    <i class="fa-solid fa-check-circle me-1"></i> Hủy đúng hạn
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-custom px-4"
+                    @click="confirmCancelOrder('quan')"
+                    title="Hủy đúng quy định -> Hoàn tiền"
+                  >
+                    Xác nhận Hủy đơn <br />
+                    <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
 
 <style scoped>
+.text-custom-red {
+  color: #8b0000 !important;
+}
+
+.bg-custom-red {
+  background-color: #8b0000 !important;
+}
+
+.border-bottom-red {
+  border-bottom: 2px solid #8b0000 !important;
+}
+
 .page-title {
   color: #8b0000;
   font-size: 24px;
   font-weight: bold;
 }
 
-.text-custom-red {
-  color: #8b0000 !important;
+
+.btn-custom {
+  background-color: #8b0000;
+  border-color: #8b0000;
+  color: white;
+}
+.btn-custom:hover {
+  background-color: #a00000;
+  border-color: #a00000;
+  color: white;
 }
 
-.border-bottom-red {
-  border-bottom: 2px solid #8b0000 !important;
+.btn-outline-custom {
+  color: #8b0000;
+  border-color: #8b0000;
+  background-color: transparent;
+}
+.btn-outline-custom:hover {
+  background-color: #8b0000;
+  color: white;
 }
 
 .btn-print {
@@ -520,38 +677,13 @@ const handleCloseSetModal = () => {
   background-color: #b84747;
 }
 
-.bg-success-subtle {
-  background-color: #d4edda !important;
-}
-.bg-warning-subtle {
-  background-color: #fff3cd !important;
-}
-.text-warning {
-  color: #856404 !important;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-.border-dashed {
-  border-style: dashed !important;
-}
-
-.last-no-border:last-child {
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-  margin-bottom: 0 !important;
-}
-.border-bottom-dashed {
-  border-bottom: 1px dashed #eee;
-}
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-.btn-close-white {
-  filter: invert(1) grayscale(100%) brightness(200%);
-}
-.bg-custom-red {
-  background-color: #8b0000 !important;
-}
+.bg-success-subtle { background-color: #d4edda !important; }
+.bg-warning-subtle { background-color: #fff3cd !important; }
+.text-warning { color: #856404 !important; }
+.cursor-pointer { cursor: pointer; }
+.border-dashed { border-style: dashed !important; }
+.last-no-border:last-child { border-bottom: none !important; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+.border-bottom-dashed { border-bottom: 1px dashed #eee; }
+.modal { background-color: rgba(0, 0, 0, 0.5); }
+.btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
 </style>
