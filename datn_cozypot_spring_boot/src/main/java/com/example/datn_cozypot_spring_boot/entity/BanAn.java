@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -24,8 +25,7 @@ public class BanAn {
     @JoinColumn(name = "id_khu_vuc")
     private KhuVuc idKhuVuc;
 
-    @Size(max = 50)
-    @Column(name = "ma_ban", length = 50)
+    @Column(name = "ma_ban", insertable = false, updatable = false)
     private String maBan;
 
     @Size(max = 100)
@@ -40,7 +40,7 @@ public class BanAn {
     private Integer trangThai;
 
     @Column(name = "ngay_tao")
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_sua")
     private Instant ngaySua;

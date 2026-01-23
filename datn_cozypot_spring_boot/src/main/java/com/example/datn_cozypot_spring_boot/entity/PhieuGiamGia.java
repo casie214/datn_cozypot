@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -34,6 +35,13 @@ public class PhieuGiamGia {
     @Column(name = "code_giam_gia", unique = true)
     private String codeGiamGia;
 
+    @Column(name = "ma_phieu_giam_gia", insertable = false, updatable = false)
+    private String maPhieuGiamGia;
+
+    @Size(max = 50)
+    @Column(name = "code_giam_gia", unique = true, length = 50)
+    private String codeGiamGia;
+
     @Size(max = 200)
     @Nationalized
     @Column(name = "ten_phieu_giam_gia", length = 200)
@@ -46,9 +54,11 @@ public class PhieuGiamGia {
     @Column(name = "gia_tri_giam", precision = 18)
     private BigDecimal giaTriGiam;
 
+    @ColumnDefault("0")
     @Column(name = "gia_tri_giam_toi_da", precision = 18)
     private BigDecimal giaTriGiamToiDa;
 
+    @ColumnDefault("0")
     @Column(name = "don_hang_toi_thieu", precision = 18)
     private BigDecimal donHangToiThieu;
 
@@ -62,14 +72,27 @@ public class PhieuGiamGia {
     @Column(name = "ngay_ket_thuc")
     private LocalDateTime ngayKetThuc;
 
+<<<<<<< HEAD
     @Column(name = "so_luong")
     private Integer soLuong;
+=======
+    @Column(name = "so_luong_phat_hanh")
+    private Integer soLuongPhatHanh;
+
+    @ColumnDefault("0")
+    @Column(name = "so_luong_da_dung")
+    private Integer soLuongDaDung;
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
 
     @Column(name = "trang_thai")
     private Integer trangThai;
 
     @Column(name = "ngay_tao", updatable = false)
+<<<<<<< HEAD
     private LocalDateTime ngayTao;
+=======
+    private Instant ngayTao;
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
 
     @Column(name = "ngay_sua")
     private LocalDateTime ngaySua;

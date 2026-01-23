@@ -5,6 +5,7 @@ import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
 import com.example.datn_cozypot_spring_boot.service.DotKhuyenMaiService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+<<<<<<< HEAD
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,10 +16,18 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+=======
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
 
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/dot-khuyen-mai")
+<<<<<<< HEAD
 public class DotKhuyenMaiController {
     @Autowired
     private DotKhuyenMaiService dotKhuyenMaiService;
@@ -35,6 +44,13 @@ public class DotKhuyenMaiController {
         return ResponseEntity.ok(dtos);
     }
 
+=======
+
+ public class DotKhuyenMaiController {
+    @Autowired
+    private DotKhuyenMaiService dotKhuyenMaiService;
+
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
     @GetMapping("/get-all")
     public ResponseEntity<List<DotKhuyenMaiDTO>> getAll() {
         return ResponseEntity.ok(dotKhuyenMaiService.getAll());
@@ -50,6 +66,7 @@ public class DotKhuyenMaiController {
         }
     }
 
+<<<<<<< HEAD
     // Thêm vào trong DotKhuyenMaiController.java
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable("id") Integer id) {
@@ -62,6 +79,8 @@ public class DotKhuyenMaiController {
         }
     }
 
+=======
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
     @PutMapping("/update/{id}")
     public ResponseEntity<?> update(
             @PathVariable("id") Integer id,
@@ -80,6 +99,7 @@ public class DotKhuyenMaiController {
     }
 
     @GetMapping("/search")
+<<<<<<< HEAD
     public ResponseEntity<Page<DotKhuyenMaiDTO>> search(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) Integer status,
@@ -94,4 +114,26 @@ public class DotKhuyenMaiController {
         return ResponseEntity.ok(dotKhuyenMaiService.search(keyword, status, ngayBatDau, ngayKetThuc, pageable));
     }
 
+=======
+    public ResponseEntity<?> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(dotKhuyenMaiService.search(keyword, status, type, pageable));
+    }
+    @GetMapping("/active")
+    public ResponseEntity<?> getActive() {
+        return ResponseEntity.ok(dotKhuyenMaiService.getActivePromotion());
+    }
+
+    @GetMapping("/active-list")
+    public ResponseEntity<?> getActiveList() {
+        // Giả sử bạn có hàm tìm các đợt đang hoạt động (trangThai = 1)
+        return ResponseEntity.ok(dotKhuyenMaiService.getActiveListForCombo());
+    }
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
 }

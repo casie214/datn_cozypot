@@ -19,8 +19,16 @@ public class PhieuGiamGiaCaNhan {
     @Column(name = "id_phieu_giam_gia_ca_nhan", nullable = false)
     private Integer id;
 
+<<<<<<< HEAD
     @JsonBackReference
     @ManyToOne
+=======
+    // Cột computed trong SQL Server → chỉ để read
+    @Column(name = "ma_giam_gia_ca_nhan", insertable = false, updatable = false)
+    private String maGiamGiaCaNhan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+>>>>>>> 1b190272e5d68a107cc64dc772e59a052d39ace8
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
 
@@ -50,10 +58,9 @@ public class PhieuGiamGiaCaNhan {
 
     @Size(max = 255)
     @Nationalized
-    @Column(name = "ghi_chu")
+    @Column(name = "ghi_chu", length = 255)
     private String ghiChu;
 
     @Column(name = "ngay_het_han")
     private Instant ngayHetHan;
-
 }
