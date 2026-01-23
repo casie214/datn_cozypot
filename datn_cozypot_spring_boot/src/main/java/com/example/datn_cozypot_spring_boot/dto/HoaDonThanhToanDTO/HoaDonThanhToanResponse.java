@@ -25,6 +25,7 @@ public class HoaDonThanhToanResponse {
     private Integer trangThaiHoaDon;       // 0: Hủy, 1: Đang phục vụ, 2: Hoàn thành, 3: Chờ nhận bàn
     private Instant thoiGianTao;
     private Integer hinhThucDat;
+    private Instant thoiGianDat;
     private Integer soLuongKhach;
-    private BigDecimal vatApDung;
+    private Float vatApDung;
 }

@@ -20,13 +20,16 @@ export const BeGetHoaDonById = async (id) => {
     return await result.json();
 };
 
-export const BeSearchHoaDon = async (key, trangThai, tuNgay, denNgay, page = 0) => {
+export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0) => {
     const params = new URLSearchParams();
     if (key !== null && key !== undefined && key !== "") {
         params.append("key", key);
     }
     if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
         params.append("trangThai", trangThai);
+    }
+    if (trangThaiHoanTien !== null && trangThaiHoanTien !== undefined && trangThaiHoanTien !== "") {
+        params.append("trangThaiHoanTien", trangThaiHoanTien);
     }
     if (tuNgay) params.append("tuNgay", tuNgay);
     if (denNgay) params.append("denNgay", denNgay);

@@ -28,7 +28,7 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "pdb.hinhThucDat,pdb.thoiGianDat , pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
@@ -49,12 +49,13 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "pdb.hinhThucDat,pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
+            "AND (:trangThaiHoanTien IS NULL OR hd.trangThaiHoanTien = :trangThaiHoanTien) " +
             "AND (CAST(:tuNgay AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgay) " +
             "AND (CAST(:denNgay AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgay) " +
             "AND (:keyword IS NULL OR :keyword = '' " +
@@ -65,6 +66,7 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
     Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
+            @Param("trangThaiHoanTien") Integer trangThaiHoanTien,
             @Param("tuNgay") Instant tuNgay,
             @Param("denNgay") Instant denNgay,
             Pageable pageable
@@ -84,7 +86,7 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
             "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "pdb.hinhThucDat,pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
