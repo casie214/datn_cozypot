@@ -18,4 +18,5 @@ public class LichSuHoaDonRequest {
     private Integer trangThaiLichSuTruocDo;
     private Integer trangThaiLichSuMoi;
     private Integer trangThaiHoaDonMoi;
+    private Boolean isLoiDoQuan;
 }
