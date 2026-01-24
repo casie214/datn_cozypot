@@ -9,7 +9,6 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -52,6 +51,13 @@ public class KhachHang {
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;
 
+    // --- Bổ sung các trường mới ---
+
+    @Size(max = 500)
+    @Column(name = "anh_dai_dien", length = 500)
+    private String anhDaiDien;
+    // ----------------------------
+
     @Size(max = 50)
     @Column(name = "ten_dang_nhap", length = 50)
     private String tenDangNhap;
@@ -80,10 +86,11 @@ public class KhachHang {
     @OneToMany(mappedBy = "idKhachHang")
     private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
 
-    //Lấy thời gian thực tế lúc tạo
     @PrePersist
     protected void onCreate() {
-        // Instant.now() sẽ khớp với kiểu dữ liệu Instant của trường ngayTaoTaiKhoan
         this.ngayTaoTaiKhoan = Instant.now();
+        if (this.diemTichLuy == null) {
+            this.diemTichLuy = 0;
+        }
     }
 }
