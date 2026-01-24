@@ -26,7 +26,7 @@ public class MonAnDiKem {
     private DanhMucChiTiet idDanhMucChiTiet;
 
     @Size(max = 50)
-    @Column(name = "ma_mon_an", length = 50)
+    @Column(name = "ma_mon_an", length = 50, insertable = false, updatable = false)
     private String maMonAn;
 
     @Size(max = 200)
@@ -70,4 +70,6 @@ public class MonAnDiKem {
     @OneToMany(mappedBy = "idMonAnDiKem")
     private Set<HinhAnhMonAn> hinhAnhMonAns = new LinkedHashSet<>();
 
+    @Column(name = "hinh_anh_single", columnDefinition = "VARCHAR(MAX)")
+    private String hinhAnh;
 }
