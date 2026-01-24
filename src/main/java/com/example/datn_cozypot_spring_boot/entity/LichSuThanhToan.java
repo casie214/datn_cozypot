@@ -1,8 +1,11 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
@@ -11,6 +14,8 @@ import java.time.Instant;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "lich_su_thanh_toan")
 public class LichSuThanhToan {
@@ -25,6 +30,7 @@ public class LichSuThanhToan {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_hoa_don")
+    @JsonIgnore
     private HoaDonThanhToan idHoaDon;
 
     @Size(max = 100)
@@ -38,6 +44,12 @@ public class LichSuThanhToan {
 
     @Column(name = "so_tien_thanh_toan", precision = 18)
     private BigDecimal soTienThanhToan;
+
+    @Column(name = "loai_giao_dich")
+    private Integer loaiGiaoDich;
+
+    @Column(name = "ghi_chu")
+    private String ghiChu;
 
     @Column(name = "ngay_thanh_toan")
     private Instant ngayThanhToan;
