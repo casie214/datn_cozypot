@@ -38,6 +38,8 @@ public class PhieuGiamGiaResponseDTO {
         this.danhSachKhachHang = danhSachKhachHang;
     }
     private Integer idDotKhuyenMai;
+    private String tenDotKhuyenMai;
+
 
 
 
