@@ -72,7 +72,13 @@
             <td class="text-center">
   <div class="action-group">
     <i 
-      class="fas fa-pen edit-icon" 
+      class="fas fa-eye view-icon me-2" 
+      title="Xem chi tiết" 
+      @click="openModalView(kh.id)"
+    ></i>
+
+    <i 
+      class="fas fa-pen edit-icon me-2" 
       :class="{ 'disabled-icon': kh.trangThai === 0 }"
       :title="kh.trangThai === 0 ? 'Tài khoản đang bị khóa, không thể sửa' : 'Chỉnh sửa'" 
       @click="kh.trangThai === 1 ? openModalEdit(kh.id) : warnLocked()"
@@ -80,13 +86,13 @@
 
     <i 
       v-if="kh.trangThai === 1" 
-      class="fas fa-lock lock-icon" 
+      class="fas  fa-unlock-alt unlock-icon" 
       title="Khóa tài khoản" 
       @click="handleToggleStatus(kh)"
     ></i>
     <i 
       v-else 
-      class="fas fa-unlock-alt unlock-icon" 
+      class="fas fa-lock lock-icon" 
       title="Mở khóa tài khoản" 
       @click="handleToggleStatus(kh)"
     ></i>
