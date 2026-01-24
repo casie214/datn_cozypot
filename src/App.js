@@ -29,7 +29,7 @@ const routes = [
         }
     },
     {
-        path: "/admin/client", 
+        path: "/admin/client",
         name: "clientManager",
         component: () => import("@/pages/admin/client/screens/clientManager.vue")
     },
@@ -95,10 +95,10 @@ const routes = [
         name: 'viewFood',
         component: () =>
             import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
-        meta: { 
-            title: 'Chi tiết Món Ăn', 
+        meta: {
+            title: 'Chi tiết Món Ăn',
             parentMenu: 'foodManager',
-            activeTab: 'thucdon' 
+            activeTab: 'thucdon'
         }
     },
     {
@@ -120,7 +120,41 @@ const routes = [
             parentMenu: 'foodManager',
             activeTab: 'chitietTD'
         }
-    }
+    },
+    {
+        path: "/",
+        redirect: "/admin/orders"
+    },
+
+    {
+        path: "/admin/orders",
+        name: "orderManager",
+        component: () => import("@/pages/employee/screens/OrderManager.vue"),
+    },
+
+    {
+        path: "/admin/orders/detail/:id",
+        name: "OrderDetail",
+        component: () => import("@/pages/employee/screens/OrderDetailPage.vue"),
+    },
+
+    {
+        path: "/admin/payment/:id",
+        name: "paymentScreen",
+        component: () => import("@/pages/employee/screens/PaymentScreen.vue"),
+    },
+
+    {
+        path: "/admin/add-food/:id",
+        name: "addFoodScreen",
+        component: () => import("@/pages/employee/screens/AddFoodScreen.vue"),
+    },
+
+    {
+        path: "/test",
+        name: "test",
+        component: () => import("@/components/testConnection.vue"),
+    },
 ];
 
 const router = createRouter({
