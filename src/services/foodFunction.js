@@ -1932,91 +1932,9 @@ export function useHotpotSetTypeManager() {
 
 export function useFoodAddScreen() {
     const router = useRouter();
+    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
 
-    // --- 1. GỌI POPUP (QUAN TRỌNG: Thêm đoạn này) ---
-    const { 
-        isVisible, dialogConfig, 
-        showAlert, showError, showSuccess, showConfirm, 
-        handleConfirm, handleClose 
-    } = useDialog(); // Đảm bảo bạn đã có hàm useDialog (đã viết ở bài trước)
-
-    // --- 2. THÔNG TIN CHUNG ---
-    const formData = ref({
-        tenMonAn: '',
-        idDanhMuc: '',
-        idDanhMucChiTiet: '',
-        moTa: '',
-        giaBan: 0,
-        hinhAnh: '',
-        trangThaiKinhDoanh: 1
-    });
-
-    // --- 3. QUẢN LÝ DANH SÁCH CHI TIẾT ---
-    const listChiTiet = ref([]); 
-    const newDetail = ref({
-        tenChiTietMonAn: '', 
-        giaBan: 0,
-        giaVon: 0,
-        kichCo: '',
-        donVi: 'Cốc',
-        trangThai: 1
-    });
-
-    // --- 4. HÀM THÊM CHI TIẾT (SỬ DỤNG ALERT MỚI) ---
-    const addDetailToList = () => {
-        if (!newDetail.value.tenChiTietMonAn || !newDetail.value.tenChiTietMonAn.trim()) {
-            showAlert("Vui lòng nhập tên chi tiết (Ví dụ: Size L)!", "Thiếu thông tin");
-            return;
-        }
-        if (!newDetail.value.kichCo) {
-            showAlert("Vui lòng nhập kích cỡ!", "Thiếu thông tin");
-            return;
-        }
-        if (newDetail.value.giaBan === "" || newDetail.value.giaBan < 0) {
-            showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu", "error");
-            return;
-        }
-
-        listChiTiet.value.push({ ...newDetail.value });
-
-        // Reset form
-        newDetail.value = { 
-            tenChiTietMonAn: '', 
-            giaBan: 0, 
-            giaVon: 0, 
-            kichCo: '', 
-            donVi: 'Cốc', 
-            trangThai: 1 
-        };
-    };
-
-    const removeDetailFromList = (index) => {
-        // Dùng Confirm Dialog khi xóa
-        showConfirm(
-            "Bạn muốn xóa chi tiết này khỏi danh sách?",
-            () => { listChiTiet.value.splice(index, 1); },
-            "Xóa chi tiết",
-            "error"
-        );
-    };
-
-    // --- 5. DANH MỤC & UPLOAD ẢNH (GIỮ NGUYÊN) ---
-    const listDanhMuc = ref([]);
-    const listDanhMucChiTiet = ref([]);
-
-    function getAllCategories() { getAllCategory().then(res => listDanhMuc.value = res.data); }
-    function getAllCategoriesDetail() { getAllCategoryDetail().then(res => listDanhMucChiTiet.value = res.data); }
-
-    onMounted(() => {
-        getAllCategories();
-        getAllCategoriesDetail();
-    });
-
-    const filteredSubCategories = computed(() => {
-        if (!formData.value.idDanhMuc) return [];
-        return listDanhMucChiTiet.value.filter(item => item.idDanhMuc == formData.value.idDanhMuc);
-    });
-
+    // --- 1. HÀM TIỆN ÍCH RESIZE ẢNH (Dùng chung cho cả món chính và biến thể) ---
     const resizeImage = (file, maxWidth = 800) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -2036,59 +1954,165 @@ export function useFoodAddScreen() {
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
                 };
             };
         });
     };
 
-    const handleFileUpload = async (event) => {
+    // --- 2. THÔNG TIN CHUNG ---
+    const formData = ref({
+        tenMonAn: '',
+        idDanhMuc: '',
+        idDanhMucChiTiet: '',
+        moTa: '',
+        giaBan: 0,
+        hinhAnh: '',
+        trangThaiKinhDoanh: 1
+    });
+
+    // --- 3. QUẢN LÝ DANH SÁCH CHI TIẾT ---
+    const listChiTiet = ref([]);
+    const detailFileInput = ref(null); // Ref cho input file ẩn của biến thể
+
+    const newDetail = ref({
+        tenChiTietMonAn: '',
+        giaBan: 0,
+        giaVon: 0,
+        kichCo: '',
+        donVi: 'Cốc',
+        trangThai: 1,
+        hinhAnh: '' // Thêm trường hình ảnh cho biến thể
+    });
+
+    // --- 4. HÀM XỬ LÝ ẢNH BIẾN THỂ ---
+    const triggerDetailImageUpload = () => {
+        if (detailFileInput.value) detailFileInput.value.click();
+    };
+
+    const handleDetailImageUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
         if (!file.type.match('image.*')) {
-            showAlert("Vui lòng chọn file hình ảnh!", "Sai định dạng"); return;
+            showAlert("Vui lòng chọn file hình ảnh!", "Lỗi định dạng"); return;
         }
         try {
             const resizedBase64 = await resizeImage(file);
-            formData.value.hinhAnh = resizedBase64; 
+            newDetail.value.hinhAnh = resizedBase64;
         } catch (e) { console.error(e); }
+        event.target.value = ''; // Reset input
     };
 
-    // --- 6. LƯU MÓN ĂN (SỬ DỤNG CONFIRM DIALOG) ---
-    const handleSave = async () => {
-        if (!formData.value.tenMonAn || !formData.value.idDanhMucChiTiet) {
-            showAlert("Vui lòng nhập tên món và chọn danh mục chi tiết!", "Thiếu thông tin");
+    // --- 5. HÀM THÊM CHI TIẾT (Kèm Validate Trim & Ảnh) ---
+    const addDetailToList = () => {
+        // Validate tên biến thể (Trim space)
+        if (!newDetail.value.tenChiTietMonAn || !newDetail.value.tenChiTietMonAn.trim()) {
+            showAlert("Vui lòng nhập tên chi tiết (Ví dụ: Size L)!", "Thiếu thông tin");
             return;
         }
-        if (listChiTiet.value.length === 0) {
-            showAlert("Bạn chưa thêm chi tiết món ăn! Vui lòng thêm ít nhất một biến thể.", "Cảnh báo");
-            return;
-        }
-        if (!formData.value.hinhAnh) {
-            showAlert("Vui lòng chọn hình ảnh!", "Thiếu thông tin");
+        
+        // Validate kích cỡ (Trim space)
+        if (!newDetail.value.kichCo || !newDetail.value.kichCo.trim()) {
+            showAlert("Vui lòng nhập kích cỡ!", "Thiếu thông tin");
             return;
         }
 
-        // Hiện Popup xác nhận trước khi lưu
+        // Validate giá
+        if (newDetail.value.giaBan === "" || newDetail.value.giaBan < 0) {
+            showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu", "error");
+            return;
+        }
+
+        // Validate ảnh biến thể (Bắt buộc)
+        if (!newDetail.value.hinhAnh) {
+            showAlert("Vui lòng chọn ảnh cho biến thể này!", "Thiếu thông tin");
+            return;
+        }
+
+        // Tự động trim dữ liệu trước khi đẩy vào list
+        listChiTiet.value.push({
+            ...newDetail.value,
+            tenChiTietMonAn: newDetail.value.tenChiTietMonAn.trim(),
+            kichCo: newDetail.value.kichCo.trim(),
+            donVi: newDetail.value.donVi.trim()
+        });
+
+        // Reset form
+        newDetail.value = {
+            tenChiTietMonAn: '',
+            giaBan: 0,
+            giaVon: 0,
+            kichCo: '',
+            donVi: 'Cốc',
+            trangThai: 1,
+            hinhAnh: ''
+        };
+    };
+
+    const removeDetailFromList = (index) => {
+        showConfirm("Bạn muốn xóa chi tiết này khỏi danh sách?", () => { listChiTiet.value.splice(index, 1); }, "Xóa chi tiết", "error");
+    };
+
+    // --- 6. XỬ LÝ ẢNH MÓN CHÍNH ---
+    const mainFileInput = ref(null);
+    const triggerMainImageUpload = () => { if(mainFileInput.value) mainFileInput.value.click(); };
+    
+    const handleMainFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (!file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        try {
+            const resizedBase64 = await resizeImage(file);
+            formData.value.hinhAnh = resizedBase64;
+        } catch (e) { console.error(e); }
+        event.target.value = '';
+    };
+
+    // --- 7. DANH MỤC (API) ---
+    const listDanhMuc = ref([]);
+    const listDanhMucChiTiet = ref([]);
+    function getAllCategories() { getAllCategory().then(res => listDanhMuc.value = res.data); }
+    function getAllCategoriesDetail() { getAllCategoryDetail().then(res => listDanhMucChiTiet.value = res.data); }
+    onMounted(() => { getAllCategories(); getAllCategoriesDetail(); });
+    const filteredSubCategories = computed(() => {
+        if (!formData.value.idDanhMuc) return [];
+        return listDanhMucChiTiet.value.filter(item => String(item.idDanhMuc) === String(formData.value.idDanhMuc));
+    });
+
+    const handleSave = async () => {
+        if (!formData.value.tenMonAn || !formData.value.tenMonAn.trim()) {
+            showAlert("Vui lòng nhập tên món ăn!", "Thiếu thông tin"); return;
+        }
+        if (!formData.value.idDanhMucChiTiet) {
+            showAlert("Vui lòng chọn danh mục chi tiết!", "Thiếu thông tin"); return;
+        }
+        if (!formData.value.hinhAnh) {
+            showAlert("Vui lòng chọn hình ảnh món ăn!", "Thiếu thông tin"); return;
+        }
+        if (listChiTiet.value.length === 0) {
+            showAlert("Vui lòng thêm ít nhất một biến thể (chi tiết)!", "Cảnh báo"); return;
+        }
+
         showConfirm(
             "Bạn có chắc chắn muốn thêm món ăn này không?",
             async () => {
                 try {
+                    // Chuẩn hóa dữ liệu trước khi gửi (Trim lần cuối)
                     const payload = {
                         ...formData.value,
-                        listChiTiet: listChiTiet.value 
+                        tenMonAn: formData.value.tenMonAn.trim(),
+                        moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
+                        listChiTiet: listChiTiet.value // List này đã được trim lúc add
                     };
                     await postNewFood(payload);
-
                     showSuccess("Thêm mới thành công!");
-                    setTimeout(() => router.back(), 1500); 
+                    setTimeout(() => router.back(), 1500);
                 } catch (e) {
-                    console.error("Lỗi thêm món ăn:", e);
+                    console.error(e);
                     showError("Đã xảy ra lỗi khi thêm mới!");
                 }
             },
-            "Xác nhận thêm mới",
-            "success"
+            "Xác nhận thêm mới", "success"
         );
     };
 
@@ -2097,11 +2121,12 @@ export function useFoodAddScreen() {
     return {
         formData, listDanhMuc, filteredSubCategories, handleSave, goBack,
         listChiTiet, newDetail, addDetailToList, removeDetailFromList,
-        handleFileUpload,
-        dialogVisible: isVisible, 
-        dialogConfig,
-        handleDialogConfirm: handleConfirm,
-        handleDialogClose: handleClose
+        
+        // Return các hàm/ref ảnh
+        mainFileInput, handleMainFileUpload, triggerMainImageUpload,
+        detailFileInput, handleDetailImageUpload, triggerDetailImageUpload,
+
+        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose
     };
 }
 
