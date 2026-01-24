@@ -23,11 +23,13 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +42,66 @@ public class MonAnServiceImplementation implements MonAnService {
     private final DanhMucRepository danhMucRepository;
     private final DanhMucChiTietRepository danhMucChiTietRepository;
     private final ModelMapper modelMapper;
+
+    private String generatePrefixFromData(String name) {
+        if (name == null || name.isEmpty()) return "XX";
+
+        // Chuyển về không dấu (ví dụ: "Bò Mỹ" -> "Bo My")
+        String temp = Normalizer.normalize(name, Normalizer.Form.NFD);
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        String unAccent = pattern.matcher(temp).replaceAll("").replaceAll("đ", "d").replaceAll("Đ", "D");
+
+        // Tách từ và lấy chữ cái đầu
+        String[] words = unAccent.split("\\s+");
+        StringBuilder prefix = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) {
+                prefix.append(w.charAt(0));
+            }
+        }
+        return prefix.toString().toUpperCase(); // Ví dụ: "BM"
+    }
+
+    private String generateNextCode(String name, String entityType) {
+        String prefix = generatePrefixFromData(name);
+        String lastCode = null;
+        switch (entityType) {
+            case "MON_AN":
+                lastCode = monAnRepository.findMaxCodeByPrefix(prefix);
+                break;
+            case "CHI_TIET_MON":
+                lastCode = monAnChiTietRepository.findMaxCodeByPrefix(prefix);
+                break;
+            case "SET_LAU":
+                lastCode = setLauRepository.findMaxCodeByPrefix(prefix);
+                break;
+            case "DANH_MUC":
+                lastCode = danhMucRepository.findMaxCodeByPrefix(prefix);
+                break;
+            case "DANH_MUC_CHI_TIET":
+                lastCode = danhMucChiTietRepository.findMaxCodeByPrefix(prefix);
+                break;
+            case "LOAI_SET":
+                lastCode = loaiLauRepository.findMaxCodeByPrefix(prefix);
+                break;
+            default:
+                throw new IllegalArgumentException("Loại entity không hợp lệ: " + entityType);
+        }
+
+        if (lastCode == null) {
+            return prefix + "01";
+        }
+
+        // Tách phần số đuôi và tăng lên 1
+        String numberPart = lastCode.substring(prefix.length());
+        try {
+            int number = Integer.parseInt(numberPart);
+            number++;
+            return prefix + String.format("%02d", number); // Format 01, 02...
+        } catch (NumberFormatException e) {
+            return prefix + "01"; // Fallback nếu lỗi
+        }
+    }
 
     @Override
     public List<MonAnResponse> findAllMonAn() {
@@ -163,6 +225,8 @@ public class MonAnServiceImplementation implements MonAnService {
         // 1. Map và Lưu Món Ăn Gốc (Parent)
         MonAnDiKem monAn = modelMapper.map(request, MonAnDiKem.class);
         monAn.setId(null); // Đảm bảo tạo mới
+        String generatedCode = generateNextCode(request.getTenMonAn(), "CHI_TIET_MON");
+        monAn.setMaMonAn(generatedCode);
 
         // Lưu xuống DB để sinh ra ID
         MonAnDiKem savedMonAn = monAnRepository.save(monAn);
@@ -177,7 +241,8 @@ public class MonAnServiceImplementation implements MonAnService {
 
                 // QUAN TRỌNG: Gán khóa ngoại (ID của món ăn vừa tạo) cho chi tiết
                 detailEntity.setIdMonAnDiKem(savedMonAn);
-                // Hoặc nếu entity dùng ID long/int: detailEntity.setIdMonAnDiKem(savedMonAn.getId());
+                String generatedCodeCT = generateNextCode(detailReq.getTenChiTietMonAn(), "MON_AN");
+                detailEntity.setMaChiTietMonAn(generatedCodeCT);
 
                 listEntityChiTiet.add(detailEntity);
             }
@@ -211,6 +276,8 @@ public class MonAnServiceImplementation implements MonAnService {
         setLau.setMoTa(request.getMoTa());
         setLau.setTrangThai(request.getTrangThai());
         setLau.setNgayTao(Instant.now());
+        String code = generateNextCode(request.getTenSetLau(), "SET_LAU");
+        setLau.setMaSetLau(code);
 
         if (request.getIdLoaiSet() != null) {
             LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
@@ -245,6 +312,8 @@ public class MonAnServiceImplementation implements MonAnService {
     public MonAnChiTietResponse createMonAnChiTiet(MonAnChiTietRequest request) {
         ChiTietMonAn chiTietMonAn = modelMapper.map(request, ChiTietMonAn.class);
         chiTietMonAn.setId(null);
+        String code = generateNextCode(request.getTenChiTietMonAn(), "CHI_TIET_MON");
+        chiTietMonAn.setMaChiTietMonAn(code);
         monAnChiTietRepository.save(chiTietMonAn);
         MonAnChiTietResponse chiTietResponse = modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class);
         return chiTietResponse;
@@ -354,6 +423,8 @@ public class MonAnServiceImplementation implements MonAnService {
         DanhMuc danhMuc = modelMapper.map(request, DanhMuc.class);
         danhMuc.setId(null);
         danhMuc.setMaDanhMuc(null);
+        String code = generateNextCode(request.getTenDanhMuc(), "DANH_MUC");
+        danhMuc.setMaDanhMuc(code);
         danhMucRepository.save(danhMuc);
         return modelMapper.map(danhMuc, DanhMucResponse.class);
     }
@@ -375,7 +446,8 @@ public class MonAnServiceImplementation implements MonAnService {
     public LoaiLauResponse addNewLoaiLau(LoaiLauRequest request) {
         LoaiSetLau loaiSetLau = modelMapper.map(request, LoaiSetLau.class);
         loaiSetLau.setId(null);
-        loaiSetLau.setMaLoaiSet(null);
+        String code = generateNextCode(request.getTenLoaiSet(), "LOAI_SET");
+        loaiSetLau.setMaLoaiSet(code);
         loaiLauRepository.save(loaiSetLau);
         return modelMapper.map(loaiSetLau, LoaiLauResponse.class);
     }
@@ -398,7 +470,8 @@ public class MonAnServiceImplementation implements MonAnService {
     public DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request) {
         DanhMucChiTiet danhMucChiTiet = modelMapper.map(request, DanhMucChiTiet.class);
         danhMucChiTiet.setId(null);
-        danhMucChiTiet.setMaDanhMucChiTiet(null);
+        String code = generateNextCode(request.getTenDanhMucChiTiet(), "DANH_MUC_CHI_TIET");
+        danhMucChiTiet.setMaDanhMucChiTiet(code);
         danhMucChiTietRepository.save(danhMucChiTiet);
         return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
     }
