@@ -129,31 +129,25 @@ const routes = [
     {
         path: "/admin/orders",
         name: "orderManager",
-        component: () => import("@/pages/employee/screens/OrderManager.vue"),
+        component: () => import("@/pages/admin/order/screens/OrderManager.vue"),
     },
 
     {
         path: "/admin/orders/detail/:id",
         name: "OrderDetail",
-        component: () => import("@/pages/employee/screens/OrderDetailPage.vue"),
+        component: () => import("@/pages/admin/order/screens/OrderDetailPage.vue"),
     },
 
     {
         path: "/admin/payment/:id",
         name: "paymentScreen",
-        component: () => import("@/pages/employee/screens/PaymentScreen.vue"),
+        component: () => import("@/pages/admin/order/screens/PaymentScreen.vue"),
     },
 
     {
         path: "/admin/add-food/:id",
         name: "addFoodScreen",
-        component: () => import("@/pages/employee/screens/AddFoodScreen.vue"),
-    },
-
-    {
-        path: "/test",
-        name: "test",
-        component: () => import("@/components/testConnection.vue"),
+        component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
     },
 ];
 
