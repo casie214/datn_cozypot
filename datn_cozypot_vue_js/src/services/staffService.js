@@ -20,13 +20,18 @@ const staffService = {
   },
 
   // Thêm mới (Khớp với @PostMapping("/add"))
-  create: (data) => {
-    return axiosClient.post('/nhan-vien/add', data);
+  // SỬA: Thêm mới (Gửi FormData)
+  create: (formData) => {
+    return axiosClient.post('/nhan-vien/add', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   },
 
-  // Cập nhật (Khớp với @PutMapping("/update/{id}"))
-  update: (id, data) => {
-    return axiosClient.put(`/nhan-vien/update/${id}`, data);
+  // SỬA: Cập nhật (Gửi FormData)
+  update: (id, formData) => {
+    return axiosClient.put(`/nhan-vien/update/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   },
 
   // Lấy danh sách vai trò cho Dropdown (Khớp với VaiTroController @GetMapping("/active"))
@@ -37,6 +42,11 @@ const staffService = {
   toggleStatus: (id) => {
     return axiosClient.patch(`/nhan-vien/${id}/toggle-status`);
   },
+  // staffService.js
+checkDuplicate: (params) => {
+  // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
+  return axiosClient.get('/nhan-vien/check-duplicate', { params });
+},
 
 };
 

@@ -2,20 +2,26 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.NhanVienRequest;
 import com.example.datn_cozypot_spring_boot.service.NhanVienService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/nhan-vien")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173") // Đảm bảo đúng port của Vue
 public class NhanVienController {
-    @Autowired private NhanVienService service;
 
-    // 1. Lấy danh sách mặc định (Có phân trang)
+    @Autowired
+    private NhanVienService service;
+
+    // 1. Lấy danh sách (Phân trang + Tìm kiếm)
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,
@@ -23,7 +29,6 @@ public class NhanVienController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        // Luôn dùng getAll để có phân trang và sắp xếp đúng như giao diện
         return ResponseEntity.ok(service.getAll(keyword, trangThai, tuNgay, page, size));
     }
 
@@ -34,25 +39,29 @@ public class NhanVienController {
     }
 
     // 3. Thêm mới nhân viên
-    @PostMapping("/add")
-    public ResponseEntity<?> add(@RequestBody NhanVienRequest request) {
-        try {
-            return ResponseEntity.ok(service.create(request));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    // SỬA: Dùng @ModelAttribute để nhận FormData, consumes multipart/form-data
+    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> add(
+            @Valid @ModelAttribute NhanVienRequest request,
+            @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
+    ) {
+        return ResponseEntity.ok(service.create(request, file));
     }
 
-    // 4. Cập nhật nhân viên (Chức năng Sửa - bao gồm cả đổi trạng thái)
-    @PutMapping("/update/{id}")
-    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody NhanVienRequest request) {
-        try {
-            return ResponseEntity.ok(service.update(id, request));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+
+    // 4. Cập nhật nhân viên
+    // SỬA: Dùng @ModelAttribute và nhận file kèm theo
+    @PutMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> update(
+            @PathVariable Integer id,
+            @Valid @ModelAttribute NhanVienRequest request,
+            @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
+    ) {
+        return ResponseEntity.ok(service.update(id, request, file));
     }
 
+
+    // 5. Đổi trạng thái nhanh (Ngừng hoạt động / Đang làm việc)
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
         try {
@@ -60,5 +69,15 @@ public class NhanVienController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // 6. Kiểm tra trùng dữ liệu (CCCD, Email, SĐT, Username)
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<?> checkDuplicate(
+            @RequestParam String type,
+            @RequestParam String value,
+            @RequestParam(required = false) Integer excludeId) {
+        boolean isExists = service.checkDuplicate(type, value, excludeId);
+        return ResponseEntity.ok(Map.of("exists", isExists));
     }
 }

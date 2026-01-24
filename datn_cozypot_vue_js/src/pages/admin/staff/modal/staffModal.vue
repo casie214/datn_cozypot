@@ -1,107 +1,115 @@
 <template>
-  <div class="modal-overlay" @click.self="handleCancel">
-    <div class="modal-box shadow">
+  <div class="modal-overlay" @click.self="$emit('close')">
+    <div class="modal-box shadow-lg">
       <div class="modal-header-custom">
         <h5 class="m-0 title-modal">
+          <i class="fas" :class="staffId ? 'fa-user-edit' : 'fa-user-plus'"></i>
           {{ staffId ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới' }}
         </h5>
-        <span class="close-x" @click="handleCancel">X</span>
+        <span class="close-x" @click="$emit('close')">&times;</span>
       </div>
 
       <div class="modal-body-custom">
         <form class="container-fluid" @submit.prevent>
-          <div class="row mb-3">
-            <div class="col-md-12">
-              <label class="form-label-custom">Vai trò <span class="text-danger">*</span></label>
-              <select class="form-select custom-select" v-model="formData.idVaiTro">
-                <option value="" disabled>-- Chọn vai trò --</option>
-                <option v-for="role in listRoles" :key="role.id" :value="role.id">{{ role.tenVaiTro }}</option>
-              </select>
-              <small class="text-danger" v-if="errors.idVaiTro">{{ errors.idVaiTro }}</small>
+          <div class="row">
+            <div class="col-md-4 text-center border-end section-left">
+              <label class="form-label-custom d-block mb-3">Ảnh nhân viên</label>
+              <div class="avatar-wrapper mb-3" @click="triggerFileInput">
+                <img :src="imagePreview || 'https://via.placeholder.com/150'" alt="Avatar" class="avatar-img" />
+                <div class="avatar-hint">Thay đổi ảnh</div>
+              </div>
+              <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
+              <small class="text-muted">Nhấn vào ảnh để tải lên</small>
             </div>
-          </div>
 
-          <div class="row mb-3">
-            <div class="col-md-12">
-               <label class="form-label-custom">Họ và tên <span class="text-danger">*</span></label>
-               <input type="text" class="form-control" v-model="formData.hoTenNhanVien" placeholder="Nhập họ và tên...">
-               <small class="text-danger" v-if="errors.hoTenNhanVien">{{ errors.hoTenNhanVien }}</small>
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label class="form-label-custom">Ngày sinh <span class="text-danger">*</span></label>
-              <input type="date" class="form-control" v-model="formData.ngaySinh">
-              <small class="text-danger" v-if="errors.ngaySinh">{{ errors.ngaySinh }}</small>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label-custom">Ngày vào làm <span class="text-danger">*</span></label>
-              <input type="date" class="form-control" v-model="formData.ngayVaoLam">
-              <small class="text-danger" v-if="errors.ngayVaoLam">{{ errors.ngayVaoLam }}</small>
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label class="form-label-custom">Tên đăng nhập <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" :class="{'input-readonly': staffId}" 
-                     v-model="formData.tenDangNhap" :readonly="!!staffId" placeholder="Nhập tên đăng nhập...">
-              <small class="text-danger" v-if="errors.tenDangNhap">{{ errors.tenDangNhap }}</small>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label-custom">Mật khẩu <span class="text-danger">*</span></label>
-              <input v-if="!staffId" type="password" class="form-control" v-model="formData.matKhauDangNhap" placeholder="Nhập mật khẩu...">
-              <input v-else type="text" class="form-control input-readonly" value="********" readonly disabled>
-              <small class="text-danger" v-if="errors.matKhauDangNhap">{{ errors.matKhauDangNhap }}</small>
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label class="form-label-custom">Số điện thoại <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" v-model="formData.sdtNhanVien" placeholder="09xxxxxxxx">
-              <small class="text-danger" v-if="errors.sdtNhanVien">{{ errors.sdtNhanVien }}</small>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label-custom">Email <span class="text-danger">*</span></label>
-              <input type="email" class="form-control" v-model="formData.email" placeholder="email@example.com">
-              <small class="text-danger" v-if="errors.email">{{ errors.email }}</small>
-            </div>
-          </div>
-
-          <div class="row mb-3 align-items-center">
-            <div class="col-md-12">
-              <label class="form-label-custom">Giới tính <span class="text-danger">*</span></label>
-              <div class="d-flex gap-4 mt-1">
-                <div class="form-check d-flex align-items-center gap-2">
-                  <input class="form-check-input radio-red" type="radio" v-model="formData.gioiTinh" :value="true" id="male">
-                  <label class="form-check-label mb-0" for="male">Nam</label>
+            <div class="col-md-8 scrollable-content">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.hoTenNhanVien}" 
+                         v-model="formData.hoTenNhanVien" placeholder="Mời nhập đầy đủ họ tên">
+                  <div class="error-text">{{ errors.hoTenNhanVien }}</div>
                 </div>
-                <div class="form-check d-flex align-items-center gap-2">
-                  <input class="form-check-input radio-red" type="radio" v-model="formData.gioiTinh" :value="false" id="female">
-                  <label class="form-check-label mb-0" for="female">Nữ</label>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Vai trò <span class="star">*</span></label>
+                  <select class="form-select custom-input" :class="{'is-invalid': errors.idVaiTro}" v-model="formData.idVaiTro">
+                    <option value="" disabled>-- Chọn vai trò --</option>
+                    <option v-for="role in listRoles" :key="role.id" :value="role.id">{{ role.tenVaiTro }}</option>
+                  </select>
+                  <div class="error-text">{{ errors.idVaiTro }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Số CCCD <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.soCccd}" 
+                         v-model="formData.soCccd" @blur="checkDuplicate('soCccd')" placeholder="Mời nhập số CCCD">
+                  <div class="error-text">{{ errors.soCccd }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Ngày cấp <span class="star">*</span></label>
+                  <input type="date" class="form-control custom-input" :class="{'is-invalid': errors.ngayCapCccd}" v-model="formData.ngayCapCccd">
+                  <div class="error-text">{{ errors.ngayCapCccd }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.sdtNhanVien}" 
+                         v-model="formData.sdtNhanVien" @blur="checkDuplicate('sdtNhanVien')" placeholder="Mời nhập số điện thoại">
+                  <div class="error-text">{{ errors.sdtNhanVien }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Nơi cấp <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.noiCapCccd}" v-model="formData.noiCapCccd " placeholder="Mời nhập nơi cấp">
+                  <div class="error-text">{{ errors.noiCapCccd }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Email <span class="star">*</span></label>
+                  <input type="email" class="form-control custom-input" :class="{'is-invalid': errors.email}" 
+                         v-model="formData.email" @blur="checkDuplicate('email')" placeholder="Mời nhập email">
+                  <div class="error-text">{{ errors.email }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Ngày sinh <span class="star">*</span></label>
+                  <input type="date" class="form-control custom-input" :class="{'is-invalid': errors.ngaySinh}" v-model="formData.ngaySinh">
+                  <div class="error-text">{{ errors.ngaySinh }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Tên đăng nhập <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.tenDangNhap}" 
+                         v-model="formData.tenDangNhap" :readonly="!!staffId" @blur="checkDuplicate('tenDangNhap')" placeholder="Mời nhập tên đăng nhập">
+                  <div class="error-text">{{ errors.tenDangNhap }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Mật khẩu <span class="star">*</span></label>
+                  <input v-if="!staffId" type="password" class="form-control custom-input" :class="{'is-invalid': errors.matKhauDangNhap}"
+                         v-model="formData.matKhauDangNhap" placeholder="Mời nhập mật khẩu">
+                  <input v-else type="text" class="form-control custom-input bg-light" value="********" readonly>
+                  <div v-if="!staffId" class="error-text">{{ errors.matKhauDangNhap }}</div>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label-custom">Địa chỉ thường trú <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.diaChi}" v-model="formData.diaChi" placeholder="Mời nhập địa chỉ">
+                  <div class="error-text">{{ errors.diaChi }}</div>
                 </div>
               </div>
-              <small class="text-danger" v-if="errors.gioiTinh">{{ errors.gioiTinh }}</small>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-12">
-              <label class="form-label-custom">Địa chỉ <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" v-model="formData.diaChi" placeholder="Nhập địa chỉ cụ thể...">
-              <small class="text-danger" v-if="errors.diaChi">{{ errors.diaChi }}</small>
             </div>
           </div>
         </form>
       </div>
 
       <div class="modal-footer-custom">
-        <button class="btn-cancel" @click="handleCancel" :disabled="loading">Hủy</button>
-        <button class="btn-submit" @click="handleConfirmSave" :disabled="loading">
-          <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-          {{ staffId ? 'Cập nhật' : 'Thêm mới' }}
+        <button class="btn btn-light-custom" @click="$emit('close')">Hủy bỏ</button>
+        <button class="btn btn-main-custom" @click="handleSave" :disabled="loading">
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+          {{ staffId ? 'Cập nhật ngay' : 'Thêm mới' }}
         </button>
       </div>
     </div>
@@ -109,144 +117,233 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, ref } from 'vue';
+import { reactive, ref, onMounted, watch } from 'vue';
 import staffService from '@/services/staffService';
 import dayjs from 'dayjs';
+import { useToast } from "vue-toastification";
 
-const props = defineProps({
-  staffId: { type: [Number, String], default: null }
-});
-
+const props = defineProps(['staffId']);
 const emit = defineEmits(['close', 'refresh']);
+const toast = useToast();
+
 const loading = ref(false);
 const listRoles = ref([]);
+const imagePreview = ref(null);
+const fileInput = ref(null);
+const selectedFile = ref(null);
 
 const formData = reactive({
-  idVaiTro: '', 
+  id: null,
+  idVaiTro: '',
   hoTenNhanVien: '',
-  tenDangNhap: '', 
-  matKhauDangNhap: '', 
+  soCccd: '',
+  ngayCapCccd: '',
+  noiCapCccd: '',
+  tenDangNhap: '',
+  matKhauDangNhap: '',
   sdtNhanVien: '',
   email: '',
-  ngaySinh: '',
-  ngayVaoLam: '',
-  gioiTinh: true,
   diaChi: '',
+  ngaySinh: '',
+  ngayVaoLam: dayjs().format('YYYY-MM-DD'),
+  gioiTinh: true,
   trangThaiLamViec: 1
 });
 
-const errors = reactive({});
+const errors = reactive({
+  idVaiTro: '', hoTenNhanVien: '', soCccd: '', ngayCapCccd: '', 
+  noiCapCccd: '', tenDangNhap: '', sdtNhanVien: '', email: '', 
+  ngaySinh: '', diaChi: '', matKhauDangNhap: ''
+});
 
-const validateAll = () => {
-  let isValid = true;
-  Object.keys(formData).forEach(key => errors[key] = '');
+// WATCHER: Xóa lỗi đỏ ngay khi người dùng bắt đầu sửa lại dữ liệu
+watch(() => ({ ...formData }), (newVal) => {
+  Object.keys(newVal).forEach(key => {
+    if (newVal[key] && errors[key]) {
+      // Riêng các trường đặc thù, chỉ xóa lỗi khi đạt định dạng tối thiểu
+      if (key === 'email' && !/^\S+@\S+\.\S+$/.test(newVal[key])) return;
+      if (key === 'sdtNhanVien' && !/^\d{10}$/.test(newVal[key])) return;
+      if (key === 'soCccd' && !/^\d{12}$/.test(newVal[key])) return;
+      
+      errors[key] = '';
+    }
+  });
+}, { deep: true });
 
-  if (!formData.idVaiTro) { errors.idVaiTro = 'Vui lòng chọn vai trò'; isValid = false; }
-  if (!formData.hoTenNhanVien?.trim()) { errors.hoTenNhanVien = 'Họ tên không được để trống'; isValid = false; }
-  if (!formData.tenDangNhap?.trim()) { errors.tenDangNhap = 'Tên đăng nhập không được để trống'; isValid = false; }
-  
-  if (!props.staffId) {
-    if (!formData.matKhauDangNhap) { errors.matKhauDangNhap = 'Mật khẩu không được để trống'; isValid = false; }
-    else if (formData.matKhauDangNhap.length < 6) { errors.matKhauDangNhap = 'Mật khẩu tối thiểu 6 ký tự'; isValid = false; }
+const triggerFileInput = () => fileInput.value.click();
+const onFileChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    imagePreview.value = URL.createObjectURL(file);
   }
+};
 
-  // LOGIC KIỂM TRA ĐỦ 18 TUỔI
-  if (!formData.ngaySinh) { 
-    errors.ngaySinh = 'Vui lòng chọn ngày sinh'; 
-    isValid = false; 
-  } else {
-    const age = dayjs().diff(dayjs(formData.ngaySinh), 'year');
-    if (age < 18) {
-      errors.ngaySinh = 'Nhân viên phải từ đủ 18 tuổi trở lên';
+const checkDuplicate = async (type) => {
+  if (!formData[type]) return;
+  try {
+    const res = await staffService.checkDuplicate({ 
+      type, 
+      value: formData[type], 
+      excludeId: props.staffId 
+    });
+    if (res.data.exists) {
+      errors[type] = `Thông tin này đã tồn tại trên hệ thống`;
+    }
+  } catch (e) { console.error("Lỗi check trùng"); }
+};
+
+const validateForm = () => {
+  let isValid = true;
+  const today = dayjs();
+
+  // 1. Kiểm tra các trường bắt buộc nhập (Required)
+  const requiredFields = {
+    hoTenNhanVien: "Vui lòng nhập họ tên",
+    idVaiTro: "Vui lòng chọn vai trò",
+    soCccd: "Vui lòng nhập số CCCD",
+    ngayCapCccd: "Vui lòng chọn ngày cấp",
+    noiCapCccd: "Vui lòng nhập nơi cấp",
+    sdtNhanVien: "Vui lòng nhập số điện thoại",
+    email: "Vui lòng nhập email",
+    ngaySinh: "Vui lòng chọn ngày sinh",
+    tenDangNhap: "Vui lòng nhập tên đăng nhập",
+    diaChi: "Vui lòng nhập địa chỉ"
+  };
+
+  Object.keys(requiredFields).forEach(key => {
+    if (!formData[key]) {
+      errors[key] = requiredFields[key];
+      isValid = false;
+    }
+  });
+
+  // 2. Kiểm tra độ tuổi (Phải đủ 18 tuổi)
+  if (formData.ngaySinh) {
+    const birthDate = dayjs(formData.ngaySinh);
+    const age = today.diff(birthDate, 'year');
+    if (birthDate.isAfter(today)) {
+      errors.ngaySinh = "Ngày sinh không thể ở tương lai";
+      isValid = false;
+    } else if (age < 18) {
+      errors.ngaySinh = "Nhân viên phải từ 18 tuổi trở lên";
       isValid = false;
     }
   }
 
-  if (!formData.ngayVaoLam) { errors.ngayVaoLam = 'Vui lòng chọn ngày vào làm'; isValid = false; }
-  
-  const phoneRegex = /^(0[3|5|7|8|9])([0-9]{8})$/;
-  if (!formData.sdtNhanVien) { errors.sdtNhanVien = 'SĐT không được để trống'; isValid = false; }
-  else if (!phoneRegex.test(formData.sdtNhanVien)) { errors.sdtNhanVien = 'SĐT không đúng định dạng'; isValid = false; }
+  // 3. Kiểm tra ngày cấp CCCD (Không được ở tương lai)
+  if (formData.ngayCapCccd) {
+    const issueDate = dayjs(formData.ngayCapCccd);
+    if (issueDate.isAfter(today)) {
+      errors.ngayCapCccd = "Ngày cấp không thể ở tương lai";
+      isValid = false;
+    }
+  }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!formData.email) { errors.email = 'Email không được để trống'; isValid = false; }
-  else if (!emailRegex.test(formData.email)) { errors.email = 'Email không hợp lệ'; isValid = false; }
+  // 4. Kiểm tra Mật khẩu (Chỉ bắt buộc khi thêm mới)
+  if (!props.staffId && (!formData.matKhauDangNhap || formData.matKhauDangNhap.length < 6)) {
+    errors.matKhauDangNhap = "Mật khẩu phải từ 6 ký tự";
+    isValid = false;
+  }
 
-  if (formData.gioiTinh === null) { errors.gioiTinh = 'Vui lòng chọn giới tính'; isValid = false; }
-  if (!formData.diaChi?.trim()) { errors.diaChi = 'Địa chỉ không được để trống'; isValid = false; }
+  // 5. Kiểm tra định dạng Email/SĐT/CCCD
+  if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+    errors.email = "Email không đúng định dạng";
+    isValid = false;
+  }
+  if (formData.sdtNhanVien && !/^\d{10}$/.test(formData.sdtNhanVien)) {
+    errors.sdtNhanVien = "SĐT phải gồm 10 chữ số";
+    isValid = false;
+  }
+  if (formData.soCccd && !/^\d{12}$/.test(formData.soCccd)) {
+    errors.soCccd = "CCCD phải gồm 12 chữ số";
+    isValid = false;
+  }
 
   return isValid;
 };
 
-const handleConfirmSave = () => {
-  if (validateAll()) {
-    if (confirm("Bạn có chắc chắn muốn thực hiện thao tác này?")) {
-      saveData();
-    }
+const handleSave = async () => {
+  if (!validateForm()) {
+    toast.error("Vui lòng hoàn thiện các trường còn thiếu!");
+    return;
   }
-};
 
-const saveData = async () => {
+  if (Object.values(errors).some(v => v && v.includes("tồn tại"))) {
+    toast.warning("Vui lòng xử lý các thông tin bị trùng lặp!");
+    return;
+  }
+
   try {
     loading.value = true;
-    const payload = { ...formData };
+    const data = new FormData();
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== null && formData[key] !== undefined) {
+        data.append(key, formData[key]);
+      }
+    });
+    if (selectedFile.value) data.append('hinhAnhFile', selectedFile.value);
+
     if (props.staffId) {
-      delete payload.matKhauDangNhap;
-      await staffService.update(props.staffId, payload);
-      alert("Cập nhật thành công!");
+      await staffService.update(props.staffId, data);
+      toast.success("Cập nhật thành công!");
     } else {
-      await staffService.create(payload);
-      alert("Thêm mới thành công!");
+      await staffService.create(data);
+      toast.success("Thêm nhân viên mới thành công!");
     }
+    
     emit('refresh');
     emit('close');
   } catch (error) {
-    alert("Có lỗi xảy ra: " + (error.response?.data?.message || "Lỗi kết nối"));
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleCancel = () => {
-  if (confirm("Dữ liệu sẽ không được lưu. Bạn có muốn thoát?")) {
-    emit('close');
-  }
+    toast.error(error.response?.data?.message || "Lỗi lưu dữ liệu");
+  } finally { loading.value = false; }
 };
 
 onMounted(async () => {
-  const roleRes = await staffService.getActiveRoles();
-  listRoles.value = roleRes.data;
-  if (props.staffId) {
-    const res = await staffService.getDetail(props.staffId);
-    Object.assign(formData, res.data);
-    formData.ngaySinh = res.data.ngaySinh ? dayjs(res.data.ngaySinh).format('YYYY-MM-DD') : '';
-    formData.ngayVaoLam = res.data.ngayVaoLam ? dayjs(res.data.ngayVaoLam).format('YYYY-MM-DD') : '';
+  try {
+    const roleRes = await staffService.getActiveRoles();
+    listRoles.value = roleRes.data;
+    
+    if (props.staffId) {
+      const res = await staffService.getDetail(props.staffId);
+      Object.assign(formData, res.data);
+      
+      // Định dạng ngày để hiển thị lên <input type="date">
+      formData.ngayCapCccd = res.data.ngayCapCccd ? dayjs(res.data.ngayCapCccd).format('YYYY-MM-DD') : '';
+      formData.ngaySinh = res.data.ngaySinh ? dayjs(res.data.ngaySinh).format('YYYY-MM-DD') : '';
+      
+      if (res.data.anhDaiDien) {
+         imagePreview.value = `http://localhost:8080/uploads/images/${res.data.anhDaiDien}`;
+      }
+    }
+  } catch (e) { 
+    toast.error("Không thể tải dữ liệu nhân viên"); 
   }
 });
 </script>
 
 <style scoped>
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 999; }
-.modal-box { background: #fff; width: 700px; border-radius: 8px; overflow: hidden; }
-.modal-header-custom { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-.title-modal { color: #7B121C; font-weight: bold; }
-.close-x { cursor: pointer; font-weight: bold; color: #aaa; }
-.modal-body-custom { padding: 20px; max-height: 80vh; overflow-y: auto; }
-.form-label-custom {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 5px;
-  
-  /* Các dòng quan trọng để không xuống hàng */
-  display: flex !important;      /* Sử dụng flex để các thành phần con nằm ngang */
-  align-items: center;           /* Căn giữa theo chiều dọc */
-  white-space: nowrap;           /* Ngăn văn bản tự động xuống dòng */
-  gap: 4px;                      /* Tạo khoảng cách nhỏ giữa chữ và dấu * */
-}.form-control, .form-select { border-radius: 5px; font-size: 14px; }
-.radio-red:checked { background-color: #7B121C; border-color: #7B121C; }
-.modal-footer-custom { padding: 15px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
-.btn-cancel { background: #e9ecef; border: none; padding: 8px 25px; border-radius: 5px; }
-.btn-submit { background: #7B121C; color: #fff; border: none; padding: 8px 25px; border-radius: 5px; }
-.text-danger { font-size: 12px; margin-top: 4px; display: block; font-style: italic; }
-.input-readonly { background: #f8f9fa !important; }
+/* Giữ nguyên phần Style bạn đã viết rất tốt ở trên */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
+.modal-box { background: #fff; width: 1000px; border-radius: 20px; overflow: hidden; animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes modalIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header-custom { padding: 20px 30px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+.title-modal { color: #800000; font-weight: 800; font-size: 1.3rem; }
+.close-x { font-size: 32px; cursor: pointer; color: #bbb; transition: 0.2s; }
+.close-x:hover { color: #800000; }
+.modal-body-custom { padding: 30px; max-height: 80vh; overflow-y: auto; }
+.avatar-wrapper { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #f8f9fa; margin: auto; overflow: hidden; position: relative; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-hint { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.5); color: #fff; font-size: 12px; padding: 5px 0; opacity: 0; transition: 0.3s; }
+.avatar-wrapper:hover .avatar-hint { opacity: 1; }
+.form-label-custom { font-weight: 700; font-size: 12px; color: #555; text-transform: uppercase; margin-bottom: 5px; }
+.star { color: #ff4d4f; }
+.custom-input { border-radius: 8px; padding: 10px; font-size: 14px; border: 1px solid #ddd; width: 100%; transition: 0.3s; }
+.custom-input:focus { border-color: #800000; outline: none; box-shadow: 0 0 0 3px rgba(128,0,0,0.1); }
+.error-text { color: #ff4d4f; font-size: 11px; margin-top: 4px; font-weight: 600; min-height: 15px; }
+.is-invalid { border-color: #ff4d4f !important; background-color: #fff2f0 !important; }
+.modal-footer-custom { padding: 20px 30px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
+.btn-main-custom { background: #800000; color: #fff; border: none; padding: 10px 30px; border-radius: 8px; font-weight: 700; transition: 0.3s; }
+.btn-main-custom:hover:not(:disabled) { background: #a00000; transform: translateY(-2px); }
+.btn-light-custom { background: #eee; color: #333; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 600; }
 </style>

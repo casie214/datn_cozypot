@@ -15,7 +15,6 @@ const routes = [
         name: "staffManager",
         component: () => import("@/pages/admin/staff/screens/staffManager.vue")
     },
-    // SỬA TẠI ĐÂY: Đổi path thành /admin/client cho đồng bộ với thư mục
     {
         path: "/admin/client", 
         name: "clientManager",
