@@ -22,10 +22,21 @@ const routes = [
         component: () => import("@/pages/admin/client/screens/clientManager.vue")
     },
     {
+        path: "/admin/promotion", 
+        name: "promotionManager",
+        component: () => import("@/pages/admin/promotion/screens/promotionManager.vue")
+    },
+    {
         path: "/test",
         name: "test",
         component: () => import("@/components/testConnection.vue")
     },
+    {
+        path: "/admin/voucher", 
+        name: "voucherManager",
+        component: () => import("@/pages/admin/voucher/screens/voucherManager.vue")
+    },
+    
 ];
 
 const router = createRouter({
