@@ -1652,10 +1652,37 @@ textarea {
     display: block;
 }
 
-/* Placeholder khi chưa có ảnh */
 .empty-placeholder {
     text-align: center;
     color: #aaa;
+}
+
+.btn-save-large {
+
+    padding: 12px 24px;
+
+    background: #8B0000;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 6px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    box-shadow: 0 2px 5px rgba(211, 47, 47, 0.3);
+
+}
+
+
+
+.btn-save-large:hover {
+
+    background: #b71c1c;
+
 }
 
 .empty-placeholder i {

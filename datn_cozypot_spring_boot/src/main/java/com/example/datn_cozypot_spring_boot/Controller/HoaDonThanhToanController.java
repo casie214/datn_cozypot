@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.Controller;
+package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
