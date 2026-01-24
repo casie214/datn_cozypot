@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -71,5 +73,12 @@ public class ChiTietMonAn {
 
     @OneToMany(mappedBy = "idChiTietMonAn")
     private Set<ChiTietHoaDon> chiTietHoaDons = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "chiTietMonAn")
+    @JsonIgnore
+    private List<ChiTietSetLau> cacSetLauChuaMonNay;
+
+    @Column(name = "url_hinh_anh", columnDefinition = "NVARCHAR(MAX)")
+    private String hinhAnh;
 
 }
