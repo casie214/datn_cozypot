@@ -259,6 +259,13 @@ public class PhieuGiamGiaService {
         dto.setSoLuong(p.getSoLuong());
         dto.setTrangThai(p.getTrangThai());
 
+        // 🔥 FIX QUAN TRỌNG
+        if (p.getDotKhuyenMai() != null) {
+            dto.setIdDotKhuyenMai(p.getDotKhuyenMai().getId());
+            dto.setTenDotKhuyenMai(p.getDotKhuyenMai().getTenDotKhuyenMai());
+        }
+
+
         // ⭐⭐ PHẦN QUAN TRỌNG NHẤT ⭐⭐
         if (p.getDanhSachCaNhan() != null) {
             List<KhachHangResponse> listKH = new ArrayList<>();
