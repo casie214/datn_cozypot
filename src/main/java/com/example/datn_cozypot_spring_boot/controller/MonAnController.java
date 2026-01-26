@@ -25,7 +25,6 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/manage/food")
-@CrossOrigin(origins = "http://localhost:5173")
 public class MonAnController {
     private final MonAnService monAnService;
 
