@@ -31,6 +31,7 @@ const {
               <input
                 type="text"
                 v-model="filters.search"
+                @change="handleSearch"
                 class="form-control"
                 placeholder="Mã ĐH, tên KH, SĐT"
               />
@@ -40,7 +41,7 @@ const {
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái hóa đơn</label
               >
-              <select v-model="filters.status" class="form-select">
+              <select v-model="filters.status" @change="handleSearch" class="form-select">
                 <option>Tất cả</option>
                 <option>Chờ nhận bàn</option>
                 <option>Đang phục vụ</option>
@@ -53,7 +54,7 @@ const {
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái Hoàn tiền</label
               >
-              <select v-model="filters.refundStatus" class="form-select">
+              <select v-model="filters.refundStatus" @change="handleSearch" class="form-select">
                 <option>Tất cả</option>
                 <option>Không cần hoàn</option>
                 <option>Chờ hoàn</option>
@@ -67,6 +68,7 @@ const {
               <input
                 type="date"
                 v-model="filters.fromDate"
+                @change="handleSearch"
                 class="form-control"
               />
             </div>
@@ -78,19 +80,13 @@ const {
               <input
                 type="date"
                 v-model="filters.toDate"
+                @change="handleSearch"
                 class="form-control"
               />
             </div>
 
             <div class="col-md-1">
               <div class="d-flex flex-column gap-1">
-                <button
-                  class="btn btn-custom-red btn-sm text-white w-100"
-                  @click="handleSearch"
-                  title="Tìm kiếm"
-                >
-                  <i class="fas fa-search"></i> Tìm
-                </button>
                 <button
                   class="btn btn-outline-custom btn-sm w-100"
                   @click="handleReset"

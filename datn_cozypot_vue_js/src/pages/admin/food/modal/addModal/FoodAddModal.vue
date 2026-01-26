@@ -1,32 +1,27 @@
 <script setup>
 import { useFoodAddScreen } from '../../../../../services/foodFunction';
-import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const {
     formData, listDanhMuc, filteredSubCategories, handleSave, goBack,
     listChiTiet, newDetail, addDetailToList, removeDetailFromList,
 
-    // Ảnh
     mainFileInput, handleMainFileUpload, triggerMainImageUpload,
     detailFileInput, handleDetailImageUpload, triggerDetailImageUpload,
 
-    dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose,
-
     // Dropdown Variables
     isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
-    isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, selectSubCategory, selectedSubCategoryName, closeAllDropdowns
+    isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
+
+    // Error Variables (Mới)
+    errors, detailErrors
 } = useFoodAddScreen();
 </script>
 
 <template>
     <div class="main-content" @click="closeAllDropdowns">
-        <GlobalDialogue :show="dialogVisible" :type="dialogConfig?.type" :variant="dialogConfig?.variant"
-            :title="dialogConfig?.title" :message="dialogConfig?.message" @close="handleDialogClose"
-            @confirm="handleDialogConfirm" />
-
         <div class="page-header">
             <div class="header-title">
-                <h1 style="color: #8B0000;">Thêm món ăn</h1>
+                <h1 style="color: #8B0000;">Thêm Món Ăn</h1>
             </div>
             <div class="header-actions">
                 <button class="btn-back" @click="goBack"><i class="fas fa-arrow-left"></i> Quay lại</button>
@@ -39,19 +34,23 @@ const {
 
                 <div class="form-group">
                     <label>Tên món ăn <span class="required">*</span></label>
-                    <input v-model="formData.tenMonAn" type="text" class="form-control" placeholder="Nhập tên món...">
+                    <input v-model="formData.tenMonAn" type="text" class="form-control"
+                        :class="{ 'invalid-border': errors.tenMonAn }" placeholder="Nhập tên món..."
+                        @input="errors.tenMonAn = ''">
+                    <span class="error-message" v-if="errors.tenMonAn">{{ errors.tenMonAn }}</span>
                 </div>
 
                 <div class="form-row-2">
                     <div class="form-group relative-container">
                         <label>Danh mục gốc <span class="required">*</span></label>
-
-                        <div class="custom-select-box" @click.stop="toggleCatDropdown">
+                        <div class="custom-select-box" :class="{ 'invalid-border': errors.idDanhMuc }"
+                            @click.stop="toggleCatDropdown">
                             <span :class="{ 'placeholder': !formData.idDanhMuc }">
                                 {{ selectedCategoryName || '-- Chọn danh mục --' }}
                             </span>
                             <i class="fas" :class="isCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                         </div>
+                        <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
 
                         <div v-if="isCatDropdownOpen" class="dropdown-list-container" @click.stop>
                             <div class="search-box-wrapper">
@@ -61,8 +60,8 @@ const {
                             <ul class="options-list">
                                 <li v-for="dm in filteredCategories" :key="dm.id" @click="selectCategory(dm)"
                                     :class="{ 'selected': formData.idDanhMuc === dm.id }">
-                                    {{ dm.tenDanhMuc }}
-                                    <i v-if="formData.idDanhMuc === dm.id" class="fas fa-check check-icon"></i>
+                                    {{ dm.tenDanhMuc }} <i v-if="formData.idDanhMuc === dm.id"
+                                        class="fas fa-check check-icon"></i>
                                 </li>
                                 <li v-if="filteredCategories.length === 0" class="no-result">Không tìm thấy kết quả.
                                 </li>
@@ -72,14 +71,15 @@ const {
 
                     <div class="form-group relative-container">
                         <label>Chi tiết <span class="required">*</span></label>
-
-                        <div class="custom-select-box" :class="{ 'disabled': !formData.idDanhMuc }"
+                        <div class="custom-select-box"
+                            :class="{ 'disabled': !formData.idDanhMuc, 'invalid-border': errors.idDanhMucChiTiet }"
                             @click.stop="toggleSubCatDropdown">
                             <span :class="{ 'placeholder': !formData.idDanhMucChiTiet }">
                                 {{ selectedSubCategoryName || '-- Chọn chi tiết --' }}
                             </span>
                             <i class="fas" :class="isSubCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                         </div>
+                        <span class="error-message" v-if="errors.idDanhMucChiTiet">{{ errors.idDanhMucChiTiet }}</span>
 
                         <div v-if="isSubCatDropdownOpen" class="dropdown-list-container" @click.stop>
                             <div class="search-box-wrapper">
@@ -89,8 +89,8 @@ const {
                             <ul class="options-list">
                                 <li v-for="sub in filteredSubCategories" :key="sub.id" @click="selectSubCategory(sub)"
                                     :class="{ 'selected': formData.idDanhMucChiTiet === sub.id }">
-                                    {{ sub.tenDanhMucChiTiet }}
-                                    <i v-if="formData.idDanhMucChiTiet === sub.id" class="fas fa-check check-icon"></i>
+                                    {{ sub.tenDanhMucChiTiet }} <i v-if="formData.idDanhMucChiTiet === sub.id"
+                                        class="fas fa-check check-icon"></i>
                                 </li>
                                 <li v-if="filteredSubCategories.length === 0" class="no-result">Không tìm thấy kết quả.
                                 </li>
@@ -104,15 +104,16 @@ const {
                     <input type="file" ref="mainFileInput" style="display: none" accept="image/*"
                         @change="handleMainFileUpload">
                     <div class="image-upload-wrapper">
-                        <div class="upload-btn-area" @click="triggerMainImageUpload">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <span>Chọn ảnh</span>
+                        <div class="upload-btn-area" :class="{ 'invalid-border': errors.hinhAnh }"
+                            @click="triggerMainImageUpload">
+                            <i class="fas fa-cloud-upload-alt"></i> <span>Chọn ảnh</span>
                         </div>
                         <div v-if="formData.hinhAnh" class="preview-box">
                             <img :src="formData.hinhAnh" alt="Preview">
                             <button class="btn-remove-img" @click.stop="formData.hinhAnh = ''">×</button>
                         </div>
                     </div>
+                    <span class="error-message" v-if="errors.hinhAnh">{{ errors.hinhAnh }}</span>
                 </div>
 
                 <div class="form-group">
@@ -131,17 +132,24 @@ const {
 
             <div class="card detail-info">
                 <h3 class="card-title">Thêm chi tiết món</h3>
+
                 <div class="add-detail-box">
                     <div class="detail-inputs-grid">
                         <div class="text-inputs">
                             <div class="input-wrap">
                                 <label>Tên chi tiết món <span class="required">*</span></label>
-                                <input v-model="newDetail.tenChiTietMonAn" type="text" placeholder="VD: Size L...">
+                                <input v-model="newDetail.tenChiTietMonAn" type="text" placeholder="VD: Size L..."
+                                    :class="{ 'invalid-border': detailErrors.tenChiTietMonAn }">
+                                <span class="error-message" v-if="detailErrors.tenChiTietMonAn">{{
+                                    detailErrors.tenChiTietMonAn }}</span>
                             </div>
                             <div class="row-inputs">
                                 <div class="input-wrap">
                                     <label>Kích cỡ <span class="required">*</span></label>
-                                    <input v-model="newDetail.kichCo" type="text" placeholder="S, M...">
+                                    <input v-model="newDetail.kichCo" type="text" placeholder="S, M..."
+                                        :class="{ 'invalid-border': detailErrors.kichCo }">
+                                    <span class="error-message" v-if="detailErrors.kichCo">{{ detailErrors.kichCo
+                                        }}</span>
                                 </div>
                                 <div class="input-wrap">
                                     <label>Đơn vị</label>
@@ -150,26 +158,32 @@ const {
                             </div>
                             <div class="input-wrap">
                                 <label>Giá bán <span class="required">*</span></label>
-                                <input v-model="newDetail.giaBan" type="number" placeholder="0">
+                                <input v-model="newDetail.giaBan" type="number" placeholder="0"
+                                    :class="{ 'invalid-border': detailErrors.giaBan }">
+                                <span class="error-message" v-if="detailErrors.giaBan">{{ detailErrors.giaBan }}</span>
                             </div>
                         </div>
 
                         <div class="detail-img-input">
-                            <label>Ảnh chi tiết món <span class="required">*</span></label>
+                            <label>Ảnh chi tiết <span class="required">*</span></label>
                             <input type="file" ref="detailFileInput" style="display: none" accept="image/*"
                                 @change="handleDetailImageUpload">
-                            <div class="upload-btn-area" @click="triggerDetailImageUpload">
+                            <div class="upload-btn-area" :class="{ 'invalid-border': detailErrors.hinhAnh }"
+                                @click="triggerDetailImageUpload">
                                 <img v-if="newDetail.hinhAnh" :src="newDetail.hinhAnh" class="mini-preview">
                                 <div v-else class="upload-placeholder">
-                                    <i class="fas fa-camera"></i>
-                                    <span>Tải ảnh</span>
+                                    <i class="fas fa-camera"></i> <span>Tải ảnh</span>
                                 </div>
                             </div>
+                            <span class="error-message" v-if="detailErrors.hinhAnh">{{ detailErrors.hinhAnh }}</span>
                         </div>
                     </div>
-                    <button class="btn-add-detail" @click="addDetailToList" style="margin-bottom: 15px;">
+                    <button class="btn-add-detail" @click="addDetailToList" style="margin-bottom: 5px;">
                         <i class="fas fa-plus-circle"></i> Thêm vào danh sách
                     </button>
+                    <div style="text-align: center;">
+                        <span class="error-message" v-if="errors.listChiTiet">{{ errors.listChiTiet }}</span>
+                    </div>
                 </div>
 
                 <div class="detail-table-container">
@@ -213,7 +227,21 @@ const {
 <style scoped>
 @import url("/src/assets/foodModalManager.css");
 
-/* CSS CHO DROPDOWN (NEW) */
+.invalid-border {
+    border: 1px solid #dc3545 !important;
+}
+
+.invalid-border:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 4px;
+    display: block;
+}
+
 .relative-container {
     position: relative;
 }
@@ -232,7 +260,6 @@ const {
     user-select: none;
     transition: border-color 0.2s;
     height: 42px;
-    /* Đồng bộ chiều cao với input thường */
 }
 
 .custom-select-box:hover {
@@ -244,10 +271,6 @@ const {
     color: #aaa;
     cursor: not-allowed;
     border-color: #ddd;
-}
-
-.placeholder {
-    color: #888;
 }
 
 .dropdown-list-container {
@@ -280,10 +303,6 @@ const {
     border-radius: 4px;
     outline: none;
     font-size: 13px;
-}
-
-.dropdown-search-input:focus {
-    border-color: #8B0000;
 }
 
 .options-list {
@@ -328,7 +347,6 @@ const {
     cursor: default;
 }
 
-/* CSS Cũ giữ nguyên */
 .image-upload-wrapper {
     display: flex;
     gap: 15px;
@@ -349,12 +367,6 @@ const {
     color: #666;
     background: #f9f9f9;
     transition: all 0.2s;
-}
-
-.upload-btn-area:hover {
-    border-color: #8B0000;
-    color: #8B0000;
-    background: #fff5f5;
 }
 
 .preview-box {
@@ -411,13 +423,6 @@ const {
     width: 100%;
     height: 100%;
     object-fit: contain;
-}
-
-.upload-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #aaa;
 }
 
 .btn-add-detail {
