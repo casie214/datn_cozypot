@@ -1,4 +1,5 @@
 package com.example.datn_cozypot_spring_boot.service;
+import com.example.datn_cozypot_spring_boot.dto.KhuyenMaiThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
 import com.example.datn_cozypot_spring_boot.repository.DotKhuyenMaiRepository;
 import jakarta.mail.internet.MimeMessage;
@@ -49,6 +50,16 @@ public class PhieuGiamGiaService {
     @Autowired
     private DotKhuyenMaiRepository dotKhuyenMaiRepo;
 
+    public KhuyenMaiThongKeResponse thongKeKhuyenMai() {
+        KhuyenMaiThongKeResponse res = new KhuyenMaiThongKeResponse();
+
+        res.setDangHoatDong(repo.countDangHoatDong());
+        res.setHetHan(repo.countHetHan());
+        res.setDaTat(repo.countDaTat());
+        res.setTongKhuyenMai(repo.countAll());
+
+        return res;
+    }
 
 
     // ============= TRUY VẤN NÂNG CAO =============
