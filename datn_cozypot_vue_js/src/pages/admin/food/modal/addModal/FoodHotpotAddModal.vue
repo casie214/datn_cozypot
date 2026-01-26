@@ -45,7 +45,7 @@ const getImg = (url) => {
         
         <div class="page-header">
             <div class="header-title">
-                <h1>Thêm Set Lẩu Mới</h1>
+                <h1>Thêm set lẩu mới</h1>
             </div>
             <button class="btn-back" @click="goBack">← Quay lại</button>
         </div>
@@ -130,7 +130,7 @@ const getImg = (url) => {
                                 <div class="food-name">{{ item.tenChiTietMonAn || item.tenDanhMucChiTiet }}</div>
                                 <div class="food-meta">
                                     <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
-                                    <span class="food-unit">/ {{ item.donVi }}</span>
+                                    <span class="food-unit">/ {{ item.kichCo }}</span>
                                 </div>
                             </div>
                             <button class="btn-add-mini">+</button>

@@ -33,7 +33,7 @@ const getImg = (url) => {
         />
     <div class="page-header">
       <div class="header-title">
-        <h1>{{ isViewMode ? 'Chi Tiết Set Lẩu' : 'Cập nhật Set Lẩu' }}</h1>
+        <h1>{{ isViewMode ? 'Chi tiết set lẩu' : 'Cập nhật set lẩu' }}</h1>
         <p class="subtitle">{{ isViewMode ? 'Xem thông tin chi tiết set lẩu' : 'Chỉnh sửa thông tin và thành phần món ăn' }}</p>
       </div>
       <button class="btn-back" @click="goBack">← Quay lại</button>

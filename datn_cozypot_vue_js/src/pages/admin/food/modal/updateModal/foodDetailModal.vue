@@ -6,7 +6,7 @@ const {
     formData, listMonAn, originalInfo, parentName, isLoading,
     searchQuery, sortOption, filteredMonAnList, selectParentFood,   
     handleUpdate, goBack, handleFileUpload, goToEdit,
-    isViewMode, // Lấy biến View Mode
+    isViewMode, getPriceRange,
     dialogVisible, dialogConfig, handleDialogConfirm, handleDialogClose
 } = useFoodDetailUpdate();
 
@@ -26,7 +26,7 @@ const getImg = (url) => {
 
     <div class="page-header">
         <div class="header-title">
-            <h1>{{ isViewMode ? 'Chi Tiết Biến Thể' : 'Cập nhật Biến Thể' }}</h1>
+            <h1>{{ isViewMode ? 'Chi tiết món ăn' : 'Cập nhật chi tiết món ăn' }}</h1>
             <p class="subtitle">{{ isViewMode ? 'Xem thông tin chi tiết' : 'Chỉnh sửa thông tin chi tiết món ăn' }}</p>
         </div>
         <div class="header-actions">
@@ -165,7 +165,9 @@ const getImg = (url) => {
                             <div class="food-info">
                                 <div class="food-name">{{ item.tenMonAn }}</div>
                                 <div class="food-meta">
-                                    <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
+                                    <span class="food-price-range">
+                                        {{ getPriceRange(item) }}
+                                    </span>
                                 </div>
                             </div>
                             
@@ -213,4 +215,13 @@ const getImg = (url) => {
     font-weight: 500;
 }
 .btn-primary:hover { background-color: #0056b3; }
+
+.food-price-range {
+    color: #d32f2f;
+    font-weight: bold;
+    font-size: 0.95em;
+    background: #ffebee;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
 </style>

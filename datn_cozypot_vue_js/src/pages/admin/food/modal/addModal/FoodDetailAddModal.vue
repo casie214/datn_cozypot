@@ -1,6 +1,6 @@
 <script setup>
 import { useFoodDetailAdd } from '../../../../../services/foodFunction';
-import GlobalDialogue from '../../../../../components/globalDialogue.vue'; // Import Dialog
+import GlobalDialogue from '../../../../../components/globalDialogue.vue'; 
 
 const {
     formData,
@@ -15,7 +15,8 @@ const {
     goBack,
     handleFileUpload,
 
-    // Lấy biến Dialog
+    getPriceRange,
+
     dialogVisible,
     dialogConfig,
     handleDialogConfirm,
@@ -44,7 +45,7 @@ const getImg = (url) => {
 
         <div class="page-header">
             <div class="header-title">
-                <h1>Thêm Chi Tiết Món Ăn</h1>
+                <h1>Thêm chi tiết món ăn</h1>
             </div>
             <button class="btn-back" @click="goBack">
                 <i class="fas fa-arrow-left"></i> Quay lại
@@ -163,7 +164,9 @@ const getImg = (url) => {
                             <div class="food-info">
                                 <div class="food-name">{{ item.tenMonAn }}</div>
                                 <div class="food-meta">
-                                    <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
+                                    <span class="food-price-range">
+                                        {{ getPriceRange(item) }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -189,4 +192,12 @@ const getImg = (url) => {
 
 <style scoped>
 @import url("/src/assets/foodModalManager.css");
+.food-price-range {
+    color: #d32f2f;
+    font-weight: bold;
+    font-size: 0.95em;
+    background: #ffebee;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
 </style>

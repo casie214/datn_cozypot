@@ -93,7 +93,7 @@ const handleEdit = (item) => {
       <button class="btn-add" @click="goToAddScreen">+ Thêm chi tiết món</button>
     </div>
 
-    <div class="table-container" style="min-height: 305px;">
+    <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
@@ -133,15 +133,16 @@ const handleEdit = (item) => {
               {{ item.trangThai ? 'Đang hoạt động' : 'Ngưng bán' }}
             </td>
             <td class="actions">
-              <button class="btn-icon view" title="Xem chi tiết" @click="handleView(item)">
-                👁️
-              </button>
+              <div class="action-group">
+                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
+                  @click="handleView(item)"></i>
 
-              <button class="btn-icon edit" title="Cập nhật" @click="handleEdit(item)">
-                ✏️
-              </button>
-              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }" @click.stop="handleToggleStatus(item)">
-                <div class="toggle-knob"></div>
+                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
+                  @click="handleEdit(item)"></i>
+
+                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
+                  @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
@@ -166,26 +167,17 @@ const handleEdit = (item) => {
 <style scoped src="/src/assets/foodManager.css"></style>
 
 <style scoped>
-/* Container bao ngoài slider */
 .slider-wrapper {
   width: 200px;
   padding: 0 10px;
   margin-top: 5px;
-
-  /* --- CÁCH 1: Dùng biến CSS (Khuyên dùng - Chuẩn nhất) --- */
   --slider-connect-bg: #d32f2f;
-  /* Màu thanh nối */
   --slider-tooltip-bg: #d32f2f;
-  /* Màu tooltip */
   --slider-handle-ring-color: rgba(211, 47, 47, 0.3);
-  /* Màu vòng focus */
   --slider-height: 6px;
-  /* Độ dày thanh */
 }
 
-/* Nếu Cách 1 không chạy (do phiên bản cũ), dùng Cách 2 dưới đây: */
 
-/* --- CÁCH 2: Dùng :deep (Ghi đè cưỡng bức) --- */
 :deep(.slider-connect) {
   background: #d32f2f !important;
 }
@@ -205,7 +197,6 @@ const handleEdit = (item) => {
   box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
 }
 
-/* Chỉnh lại layout ô lọc giá */
 .price-filter-item {
   display: flex;
   flex-direction: column;
@@ -217,5 +208,27 @@ const handleEdit = (item) => {
   font-weight: bold;
   color: #d32f2f;
   margin-left: 5px;
+}
+
+.actions {
+    height: 100%;
+    display: table-cell;
+}
+
+.action-group {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 15px;
+}
+
+.action-group i {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-group i:hover {
+    transform: scale(1.2);
 }
 </style>
