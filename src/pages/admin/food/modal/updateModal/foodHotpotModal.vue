@@ -3,13 +3,10 @@ import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useHotpotUpdate } from '../../../../../services/foodFunction';
 
 const {
-  formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
-  searchQuery, sortOption, filteredFoodList, addIngredient, removeIngredient,
-  hotpotInfo, handleUpdate, categoryName, goBack, isLoading, isViewMode, handleFileUpload,
-  dialogVisible,
-    dialogConfig,
-    handleDialogConfirm,
-    handleDialogClose
+    formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
+    searchQuery, sortOption, filteredFoodList, addIngredient, removeIngredient,
+    hotpotInfo, handleUpdate, categoryName, goBack, isLoading, isViewMode, handleFileUpload,
+    errors // Lấy biến errors
 } = useHotpotUpdate();
 
 const getImg = (url) => {
@@ -89,25 +86,34 @@ const getImg = (url) => {
         <div class="card">
           <h3>Thông tin chung</h3>
           <div class="form-container">
+            
             <div class="form-group">
               <label>Tên Set Lẩu <span class="required" v-if="!isViewMode">*</span></label>
-              <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text">
+              <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text"
+                  :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
+              <span class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</span>
             </div>
+
             <div class="form-group">
               <label>Loại Set</label>
-              <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control">
+              <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control"
+                  :class="{ 'invalid-border': errors.idLoaiSet }" @change="errors.idLoaiSet = ''">
                 <option v-for="cat in listLoaiSet" :key="cat.id" :value="cat.id">{{ cat.tenLoaiSet }}</option>
               </select>
+              <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
             </div>
+
             <div class="form-group">
               <label>Giá bán</label>
-              <input :disabled="isViewMode" v-model="formData.giaBan" type="number">
+              <input :disabled="isViewMode" v-model="formData.giaBan" type="number"
+                  :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+              <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
               <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
             </div>
             
             <div class="form-group">
               <label>Hình ảnh</label>
-              <div class="upload-container" v-if="!isViewMode">
+              <div class="upload-container" v-if="!isViewMode" :class="{ 'invalid-border': errors.hinhAnh }">
                 <label class="custom-file-upload">
                   <input type="file" accept="image/*" @change="handleFileUpload" />
                   <i class="fas fa-cloud-upload-alt"></i> Chọn ảnh từ máy
@@ -117,6 +123,7 @@ const getImg = (url) => {
               <div class="image-preview-box" v-if="formData.hinhAnh">
                 <img :src="formData.hinhAnh" alt="Preview" class="preview-img">
               </div>
+              <span class="error-message" v-if="errors.hinhAnh">{{ errors.hinhAnh }}</span>
             </div>
 
             <div class="form-group">

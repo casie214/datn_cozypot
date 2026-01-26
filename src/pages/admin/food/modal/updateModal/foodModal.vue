@@ -5,11 +5,10 @@ import { useFoodUpdate } from '../../../../../services/foodFunction';
 const {
   isViewMode, isLoading, formData, foodInfo, variants, categoryName,
   handleUpdate, goBack, goToAddDetail, handleToggleDetailStatus,
-  dialogVisible, dialogConfig, handleDialogConfirm, handleDialogClose,
   fileInputRef, triggerFileInput, handleFileUpload, removeImage,
-
   isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
-  isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns
+  isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
+  errors
 } = useFoodUpdate();
 
 const getImg = (url) => {
@@ -72,90 +71,87 @@ const getImg = (url) => {
           <div class="card">
             <h3>Thông tin chung</h3>
             <div class="form-container">
-              
+
               <div class="form-group">
                 <label>Tên món ăn <span class="required" v-if="!isViewMode">*</span></label>
-                <input :disabled="isViewMode" v-model="formData.tenMonAn" type="text">
+                <input :disabled="isViewMode" v-model="formData.tenMonAn" type="text"
+                  :class="{ 'invalid-border': errors.tenMonAn }" @input="errors.tenMonAn = ''">
+                <span class="error-message" v-if="errors.tenMonAn">{{ errors.tenMonAn }}</span>
               </div>
 
               <div class="form-row-2">
-                
-                <div class="form-group relative-container">
-                    <label>Danh mục gốc</label>
-                    
-                    <div class="custom-select-box" 
-                         :class="{ 'disabled': isViewMode }"
-                         @click.stop="toggleCatDropdown">
-                        <span :class="{ 'placeholder': !formData.idDanhMuc }">
-                            {{ selectedCategoryName || '-- Chọn danh mục --' }}
-                        </span>
-                        <i class="fas" :class="isCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    <div class="form-group relative-container">
+                        <label>Danh mục gốc <span class="required">*</span></label>
+                        <div class="custom-select-box" :class="{ 'invalid-border': errors.idDanhMuc }"
+                            @click.stop="toggleCatDropdown">
+                            <span :class="{ 'placeholder': !formData.idDanhMuc }">
+                                {{ selectedCategoryName || '-- Chọn danh mục --' }}
+                            </span>
+                            <i class="fas" :class="isCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </div>
+                        <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
+
+                        <div v-if="isCatDropdownOpen" class="dropdown-list-container" @click.stop>
+                            <div class="search-box-wrapper">
+                                <input v-model="catSearchQuery" type="text" class="dropdown-search-input"
+                                    placeholder="🔍 Tìm kiếm..." autofocus>
+                            </div>
+                            <ul class="options-list">
+                                <li v-for="dm in filteredCategories" :key="dm.id" @click="selectCategory(dm)"
+                                    :class="{ 'selected': formData.idDanhMuc === dm.id }">
+                                    {{ dm.tenDanhMuc }} <i v-if="formData.idDanhMuc === dm.id"
+                                        class="fas fa-check check-icon"></i>
+                                </li>
+                                <li v-if="filteredCategories.length === 0" class="no-result">Không tìm thấy kết quả.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
 
-                    <div v-if="isCatDropdownOpen" class="dropdown-list-container" @click.stop>
-                        <div class="search-box-wrapper">
-                            <input v-model="catSearchQuery" type="text" class="dropdown-search-input" placeholder="🔍 Tìm kiếm..." autofocus>
+                    <div class="form-group relative-container">
+                        <label>Chi tiết <span class="required">*</span></label>
+                        <div class="custom-select-box"
+                            :class="{ 'disabled': !formData.idDanhMuc, 'invalid-border': errors.idDanhMucChiTiet }"
+                            @click.stop="toggleSubCatDropdown">
+                            <span :class="{ 'placeholder': !formData.idDanhMucChiTiet }">
+                                {{ selectedSubCategoryName || '-- Chọn chi tiết --' }}
+                            </span>
+                            <i class="fas" :class="isSubCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                         </div>
-                        <ul class="options-list">
-                            <li v-for="dm in filteredCategories" :key="dm.id" @click="selectCategory(dm)"
-                                :class="{ 'selected': formData.idDanhMuc === dm.id }">
-                                {{ dm.tenDanhMuc }}
-                                <i v-if="formData.idDanhMuc === dm.id" class="fas fa-check check-icon"></i>
-                            </li>
-                            <li v-if="filteredCategories.length === 0" class="no-result">Không tìm thấy kết quả.</li>
-                        </ul>
+                        <span class="error-message" v-if="errors.idDanhMucChiTiet">{{ errors.idDanhMucChiTiet }}</span>
+
+                        <div v-if="isSubCatDropdownOpen" class="dropdown-list-container" @click.stop>
+                            <div class="search-box-wrapper">
+                                <input v-model="subCatSearchQuery" type="text" class="dropdown-search-input"
+                                    placeholder="🔍 Tìm kiếm..." autofocus>
+                            </div>
+                            <ul class="options-list">
+                                <li v-for="sub in filteredSubCategories" :key="sub.id" @click="selectSubCategory(sub)"
+                                    :class="{ 'selected': formData.idDanhMucChiTiet === sub.id }">
+                                    {{ sub.tenDanhMucChiTiet }} <i v-if="formData.idDanhMucChiTiet === sub.id"
+                                        class="fas fa-check check-icon"></i>
+                                </li>
+                                <li v-if="filteredSubCategories.length === 0" class="no-result">Không tìm thấy kết quả.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-group relative-container">
-                    <label>Chi tiết</label>
-                    
-                    <div class="custom-select-box" 
-                         :class="{ 'disabled': isViewMode || !formData.idDanhMuc }"
-                         @click.stop="toggleSubCatDropdown">
-                        <span :class="{ 'placeholder': !formData.idDanhMucChiTiet }">
-                            {{ selectedSubCategoryName || '-- Chọn chi tiết --' }}
-                        </span>
-                        <i class="fas" :class="isSubCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                    </div>
-
-                    <div v-if="isSubCatDropdownOpen" class="dropdown-list-container" @click.stop>
-                        <div class="search-box-wrapper">
-                            <input v-model="subCatSearchQuery" type="text" class="dropdown-search-input" placeholder="🔍 Tìm kiếm..." autofocus>
-                        </div>
-                        <ul class="options-list">
-                            <li v-for="sub in filteredSubCategories" :key="sub.id" @click="selectSubCategory(sub)"
-                                :class="{ 'selected': formData.idDanhMucChiTiet === sub.id }">
-                                {{ sub.tenDanhMucChiTiet }}
-                                <i v-if="formData.idDanhMucChiTiet === sub.id" class="fas fa-check check-icon"></i>
-                            </li>
-                            <li v-if="filteredSubCategories.length === 0" class="no-result">Không tìm thấy kết quả.</li>
-                        </ul>
-                    </div>
-                </div>
-
-              </div>
 
               <div class="form-group">
                 <label>Hình ảnh</label>
                 <div class="image-action-bar" v-if="!isViewMode">
-                    </div>
-                 <div class="image-preview-container" :class="{ 'has-image': formData.hinhAnh }">
-                    <img v-if="formData.hinhAnh" :src="getImg(formData.hinhAnh)">
-                 </div>
-              </div>
-              
-              <div class="form-group">
-                 <label>Mô tả</label>
-                 <textarea :disabled="isViewMode" v-model="formData.moTa" rows="3" class="form-control"></textarea>
-              </div>
-
-              <div class="form-group">
-                 <label>Trạng thái</label>
-                 <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }" @click="!isViewMode && (formData.trangThaiKinhDoanh = formData.trangThaiKinhDoanh === 1 ? 0 : 1)">
-                    <div class="toggle-switch" :class="{ 'on': formData.trangThaiKinhDoanh === 1 }"><div class="toggle-knob"></div></div>
-                    <span>{{ formData.trangThaiKinhDoanh === 1 ? 'Đang hoạt động' : 'Ngưng' }}</span>
-                 </div>
+                  <input type="file" ref="fileInputRef" accept="image/*" class="hidden-input"
+                    @change="handleFileUpload" />
+                  <button type="button" class="btn-action btn-upload" :class="{ 'invalid-border': errors.hinhAnh }"
+                    @click="triggerFileInput">
+                    <i class="fas fa-cloud-upload-alt"></i> Thay đổi ảnh
+                  </button>
+                </div>
+                <div class="image-preview-container" :class="{ 'has-image': formData.hinhAnh }">
+                  <img v-if="formData.hinhAnh" :src="getImg(formData.hinhAnh)">
+                </div>
+                <span class="error-message" v-if="errors.hinhAnh">{{ errors.hinhAnh }}</span>
               </div>
 
             </div>
@@ -226,29 +222,128 @@ const getImg = (url) => {
   }
 }
 
-.relative-container { position: relative; }
+.relative-container {
+  position: relative;
+}
+
 .custom-select-box {
-    width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
-    background: #fff; cursor: pointer; display: flex; justify-content: space-between;
-    align-items: center; font-size: 14px; user-select: none; transition: border-color 0.2s;
-    height: 42px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  user-select: none;
+  transition: border-color 0.2s;
+  height: 42px;
 }
-.custom-select-box:hover { border-color: #8B0000; }
-.custom-select-box.disabled { background-color: #f5f5f5; color: #aaa; cursor: not-allowed; border-color: #ddd; pointer-events: none; }
-.placeholder { color: #888; }
+
+.custom-select-box:hover {
+  border-color: #8B0000;
+}
+
+.custom-select-box.disabled {
+  background-color: #f5f5f5;
+  color: #aaa;
+  cursor: not-allowed;
+  border-color: #ddd;
+  pointer-events: none;
+}
+
+.placeholder {
+  color: #888;
+}
+
 .dropdown-list-container {
-    position: absolute; top: 100%; left: 0; width: 100%; max-height: 250px;
-    background: white; border: 1px solid #ccc; border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 100; margin-top: 5px;
-    display: flex; flex-direction: column; overflow: hidden;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 250px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.search-box-wrapper { padding: 8px; border-bottom: 1px solid #eee; background: #f9f9f9; }
-.dropdown-search-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; outline: none; font-size: 13px; }
-.dropdown-search-input:focus { border-color: #8B0000; }
-.options-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
-.options-list li { padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; font-size: 14px; }
-.options-list li:hover { background-color: #fce8e8; color: #8B0000; }
-.options-list li.selected { background-color: #fdecec; color: #8B0000; font-weight: bold; }
-.check-icon { color: #8B0000; font-size: 12px; }
-.no-result { padding: 15px; text-align: center; color: #888; font-style: italic; cursor: default; }
+
+.search-box-wrapper {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  background: #f9f9f9;
+}
+
+.dropdown-search-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  outline: none;
+  font-size: 13px;
+}
+
+.dropdown-search-input:focus {
+  border-color: #8B0000;
+}
+
+.options-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.options-list li {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.options-list li:hover {
+  background-color: #fce8e8;
+  color: #8B0000;
+}
+
+.options-list li.selected {
+  background-color: #fdecec;
+  color: #8B0000;
+  font-weight: bold;
+}
+
+.check-icon {
+  color: #8B0000;
+  font-size: 12px;
+}
+
+.no-result {
+  padding: 15px;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  cursor: default;
+}
+
+.invalid-border {
+  border: 1px solid #dc3545 !important;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.85em;
+  margin-top: 4px;
+  display: block;
+}
 </style>

@@ -1517,7 +1517,12 @@ textarea {
 }
 
 .action-footer {
-    margin-top: auto;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
 }
 
 .btn-save:hover {

@@ -1,6 +1,6 @@
 <script setup>
 import { useFoodDetailAdd } from '../../../../../services/foodFunction';
-import GlobalDialogue from '../../../../../components/globalDialogue.vue'; 
+import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
 const {
     formData,
@@ -14,13 +14,8 @@ const {
     handleSave,
     goBack,
     handleFileUpload,
-
     getPriceRange,
-
-    dialogVisible,
-    dialogConfig,
-    handleDialogConfirm,
-    handleDialogClose
+    errors // Lấy biến error
 } = useFoodDetailAdd();
 
 const getImg = (url) => {
@@ -32,17 +27,6 @@ const getImg = (url) => {
 
 <template>
     <div class="main-content">
-        
-        <GlobalDialogue 
-            :show="dialogVisible"
-            :type="dialogConfig?.type"
-            :variant="dialogConfig?.variant"
-            :title="dialogConfig?.title"
-            :message="dialogConfig?.message"
-            @close="handleDialogClose"
-            @confirm="handleDialogConfirm"
-        />
-
         <div class="page-header">
             <div class="header-title">
                 <h1>Thêm chi tiết món ăn</h1>
@@ -62,23 +46,29 @@ const getImg = (url) => {
                         <div class="form-group">
                             <label>Thuộc món ăn <span class="required">*</span></label>
                             <div class="selected-display"
-                                :class="{ 'locked': isParentLocked, 'has-data': formData.idMonAnDiKem }">
+                                :class="{ 'locked': isParentLocked, 'has-data': formData.idMonAnDiKem, 'invalid-border': errors.idMonAnDiKem }">
                                 <span v-if="formData.idMonAnDiKem">
-                                    {{ listMonAn.find(f => f.id === formData.idMonAnDiKem)?.tenMonAn || parentFoodName || 'Đang tải...' }}
+                                    {{listMonAn.find(f => f.id === formData.idMonAnDiKem)?.tenMonAn || parentFoodName
+                                    || 'Đang tải...' }}
                                 </span>
                                 <span v-else class="placeholder-text">
                                     <i class="fas fa-arrow-right"></i> Chọn món từ danh sách bên phải
                                 </span>
                                 <i v-if="formData.idMonAnDiKem" class="fas fa-check-circle check-icon"></i>
                             </div>
-                            <small v-if="isParentLocked" class="hint-text">
-                                *Đang thêm chi tiết cho món: <b>{{ parentFoodName }}</b> (Đã khóa)
-                            </small>
+                            <span class="error-message" v-if="errors.idMonAnDiKem">{{ errors.idMonAnDiKem }}</span>
+                            <small v-if="isParentLocked" class="hint-text">*Đang thêm chi tiết cho món: <b>{{
+                                    parentFoodName }}</b> (Đã khóa)</small>
                         </div>
 
                         <div class="form-group">
                             <label>Tên chi tiết <span class="required">*</span></label>
-                            <input v-model="formData.tenChiTietMonAn" type="text" placeholder="VD: Size L, Thêm trứng...">
+                            <input v-model="formData.tenChiTietMonAn" type="text"
+                                placeholder="VD: Size L, Thêm trứng..."
+                                :class="{ 'invalid-border': errors.tenChiTietMonAn }"
+                                @input="errors.tenChiTietMonAn = ''">
+                            <span class="error-message" v-if="errors.tenChiTietMonAn">{{ errors.tenChiTietMonAn
+                                }}</span>
                         </div>
 
                         <div class="form-row-2">
@@ -87,8 +77,10 @@ const getImg = (url) => {
                                 <input v-model="formData.giaVon" type="number" placeholder="0">
                             </div>
                             <div class="form-group">
-                                <label>Giá bán (VNĐ)</label>
-                                <input v-model="formData.giaBan" type="number" placeholder="0">
+                                <label>Giá bán (VNĐ) <span class="required">*</span></label>
+                                <input v-model="formData.giaBan" type="number" placeholder="0"
+                                    :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+                                <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
                             </div>
                         </div>
 
@@ -99,19 +91,22 @@ const getImg = (url) => {
 
                         <div class="form-row-2">
                             <div class="form-group">
-                                <label>Kích cỡ</label>
-                                <input v-model="formData.kichCo" type="text">
+                                <label>Kích cỡ <span class="required">*</span></label>
+                                <input v-model="formData.kichCo" type="text"
+                                    :class="{ 'invalid-border': errors.kichCo }" @input="errors.kichCo = ''">
+                                <span class="error-message" v-if="errors.kichCo">{{ errors.kichCo }}</span>
                             </div>
                             <div class="form-group">
-                                <label>Đơn vị tính</label>
-                                <input v-model="formData.donVi" type="text">
+                                <label>Đơn vị tính <span class="required">*</span></label>
+                                <input v-model="formData.donVi" type="text" :class="{ 'invalid-border': errors.donVi }"
+                                    @input="errors.donVi = ''">
+                                <span class="error-message" v-if="errors.donVi">{{ errors.donVi }}</span>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>Trạng thái</label>
-                            <div class="toggle-wrapper" 
-                                 @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
+                            <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
                                     <div class="toggle-knob"></div>
                                 </div>
@@ -120,14 +115,15 @@ const getImg = (url) => {
                         </div>
 
                         <div class="form-group">
-                            <label>Hình ảnh minh họa</label>
+                            <label>Hình ảnh minh họa <span class="required">*</span></label>
                             <div class="upload-box-wrapper">
-                                <div class="upload-container">
+                                <div class="upload-container" :class="{ 'invalid-border': errors.hinhAnh }">
                                     <label class="custom-file-upload">
                                         <input type="file" accept="image/*" @change="handleFileUpload" />
                                         <i class="fas fa-cloud-upload-alt"></i> Chọn ảnh
                                     </label>
-                                    <button v-if="formData.hinhAnh" class="btn-clear-img" @click="formData.hinhAnh = ''">
+                                    <button v-if="formData.hinhAnh" class="btn-clear-img"
+                                        @click="formData.hinhAnh = ''">
                                         <i class="fas fa-trash"></i> Xóa
                                     </button>
                                 </div>
@@ -135,6 +131,7 @@ const getImg = (url) => {
                                     <img :src="formData.hinhAnh" class="large-preview-img">
                                 </div>
                             </div>
+                            <span class="error-message" v-if="errors.hinhAnh">{{ errors.hinhAnh }}</span>
                         </div>
 
                     </div>
@@ -182,7 +179,7 @@ const getImg = (url) => {
                 </div>
 
                 <div class="page-footer">
-                    <button class="btn-cancel-large" @click="goBack">Hủy bỏ</button>    
+                    <button class="btn-cancel-large" @click="goBack">Hủy bỏ</button>
                     <button class="btn-large btn-save full-width" @click="handleSave">Lưu chi tiết</button>
                 </div>
             </div>
@@ -192,6 +189,27 @@ const getImg = (url) => {
 
 <style scoped>
 @import url("/src/assets/foodModalManager.css");
+
+.food-price-range {
+    color: #d32f2f;
+    font-weight: bold;
+    font-size: 0.95em;
+    background: #ffebee;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.invalid-border {
+    border: 1px solid #dc3545 !important;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 4px;
+    display: block;
+}
+
 .food-price-range {
     color: #d32f2f;
     font-weight: bold;
