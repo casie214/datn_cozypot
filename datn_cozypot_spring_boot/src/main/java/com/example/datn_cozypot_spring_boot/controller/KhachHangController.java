@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/khach-hang")
-@CrossOrigin(origins = "http://localhost:5173")
 public class KhachHangController {
 
     @Autowired

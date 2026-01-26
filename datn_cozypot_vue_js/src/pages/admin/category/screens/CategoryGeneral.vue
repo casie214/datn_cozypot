@@ -59,7 +59,7 @@ const addFormData = ref({});
       <button class="btn-add" @click="isModalOpen = true">+ Thêm danh mục</button>
     </div>
 
-    <div class="table-container" style="min-height: 305px;">
+    <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
@@ -90,10 +90,13 @@ const addFormData = ref({});
             </td>
             
             <td class="actions">
-              <button class="btn-icon" @click="openModal(item)">✏️</button>
-              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }"
-                   @click.stop="handleToggleStatus(item)">
-                <div class="toggle-knob"></div>
+              <div class="action-group">
+                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
+                  @click="openModal(item)"></i>
+
+                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
+                  @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
@@ -121,4 +124,25 @@ const addFormData = ref({});
 
 <style scoped>
 @import url("/src/assets/foodManager.css");
+.actions {
+    height: 100%;
+    display: table-cell;
+}
+
+.action-group {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 15px;
+}
+
+.action-group i {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-group i:hover {
+    transform: scale(1.2);
+}
 </style>
