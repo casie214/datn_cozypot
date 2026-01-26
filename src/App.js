@@ -34,6 +34,11 @@ const routes = [
         component: () => import("@/pages/admin/client/screens/clientManager.vue")
     },
     {
+        path: "/admin/promotion", 
+        name: "promotionManager",
+        component: () => import("@/pages/admin/promotion/screens/promotionManager.vue")
+    },
+    {
         path: "/test",
         name: "test",
         component: () =>
@@ -149,6 +154,17 @@ const routes = [
         name: "addFoodScreen",
         component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
     },
+    {
+  path: '/admin/voucher',
+  name: 'AdminVoucher',
+  component: () => import('@/pages/admin/voucher/screens/voucherManager.vue')
+},
+    {
+        path: "/admin/promotions", 
+        name: "voucherManager",
+        component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue")
+    },
+    
 ];
 
 const router = createRouter({
