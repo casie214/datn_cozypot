@@ -13,7 +13,6 @@ import java.util.Optional;
 
 @Repository
 public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Integer> {
-    boolean existsByCodeGiamGiaAndIdNot(String codeGiamGia, Integer id);
 
     @Query("SELECT p FROM PhieuGiamGia p WHERE " +
             "(:keyword IS NULL OR p.codeGiamGia LIKE %:keyword% OR p.tenPhieuGiamGia LIKE %:keyword%) " +
@@ -34,6 +33,41 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
 
     @Query("SELECT p FROM PhieuGiamGia p LEFT JOIN FETCH p.danhSachCaNhan WHERE p.id = :id")
     Optional<PhieuGiamGia> findDetailById(@Param("id") Integer id);
+    boolean existsByCodeGiamGia(String codeGiamGia);
+    boolean existsByTenPhieuGiamGia(String tenPhieuGiamGia);
+
+    boolean existsByCodeGiamGiaAndIdNot(String codeGiamGia, Integer id);
+    boolean existsByTenPhieuGiamGiaAndIdNot(String tenPhieuGiamGia, Integer id);
+
+
+    // Tổng số
+    @Query("SELECT COUNT(p) FROM PhieuGiamGia p")
+    long countAll();
+
+    // Đang hoạt động (chưa hết hạn + trạng thái = 1)
+    @Query("""
+        SELECT COUNT(p) 
+        FROM PhieuGiamGia p 
+        WHERE p.trangThai = 1 
+        AND p.ngayKetThuc >= CURRENT_TIMESTAMP
+    """)
+    long countDangHoatDong();
+
+    // Hết hạn
+    @Query("""
+        SELECT COUNT(p) 
+        FROM PhieuGiamGia p 
+        WHERE p.ngayKetThuc < CURRENT_TIMESTAMP
+    """)
+    long countHetHan();
+
+    // Tắt
+    @Query("""
+        SELECT COUNT(p) 
+        FROM PhieuGiamGia p 
+        WHERE p.trangThai = 0
+    """)
+    long countDaTat();
 
 
 }

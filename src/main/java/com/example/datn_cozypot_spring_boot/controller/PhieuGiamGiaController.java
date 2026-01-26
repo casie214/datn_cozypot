@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
+import com.example.datn_cozypot_spring_boot.dto.KhuyenMaiThongKeResponse;
 import com.example.datn_cozypot_spring_boot.dto.PhieuGiamGiaDTO;
 import com.example.datn_cozypot_spring_boot.dto.PhieuGiamGiaResponseDTO;
 import com.example.datn_cozypot_spring_boot.entity.PhieuGiamGia;
@@ -58,18 +59,10 @@ public class PhieuGiamGiaController {
         service.create(dto);
         return ResponseEntity.ok("Thêm phiếu giảm giá thành công");
     }
-
-
-
-
-
-
-
-
-
-
-
-    // ============= UPDATE =============
+    @GetMapping("/thong-ke")
+    public KhuyenMaiThongKeResponse thongKe() {
+        return service.thongKeKhuyenMai();
+    }   // ============= UPDATE =============
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
