@@ -1,5 +1,5 @@
 <script setup>
-import { useRouter } from 'vue-router'; 
+import { useRouter } from 'vue-router';
 import { useHotpotManager } from '../../../../services/foodFunction';
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
@@ -7,29 +7,29 @@ import "@vueform/slider/themes/default.css";
 const router = useRouter();
 
 const {
-  getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages, 
-  visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes, 
+  getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages,
+  visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes,
   clearFilters, selectedPriceRange, globalMinPrice, globalMaxPrice, handleToggleStatus
 } = useHotpotManager();
 
 const goToAddScreen = () => {
-    router.push({ name: 'addHotpotSet' });
+  router.push({ name: 'addHotpotSet' });
 };
 
 // --- HÀM MỚI: Xem chi tiết ---
 const handleViewDetail = (item) => {
-    router.push({ 
-        name: 'viewHotpotSet', 
-        params: { id: item.id } 
-    });
+  router.push({
+    name: 'viewHotpotSet',
+    params: { id: item.id }
+  });
 };
 
 // --- HÀM MỚI: Chỉnh sửa ---
 const handleEdit = (item) => {
-    router.push({ 
-        name: 'updateHotpotSet', 
-        params: { id: item.id } 
-    });
+  router.push({
+    name: 'updateHotpotSet',
+    params: { id: item.id }
+  });
 };
 </script>
 
@@ -40,76 +40,62 @@ const handleEdit = (item) => {
         <div class="filter-item search">
           <label>Tìm kiếm</label>
           <div class="input-group">
-            <input v-model="searchQuery" type="text" class="form-search form-control" placeholder="Tìm kiếm set lẩu (mã, tên)" />
+            <input v-model="searchQuery" type="text" class="form-search form-control"
+              placeholder="Tìm kiếm set lẩu (mã, tên)" />
             <button class="search-btn">🔍</button>
           </div>
         </div>
 
         <div class="filter-item">
-            <label>Trạng thái</label>
-            <select v-model="statusFilter" class="form-control">
-                <option value="all">Tất cả</option>
-                <option value="1">Đang kinh doanh</option>
-                <option value="0">Ngưng kinh doanh</option>
-            </select>
+          <label>Trạng thái</label>
+          <select v-model="statusFilter" class="form-control">
+            <option value="all">Tất cả</option>
+            <option value="1">Đang kinh doanh</option>
+            <option value="0">Ngưng kinh doanh</option>
+          </select>
         </div>
 
         <div class="filter-item">
-            <label>Loại set lẩu</label>
-            <select v-model="typeFilter" class="form-control">
-                <option value="all">Tất cả</option>
-                <option v-for="type in uniqueTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
-            </select>
+          <label>Loại set lẩu</label>
+          <select v-model="typeFilter" class="form-control">
+            <option value="all">Tất cả</option>
+            <option v-for="type in uniqueTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
+          </select>
         </div>
-        
+
         <div class="filter-item">
-            <label>Sắp xếp theo</label>
-            <select v-model="sortOption" class="form-control">
-                <option value="newest">Mới nhất</option>
-                <option value="name_asc">Tên (A-Z)</option>
-                <option value="price_asc">Giá tăng dần</option>
-                <option value="price_desc">Giá giảm dần</option>
-            </select>
+          <label>Sắp xếp theo</label>
+          <select v-model="sortOption" class="form-control">
+            <option value="newest">Mới nhất</option>
+            <option value="name_asc">Tên (A-Z)</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
         </div>
 
         <div class="filter-item price-filter-item">
-            <div class="" style="display: flex; flex-direction: row; justify-content: space-between;">
-              <label>
-                  Khoảng giá:
-                  <span class="price-range-text">
-                      {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
-                  </span>
-              </label>
-              <div class="slider-wrapper" v-if="globalMaxPrice > 0">
-                  <Slider 
-                      v-model="selectedPriceRange" 
-                      :min="globalMinPrice" 
-                      :max="globalMaxPrice" 
-                      :step="10000"
-                      :tooltips="false" 
-                  />
-              </div>
-              <div v-else class="loading-text">Đang tải...</div>
+          <div class="" style="display: flex; flex-direction: row; justify-content: space-between;">
+            <label>
+              Khoảng giá:
+              <span class="price-range-text">
+                {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+              </span>
+            </label>
+            <div class="slider-wrapper" v-if="globalMaxPrice > 0">
+              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="10000"
+                :tooltips="false" />
             </div>
-            <div class="price-inputs">
-             <input 
-                type="number" 
-                v-model="selectedPriceRange[0]" 
-                @change="handleMinChange"
-                class="price-input-small"
-                placeholder="Từ"
-             >
-             <span class="separator">-</span>
-             <input 
-                type="number" 
-                v-model="selectedPriceRange[1]" 
-                @change="handleMaxChange"
-                class="price-input-small"
-                placeholder="Đến"
-             >
+            <div v-else class="loading-text">Đang tải...</div>
+          </div>
+          <div class="price-inputs">
+            <input type="number" v-model="selectedPriceRange[0]" @change="handleMinChange" class="price-input-small"
+              placeholder="Từ">
+            <span class="separator">-</span>
+            <input type="number" v-model="selectedPriceRange[1]" @change="handleMaxChange" class="price-input-small"
+              placeholder="Đến">
           </div>
         </div>
-        
+
         <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
       </div>
     </div>
@@ -118,7 +104,7 @@ const handleEdit = (item) => {
       <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
     </div>
 
-    <div class="table-container" style="min-height: 305px;">
+    <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
@@ -138,69 +124,57 @@ const handleEdit = (item) => {
             <td><b>{{ item.tenSetLau }}</b></td>
             <td style="color:#d32f2f"><b>{{ item.giaBan?.toLocaleString() }} đ</b></td>
             <td>{{ item.tenLoaiSet }}</td>
-            
+
             <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
-            
+
             <td class="actions">
-              <button class="btn-icon view" title="Xem chi tiết" @click="handleViewDetail(item)">
-                👁️
-              </button>
+              <div class="action-group">
+                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
+                  @click="handleViewDetail(item)"></i>
 
-              <button class="btn-icon edit" title="Cập nhật" @click="handleEdit(item)">
-                ✏️
-              </button>
+                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
+                  @click="handleEdit(item)"></i>
 
-              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }"
-                   @click.stop="handleToggleStatus(item)">
-                   <div class="toggle-knob"></div>
+                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
+                  @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
 
           <tr v-if="paginatedData.length === 0">
-                    <td colspan="8" class="empty-state-cell">
-                        <div class="empty-state-content">
-                            <div class="empty-icon">🍜</div>
-                            <h3>Không tìm thấy món nào!</h3>
-                            <p>Thử thay đổi bộ lọc hoặc tìm kiếm từ khóa khác xem sao nhé.</p>
-                            <button class="btn-reset-empty" @click="clearFilters">
-                                Xóa bộ lọc
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+            <td colspan="8" class="empty-state-cell">
+              <div class="empty-state-content">
+                <div class="empty-icon">🍜</div>
+                <h3>Không tìm thấy món nào!</h3>
+                <p>Thử thay đổi bộ lọc hoặc tìm kiếm từ khóa khác xem sao nhé.</p>
+                <button class="btn-reset-empty" @click="clearFilters">
+                  Xóa bộ lọc
+                </button>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <div class="pagination" v-if="totalPages > 1">
-    <button 
-        @click="goToPage(currentPage - 1)" 
-        :disabled="currentPage === 1"
-        :class="{ 'disabled': currentPage === 1 }"
-    >
-        &lt;
+    <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" :class="{ 'disabled': currentPage === 1 }">
+      &lt;
     </button>
-    
-    <button 
-        v-for="(page, index) in visiblePages" 
-        :key="index"
-        :class="{ 'active': page === currentPage, 'dots': page === '...' }"
-        @click="page !== '...' ? goToPage(page) : null"
-        :disabled="page === '...'"
-    >
-        {{ page }}
+
+    <button v-for="(page, index) in visiblePages" :key="index"
+      :class="{ 'active': page === currentPage, 'dots': page === '...' }"
+      @click="page !== '...' ? goToPage(page) : null" :disabled="page === '...'">
+      {{ page }}
     </button>
-    
-    <button 
-        @click="goToPage(currentPage + 1)" 
-        :disabled="currentPage === totalPages"
-        :class="{ 'disabled': currentPage === totalPages }"
-    >
-        &gt;
+
+    <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
+      :class="{ 'disabled': currentPage === totalPages }">
+      &gt;
     </button>
   </div>
 
@@ -210,45 +184,67 @@ const handleEdit = (item) => {
 
 <style scoped>
 .slider-wrapper {
-    width: 200px;
-    padding: 0 10px;
-    margin-top: 5px;
-    --slider-connect-bg: #d32f2f;  
-    --slider-tooltip-bg: #d32f2f;
-    --slider-handle-ring-color: rgba(211, 47, 47, 0.3); 
-    --slider-height: 6px;         
+  width: 200px;
+  padding: 0 10px;
+  margin-top: 5px;
+  --slider-connect-bg: #d32f2f;
+  --slider-tooltip-bg: #d32f2f;
+  --slider-handle-ring-color: rgba(211, 47, 47, 0.3);
+  --slider-height: 6px;
 }
 
 
 :deep(.slider-connect) {
-    background: #d32f2f !important;
+  background: #d32f2f !important;
 }
 
 :deep(.slider-base) {
-    background-color: #e5e7eb !important;
-    height: 6px !important;
+  background-color: #e5e7eb !important;
+  height: 6px !important;
 }
 
 :deep(.slider-handle) {
-    background: #d32f2f !important;
-    box-shadow: none !important;
-    border: 2px solid white;
+  background: #d32f2f !important;
+  box-shadow: none !important;
+  border: 2px solid white;
 }
 
 :deep(.slider-handle:focus) {
-    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
 }
 
 .price-filter-item {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    margin-right: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-right: 20px;
 }
 
 .price-range-text {
-    font-weight: bold;
-    color: #d32f2f;
-    margin-left: 5px;
+  font-weight: bold;
+  color: #d32f2f;
+  margin-left: 5px;
+}
+
+.actions {
+    height: 100%;
+    display: table-cell;
+}
+
+.action-group {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 15px;
+}
+
+.action-group i {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-group i:hover {
+    transform: scale(1.2);
 }
 </style>

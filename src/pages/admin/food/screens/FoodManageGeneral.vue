@@ -143,7 +143,7 @@ const formatPriceRange = (item) => {
         <button class="btn-add" @click="goToAddScreen">+ Thêm món ăn</button>
     </div>
 
-    <div class="table-container" style="min-height: 305px;">
+    <div class="table-container" style="min-height: 278px;">
         <table>
             <thead>
                 <tr>
@@ -171,17 +171,17 @@ const formatPriceRange = (item) => {
                         {{ item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                     </td>
                     <td class="actions">
-                        <button class="btn-icon view" title="Xem chi tiết" @click="handleViewDetails(item)">
-                            👁️
-                        </button>
+                        <div class="action-group">
+                            <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
+                                @click="handleViewDetails(item)"></i>
 
-                        <button class="btn-icon edit" title="Cập nhật" @click="handleEditFood(item)">
-                            ✏️
-                        </button>
+                            <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
+                                @click="handleEditFood(item)"></i>
 
-                        <div class="toggle-switch" :class="{ 'on': item.trangThaiKinhDoanh === 1 }"
-                            @click.stop="handleToggleStatus(item)">
-                            <div class="toggle-knob"></div>
+                            <i v-if="item.trangThaiKinhDoanh === 1" class="fas  fa-unlock-alt unlock-icon"
+                                title="Khóa tài khoản" @click="handleToggleStatus(item)"></i>
+                            <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản"
+                                @click="handleToggleStatus(item)"></i>
                         </div>
                     </td>
                 </tr>
@@ -321,5 +321,28 @@ const formatPriceRange = (item) => {
     font-size: 1.5rem;
     cursor: pointer;
     color: #666;
+}
+
+.actions {
+    height: 100%;
+    display: table-cell;
+}
+
+.action-group {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 15px;
+}
+
+/* 4. Style icon */
+.action-group i {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-group i:hover {
+    transform: scale(1.2);
 }
 </style>
