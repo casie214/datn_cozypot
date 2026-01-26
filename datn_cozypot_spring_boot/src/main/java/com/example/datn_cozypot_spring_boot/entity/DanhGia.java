@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class DanhGia {
     @Column(name = "id_danh_gia", nullable = false)
     private Integer id;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
@@ -43,5 +45,6 @@ public class DanhGia {
 
     @OneToMany(mappedBy = "idDanhGia")
     private Set<HinhAnhDanhGia> hinhAnhDanhGias = new LinkedHashSet<>();
+
 
 }
