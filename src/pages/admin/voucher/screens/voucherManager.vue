@@ -27,7 +27,7 @@
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="title-page">Quản lý phiếu giảm giá</h2>
+<h2 class="title-page">Quản lý phiếu giảm giá</h2>
             </div>
 
             <div class="filter-card mb-4 shadow-sm p-3 bg-white rounded">
@@ -79,6 +79,17 @@
                         <input type="date" v-model="filters.ngayKetThuc" class="form-control custom-input"
                             @change="handleSearch">
                     </div>
+                    <div class="col-md-3">
+                        <label class="filter-label fw-bold">Đợt khuyến mãi</label>
+                        <select v-model="filters.idDotKhuyenMai" class="form-select custom-input"
+                            @change="handleSearch">
+                            <option :value="null">Tất cả đợt</option>
+                            <option v-for="dot in listDotKhuyenMai" :key="dot.id" :value="dot.id">
+                                {{ dot.tenDotKhuyenMai }}
+                            </option>
+                        </select>
+                    </div>
+
                 </div>
             </div>
 
@@ -99,17 +110,22 @@
                             <th>SỐ LƯỢNG</th>
                             <th>THỜI GIAN HẠN</th>
                             <th>TRẠNG THÁI</th>
-                            <th class="text-center">HÀNH ĐỘNG</th>
+                            <th class="col-action">HÀNH ĐỘNG</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="(pg, index) in listPhieuGiamGia" :key="pg.id">
                             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
                             <td>
-                                <div class="fw-bold text-dark">{{ pg.tenPhieuGiamGia }}</div>
-                                <small class="text-muted">Mã: {{ pg.maPhieuGiamGia }} | Code: {{ pg.codeGiamGia
-                                }}</small>
+                                <div class="fw-bold text-dark pgg-name">
+                                    {{ pg.tenPhieuGiamGia }}
+                                </div>
+                                <small class="text-muted">
+                                    Mã: {{ pg.maPhieuGiamGia }} | Code: {{ pg.codeGiamGia }}
+                                </small>
                             </td>
+
+                        
                             <td>
                                 <div class="text-danger fw-bold">
                                     Giảm: {{ pg.loaiGiamGia === 1 ? pg.giaTriGiam + '%' : formatPrice(pg.giaTriGiam) }}
@@ -120,10 +136,14 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge" :class="pg.doiTuong === 0 ? 'bg-info' : 'bg-warning text-dark'">
+                                <span class="doi-tuong">
+                                    <i v-if="pg.doiTuong === 0" class="fa-solid fa-users me-1"></i>
+                                    <i v-else class="fa-solid fa-user-lock me-1"></i>
+
                                     {{ pg.doiTuong === 0 ? 'Công khai' : 'Cá nhân' }}
                                 </span>
                             </td>
+
                             <td>{{ pg.soLuong }}</td>
                             <td>
                                 <div class="small">
@@ -203,19 +223,31 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">TÊN PHIẾU GIẢM GIÁ <span
                                         class="text-danger">*</span></label>
-                                <input v-model="formData.tenPhieuGiamGia" type="text" class="form-control custom-input"
-                                    :class="{ 'is-invalid': errors.tenPhieuGiamGia }" :disabled="isReadOnly"
-                                    placeholder="Ví dụ: Khuyến mãi Tết Nguyên Đán">
+                                <input v-model="formData.tenPhieuGiamGia" type="text" maxlength="200"
+                                    class="form-control custom-input" :class="{ 'is-invalid': errors.tenPhieuGiamGia }"
+                                    :disabled="isReadOnly" placeholder="Ví dụ: Khuyến mãi Tết Nguyên Đán">
+                                <div class="invalid-feedback">{{ errors.tenPhieuGiamGia }}</div>
+
+                                <small class="text-muted">
+                                    {{ formData.tenPhieuGiamGia.length }}/200 ký tự
+                                </small>
+
                                 <div class="invalid-feedback">{{ errors.tenPhieuGiamGia }}</div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">MÃ CODE <span class="text-danger">*</span></label>
-                                    <input v-model="formData.codeGiamGia" type="text"
+                                    <input v-model="formData.codeGiamGia" type="text" maxlength="20"
                                         class="form-control custom-input text-uppercase"
                                         :class="{ 'is-invalid': errors.codeGiamGia }" :disabled="isReadOnly"
-                                        placeholder="TET2026">
+                                        placeholder="Ví dụ: TET2026">
+                                    <div class="invalid-feedback">{{ errors.codeGiamGia }}</div>
+
+                                    <small class="text-muted">
+                                        {{ formData.codeGiamGia.length }}/20 ký tự
+                                    </small>
+
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">LOẠI GIẢM GIÁ</label>
@@ -248,7 +280,7 @@
                                             type="number" class="form-control custom-input"
                                             :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly">
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                        }}</span>
+                                            }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -363,7 +395,7 @@
                                                 <td>
                                                     <div class="small"><i class="fa-solid fa-envelope me-1"></i>{{
                                                         kh.email
-                                                        }}</div>
+                                                    }}</div>
                                                     <div class="small"><i class="fa-solid fa-phone me-1"></i>{{
                                                         kh.soDienThoai }}</div>
                                                 </td>
@@ -431,7 +463,9 @@ const filters = reactive({
     doiTuong: null,
     loaiGiamGia: null,
     ngayBatDau: '',
-    ngayKetThuc: ''
+    ngayKetThuc: '',
+    idDotKhuyenMai: null // ⭐ THÊM
+
 });
 
 const pagination = reactive({
@@ -439,6 +473,7 @@ const pagination = reactive({
     pageSize: 5,
     totalPages: 0
 });
+
 
 // --- QUẢN LÝ LỖI (VALIDATE) ---
 const errors = reactive({});
@@ -459,12 +494,23 @@ const validateForm = () => {
         errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
         isValid = false;
     }
-
-    // 2. Mã Code
+    else if (formData.tenPhieuGiamGia.length > 200) {
+        errors.tenPhieuGiamGia = "Tên phiếu không được vượt quá 200 ký tự";
+        isValid = false;
+    }
     if (!formData.codeGiamGia) {
         errors.codeGiamGia = "Mã code không được để trống";
         isValid = false;
     }
+    else if (formData.codeGiamGia.length > 20) {
+        errors.codeGiamGia = "Mã code không được vượt quá 20 ký tự";
+        isValid = false;
+    }
+    else if (!/^[A-Z0-9]+$/.test(formData.codeGiamGia)) {
+        errors.codeGiamGia = "Mã code chỉ được chứa chữ IN HOA và số";
+        isValid = false;
+    }
+
 
     // 3. Giá trị giảm
     if (formData.loaiGiamGia === 2) { // Tiền mặt
@@ -575,41 +621,49 @@ const toggleAllCustomers = (e) => {
 
 const handleSearch = async () => {
     try {
-        // 1. Gửi request lên Server 
-        // Lưu ý: Nếu lọc Hết hạn (2) hoặc Sắp diễn ra (3), 
-        // ta nên gửi trangThai = 1 (Active) lên server để lấy các phiếu chưa bị "Ngừng hoạt động" tay.
         let paramsTrangThai = filters.trangThai;
         if (filters.trangThai === 2 || filters.trangThai === 3) {
             paramsTrangThai = 1;
         }
 
-        const res = await voucherService.fetchData({ ...filters, trangThai: paramsTrangThai }, pagination);
+        const res = await voucherService.fetchData(
+            { ...filters, trangThai: paramsTrangThai },
+            pagination
+        );
+
         const now = new Date().getTime();
 
-        // 2. Lọc dữ liệu dựa trên thời gian thực
+        // ✅ KHAI BÁO rawData TRƯỚC
         let rawData = res.content || [];
 
-        if (filters.trangThai === 1) { // Đang hoạt động
+        // ⭐ LỌC THEO ĐỢT KHUYẾN MÃI (FE)
+        if (filters.idDotKhuyenMai) {
+            rawData = rawData.filter(pg =>
+                Number(pg.idDotKhuyenMai) === Number(filters.idDotKhuyenMai)
+            );
+        }
+
+        // ⭐ LỌC THEO TRẠNG THÁI
+        if (filters.trangThai === 1) {
             listPhieuGiamGia.value = rawData.filter(pg => {
                 const start = new Date(pg.ngayBatDau).getTime();
                 const end = new Date(pg.ngayKetThuc).getTime();
                 return pg.trangThai === 1 && now >= start && now <= end;
             });
         }
-        else if (filters.trangThai === 2) { // Hết hạn
+        else if (filters.trangThai === 2) {
             listPhieuGiamGia.value = rawData.filter(pg => {
                 const end = new Date(pg.ngayKetThuc).getTime();
                 return pg.trangThai === 1 && now > end;
             });
         }
-        else if (filters.trangThai === 3) { // Sắp diễn ra
+        else if (filters.trangThai === 3) {
             listPhieuGiamGia.value = rawData.filter(pg => {
                 const start = new Date(pg.ngayBatDau).getTime();
                 return pg.trangThai === 1 && now < start;
             });
         }
         else {
-            // Trường hợp Ngừng hoạt động (0) hoặc Tất cả (null)
             listPhieuGiamGia.value = rawData;
         }
 
@@ -619,6 +673,14 @@ const handleSearch = async () => {
         showToast("Lỗi", "Không thể tải danh sách phiếu giảm giá", "error");
     }
 };
+const dotKhuyenMaiMap = computed(() => {
+    const map = {};
+    listDotKhuyenMai.value.forEach(d => {
+        map[Number(d.id)] = d.tenDotKhuyenMai;
+    });
+    return map;
+});
+
 import dayjs from 'dayjs';
 
 // Hàm định dạng ngày tháng dd/mm/yyyy HH:mm
@@ -634,20 +696,32 @@ const formatDateOnly = (dateString) => {
     return dayjs(dateString).format('DD/MM/YYYY');
 };
 
+let originalData = {};
+const closeForm = () => {
+    clearErrors(); // ⭐⭐ THÊM
+    isFormActive.value = false;
+    isCustomerListOpen.value = false;
+};
 
 const loadDetail = async (id) => {
+    clearErrors(); // ⭐⭐ THÊM DÒNG NÀY
+
     try {
         const res = await voucherService.getById(id);
 
         Object.assign(formData, res);
 
+        originalData = {
+            codeGiamGia: res.codeGiamGia,
+            tenPhieuGiamGia: res.tenPhieuGiamGia
+        };
         formData.idDotKhuyenMai = res.idDotKhuyenMai != null
-    ? Number(
-        typeof res.idDotKhuyenMai === 'object'
-            ? res.idDotKhuyenMai.id
-            : res.idDotKhuyenMai
-      )
-    : null;
+            ? Number(
+                typeof res.idDotKhuyenMai === 'object'
+                    ? res.idDotKhuyenMai.id
+                    : res.idDotKhuyenMai
+            )
+            : null;
 
 
         formData.doiTuong = Number(res.doiTuong);
@@ -670,6 +744,8 @@ const loadDetail = async (id) => {
 
 
 const triggerSubmit = () => {
+    clearErrors(); // ⭐ THÊM DÒNG NÀY
+
     if (!validateForm()) return;
 
     triggerConfirm(
@@ -698,8 +774,21 @@ const triggerSubmit = () => {
                 closeForm();
                 handleSearch();
             } catch (err) {
-                showToast("Thất bại", err.response?.data?.message || "Lỗi hệ thống", "error");
+                clearErrors();
+                const message = err.response?.data?.message || err.message;
+
+                if (message.toLowerCase().includes("code")) {
+                    errors.codeGiamGia = message;
+                }
+                else if (message.toLowerCase().includes("tên")) {
+                    errors.tenPhieuGiamGia = message;
+                }
+
+
+                showToast("Lỗi", message, "error");
             }
+
+
         }
     );
 };
@@ -740,14 +829,9 @@ const openFormEdit = async (id) => {
         await loadCustomers();
     }
     await loadDetail(id);
-        // ⭐ TRUYỀN idDotKhuyenMai
+    // ⭐ TRUYỀN idDotKhuyenMai
     await loadDotDangHoatDong(formData.idDotKhuyenMai);
     isFormActive.value = true;
-};
-
-const closeForm = () => {
-    isFormActive.value = false;
-    isCustomerListOpen.value = false;
 };
 
 const loadDotDangHoatDong = async (selectedDotId = null) => {
@@ -801,17 +885,24 @@ const resetFormData = () => {
     Object.assign(formData, {
         maPhieuGiamGia: '', codeGiamGia: '', tenPhieuGiamGia: '', loaiGiamGia: 1,
         giaTriGiam: 0, giaTriGiamToiDa: 0, donHangToiThieu: 0, doiTuong: 0,
-        ngayBatDau: '', ngayKetThuc: '', soLuong: 1, listIdKhachHang: [], listEmails: [],idDotKhuyenMai: null,
+        ngayBatDau: '', ngayKetThuc: '', soLuong: 1, listIdKhachHang: [], listEmails: [], idDotKhuyenMai: null,
 
     });
 };
 
 const resetFilters = () => {
-    Object.assign(filters, { keyword: '', trangThai: null, doiTuong: null, loaiGiamGia: null, ngayBatDau: '', ngayKetThuc: '' });
+    Object.assign(filters, {
+        keyword: '',
+        trangThai: null,
+        doiTuong: null,
+        loaiGiamGia: null,
+        ngayBatDau: '',
+        ngayKetThuc: '',
+        idDotKhuyenMai: null // ⭐ THÊM
+    });
     pagination.currentPage = 1;
     handleSearch();
 };
-
 
 
 const changePage = (p) => {
@@ -848,15 +939,24 @@ const getStatusDisplay = (pg) => {
 };
 
 onMounted(async () => {
+    await loadDotDangHoatDong(); // ⭐ BẮT BUỘC
     // Tải danh sách khách hàng ngay khi trang web vừa load xong
     await loadCustomers();
     handleSearch();
 
 });
 
+
+
 </script>
 
 <style scoped>
+.dot-name {
+    color: #333;
+    font-weight: 500;
+}
+
+
 /* Hiệu ứng trượt và mờ dần cho bảng khách hàng */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
@@ -910,6 +1010,12 @@ onMounted(async () => {
 .text-maroon {
     color: #800000;
     /* Màu đỏ sẫm tiêu đề */
+}
+
+.badge-neutral {
+    background-color: #F1F3F4;
+    color: #444;
+    font-weight: 500;
 }
 
 .custom-input {
@@ -1064,5 +1170,20 @@ onMounted(async () => {
         transform: translateX(0);
         opacity: 1;
     }
+}
+
+.pgg-name {
+    white-space: normal;
+    /* cho phép xuống dòng */
+    word-break: break-word;
+    /* bẻ từ nếu quá dài */
+    overflow-wrap: anywhere;
+    /* chống tràn mọi trường hợp */
+    line-height: 1.4;
+}
+
+.doi-tuong {
+    color: #444;
+    font-weight: 500;
 }
 </style>

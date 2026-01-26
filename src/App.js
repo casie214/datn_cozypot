@@ -32,9 +32,14 @@ const routes = [
         component: () => import("@/components/testConnection.vue")
     },
     {
-        path: "/admin/voucher", 
+  path: '/admin/voucher',
+  name: 'AdminVoucher',
+  component: () => import('@/pages/admin/voucher/screens/voucherManager.vue')
+},
+    {
+        path: "/admin/promotions", 
         name: "voucherManager",
-        component: () => import("@/pages/admin/voucher/screens/voucherManager.vue")
+        component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue")
     },
     
 ];
