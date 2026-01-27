@@ -42,7 +42,7 @@
       <table class="table mb-0 custom-table">
         <thead>
           <tr>
-            <th></th>
+          
             <th>STT</th>
             <th>MÃ</th>
             <th>HỌ TÊN</th>
@@ -56,11 +56,7 @@
         </thead>
         <tbody>
           <tr v-for="(kh, index) in listKhachHang" :key="kh.id">
-            <td>
-                <div class="hero-image">
-                  <img :src="getImg(kh.anhDaiDien)" alt="Client Img">
-                </div>
-            </td>
+
             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="fw-bold text-dark">{{ kh.maKhachHang }}</td>
             <td>{{ kh.tenKhachHang }}</td>

@@ -127,55 +127,92 @@ export function useTabManager() {
 }
 
 export function useFoodDetailManager() {
+    const route = useRoute(); // Hook lấy thông tin URL
     const detailData = ref([]);
 
     const searchQuery = ref('');
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
     const sortOption = ref('id_asc');
-    const statusFilter = ref('all'); 
+    const statusFilter = ref('all');
 
-    const { 
-        selectedPriceRange, 
-        globalMinPrice, 
-        globalMaxPrice, 
-        calculatePriceLimits, 
-        resetPriceFilter 
+    // --- STATE MỚI CHO BỘ LỌC ---
+    const categoryFilter = ref(null); // Để null thay vì '' để tương thích Multiselect
+    const foodFilter = ref(null);     
+    const listCategories = ref([]); 
+    const listFoods = ref([]);      
+
+    const {
+        selectedPriceRange,
+        globalMinPrice,
+        globalMaxPrice,
+        calculatePriceLimits,
+        resetPriceFilter
     } = usePriceFilter();
 
-    const handleMinChange = () => {
-  if (selectedPriceRange.value[0] < globalMinPrice.value) {
-    selectedPriceRange.value[0] = globalMinPrice.value;
-  }
-  if (selectedPriceRange.value[0] > selectedPriceRange.value[1]) {
-    selectedPriceRange.value[0] = selectedPriceRange.value[1];
-  }
-};
+    // --- LẤY DỮ LIỆU DROPDOWN ---
+    const fetchFilterData = async () => {
+        try {
+            const [catRes, foodRes] = await Promise.all([
+                getAllCategory(),
+                getAllFoodGeneral()
+            ]);
+            listCategories.value = catRes.data || [];
+            listFoods.value = foodRes.data || [];
+        } catch (e) {
+            console.error("Lỗi lấy dữ liệu bộ lọc: ", e);
+        }
+    };
 
-const handleMaxChange = () => {
-  if (selectedPriceRange.value[1] > globalMaxPrice.value) {
-    selectedPriceRange.value[1] = globalMaxPrice.value;
-  }
-  if (selectedPriceRange.value[1] < selectedPriceRange.value[0]) {
-    selectedPriceRange.value[1] = selectedPriceRange.value[0];
-  }
-};
+    const handleMinChange = () => {
+        if (selectedPriceRange.value[0] < globalMinPrice.value) selectedPriceRange.value[0] = globalMinPrice.value;
+        if (selectedPriceRange.value[0] > selectedPriceRange.value[1]) selectedPriceRange.value[0] = selectedPriceRange.value[1];
+    };
+
+    const handleMaxChange = () => {
+        if (selectedPriceRange.value[1] > globalMaxPrice.value) selectedPriceRange.value[1] = globalMaxPrice.value;
+        if (selectedPriceRange.value[1] < selectedPriceRange.value[0]) selectedPriceRange.value[1] = selectedPriceRange.value[0];
+    };
+
+    // --- LOGIC LỌC DỮ LIỆU (ĐÃ FIX SO SÁNH STRING) ---
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
+        // 1. Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
-            result = result.filter(item => 
+            result = result.filter(item =>
                 (item.tenChiTietMonAn || '').toLowerCase().includes(query) ||
                 (item.maChiTietMonAn || '').toLowerCase().includes(query)
             );
         }
 
+        // 2. Trạng thái
         if (statusFilter.value !== 'all') {
-            const statusValue = Number(statusFilter.value); 
+            const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
+        // 3. --- LỌC THEO DANH MỤC ---
+        if (categoryFilter.value) {
+            const filterVal = String(categoryFilter.value); // Ép về String
+            result = result.filter(item => {
+                // Kiểm tra an toàn null/undefined
+                const catId = item.monAnDiKem?.danhMuc?.id || item.monAnDiKem?.idDanhMuc;
+                return catId != null && String(catId) === filterVal;
+            });
+        }
+
+        // 4. --- LỌC THEO MÓN ĂN ---
+        if (foodFilter.value) {
+            const filterVal = String(foodFilter.value); // Ép về String
+            result = result.filter(item => {
+                const foodId = item.monAnDiKem?.id || item.idMonAnDiKem;
+                return foodId != null && String(foodId) === filterVal;
+            });
+        }
+
+        // 5. Khoảng giá
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -184,6 +221,7 @@ const handleMaxChange = () => {
             });
         }
 
+        // 6. Sắp xếp
         return result.sort((a, b) => {
             const priceA = parseFloat(a.giaBan) || 0;
             const priceB = parseFloat(b.giaBan) || 0;
@@ -200,11 +238,24 @@ const handleMaxChange = () => {
         });
     });
 
-    watch([searchQuery, statusFilter, sortOption, selectedPriceRange], () => {
+    // Reset trang về 1 khi bất kỳ bộ lọc nào thay đổi
+    watch([searchQuery, statusFilter, sortOption, selectedPriceRange, categoryFilter, foodFilter], () => {
         currentPage.value = 1;
     });
 
+    // --- COMPUTED: LIST MÓN ĂN PHỤ THUỘC VÀO DANH MỤC ---
+    const availableFoods = computed(() => {
+        if (!categoryFilter.value) return listFoods.value;
+        const filterVal = String(categoryFilter.value);
+        
+        return listFoods.value.filter(f => {
+            const catId = f.danhMuc?.id || f.idDanhMuc;
+            return catId != null && String(catId) === filterVal;
+        });
+    });
+
     const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
@@ -236,36 +287,51 @@ const handleMaxChange = () => {
     };
 
     function getAllFoodDetails() {
-        getAllFoodDetail()
-            .then(async res => {
-                detailData.value = res.data;
-                calculatePriceLimits(detailData.value);
-                await nextTick();
-            })
-            .catch(console.error);
+        return getAllFoodDetail().then(res => {
+             detailData.value = res.data || [];
+             calculatePriceLimits(detailData.value);
+        }).catch(console.error);
     }
 
-    onMounted(() => { getAllFoodDetails(); });
+    // --- ON MOUNTED (FIX LOGIC NHẬN URL) ---
+    onMounted(async () => { 
+        // 1. Tải song song dữ liệu bảng và dropdown
+        await Promise.all([
+            getAllFoodDetails(),
+            fetchFilterData()
+        ]);
 
+        // 2. Nhận tham số từ URL (nếu có)
+        // Multiselect thường thích làm việc với Number nếu valueProp là số
+        if (route.query.preCategory) {
+            const catVal = route.query.preCategory;
+            // Nếu parse được ra số thì dùng số, không thì dùng chuỗi
+            categoryFilter.value = isNaN(Number(catVal)) ? catVal : Number(catVal);
+        }
+
+        if (route.query.preFood) {
+            // Đợi availableFoods cập nhật theo categoryFilter ở trên
+            await nextTick();
+            const foodVal = route.query.preFood;
+            foodFilter.value = isNaN(Number(foodVal)) ? foodVal : Number(foodVal);
+        }
+    });
+
+    // ... Các hàm xử lý Modal/Status giữ nguyên ...
     const isModalOpen = ref(false);
     const selectedDetail = ref(null);
     const isAddModalOpen = ref(false);
-
     const openEditModal = (item) => { selectedDetail.value = item; isModalOpen.value = true; };
     const handleSaveData = () => { isModalOpen.value = false; };
-
-    const handleToggleStatus = async(item) => {
+    const handleToggleStatus = async (item) => {
         const oldStatus = item.trangThai;
         const newStatus = oldStatus === 1 ? 0 : 1;
         item.trangThai = newStatus;
         try {
-            const payload = {...item, trangThai: newStatus };
-            if (item.monAnDiKem && item.monAnDiKem.id) {
-                payload.idMonAnDiKem = item.monAnDiKem.id;
-            }
+            const payload = { ...item, trangThai: newStatus };
+            if (item.monAnDiKem?.id) payload.idMonAnDiKem = item.monAnDiKem.id;
             await putNewFoodDetail(item.id, payload);
         } catch (error) {
-            console.error("Lỗi: ", error);
             item.trangThai = oldStatus;
         }
     };
@@ -274,6 +340,8 @@ const handleMaxChange = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'id_asc';
+        categoryFilter.value = null; // Reset về null
+        foodFilter.value = null;     // Reset về null
         resetPriceFilter();
     };
 
@@ -281,8 +349,10 @@ const handleMaxChange = () => {
         detailData, searchQuery, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, changePage,
         isModalOpen, isAddModalOpen, selectedDetail, getAllFoodDetails, openEditModal, handleSaveData, handleToggleStatus,
         sortOption, statusFilter,
+        selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters,
+        handleMinChange, handleMaxChange,
         
-        selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters
+        categoryFilter, foodFilter, listCategories, availableFoods
     };
 }
 
@@ -884,13 +954,23 @@ export function useFoodUpdate() {
         });
     };
 
+    const goToDetailTable = () => {
+    router.push({
+        name: 'foodManager',
+        query: {
+            tab: 'chitietTD', 
+            preFood: formData.value.id 
+        }
+    });
+};
+
     const goBack = () => router.back();
     const goToAddDetail = () => { router.push({ name: 'addFoodDetail', query: { parentId: foodId } }); };
 
     return {
         isViewMode, isLoading, formData, foodInfo, variants, categoryName: selectedCategoryName,
         handleUpdate, goBack, goToAddDetail, handleToggleDetailStatus,
-        fileInputRef, triggerFileInput, handleFileUpload, removeImage,
+        fileInputRef, triggerFileInput, handleFileUpload, removeImage, goToDetailTable,
         isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
         isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
         errors 
@@ -1044,7 +1124,9 @@ export function useFoodDetailUpdate() {
         }
     };
 
-    onMounted(() => { if (detailId) fetchDetailData(); });
+    onMounted(() => { 
+        if (detailId) fetchDetailData(); 
+    });
 
     // --- UPLOAD ẢNH ---
     const resizeImage = (file, maxWidth = 800) => {

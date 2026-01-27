@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
     { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
@@ -36,7 +37,6 @@ const menuItems = ref([
         ]
     },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
-    // { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotions' },
     {
         name: 'Khuyến mãi',
         icon: "fa-solid fa-tags",
@@ -45,8 +45,8 @@ const menuItems = ref([
             { name: 'Đợt khuyến mãi', path: '/admin/promotion' },
             { name: 'Phiếu giảm giá', path: '/admin/voucher' },
         ]
-    },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' }
+    }
+    
 ]);
 
 const router = useRouter();
@@ -83,11 +83,23 @@ const isActive = (item) => {
     return false;
 }
 
-const isSubActive = (tabName) => {
-    return route.query.tab === tabName ||
-        (tabName === 'thucdon' && !route.query.tab && route.name === 'foodManager') ||
-        route.meta?.activeTab === tabName;
-}
+const isSubActive = (parent, child) => {
+    if (child.path) {
+        return route.path === child.path;
+    }
+
+    if (child.tab) {
+        if (route.query.tab === child.tab) return true;
+
+        if (route.meta?.activeTab === child.tab) return true;
+
+        if (!route.query.tab && route.name === parent.routeName) {
+            return parent.children && parent.children[0].tab === child.tab;
+        }
+    }
+    return false;
+};
+
 const checkAndOpenMenu = () => {
     menuItems.value.forEach(item => {
         if (item.children && isActive(item)) {
@@ -95,6 +107,17 @@ const checkAndOpenMenu = () => {
         }
     });
 };
+
+const handleSubClick = (parent, child) => {
+    if (child.path) {
+        // Ưu tiên 1: Nếu có path -> Chuyển trang thường
+        router.push(child.path);
+    } else if (parent.routeName && child.tab) {
+        // Ưu tiên 2: Nếu cha có routeName và con có tab -> Chuyển Tab
+        router.push({ name: parent.routeName, query: { tab: child.tab } });
+    }
+};
+
 
 onMounted(() => {
     checkAndOpenMenu();
@@ -129,10 +152,9 @@ watch(() => route.name, () => {
 
                 <div v-if="item.children && item.isOpen" class="submenu">
                     <div v-for="(child, cIndex) in item.children" :key="cIndex" class="submenu-item"
-                        :class="{ 'sub-active': route.path === child.path }" @click="router.push(child.path)">
+                        :class="{ 'sub-active': isSubActive(item, child) }" @click="handleSubClick(item, child)">
                         • {{ child.name }}
                     </div>
-
                 </div>
 
             </div>

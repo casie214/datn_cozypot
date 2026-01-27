@@ -5,7 +5,7 @@ import { useFoodUpdate } from '../../../../../services/foodFunction';
 const {
   isViewMode, isLoading, formData, foodInfo, variants, categoryName,
   handleUpdate, goBack, goToAddDetail, handleToggleDetailStatus,
-  fileInputRef, triggerFileInput, handleFileUpload, removeImage,
+  fileInputRef, triggerFileInput, handleFileUpload, removeImage, goToDetailTable,
   isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
   isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
   errors
@@ -29,7 +29,7 @@ const getImg = (url) => {
     <div class="page-header">
       <div class="header-title">
         <h1>{{ isViewMode ? 'Chi tiết món ăn' : 'Cập nhật món ăn' }}</h1>
-        <p class="subtitle">{{ isViewMode ? 'Xem thông tin và các biến thể' : 'Chỉnh sửa thông tin chung' }}</p>
+        <p class="subtitle">{{ isViewMode ? 'Xem thông tin và các chi tiết món ăn' : 'Chỉnh sửa thông tin chung' }}</p>
       </div>
       <button class="btn-back" @click="goBack">← Quay lại</button>
     </div>
@@ -58,7 +58,7 @@ const getImg = (url) => {
               <span class="value">{{ categoryName }}</span>
             </div>
             <div class="meta-item">
-              <span class="label">Số lượng biến thể:</span>
+              <span class="label">Số lượng chi tiết món:</span>
               <span class="value">{{ variants.length }}</span>
             </div>
           </div>
@@ -80,63 +80,62 @@ const getImg = (url) => {
               </div>
 
               <div class="form-row-2">
-                    <div class="form-group relative-container">
-                        <label>Danh mục gốc <span class="required">*</span></label>
-                        <div class="custom-select-box" :class="{ 'invalid-border': errors.idDanhMuc }"
-                            @click.stop="toggleCatDropdown">
-                            <span :class="{ 'placeholder': !formData.idDanhMuc }">
-                                {{ selectedCategoryName || '-- Chọn danh mục --' }}
-                            </span>
-                            <i class="fas" :class="isCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                        </div>
-                        <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
+                <div class="form-group relative-container">
+                  <label>Danh mục gốc <span class="required">*</span></label>
+                  <div class="custom-select-box" :class="{ 'invalid-border': errors.idDanhMuc }"
+                    @click.stop="toggleCatDropdown">
+                    <span :class="{ 'placeholder': !formData.idDanhMuc }">
+                      {{ selectedCategoryName || '-- Chọn danh mục --' }}
+                    </span>
+                    <i class="fas" :class="isCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </div>
+                  <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
 
-                        <div v-if="isCatDropdownOpen" class="dropdown-list-container" @click.stop>
-                            <div class="search-box-wrapper">
-                                <input v-model="catSearchQuery" type="text" class="dropdown-search-input"
-                                    placeholder="🔍 Tìm kiếm..." autofocus>
-                            </div>
-                            <ul class="options-list">
-                                <li v-for="dm in filteredCategories" :key="dm.id" @click="selectCategory(dm)"
-                                    :class="{ 'selected': formData.idDanhMuc === dm.id }">
-                                    {{ dm.tenDanhMuc }} <i v-if="formData.idDanhMuc === dm.id"
-                                        class="fas fa-check check-icon"></i>
-                                </li>
-                                <li v-if="filteredCategories.length === 0" class="no-result">Không tìm thấy kết quả.
-                                </li>
-                            </ul>
-                        </div>
+                  <div v-if="isCatDropdownOpen" class="dropdown-list-container" @click.stop>
+                    <div class="search-box-wrapper">
+                      <input v-model="catSearchQuery" type="text" class="dropdown-search-input"
+                        placeholder="🔍 Tìm kiếm..." autofocus>
                     </div>
-
-                    <div class="form-group relative-container">
-                        <label>Chi tiết <span class="required">*</span></label>
-                        <div class="custom-select-box"
-                            :class="{ 'disabled': !formData.idDanhMuc, 'invalid-border': errors.idDanhMucChiTiet }"
-                            @click.stop="toggleSubCatDropdown">
-                            <span :class="{ 'placeholder': !formData.idDanhMucChiTiet }">
-                                {{ selectedSubCategoryName || '-- Chọn chi tiết --' }}
-                            </span>
-                            <i class="fas" :class="isSubCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                        </div>
-                        <span class="error-message" v-if="errors.idDanhMucChiTiet">{{ errors.idDanhMucChiTiet }}</span>
-
-                        <div v-if="isSubCatDropdownOpen" class="dropdown-list-container" @click.stop>
-                            <div class="search-box-wrapper">
-                                <input v-model="subCatSearchQuery" type="text" class="dropdown-search-input"
-                                    placeholder="🔍 Tìm kiếm..." autofocus>
-                            </div>
-                            <ul class="options-list">
-                                <li v-for="sub in filteredSubCategories" :key="sub.id" @click="selectSubCategory(sub)"
-                                    :class="{ 'selected': formData.idDanhMucChiTiet === sub.id }">
-                                    {{ sub.tenDanhMucChiTiet }} <i v-if="formData.idDanhMucChiTiet === sub.id"
-                                        class="fas fa-check check-icon"></i>
-                                </li>
-                                <li v-if="filteredSubCategories.length === 0" class="no-result">Không tìm thấy kết quả.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                    <ul class="options-list">
+                      <li v-for="dm in filteredCategories" :key="dm.id" @click="selectCategory(dm)"
+                        :class="{ 'selected': formData.idDanhMuc === dm.id }">
+                        {{ dm.tenDanhMuc }} <i v-if="formData.idDanhMuc === dm.id" class="fas fa-check check-icon"></i>
+                      </li>
+                      <li v-if="filteredCategories.length === 0" class="no-result">Không tìm thấy kết quả.
+                      </li>
+                    </ul>
+                  </div>
                 </div>
+
+                <div class="form-group relative-container">
+                  <label>Chi tiết <span class="required">*</span></label>
+                  <div class="custom-select-box"
+                    :class="{ 'disabled': !formData.idDanhMuc, 'invalid-border': errors.idDanhMucChiTiet }"
+                    @click.stop="toggleSubCatDropdown">
+                    <span :class="{ 'placeholder': !formData.idDanhMucChiTiet }">
+                      {{ selectedSubCategoryName || '-- Chọn chi tiết --' }}
+                    </span>
+                    <i class="fas" :class="isSubCatDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </div>
+                  <span class="error-message" v-if="errors.idDanhMucChiTiet">{{ errors.idDanhMucChiTiet }}</span>
+
+                  <div v-if="isSubCatDropdownOpen" class="dropdown-list-container" @click.stop>
+                    <div class="search-box-wrapper">
+                      <input v-model="subCatSearchQuery" type="text" class="dropdown-search-input"
+                        placeholder="🔍 Tìm kiếm..." autofocus>
+                    </div>
+                    <ul class="options-list">
+                      <li v-for="sub in filteredSubCategories" :key="sub.id" @click="selectSubCategory(sub)"
+                        :class="{ 'selected': formData.idDanhMucChiTiet === sub.id }">
+                        {{ sub.tenDanhMucChiTiet }} <i v-if="formData.idDanhMucChiTiet === sub.id"
+                          class="fas fa-check check-icon"></i>
+                      </li>
+                      <li v-if="filteredSubCategories.length === 0" class="no-result">Không tìm thấy kết quả.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
 
               <div class="form-group">
                 <label>Hình ảnh</label>
@@ -161,7 +160,10 @@ const getImg = (url) => {
         <div class="section-right">
           <div class="card">
             <div class="card-header-row">
-              <h3>Các biến thể ({{ variants.length }})</h3>
+              <h3>Các chi tiết món ({{ variants.length }})</h3>
+              <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
+                 Xem bảng
+              </button>
               <button v-if="!isViewMode" class="btn-add" @click="goToAddDetail">
                 + Thêm loại
               </button>
@@ -196,7 +198,7 @@ const getImg = (url) => {
                 </div>
               </div>
 
-              <div v-if="variants.length === 0" class="empty-text">Chưa có biến thể nào.</div>
+              <div v-if="variants.length === 0" class="empty-text">Chưa có chi tiết món nào.</div>
             </div>
           </div>
         </div>
