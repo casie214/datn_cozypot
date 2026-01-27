@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -135,4 +136,12 @@ public class KhachHangService {
         BeanUtils.copyProperties(kh, res);
         return res;
     }
+
+    public List<KhachHangResponse> getActive() {
+        return repo.findByTrangThai(1)
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
 }
