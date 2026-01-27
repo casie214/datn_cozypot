@@ -327,21 +327,16 @@ const formTitle = computed(() => {
     return selectedId.value ? 'Chỉnh sửa đợt khuyến mãi' : 'Thêm mới đợt khuyến mãi';
 });
 
-const filteredMonAn = computed(() => {
-    if (!searchMonAn.value) return listMonAnDiKem.value;
-    return listMonAnDiKem.value.filter(m =>
-        m.tenMonAn.toLowerCase().includes(searchMonAn.value.toLowerCase())
-    );
-});
+// const filteredMonAn = computed(() => {
+//     if (!searchMonAn.value) return listMonAnDiKem.value;
+//     return listMonAnDiKem.value.filter(m =>
+//         m.tenMonAn.toLowerCase().includes(searchMonAn.value.toLowerCase())
+//     );
+// });
 
 const filteredSetLau = computed(() => {
     if (!searchSetLau.value) return listSetLau.value;
     return listSetLau.value.filter(s => s.tenSetLau.toLowerCase().includes(searchSetLau.value.toLowerCase()));
-});
-
-const isAllMonAnSelected = computed(() => {
-    if (filteredMonAn.value.length === 0) return false;
-    return filteredMonAn.value.every(m => formData.idMonAnChiTiet.includes(m.id));
 });
 
 const isAllSelected = computed(() => {
@@ -356,6 +351,13 @@ const showToast = (title, message, type = 'success') => {
     setTimeout(() => removeToast(id), 4000);
 };
 const removeToast = (id) => { toasts.value = toasts.value.filter(t => t.id !== id); };
+const monAnList = ref([])
+const isAllMonAnSelected = computed(() => {
+    if (filteredMonAn.value.length === 0) return false;
+    return filteredMonAn.value.every(m =>
+        formData.idMonAnChiTiet.includes(m.id)
+    );
+});
 
 // --- ACTIONS ---
 const toggleSelectAllMonAn = (e) => {
@@ -541,6 +543,19 @@ const loadDataToForm = async (id) => {
         console.error("Chi tiết lỗi load form:", e);
     }
 };
+const filteredMonAn = computed(() => {
+    if (!Array.isArray(listMonAnDiKem.value)) return [];
+
+    let result = listMonAnDiKem.value.filter(m => m.trangThai === 1);
+
+    if (searchMonAn.value) {
+        result = result.filter(m =>
+            m.tenMonAn?.toLowerCase().includes(searchMonAn.value.toLowerCase())
+        );
+    }
+
+    return result;
+});
 
 const openFormAdd = () => {
     isReadOnly.value = false;

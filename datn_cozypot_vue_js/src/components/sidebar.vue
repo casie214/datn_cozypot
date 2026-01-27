@@ -36,8 +36,17 @@ const menuItems = ref([
         ]
     },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
-    { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotions' },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics'}
+    // { name: 'Khuyến mãi', icon: "fa-solid fa-tags", path: '/admin/promotions' },
+    {
+        name: 'Khuyến mãi',
+        icon: "fa-solid fa-tags",
+        isOpen: false,
+        children: [
+            { name: 'Đợt khuyến mãi', path: '/admin/promotion' },
+            { name: 'Phiếu giảm giá', path: '/admin/voucher' },
+        ]
+    },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' }
 ]);
 
 const router = useRouter();
@@ -76,8 +85,8 @@ const isActive = (item) => {
 
 const isSubActive = (tabName) => {
     return route.query.tab === tabName ||
-           (tabName === 'thucdon' && !route.query.tab && route.name === 'foodManager') ||
-           route.meta?.activeTab === tabName;
+        (tabName === 'thucdon' && !route.query.tab && route.name === 'foodManager') ||
+        route.meta?.activeTab === tabName;
 }
 const checkAndOpenMenu = () => {
     menuItems.value.forEach(item => {
@@ -103,16 +112,12 @@ watch(() => route.name, () => {
                 <span><img src="../assets/images/logo_upscaled.jpg" alt="" class="logo"></span>
             </div>
         </div>
-    
+
         <nav class="container menu-list">
             <hr>
             <div v-for="(item, index) in menuItems" :key="index">
 
-                <div
-                    class="menu-item"
-                    :class="{ 'active': isActive(item) }"
-                    @click="handleItemClick(item)"
-                >
+                <div class="menu-item" :class="{ 'active': isActive(item) }" @click="handleItemClick(item)">
                     <i :class="item.icon" class="icon"></i>
                     <span class="label">{{ item.name }}</span>
 
@@ -123,15 +128,11 @@ watch(() => route.name, () => {
                 </div>
 
                 <div v-if="item.children && item.isOpen" class="submenu">
-                    <div
-                        v-for="(child, cIndex) in item.children"
-                        :key="cIndex"
-                        class="submenu-item"
-                        :class="{ 'sub-active': isSubActive(child.tab) }"
-                        @click="navigateToTab(item.routeName, child.tab)"
-                    >
+                    <div v-for="(child, cIndex) in item.children" :key="cIndex" class="submenu-item"
+                        :class="{ 'sub-active': route.path === child.path }" @click="router.push(child.path)">
                         • {{ child.name }}
                     </div>
+
                 </div>
 
             </div>
@@ -208,7 +209,8 @@ watch(() => route.name, () => {
 }
 
 .menu-item.active {
-    background-color: #7B121C; /* Màu đỏ đô */
+    background-color: #7B121C;
+    /* Màu đỏ đô */
     color: white;
     border-radius: 10px;
 }
@@ -233,14 +235,16 @@ watch(() => route.name, () => {
 
 /* Khối chứa menu con */
 .submenu {
-    padding-left: 20px; /* Thụt lề để phân cấp */
+    padding-left: 20px;
+    /* Thụt lề để phân cấp */
     margin-bottom: 5px;
     animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Từng item con */
 .submenu-item {
-    padding: 10px 15px 10px 45px; /* Padding trái lớn để thụt vào so với icon cha */
+    padding: 10px 15px 10px 45px;
+    /* Padding trái lớn để thụt vào so với icon cha */
     cursor: pointer;
     color: #666;
     font-size: 14px;
@@ -251,19 +255,29 @@ watch(() => route.name, () => {
 
 .submenu-item:hover {
     background-color: #f9f9f9;
-    color: #7B121C; /* Đổi màu chữ khi hover */
+    color: #7B121C;
+    /* Đổi màu chữ khi hover */
 }
 
 /* Trạng thái Active của item con */
 .submenu-item.sub-active {
-    color: #7B121C; /* Chữ đỏ */
+    color: #7B121C;
+    /* Chữ đỏ */
     font-weight: bold;
-    background-color: #fff0f0; /* Nền hồng nhạt */
+    background-color: #fff0f0;
+    /* Nền hồng nhạt */
 }
 
 /* Hiệu ứng hiện ra mượt mà */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

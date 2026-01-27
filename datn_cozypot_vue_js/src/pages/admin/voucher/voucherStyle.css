@@ -4,6 +4,7 @@
   --dark-red: #600000;
   --white: #ffffff;
   --border-color: #d0cece;
+
 }
 
 /* Toast Notification Container */
@@ -27,6 +28,8 @@
     margin-bottom: 10px;
     animation: slideIn 0.4s ease forwards;
 }
+
+
 
 .custom-toast.error { border-left-color: #e74c3c; }
 .custom-toast.error i { color: #e74c3c; }
@@ -199,6 +202,65 @@
 .custom-table{
     border: 1px solid #d0cece; 
 
+}
+.custom-radio-red .form-check-input:checked {
+    background-color: #800000;
+    border-color: #800000;
+}
+
+.custom-radio-red .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
+}
+
+.custom-radio-red .form-check-label {
+    cursor: pointer;
+    font-weight: 500;
+}
+.option-card {
+    flex: 1;
+    border: 1.5px solid #dee2e6;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    background: #fff;
+}
+
+.option-card i {
+    font-size: 1rem;
+}
+
+.option-card:hover {
+    border-color: #800000;
+    background-color: #fff5f5;
+}
+
+.option-card.active {
+    border-color: #800000;
+    background-color: #800000;
+    color: #fff;
+}
+
+.option-card.active i {
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .option-card {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+}
+.pg-num.disabled {
+    cursor: default;
+    background: transparent;
+    border: none;
+    color: #999;
 }
 
 .filter-card {
