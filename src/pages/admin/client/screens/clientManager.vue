@@ -42,6 +42,7 @@
       <table class="table mb-0 custom-table">
         <thead>
           <tr>
+            <th></th>
             <th>STT</th>
             <th>MÃ</th>
             <th>HỌ TÊN</th>
@@ -55,6 +56,11 @@
         </thead>
         <tbody>
           <tr v-for="(kh, index) in listKhachHang" :key="kh.id">
+            <td>
+                <div class="hero-image">
+                  <img :src="getImg(kh.anhDaiDien)" alt="Client Img">
+                </div>
+            </td>
             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="fw-bold text-dark">{{ kh.maKhachHang }}</td>
             <td>{{ kh.tenKhachHang }}</td>
@@ -145,6 +151,16 @@ import clientService from '@/services/clientService'; // Đảm bảo đã impor
 
 const { getStatusDisplay, fetchData } = useClientLogic();
 
+const getImg = (imgName) => {
+  if (!imgName) return 'https://placehold.co/100x100?text=No+Img';
+  
+  if (imgName.startsWith('http') || imgName.startsWith('data:image')) {
+    return imgName;
+  }
+
+  return `http://localhost:8080/uploads/customers/${imgName}`; 
+}
+
 // --- State ---
 const listKhachHang = ref([]);
 const filters = reactive({ 
@@ -152,7 +168,7 @@ const filters = reactive({
   trangThai: null, 
   tuNgay: '' 
 });
-const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0 });
+const pagination = reactive({ currentPage: 1, pageSize: 5, totalPages: 0 });
 
 const isModalOpen = ref(false);
 const isDetailModalOpen = ref(false);

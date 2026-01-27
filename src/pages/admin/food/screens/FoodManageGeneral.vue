@@ -60,7 +60,12 @@ const formatPriceRange = (item) => {
     return `${min.toLocaleString()} - ${max.toLocaleString()} đ`;
 };
 
-
+const getImg = (url) => {
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+        return url;
+    }
+    return 'https://placehold.co/100x100?text=No+Img';
+}
 </script>
 
 <template>
@@ -147,6 +152,7 @@ const formatPriceRange = (item) => {
         <table>
             <thead>
                 <tr>
+                    <th></th>
                     <th>STT</th>
                     <th>MÃ</th>
                     <th>MÓN ĂN</th>
@@ -159,6 +165,11 @@ const formatPriceRange = (item) => {
             </thead>
             <tbody>
                 <tr v-for="(item, index) in paginatedData" :key="item.id">
+                    <td>
+                        <div class="hero-image">
+                            <img :src="getImg(item.hinhAnh)" alt="Food Img">
+                        </div>
+                    </td>
                     <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
 
                     <td>{{ item.maMonAn }}</td>
@@ -186,7 +197,7 @@ const formatPriceRange = (item) => {
                     </td>
                 </tr>
                 <tr v-if="paginatedData.length === 0">
-                    <td colspan="8" class="empty-state-cell">
+                    <td colspan="10" class="empty-state-cell">
                         <div class="empty-state-content">
                             <div class="empty-icon">🍜</div>
                             <h3>Không tìm thấy món nào!</h3>
