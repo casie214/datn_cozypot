@@ -14,12 +14,8 @@
         <div class="row g-3 align-items-end">
           <div class="col-md-4">
             <label class="filter-label">Tìm kiếm</label>
-            <input 
-              v-model="filters.keyword" 
-              class="form-control custom-input" 
-              placeholder="Tên, mã, email, SĐT..."
-              @input="onSearchInput"
-            >
+            <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, email, SĐT..."
+              @input="onSearchInput">
           </div>
           <div class="col-md-3">
             <label class="filter-label">Trạng thái</label>
@@ -45,6 +41,7 @@
         <table class="table mb-0 custom-table">
           <thead>
             <tr>
+              <th></th>
               <th>STT</th>
               <th>MÃ</th>
               <th>HỌ TÊN</th>
@@ -57,19 +54,24 @@
             </tr>
           </thead>
           <tbody>
-            <tr 
-              v-for="(nv, index) in listNhanVien" 
-              :key="nv.id"
-              :class="{ 'row-staff-locked': nv.trangThaiLamViec === 2 }"
-            >
+            <tr v-for="(nv, index) in listNhanVien" :key="nv.id"
+              :class="{ 'row-staff-locked': nv.trangThaiLamViec === 2 }">
+              <!-- <td>{{ nv.anhDaiDien }}</td> -->
+
+              <td>
+                <div class="hero-image">
+                  <img :src="getImg(nv.anhDaiDien)" alt="Staff Img">
+                </div>
+              </td>
+
               <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
               <td class="fw-bold">{{ nv.maNhanVien }}</td>
               <td>{{ nv.hoTenNhanVien }}</td>
               <td>{{ nv.sdtNhanVien }}</td>
               <td class="text-muted">{{ nv.email }}</td>
-              <td>{{ formatDate(nv.ngayVaoLam) }}</td>              
+              <td>{{ formatDate(nv.ngayVaoLam) }}</td>
               <td>{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
-              
+
               <td :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
                 <span :class="getStatusDisplay(nv.trangThaiLamViec).class">
                   {{ getStatusDisplay(nv.trangThaiLamViec).text }}
@@ -78,32 +80,15 @@
 
               <td class="text-center" :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
                 <div class="action-group">
-                  <i 
-                    class="fas fa-eye detail-icon text-dark me-2" 
-                    title="Xem chi tiết"
-                    style="cursor: pointer;"
-                    @click="openModalView(nv.id)"
-                  ></i>
+                  <i class="fas fa-eye detail-icon text-dark me-2" title="Xem chi tiết" style="cursor: pointer;"
+                    @click="openModalView(nv.id)"></i>
 
-                  <i 
-                    class="fas fa-pen edit-icon me-2" 
-                    :class="{ 'disabled-icon': nv.trangThaiLamViec === 2 }"
-                    title="Sửa"
-                    @click="nv.trangThaiLamViec === 1 ? openModalEdit(nv.id) : null"
-                  ></i>
+                  <i class="fas fa-pen edit-icon me-2" :class="{ 'disabled-icon': nv.trangThaiLamViec === 2 }"
+                    title="Sửa" @click="nv.trangThaiLamViec === 1 ? openModalEdit(nv.id) : null"></i>
 
-                  <i 
-                    v-if="nv.trangThaiLamViec === 1" 
-                    class="fas fa-unlock-alt unlock-icon text-danger" 
-                    title="Khóa"
-                    @click="onToggleStatus(nv)"
-                  ></i>
-                  <i 
-                    v-else 
-                    class="fas fa-lock lock-icon text-success" 
-                    title="Mở khóa"
-                    @click="onToggleStatus(nv)"
-                  ></i>
+                  <i v-if="nv.trangThaiLamViec === 1" class="fas fa-unlock-alt unlock-icon text-danger" title="Khóa"
+                    @click="onToggleStatus(nv)"></i>
+                  <i v-else class="fas fa-lock lock-icon text-success" title="Mở khóa" @click="onToggleStatus(nv)"></i>
                 </div>
               </td>
             </tr>
@@ -119,28 +104,21 @@
           <li class="page-item">
             <button class="page-link" :disabled="pagination.currentPage === 1" @click="changePage(-1)">&lt;</button>
           </li>
-          <li v-for="p in pagination.totalPages" :key="p" class="page-item" :class="{active: pagination.currentPage === p}">
-            <button class="page-link" @click="pagination.currentPage = p; handleSearch()">{{p}}</button>
+          <li v-for="p in pagination.totalPages" :key="p" class="page-item"
+            :class="{ active: pagination.currentPage === p }">
+            <button class="page-link" @click="pagination.currentPage = p; handleSearch()">{{ p }}</button>
           </li>
           <li class="page-item">
-            <button class="page-link" :disabled="pagination.currentPage === pagination.totalPages" @click="changePage(1)">&gt;</button>
+            <button class="page-link" :disabled="pagination.currentPage === pagination.totalPages"
+              @click="changePage(1)">&gt;</button>
           </li>
         </ul>
       </nav>
     </div>
 
-    <StaffModal 
-      v-if="isModalOpen" 
-      :staff-id="selectedStaffId" 
-      @close="closeModal" 
-      @refresh="handleSearch"
-    />
+    <StaffModal v-if="isModalOpen" :staff-id="selectedStaffId" @close="closeModal" @refresh="handleSearch" />
 
-    <StaffDetailModal
-      v-if="isDetailModalOpen"
-      :staff-id="detailStaffId"
-      @close="closeDetailModal"
-    />
+    <StaffDetailModal v-if="isDetailModalOpen" :staff-id="detailStaffId" @close="closeDetailModal" />
   </div>
 </template>
 
@@ -152,16 +130,27 @@ import StaffDetailModal from '../modal/staffDetailModal.vue'; // Import file m�
 import dayjs from 'dayjs';
 import '../staffStyle.css';
 
+const getImg = (imgName) => {
+  if (!imgName) return 'https://placehold.co/100x100?text=No+Img';
+  
+  // Nếu đã là link đầy đủ (ví dụ link ảnh mạng) thì giữ nguyên
+  if (imgName.startsWith('http') || imgName.startsWith('data:image')) {
+    return imgName;
+  }
+
+  return `http://localhost:8080/uploads/images/${imgName}`;
+}
+
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
 
 // State quản lý danh sách & filters
 const listNhanVien = ref([]);
-const filters = reactive({ 
-  keyword: '', 
-  trangThai: null, 
-  tuNgay: '' 
+const filters = reactive({
+  keyword: '',
+  trangThai: null,
+  tuNgay: ''
 });
-const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0 });
+const pagination = reactive({ currentPage: 1, pageSize: 5, totalPages: 0 });
 
 // State quản lý Modal Thêm/Sửa
 const isModalOpen = ref(false);

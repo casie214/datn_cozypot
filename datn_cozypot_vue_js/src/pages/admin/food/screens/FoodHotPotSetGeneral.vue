@@ -24,13 +24,19 @@ const handleViewDetail = (item) => {
   });
 };
 
-// --- HÀM MỚI: Chỉnh sửa ---
 const handleEdit = (item) => {
   router.push({
     name: 'updateHotpotSet',
     params: { id: item.id }
   });
 };
+
+const getImg = (url) => {
+  if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+    return url;
+  }
+  return 'https://placehold.co/100x100?text=No+Img';
+}
 </script>
 
 <template>
@@ -108,6 +114,7 @@ const handleEdit = (item) => {
       <table>
         <thead>
           <tr>
+            <th></th>
             <th>STT</th>
             <th>MÃ</th>
             <th>SET LẨU</th>
@@ -119,6 +126,11 @@ const handleEdit = (item) => {
         </thead>
         <tbody>
           <tr v-for="(item, index) in paginatedData" :key="item.id || index">
+            <td>
+              <div class="hero-image">
+                <img :src="getImg(item.hinhAnh)" alt="Food Img">
+              </div>
+            </td>
             <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maSetLau }}</td>
             <td><b>{{ item.tenSetLau }}</b></td>
@@ -145,7 +157,7 @@ const handleEdit = (item) => {
           </tr>
 
           <tr v-if="paginatedData.length === 0">
-            <td colspan="8" class="empty-state-cell">
+            <td colspan="10" class="empty-state-cell">
               <div class="empty-state-content">
                 <div class="empty-icon">🍜</div>
                 <h3>Không tìm thấy món nào!</h3>
@@ -227,24 +239,24 @@ const handleEdit = (item) => {
 }
 
 .actions {
-    height: 100%;
-    display: table-cell;
+  height: 100%;
+  display: table-cell;
 }
 
 .action-group {
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    gap: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 15px;
 }
 
 .action-group i {
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: transform 0.2s;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
 .action-group i:hover {
-    transform: scale(1.2);
+  transform: scale(1.2);
 }
 </style>
