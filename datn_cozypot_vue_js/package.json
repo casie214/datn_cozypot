@@ -13,9 +13,16 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
-    "axios": "^1.13.2",
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
+    "@fullcalendar/vue3": "^6.1.20",
+    "@vuepic/vue-datepicker": "^12.1.0",
+    "axios": "^1.13.3",
     "boostrap": "^2.0.0",
     "bootstrap": "^5.3.8",
+    "dayjs": "^1.11.19",
     "router": "^2.2.0",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4"
