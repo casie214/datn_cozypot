@@ -91,22 +91,16 @@
         </div>
       </div>
 
-      <nav v-if="pagination.totalPages > 1" class="mt-4 d-flex justify-content-center">
-        <ul class="pagination pagination-custom">
-          <li class="page-item">
-            <button class="page-link" :disabled="pagination.currentPage === 1" @click="changePage(-1)">&lt;</button>
-          </li>
-          <li v-for="p in pagination.totalPages" :key="p" class="page-item"
-            :class="{ active: pagination.currentPage === p }">
-            <button class="page-link" @click="pagination.currentPage = p; handleSearch()">{{ p }}</button>
-          </li>
-          <li class="page-item">
-            <button class="page-link" :disabled="pagination.currentPage === pagination.totalPages"
-              @click="changePage(1)">&gt;</button>
-          </li>
-        </ul>
-      </nav>
+      <CommonPagination
+        v-model:currentPage="pagination.currentPage"
+        v-model:pageSize="pagination.pageSize"
+        :total-pages="pagination.totalPages"
+        :total-elements="pagination.totalElements"
+        :current-count="listNhanVien.length"
+        @change="handleSearch"
+      />
     </div>
+    
 
     <StaffModal v-if="isModalOpen" :staff-id="selectedStaffId" @close="closeModal" @refresh="handleSearch" />
 
@@ -121,6 +115,7 @@ import StaffModal from '../modal/staffModal.vue';
 import StaffDetailModal from '../modal/staffDetailModal.vue'; // Import file mới
 import dayjs from 'dayjs';
 import '../staffStyle.css';
+import CommonPagination from '@/components/commonPagination.vue';
 
 const getImg = (imgName) => {
   if (!imgName) return 'https://placehold.co/100x100?text=No+Img';
