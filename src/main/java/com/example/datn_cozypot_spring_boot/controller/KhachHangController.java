@@ -87,4 +87,10 @@ public class KhachHangController {
         boolean isExists = service.checkDuplicate(type, value, excludeId);
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
+
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveCustomers() {
+        return ResponseEntity.ok(service.getActive());
+    }
+
 }
