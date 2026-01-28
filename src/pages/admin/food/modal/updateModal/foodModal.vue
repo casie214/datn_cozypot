@@ -29,7 +29,7 @@ const getImg = (url) => {
     <div class="page-header">
       <div class="header-title">
         <h1>{{ isViewMode ? 'Chi tiết món ăn' : 'Cập nhật món ăn' }}</h1>
-        <p class="subtitle">{{ isViewMode ? 'Xem thông tin và các biến thể' : 'Chỉnh sửa thông tin chung' }}</p>
+        <p class="subtitle">{{ isViewMode ? 'Xem thông tin và các chi tiết món' : 'Chỉnh sửa thông tin chung' }}</p>
       </div>
       <button class="btn-back" @click="goBack">← Quay lại</button>
     </div>
@@ -58,7 +58,7 @@ const getImg = (url) => {
               <span class="value">{{ categoryName }}</span>
             </div>
             <div class="meta-item">
-              <span class="label">Số lượng biến thể:</span>
+              <span class="label">Số lượng chi tiết:</span>
               <span class="value">{{ variants.length }}</span>
             </div>
           </div>
@@ -161,7 +161,7 @@ const getImg = (url) => {
         <div class="section-right">
           <div class="card">
             <div class="card-header-row">
-              <h3>Các biến thể ({{ variants.length }})</h3>
+              <h3>Các chi tiết món ({{ variants.length }})</h3>
               <button v-if="!isViewMode" class="btn-add" @click="goToAddDetail">
                 + Thêm loại
               </button>
@@ -186,7 +186,7 @@ const getImg = (url) => {
 
                 <div class="action-col">
                   <div v-if="!isViewMode" class="toggle-switch small" :class="{ 'on': v.trangThai === 1 }"
-                    @click.stop="handleToggleDetailStatus(v)" title="Bật/Tắt kinh doanh biến thể này">
+                    @click.stop="handleToggleDetailStatus(v)" title="Bật/Tắt kinh doanh">
                     <div class="toggle-knob"></div>
                   </div>
 
@@ -196,7 +196,7 @@ const getImg = (url) => {
                 </div>
               </div>
 
-              <div v-if="variants.length === 0" class="empty-text">Chưa có biến thể nào.</div>
+              <div v-if="variants.length === 0" class="empty-text">Chưa có chi tiết món nào.</div>
             </div>
           </div>
         </div>
