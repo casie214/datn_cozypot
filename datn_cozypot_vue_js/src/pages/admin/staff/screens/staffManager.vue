@@ -41,7 +41,6 @@
         <table class="table mb-0 custom-table">
           <thead>
             <tr>
-              <th></th>
               <th>STT</th>
               <th>MÃ</th>
               <th>HỌ TÊN</th>
@@ -56,13 +55,6 @@
           <tbody>
             <tr v-for="(nv, index) in listNhanVien" :key="nv.id"
               :class="{ 'row-staff-locked': nv.trangThaiLamViec === 2 }">
-              <!-- <td>{{ nv.anhDaiDien }}</td> -->
-
-              <td>
-                <div class="hero-image">
-                  <img :src="getImg(nv.anhDaiDien)" alt="Staff Img">
-                </div>
-              </td>
 
               <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
               <td class="fw-bold">{{ nv.maNhanVien }}</td>

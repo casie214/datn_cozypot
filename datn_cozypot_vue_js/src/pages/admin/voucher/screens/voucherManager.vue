@@ -27,7 +27,7 @@
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
-<h2 class="title-page">Quản lý phiếu giảm giá</h2>
+                <h2 class="title-page">Quản lý phiếu giảm giá</h2>
             </div>
 
             <div class="filter-card mb-4 shadow-sm p-3 bg-white rounded">
@@ -125,7 +125,7 @@
                                 </small>
                             </td>
 
-                        
+
                             <td>
                                 <div class="text-danger fw-bold">
                                     Giảm: {{ pg.loaiGiamGia === 1 ? pg.giaTriGiam + '%' : formatPrice(pg.giaTriGiam) }}
@@ -180,24 +180,42 @@
                     </tbody>
                 </table>
 
-                <div class="d-flex justify-content-center mt-4 pb-3">
-                    <div class="pagination-wrapper">
-                        <button class="pg-btn" :disabled="pagination.currentPage === 1"
-                            @click="changePage(pagination.currentPage - 1)">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <div class="pg-numbers">
-                            <button v-for="page in pagination.totalPages" :key="page" class="pg-num"
-                                :class="{ 'active': page === pagination.currentPage }" @click="changePage(page)">
-                                {{ page }}
-                            </button>
-                        </div>
-                        <button class="pg-btn" :disabled="pagination.currentPage === pagination.totalPages"
-                            @click="changePage(pagination.currentPage + 1)">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
+                <div class="pagination-wrapper">
+
+    <!-- Previous -->
+    <button
+        class="pg-btn"
+        :disabled="pagination.currentPage === 1"
+        @click="changePage(pagination.currentPage - 1)">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+
+    <!-- Page numbers -->
+    <div class="pg-numbers">
+        <button
+            v-for="(page, index) in visiblePages"
+            :key="index"
+            class="pg-num"
+            :class="{
+                active: page === pagination.currentPage,
+                disabled: page === '...'
+            }"
+            :disabled="page === '...'"
+            @click="page !== '...' && changePage(page)">
+            {{ page }}
+        </button>
+    </div>
+
+    <!-- Next -->
+    <button
+        class="pg-btn"
+        :disabled="pagination.currentPage === pagination.totalPages"
+        @click="changePage(pagination.currentPage + 1)">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+
+</div>
+
             </div>
         </div>
 
@@ -236,7 +254,7 @@
                             </div>
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-mb-3">
                                     <label class="form-label fw-bold">MÃ CODE <span class="text-danger">*</span></label>
                                     <input v-model="formData.codeGiamGia" type="text" maxlength="20"
                                         class="form-control custom-input text-uppercase"
@@ -249,13 +267,56 @@
                                     </small>
 
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">LOẠI GIẢM GIÁ</label>
-                                    <select v-model="formData.loaiGiamGia" class="form-select custom-input"
-                                        :disabled="isReadOnly">
-                                        <option :value="1">Giảm theo %</option>
-                                        <option :value="2">Giảm theo tiền mặt</option>
-                                    </select>
+                                <div class="row mb-3">
+                                    <!-- LOẠI GIẢM GIÁ -->
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">
+                                            LOẠI GIẢM GIÁ <span class="text-danger">*</span>
+                                        </label>
+
+                                        <div class="d-flex gap-3 mt-2">
+                                            <div class="option-card" :class="{ active: formData.loaiGiamGia === 1 }"
+                                                @click="!isReadOnly && (formData.loaiGiamGia = 1)">
+                                                <input type="radio" class="d-none" :value="1"
+                                                    v-model="formData.loaiGiamGia" />
+                                                <i class="fa-solid fa-percent me-2"></i>
+                                                Giảm %
+                                            </div>
+
+                                            <div class="option-card" :class="{ active: formData.loaiGiamGia === 2 }"
+                                                @click="!isReadOnly && (formData.loaiGiamGia = 2)">
+                                                <input type="radio" class="d-none" :value="2"
+                                                    v-model="formData.loaiGiamGia" />
+                                                <i class="fa-solid fa-money-bill-wave me-2"></i>
+                                                Giảm tiền
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ĐỐI TƯỢNG -->
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">
+                                            ĐỐI TƯỢNG ÁP DỤNG
+                                        </label>
+
+                                        <div class="d-flex gap-3 mt-2">
+                                            <div class="option-card" :class="{ active: formData.doiTuong === 0 }"
+                                                @click="!isReadOnly && (formData.doiTuong = 0, isCustomerListOpen = false)">
+                                                <input type="radio" class="d-none" :value="0"
+                                                    v-model="formData.doiTuong" />
+                                                <i class="fa-solid fa-users me-2"></i>
+                                                Công khai
+                                            </div>
+
+                                            <div class="option-card" :class="{ active: formData.doiTuong === 1 }"
+                                                @click="!isReadOnly && (formData.doiTuong = 1, isCustomerListOpen = true)">
+                                                <input type="radio" class="d-none" :value="1"
+                                                    v-model="formData.doiTuong" />
+                                                <i class="fa-solid fa-user-lock me-2"></i>
+                                                Cá nhân
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                             </div>
@@ -270,8 +331,6 @@
                                 </select>
                             </div>
 
-
-
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">GIÁ TRỊ GIẢM <span
@@ -280,7 +339,7 @@
                                             type="number" class="form-control custom-input"
                                             :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly">
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                            }}</span>
+                                        }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -290,7 +349,7 @@
                                             class="text-danger">*</span></label>
                                     <input v-model.number="formData.soLuong" type="number"
                                         class="form-control custom-input" :class="{ 'is-invalid': errors.soLuong }"
-                                        :disabled="isReadOnly">
+                                        :disabled="isReadOnly || formData.doiTuong === 1">
                                     <div class="invalid-feedback">{{ errors.soLuong }}</div>
                                 </div>
 
@@ -330,15 +389,6 @@
                                     <div class="invalid-feedback">{{ errors.ngayKetThuc }}</div>
                                 </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">ĐỐI TƯỢNG ÁP DỤNG</label>
-                                <select v-model="formData.doiTuong" class="form-select custom-input"
-                                    :disabled="isReadOnly" @change="isCustomerListOpen = (formData.doiTuong === 1)">
-                                    <option :value="0">Công khai (Tất cả khách hàng)</option>
-                                    <option :value="1">Cá nhân (Chọn khách hàng)</option>
-                                </select>
-                            </div>
-
                             <div class="mt-4 d-flex justify-content-end gap-2">
                                 <button type="button" class="btn btn-light px-4" @click="closeForm">Hủy</button>
                                 <button v-if="!isReadOnly" type="submit" class="btn-red-dark px-4">Lưu phiếu</button>
@@ -395,7 +445,7 @@
                                                 <td>
                                                     <div class="small"><i class="fa-solid fa-envelope me-1"></i>{{
                                                         kh.email
-                                                    }}</div>
+                                                        }}</div>
                                                     <div class="small"><i class="fa-solid fa-phone me-1"></i>{{
                                                         kh.soDienThoai }}</div>
                                                 </td>
@@ -423,7 +473,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
@@ -946,7 +996,42 @@ onMounted(async () => {
 
 });
 
+watch(
+    () => formData.listIdKhachHang,
+    (newVal) => {
+        if (formData.doiTuong === 1) {
+            formData.soLuong = newVal.length;
+        }
+    },
+    { deep: true }
+);
+const visiblePages = computed(() => {
+    const total = pagination.totalPages;
+    const current = pagination.currentPage;
+    const delta = 2; // số trang hai bên
 
+    if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const pages = [];
+    const left = Math.max(2, current - delta);
+    const right = Math.min(total - 1, current + delta);
+
+    pages.push(1);
+
+    if (left > 2) pages.push('...');
+
+    for (let i = left; i <= right; i++) {
+        pages.push(i);
+    }
+
+    if (right < total - 1) pages.push('...');
+
+    pages.push(total);
+
+    return pages;
+});
 
 </script>
 
@@ -1068,7 +1153,7 @@ onMounted(async () => {
 
 /* Đồng bộ hóa các hiệu ứng và layout */
 .promotion-manager-wrapper {
-    background-color: #f8f9fa;
+    background-color: white;
     min-height: 100vh;
 }
 
