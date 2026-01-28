@@ -1,10 +1,14 @@
 <script setup>
+import { useRouter } from 'vue-router';
+const router = useRouter();
+const goBack = () => router.back();
 </script>
 
 <template>
   <header class="app-header">
     <div class="header-left">
-      </div>
+      <button class="btn-back" @click="goBack">←</button>  
+    </div>
     <div class="header-right">
       <i class="fa-regular fa-bell icon-bell"></i>
       <div class="user-info">

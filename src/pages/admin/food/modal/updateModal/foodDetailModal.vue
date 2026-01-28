@@ -1,7 +1,9 @@
 <script setup>
 import { useFoodDetailUpdate } from '../../../../../services/foodFunction';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const {
     formData, listMonAn, originalInfo, parentName, isLoading,
     searchQuery, sortOption, filteredMonAnList, selectParentFood,
@@ -14,6 +16,14 @@ const getImg = (url) => {
     return (url && (url.startsWith('http') || url.startsWith('data:')))
         ? url : 'https://placehold.co/100x100?text=No+Img';
 }
+
+const goToParentFood = () => {
+    const parentId = formData.value.idMonAnDiKem || originalInfo.value?.monAnDiKem?.id;
+    
+    if (parentId) {
+        router.push({ name: 'viewFood', params: { id: parentId } });
+    }
+};
 </script>
 
 <template>
@@ -47,7 +57,7 @@ const getImg = (url) => {
                         </span>
                     </div>
                     <div class="hero-meta-grid">
-                        <div class="meta-item">
+                        <div class="meta-item" @click="goToParentFood" style="cursor: pointer;">
                             <span class="label">Thuộc món:</span>
                             <span class="value" style="color: #0d6efd; font-weight: 600;">{{ parentName }}</span>
                         </div>

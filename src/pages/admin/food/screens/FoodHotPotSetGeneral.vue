@@ -3,13 +3,14 @@ import { useRouter } from 'vue-router';
 import { useHotpotManager } from '../../../../services/foodFunction';
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
+import CommonPagination from '@/components/commonPagination.vue';
 
 const router = useRouter();
 
 const {
   getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages,
   visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes,
-  clearFilters, selectedPriceRange, globalMinPrice, globalMaxPrice, handleToggleStatus
+  clearFilters, selectedPriceRange, globalMinPrice, globalMaxPrice, handleToggleStatus, totalElements, exportToExcel,
 } = useHotpotManager();
 
 const goToAddScreen = () => {
@@ -40,6 +41,15 @@ const getImg = (url) => {
 </script>
 
 <template>
+  <div class="flex-row">
+    <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
+    <div class="action-row">
+      <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
+      <button class="btn-excel" @click="exportToExcel" title="Xuất Excel">
+         <i class="fas fa-file-excel"></i> Xuất Excel
+      </button>
+    </div>
+  </div>
   <div class="tab-content">
     <div class="filter-box">
       <div class="filter-row">
@@ -105,16 +115,11 @@ const getImg = (url) => {
         <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
       </div>
     </div>
-
-    <div class="action-row">
-      <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
-    </div>
-
     <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
-            <th></th>
+
             <th>STT</th>
             <th>MÃ</th>
             <th>SET LẨU</th>
@@ -126,11 +131,7 @@ const getImg = (url) => {
         </thead>
         <tbody>
           <tr v-for="(item, index) in paginatedData" :key="item.id || index">
-            <td>
-              <div class="hero-image">
-                <img :src="getImg(item.hinhAnh)" alt="Food Img">
-              </div>
-            </td>
+
             <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maSetLau }}</td>
             <td><b>{{ item.tenSetLau }}</b></td>
@@ -170,25 +171,20 @@ const getImg = (url) => {
           </tr>
         </tbody>
       </table>
+      <div style="padding-bottom: 30px;" class="pagination">
+        <CommonPagination
+                v-model:currentPage="currentPage"
+                v-model:pageSize="itemsPerPage"
+                :total-pages="totalPages"
+                :total-elements="totalElements"
+                :current-count="paginatedData.length"
+                @change="() => {}" 
+            />
+      </div>
     </div>
   </div>
 
-  <div class="pagination" v-if="totalPages > 1">
-    <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1" :class="{ 'disabled': currentPage === 1 }">
-      &lt;
-    </button>
 
-    <button v-for="(page, index) in visiblePages" :key="index"
-      :class="{ 'active': page === currentPage, 'dots': page === '...' }"
-      @click="page !== '...' ? goToPage(page) : null" :disabled="page === '...'">
-      {{ page }}
-    </button>
-
-    <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
-      :class="{ 'disabled': currentPage === totalPages }">
-      &gt;
-    </button>
-  </div>
 
 </template>
 

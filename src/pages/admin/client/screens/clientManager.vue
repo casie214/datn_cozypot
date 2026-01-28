@@ -42,7 +42,7 @@
       <table class="table mb-0 custom-table">
         <thead>
           <tr>
-            <th></th>
+          
             <th>STT</th>
             <th>MÃ</th>
             <th>HỌ TÊN</th>
@@ -56,11 +56,7 @@
         </thead>
         <tbody>
           <tr v-for="(kh, index) in listKhachHang" :key="kh.id">
-            <td>
-                <div class="hero-image">
-                  <img :src="getImg(kh.anhDaiDien)" alt="Client Img">
-                </div>
-            </td>
+
             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="fw-bold text-dark">{{ kh.maKhachHang }}</td>
             <td>{{ kh.tenKhachHang }}</td>
@@ -112,7 +108,7 @@
       </div>
     </div>
 
-    <nav v-if="pagination.totalPages > 1" class="mt-4 d-flex justify-content-center">
+    <!-- <nav v-if="pagination.totalPages > 1" class="mt-4 d-flex justify-content-center">
       <ul class="pagination pagination-custom">
         <li class="page-item" :class="{ disabled: pagination.currentPage === 1 }">
           <button class="page-link" @click="changePage(-1)">&lt;</button>
@@ -124,7 +120,16 @@
           <button class="page-link" @click="changePage(1)">&gt;</button>
         </li>
       </ul>
-    </nav>
+    </nav> -->
+
+    <CommonPagination
+      v-model:currentPage="pagination.currentPage"
+      v-model:pageSize="pagination.pageSize"
+      :total-pages="pagination.totalPages"
+      :total-elements="pagination.totalElements"
+      :current-count="listKhachHang.length"
+      @change="handleSearch"
+    />
 
     <CustomerModal 
       v-if="isModalOpen" 
@@ -148,6 +153,7 @@ import CustomerModal from '../modal/clientModal.vue';
 import CustomerDetailModal from '../modal/clientDetailModal.vue';
 import '../clientStyle.css'; 
 import clientService from '@/services/clientService'; // Đảm bảo đã import service
+import CommonPagination from '@/components/commonPagination.vue';
 
 const { getStatusDisplay, fetchData } = useClientLogic();
 
