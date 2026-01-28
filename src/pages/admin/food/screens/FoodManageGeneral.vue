@@ -25,6 +25,7 @@ const {
     visiblePages,
     goToPage,
     handleViewDetails,
+    goToDetailTable,
     getAllFood,
     handleToggleStatus,
     handleEditFood,
@@ -44,7 +45,8 @@ const {
     selectedRootCate,
     selectedSubCate,
     availableSubCategories,
-    exportToExcel
+    exportToExcel,
+    isCategoryLocked
 } = useFoodManager();
 
 const goToAddScreen = () => {
@@ -117,7 +119,7 @@ const getImg = (url) => {
                 <label>Danh mục gốc</label>
                 <div class="multiselect-wrapper">
                     <Multiselect v-model="selectedRootCate" :options="listRootCategories" valueProp="id"
-                        label="tenDanhMuc" placeholder="-- Tất cả --" :searchable="true" :canClear="true"
+                        label="tenDanhMuc" placeholder="-- Tất cả --" :searchable="true" :canClear="true" :disabled="isCategoryLocked"
                         @change="selectedSubCate = null" noOptionsText="Không có dữ liệu"
                         noResultsText="Không tìm thấy" />
                 </div>
@@ -168,6 +170,9 @@ const getImg = (url) => {
                     </td>
                     <td class="actions">
                         <div class="action-group">
+                            <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
+                                @click="goToDetailTable(item.id)"></i>
+
                             <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                                 @click="handleViewDetails(item)"></i>
 

@@ -471,20 +471,10 @@ export function useFoodManager() {
     const activeTab = ref('thucdon');
     const isModalOpen = ref(false);
     const selectedItem = ref(null);
+    const isCategoryLocked = ref(false);
     const isAddFoodModalOpen = ref(false);
 
-    onMounted(async () => {
-        await getAllFood();
-        if (route.query.preRoot) {
-            const rootId = Number(route.query.preRoot);
-            selectedRootCate.value = isNaN(rootId) ? route.query.preRoot : rootId;
-            if (route.query.preSub) {
-                await nextTick(); 
-                const subId = Number(route.query.preSub);
-                selectedSubCate.value = isNaN(subId) ? route.query.preSub : subId;
-            }
-        }
-    });
+    
 
     // --- Filter & Sort ---
     const searchQuery = ref('');
@@ -683,13 +673,49 @@ export function useFoodManager() {
         }
     };
 
+    onMounted(async () => {
+        await Promise.all([
+            getAllFood(),
+            fetchCategories() 
+        ]);
+
+        if (route.query.preRoot) {
+            const rootId = Number(route.query.preRoot);
+            selectedRootCate.value = isNaN(rootId) ? route.query.preRoot : rootId;
+
+            if (route.query.locked === 'true') {
+                isCategoryLocked.value = true;
+            } else {
+                isCategoryLocked.value = false;
+            }
+
+            if (route.query.preSub) {
+                await nextTick(); 
+                const subId = Number(route.query.preSub);
+                selectedSubCate.value = isNaN(subId) ? route.query.preSub : subId;
+            }
+        } else {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+            selectedSubCate.value = '';
+        }
+    });
+
     const clearFilters = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'newest';
-        selectedRootCate.value = ''; // Reset root category
-        selectedSubCate.value = '';  // Reset sub category
+        
+        if (!isCategoryLocked.value) {
+            selectedRootCate.value = '';
+        }
+        
+        selectedSubCate.value = '';
         resetPriceFilter(); 
+        
+        if (isCategoryLocked.value) {
+            currentPage.value = 1;
+        }
     };
 
     const exportToExcel = () => {
@@ -734,11 +760,32 @@ export function useFoodManager() {
         XLSX.writeFile(workbook, "Danh_Sach_Mon_An.xlsx");
     };
 
+    watch(() => route.query, (newQuery) => {
+        if (!newQuery.preRoot) {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+        } else {
+            selectedRootCate.value = Number(newQuery.preRoot);
+            isCategoryLocked.value = newQuery.locked === 'true';
+        }
+    });
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preFood: id
+            }
+        });
+    };
+
+
     return {
         mockData, paginatedData, currentPage, itemsPerPage, totalPages, visiblePages, goToPage,
         handleViewDetails,
         handleEditFood, getAllFood, handleToggleStatus, activeTab, isModalOpen, selectedItem, isAddFoodModalOpen,
-        searchQuery, sortOption, statusFilter, clearFilters,
+        searchQuery, sortOption, statusFilter, clearFilters, isCategoryLocked,
         globalMinPrice, globalMaxPrice, selectedPriceRange,
         
         // EXPORT CÁC BIẾN MỚI
@@ -748,6 +795,7 @@ export function useFoodManager() {
         selectedSubCate,
         availableSubCategories,
         exportToExcel,
+        goToDetailTable,
         totalElements
     };
 }
@@ -1423,7 +1471,9 @@ export function useHotpotManager() {
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
     const statusFilter = ref('all'); 
-    const typeFilter = ref('all');   
+    const typeFilter = ref(null);   
+    const isTypeLocked = ref(false);
+    const route = useRoute();
 
     // 1. GỌI HOOK XỬ LÝ GIÁ
     const { 
@@ -1449,7 +1499,7 @@ export function useHotpotManager() {
     const filteredAndSortedData = computed(() => {
         let result = [...hotpotData.value];
 
-        // A. Lọc theo Tên/Mã
+        // A. Search
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item =>
@@ -1458,8 +1508,7 @@ export function useHotpotManager() {
             );
         }
 
-        // B. Lọc theo Khoảng giá (THÊM MỚI)
-        // Set lẩu thường chỉ có 'giaBan', không có 'giaThapNhat' phức tạp như món ăn
+        // B. Giá
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -1468,30 +1517,24 @@ export function useHotpotManager() {
             });
         }
 
-        // C. Lọc theo Trạng thái
+        // C. Trạng thái
         if (statusFilter.value !== 'all') {
             const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
-        // D. Lọc theo Loại Set Lẩu
-        if (typeFilter.value !== 'all') {
+        // D. Loại Set (Sửa cho Multiselect)
+        if (typeFilter.value && typeFilter.value !== 'all') {
             result = result.filter(item => item.idLoaiSet == typeFilter.value);
         }
 
-        // E. Sắp xếp
+        // E. Sort
         switch (sortOption.value) {
             case 'price_asc': result.sort((a, b) => (a.giaBan || 0) - (b.giaBan || 0)); break;
             case 'price_desc': result.sort((a, b) => (b.giaBan || 0) - (a.giaBan || 0)); break;
-            case 'name_asc': 
-                result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); 
-                break;
-            case 'newest': 
-            default: 
-                result.sort((a, b) => b.id - a.id); 
-                break;
+            case 'name_asc': result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); break;
+            case 'newest': default: result.sort((a, b) => b.id - a.id); break;
         }
-
         return result;
     });
 
@@ -1546,7 +1589,20 @@ export function useHotpotManager() {
         }).catch(console.error);
     }
     
-    onMounted(() => { getAllHotpot(); });
+    onMounted(async () => {
+        await getAllHotpot();
+        
+        if (route.query.preType) {
+            const typeId = Number(route.query.preType);
+            
+            typeFilter.value = isNaN(typeId) ? route.query.preType : typeId;
+            
+            isTypeLocked.value = route.query.locked === 'true';
+        } else {
+            typeFilter.value = 'all';
+            isTypeLocked.value = false;
+        }
+    });
     
     const isModalOpen = ref(false);
     const selectedHotpot = ref(null);
@@ -1621,6 +1677,17 @@ export function useHotpotManager() {
         XLSX.utils.book_append_sheet(wb, ws, "SetLau");
         XLSX.writeFile(wb, "Danh_Sach_Set_Lau.xlsx");
     };
+    const router = useRouter();
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preHotpot: id 
+            }
+        });
+    };
 
     return {
         hotpotData, getAllHotpot, isModalOpen, selectedHotpot, handleViewDetails, handleToggleStatus,
@@ -1628,9 +1695,10 @@ export function useHotpotManager() {
         statusFilter, typeFilter, uniqueTypes, clearFilters, exportToExcel, totalElements,
         
         // RETURN CÁC BIẾN SLIDER
-        selectedPriceRange,
+        selectedPriceRange, goToDetailTable,
         globalMinPrice,
-        globalMaxPrice
+        globalMaxPrice,
+        isTypeLocked
     };
 }
 
@@ -1952,23 +2020,18 @@ export function useCategoryManager() {
     const categoryData = ref([]);
     const isLoading = ref(false);
 
-    // --- STATE ---
     const searchQuery = ref('');
     
-    // 1. Biến Sắp xếp Trạng thái (Riêng biệt)
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp Chính (Tên, ID)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10); // Số lượng/trang
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...categoryData.value];
 
-        // A. Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -1977,24 +2040,19 @@ export function useCategoryManager() {
             );
         }
 
-        // B. Sắp xếp (Logic kết hợp)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái (nếu user chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang hoạt động (1) lên đầu
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng hoạt động (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính ---
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMuc || '').localeCompare(b.tenDanhMuc || '');
@@ -2007,15 +2065,15 @@ export function useCategoryManager() {
         });
     });
 
-    // --- PHÂN TRANG ---
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
+    
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -2092,7 +2150,7 @@ export function useCategoryManager() {
         categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
         
         // Return các biến mới
-        paginatedData, searchQuery, 
+        paginatedData, searchQuery, totalElements,
         sortOption, statusSort, // 2 biến sort riêng biệt
         currentPage, totalPages, visiblePages, itemsPerPage, changePage
     };
@@ -2103,24 +2161,19 @@ export function useCategoryDetailManager() {
     const parentCategories = ref([]); 
     const isLoading = ref(false);
 
-    // --- STATE FILTER & SORT ---
     const searchQuery = ref('');
-    const categoryFilter = ref('all'); 
+    const categoryFilter = ref(null);
     
-    // 1. Tách riêng biến Sắp xếp Trạng thái
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp chính (Tên, Mã...)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10);
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
-        // A. Lọc Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -2129,30 +2182,29 @@ export function useCategoryDetailManager() {
             );
         }
 
-        // B. Lọc Danh mục gốc
-        if (categoryFilter.value !== 'all') {
-            result = result.filter(item => item.tenDanhMuc === categoryFilter.value);
-        }
+        if (categoryFilter.value) { 
+        const filterId = Number(categoryFilter.value); 
+    
+        result = result.filter(item => {
+            const idInObject = item.danhMuc?.id; 
+            const idDirect = item.idDanhMuc;
+            return (idInObject == filterId) || (idDirect == filterId);
+        });
+}
 
-        // C. LOGIC SẮP XẾP KẾT HỢP (QUAN TRỌNG)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái trước (nếu có chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang kinh doanh (1) lên đầu -> Ngưng (0) xuống dưới
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng kinh doanh (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính (Tên, Mã...) ---
-            // Nếu trạng thái giống nhau (hoặc không sort trạng thái), thì sort tiếp theo cái này
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMucChiTiet || '').localeCompare(b.tenDanhMucChiTiet || '');
@@ -2174,8 +2226,8 @@ export function useCategoryDetailManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -2253,6 +2305,7 @@ export function useCategoryDetailManager() {
         paginatedData, 
         searchQuery, 
         categoryFilter,
+        totalElements,
         
         sortOption, // Sort chính
         statusSort, // Sort trạng thái (Mới)
@@ -2321,7 +2374,8 @@ export function useHotpotSetTypeManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
 
     const visiblePages = computed(() => {
         const total = totalPages.value;
@@ -2410,6 +2464,7 @@ export function useHotpotSetTypeManager() {
         totalPages,
         visiblePages,
         itemsPerPage,
+        totalElements,
         changePage
     };
 }

@@ -4,13 +4,15 @@ import { useHotpotManager } from '../../../../services/foodFunction';
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
 import CommonPagination from '@/components/commonPagination.vue';
+import '@vueform/multiselect/themes/default.css';
+import Multiselect from '@vueform/multiselect';
 
 const router = useRouter();
 
 const {
   getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages,
   visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes,
-  clearFilters, selectedPriceRange, globalMinPrice, globalMaxPrice, handleToggleStatus, totalElements, exportToExcel,
+  goToDetailTable, clearFilters, selectedPriceRange, globalMinPrice, globalMaxPrice, isTypeLocked, handleToggleStatus, totalElements, exportToExcel,
 } = useHotpotManager();
 
 const goToAddScreen = () => {
@@ -46,7 +48,7 @@ const getImg = (url) => {
     <div class="action-row">
       <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
       <button class="btn-excel" @click="exportToExcel" title="Xuất Excel">
-         <i class="fas fa-file-excel"></i> Xuất Excel
+        <i class="fas fa-file-excel"></i> Xuất Excel
       </button>
     </div>
   </div>
@@ -73,12 +75,12 @@ const getImg = (url) => {
 
         <div class="filter-item">
           <label>Loại set lẩu</label>
-          <select v-model="typeFilter" class="form-control">
-            <option value="all">Tất cả</option>
-            <option v-for="type in uniqueTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
-          </select>
+          <div class="multiselect-wrapper">
+            <Multiselect v-model="typeFilter" :options="uniqueTypes" valueProp="id" label="name"
+              placeholder="-- Tất cả --" :searchable="true" :canClear="!isTypeLocked" :disabled="isTypeLocked"
+              noOptionsText="Không có dữ liệu" noResultsText="Không tìm thấy" />
+          </div>
         </div>
-
         <div class="filter-item">
           <label>Sắp xếp theo</label>
           <select v-model="sortOption" class="form-control">
@@ -144,6 +146,9 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
+                <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
+                  @click="goToDetailTable(item.id)"></i>
+
                 <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                   @click="handleViewDetail(item)"></i>
 
@@ -172,14 +177,8 @@ const getImg = (url) => {
         </tbody>
       </table>
       <div style="padding-bottom: 30px;" class="pagination">
-        <CommonPagination
-                v-model:currentPage="currentPage"
-                v-model:pageSize="itemsPerPage"
-                :total-pages="totalPages"
-                :total-elements="totalElements"
-                :current-count="paginatedData.length"
-                @change="() => {}" 
-            />
+        <CommonPagination v-model:currentPage="currentPage" v-model:pageSize="itemsPerPage" :total-pages="totalPages"
+          :total-elements="totalElements" :current-count="paginatedData.length" @change="() => { }" />
       </div>
     </div>
   </div>

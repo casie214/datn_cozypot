@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from "vue-router";
+import { getAllCategory } from '../services/foodFunction';
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
@@ -17,11 +18,7 @@ const menuItems = ref([
         icon: 'fa-solid fa-bell-concierge',
         routeName: 'foodManager',
         isOpen: false,
-        children: [
-            { name: 'Danh sách món', tab: 'thucdon' },
-            { name: 'Thực đơn chi tiết', tab: 'chitietTD' },
-            { name: 'Set lẩu', tab: 'setlau' }
-        ]
+        children: []
     },
     // -----------------------------------mm
 
@@ -70,16 +67,18 @@ function navigateToTab(routeName, tabName) {
 }
 
 const isActive = (item) => {
-    if (item.children) {
-        if (item.routeName) {
-            return route.name === item.routeName || route.meta?.parentMenu === item.routeName;
-        }
-        return false;
+    if (item.routeName) {
+        if (route.name === item.routeName) return true;
+        if (route.meta?.parentMenu === item.routeName) return true;
     }
+
     if (item.path) {
         return route.path === item.path;
     }
-
+    
+    if (item.children) {
+        return item.children.some(child => isSubActive(item, child));
+    }
     return false;
 }
 
@@ -89,43 +88,102 @@ const isSubActive = (parent, child) => {
     }
 
     if (child.tab) {
-        if (route.query.tab === child.tab) return true;
-
         if (route.meta?.activeTab === child.tab) return true;
 
-        if (!route.query.tab && route.name === parent.routeName) {
-            return parent.children && parent.children[0].tab === child.tab;
+        if (route.query.preRoot && child.query?.preRoot) {
+            return String(route.query.preRoot) === String(child.query.preRoot);
+        }
+
+        if (route.query.tab === child.tab) {
+             if (!route.query.preRoot && !child.query) return true;
+             if (route.query.preRoot) return false;
+             return true;
+        }
+
+        if (!route.query.tab && !route.meta?.activeTab && route.name === parent.routeName) {
+
+            if (parent.children && parent.children[0].tab === child.tab) return true;
         }
     }
     return false;
 };
-
 const checkAndOpenMenu = () => {
     menuItems.value.forEach(item => {
         if (item.children && isActive(item)) {
             item.isOpen = true;
+            
+            item.children.forEach(subItem => {
+                if (subItem.isGroup && subItem.children) {
+                    const hasActiveChild = subItem.children.some(grandChild => isSubActive(item, grandChild));
+                    if (hasActiveChild) subItem.isOpen = true;
+                }
+            });
         }
     });
 };
 
 const handleSubClick = (parent, child) => {
+    if (child.isGroup && child.children) {
+        child.isOpen = !child.isOpen;
+        return;
+    }
+
     if (child.path) {
-        // Ưu tiên 1: Nếu có path -> Chuyển trang thường
         router.push(child.path);
     } else if (parent.routeName && child.tab) {
-        // Ưu tiên 2: Nếu cha có routeName và con có tab -> Chuyển Tab
-        router.push({ name: parent.routeName, query: { tab: child.tab } });
+        const queryParams = { tab: child.tab };
+        if (child.query) Object.assign(queryParams, child.query);
+        router.push({ name: parent.routeName, query: queryParams });
     }
 };
 
 
-onMounted(() => {
+
+onMounted(async () => {
+    await fetchCategoriesAndBuildMenu();
     checkAndOpenMenu();
 });
 
 watch(() => route.name, () => {
     checkAndOpenMenu();
 });
+
+const fetchCategoriesAndBuildMenu = async () => {
+    try {
+        const res = await getAllCategory();
+        const categories = res.data || [];
+
+        const foodMenu = menuItems.value.find(m => m.name === 'Thực đơn');
+        
+        if (foodMenu) {
+            const dynamicChildren = [
+                {
+                    name: '• Danh sách món', 
+                    isGroup: true,
+                    isOpen: false, 
+                    children: [
+                        { name: 'Tất cả món', tab: 'thucdon' },
+                        
+                        ...categories.map(cat => ({
+                            name: `${cat.tenDanhMuc}`,
+                            tab: 'thucdon',
+                            query: { preRoot: cat.id, locked: 'true' }
+                        }))
+                    ]
+                },
+
+                { name: 'Món ăn chi tiết', tab: 'chitietTD' },
+                { name: 'Set lẩu', tab: 'setlau' }
+            ];
+
+            foodMenu.children = dynamicChildren;
+            
+            checkAndOpenMenu(); 
+        }
+    } catch (error) {
+        console.error("Lỗi build menu:", error);
+    }
+};
 </script>
 
 <template>
@@ -141,21 +199,42 @@ watch(() => route.name, () => {
             <div v-for="(item, index) in menuItems" :key="index">
 
                 <div class="menu-item" :class="{ 'active': isActive(item) }" @click="handleItemClick(item)">
-                    <i :class="item.icon" class="icon"></i>
-                    <span class="label">{{ item.name }}</span>
+        <i :class="item.icon" class="icon"></i>
+        <span class="label">{{ item.name }}</span>
+        
+        <span v-if="item.children" class="arrow-dropdown">
+            <i :class="item.isOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
+        </span>
+    </div>
 
-                    <span v-if="item.children" class="arrow-dropdown">
-                        <i :class="item.isOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
-                    </span>
-                    <span v-else-if="isActive(item)" class="arrow"></span>
+    <div v-if="item.children && item.isOpen" class="submenu">
+        <div v-for="(child, cIndex) in item.children" :key="cIndex">
+            
+            <div v-if="child.isGroup">
+                <div class="submenu-item group-title" @click="handleSubClick(item, child)">
+                    <span style="flex: 1; font-weight: 600;">{{ child.name }}</span>
+                    <i :class="child.isOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" style="font-size: 12px;"></i>
                 </div>
 
-                <div v-if="item.children && item.isOpen" class="submenu">
-                    <div v-for="(child, cIndex) in item.children" :key="cIndex" class="submenu-item"
-                        :class="{ 'sub-active': isSubActive(item, child) }" @click="handleSubClick(item, child)">
-                        • {{ child.name }}
+                <div v-if="child.isOpen" class="submenu-level-3">
+                    <div v-for="(grandChild, gIndex) in child.children" :key="gIndex"
+                         class="submenu-item level-3-item"
+                         :class="{ 'sub-active': isSubActive(item, grandChild) }"
+                         @click="handleSubClick(item, grandChild)">
+                         {{ grandChild.name }}
                     </div>
                 </div>
+            </div>
+
+            <div v-else 
+                 class="submenu-item"
+                 :class="{ 'sub-active': isSubActive(item, child) }" 
+                 @click="handleSubClick(item, child)">
+                • {{ child.name }}
+            </div>
+
+        </div>
+    </div>
 
             </div>
         </nav>
@@ -301,5 +380,96 @@ watch(() => route.name, () => {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.submenu {
+    position: relative;
+    padding-top: 5px;
+}
+
+.submenu-item {
+    padding: 10px 15px 10px 50px;
+    cursor: pointer;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.submenu-item:hover {
+    color: #7B121C;
+    background-color: transparent; 
+}
+
+.submenu-item.sub-active {
+    color: #7B121C;
+    font-weight: bold;
+    background-color: #fff5f5;
+    border-radius: 0 20px 20px 0; 
+    margin-right: 10px;
+    border-left: 4px solid #7B121C; 
+    padding-left: 46px; 
+}
+
+.group-title {
+    color: #888;
+    letter-spacing: 0.5px;
+    padding: 10px 15px 5px 50px; 
+    pointer-events: auto;
+}
+.group-title:hover {
+    color: #333;
+}
+
+.submenu-level-3 {
+    margin-left: 60px; 
+    border-left: 2px solid #eee;
+    margin-bottom: 10px;
+    padding-left: 5px; 
+    animation: slideDown 0.3s ease-out;
+}
+
+.level-3-item {
+    padding: 8px 10px 8px 20px !important; /* Padding gọn hơn */
+    font-size: 13.5px;
+    color: #777;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.level-3-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 15px;
+    height: 2px;
+    background-color: #eee;
+    transform: translateY(-50%);
+}
+
+.level-3-item:hover {
+    color: #7B121C;
+    background-color: #fff;
+    padding-left: 25px !important; 
+}
+
+.level-3-item.sub-active {
+    color: #7B121C;
+    font-weight: 700;
+    background-color: #ffebeb; 
+}
+.level-3-item.sub-active::before {
+    background-color: #7B121C; 
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>

@@ -108,20 +108,6 @@
       </div>
     </div>
 
-    <!-- <nav v-if="pagination.totalPages > 1" class="mt-4 d-flex justify-content-center">
-      <ul class="pagination pagination-custom">
-        <li class="page-item" :class="{ disabled: pagination.currentPage === 1 }">
-          <button class="page-link" @click="changePage(-1)">&lt;</button>
-        </li>
-        <li v-for="p in pagination.totalPages" :key="p" class="page-item" :class="{active: pagination.currentPage === p}">
-          <button class="page-link" @click="pagination.currentPage = p; handleSearch()">{{p}}</button>
-        </li>
-        <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages }">
-          <button class="page-link" @click="changePage(1)">&gt;</button>
-        </li>
-      </ul>
-    </nav> -->
-
     <CommonPagination
       v-model:currentPage="pagination.currentPage"
       v-model:pageSize="pagination.pageSize"
