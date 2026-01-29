@@ -2,17 +2,22 @@ package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "set_lau")
 public class SetLau {
@@ -73,5 +78,8 @@ public class SetLau {
 
     @OneToMany(mappedBy = "idSetLau")
     private Set<ChiTietHoaDon> chiTietHoaDons = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "setLau", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ChiTietSetLau> listChiTietSetLau;
 
 }

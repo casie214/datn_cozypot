@@ -70,4 +70,6 @@ public class MonAnDiKem {
     @OneToMany(mappedBy = "idMonAnDiKem")
     private Set<HinhAnhMonAn> hinhAnhMonAns = new LinkedHashSet<>();
 
+    @Column(name = "hinh_anh_single", columnDefinition = "VARCHAR(MAX)")
+    private String hinhAnh;
 }

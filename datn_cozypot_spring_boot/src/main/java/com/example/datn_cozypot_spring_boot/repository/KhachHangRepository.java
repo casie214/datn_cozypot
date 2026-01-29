@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
@@ -35,4 +36,6 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
     boolean existsByEmailAndIdNot(String email, Integer id);
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
+    List<KhachHang> findByTrangThai(Integer trangThai);
+
 }
