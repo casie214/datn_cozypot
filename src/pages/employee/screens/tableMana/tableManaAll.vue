@@ -8,28 +8,6 @@ const listKhuVuc = ref([]);
 const isEditing = ref(false);
 const draggingTable = ref(null);
 
-/* 2. CÁC HÀM TIỆN ÍCH (Sửa lỗi "is not a function") */
-const getStatusText = (trangThai) => {
-  const status = String(trangThai).trim();
-  if (status === "0") return "Trống";
-  if (status === "1") return "Có khách";
-  return "Đặt trước";
-};
-
-const getStatusClass = (trangThai) => {
-  const status = String(trangThai).trim();
-  if (status === "0") return "status-empty";
-  if (status === "1") return "status-occupied-light";
-  return "status-booked";
-};
-
-// --- HÀM MỚI BỔ SUNG ĐỂ SỬA LỖI ---
-const getBadgeStatusClass = (trangThai) => {
-  const status = String(trangThai).trim();
-  if (status === "0") return "badge-empty";
-  if (status === "1") return "badge-occupied";
-  return "badge-booked";
-};
 
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
 const fetchAllBan = async () => {
@@ -70,48 +48,6 @@ const banTheoTang = computed(() => {
   );
 });
 
-// Thống kê số lượng bàn trống của tầng hiện tại
-const thongKeTang = computed(() => {
-  const total = banTheoTang.value.length;
-  const free = banTheoTang.value.filter((ban) => {
-    const stt = String(ban.trangThai).toLowerCase().trim();
-    return stt === "trống" || stt === "trong" || stt === "0";
-  }).length;
-  return { total, free };
-});
-
-/* 5. LOGIC KÉO THẢ */
-const onDragStart = (ban) => {
-  if (isEditing.value) draggingTable.value = ban;
-};
-
-const onDrop = (event) => {
-  if (!isEditing.value || !draggingTable.value) return;
-  event.preventDefault();
-
-  const canvas = event.currentTarget;
-  const rect = canvas.getBoundingClientRect();
-
-  // Tính toán kích thước ô dựa trên lưới 12 cột
-  const cellWidth = canvas.offsetWidth / 12;
-  const cellHeight = 100; // Chiều cao hàng cố định cho grid để dễ tính toán
-
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  let newCol = Math.floor(x / cellWidth) + 1;
-  let newRow = Math.floor(y / cellHeight) + 1;
-
-  const table = danhSachBan.value.find(
-    (b) => b.idBanAn === draggingTable.value.idBanAn,
-  );
-
-  if (table) {
-    table.column = Math.min(Math.max(newCol, 1), 9); // Giới hạn cột trong lưới 12
-    table.row = Math.max(newRow, 1);
-  }
-  draggingTable.value = null;
-};
 
 const currentTime = ref("");
 
