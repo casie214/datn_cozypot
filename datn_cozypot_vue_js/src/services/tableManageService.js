@@ -16,6 +16,14 @@ export const fetchAllBanAn = async () => {
     return await response.json()
 }
 
+export const fetchBanAnById = async (id) => {
+    const response = await fetch(`${baseURL}/ban-an-detail/${id}`)
+    if (!response.ok) {
+        throw new Error(response.status + ": " + await response.text())
+    }
+    return await response.json()
+}
+
 export const fetchSearchDatBan = async () => {
     const response = await fetch(`${baseURL}/search`)
     if (!response.ok) {
@@ -35,6 +43,19 @@ export const fetchAllCheckIn = async () => {
 export const addBanAn = async (banAn) => {
     const response = await fetch(`${baseURL}/add-ban-an`,{
         method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(banAn)
+    })
+if (!response.ok) {
+        throw new Error(response.status + ": " + await response.text())
+    }
+}
+
+export const updateBanAn = async (banAn) => {
+    const response = await fetch(`${baseURL}/update-ban-an`,{
+        method: "PUT",
         headers: {
             "Content-Type": "application/json"
         },

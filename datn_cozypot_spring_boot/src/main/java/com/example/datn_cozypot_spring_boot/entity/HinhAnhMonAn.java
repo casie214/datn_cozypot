@@ -1,7 +1,30 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
+@Getter
+@Setter
 @Entity
+@Table(name = "hinh_anh_mon_an")
 public class HinhAnhMonAn {
-  }
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_hinh_anh_mon_an", nullable = false)
+    private Integer id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_mon_an_di_kem")
+    private MonAnDiKem idMonAnDiKem;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+
+    @Nationalized
+    @Lob
+    @Column(name = "url_anh")
+    private String urlAnh;
+
+}
