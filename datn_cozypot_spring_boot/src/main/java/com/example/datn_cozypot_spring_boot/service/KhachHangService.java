@@ -15,7 +15,25 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
+
+// Import cho POI (Xử lý Excel)
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+// Import cho Spring Framework (Resource & Response)
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+// Import cho Java IO
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @Service
 public class KhachHangService {
@@ -134,5 +152,54 @@ public class KhachHangService {
         KhachHangResponse res = new KhachHangResponse();
         BeanUtils.copyProperties(kh, res);
         return res;
+    }
+
+    public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
+        // 1. Lấy toàn bộ dữ liệu theo bộ lọc (không phân trang)
+        LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
+        List<KhachHang> list = repo.searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged()).getContent();
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {"STT", "Họ Tên", "SĐT", "Email", "Ngày Sinh", "Giới Tính", "Địa Chỉ", "Trạng Thái"};
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            int rowIdx = 1;
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+            for (KhachHang kh : list) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(rowIdx - 1);
+                row.createCell(1).setCellValue(kh.getTenKhachHang());
+                row.createCell(2).setCellValue(kh.getSoDienThoai());
+                row.createCell(3).setCellValue(kh.getEmail());
+                row.createCell(4).setCellValue(kh.getNgaySinh() != null ? kh.getNgaySinh().format(formatter) : "");
+                row.createCell(5).setCellValue(kh.getGioiTinh() != null && kh.getGioiTinh() ? "Nam" : "Nữ");
+                row.createCell(6).setCellValue(kh.getDiaChi());
+                row.createCell(7).setCellValue(kh.getTrangThai() != null && kh.getTrangThai() == 1 ? "Hoạt động" : "Ngừng hoạt động");
+            }
+
+            // Tự động căn rộng cột
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
+        }
     }
 }

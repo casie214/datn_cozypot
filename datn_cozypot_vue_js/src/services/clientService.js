@@ -44,6 +44,16 @@ const clientService = {
     return axiosClient.get('/khach-hang/check-duplicate', {
       params: { type, value, excludeId }
     });
+  },
+  exportExcel: (params) => {
+    return axiosClient.get('/khach-hang/export-excel', {
+      params: {
+        keyword: params.keyword || null,
+        trangThai: params.trangThai !== undefined ? params.trangThai : null,
+        tuNgay: params.tuNgay || null
+      },
+      responseType: 'blob' // Rất quan trọng: Để nhận dữ liệu nhị phân của file
+    });
   }
 };
 
