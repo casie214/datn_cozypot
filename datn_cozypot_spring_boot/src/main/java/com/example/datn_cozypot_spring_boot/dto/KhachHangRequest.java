@@ -31,17 +31,20 @@ public class KhachHangRequest {
     @Min(value = 0, message = "Điểm tích lũy không được nhỏ hơn 0")
     private Integer diemTichLuy;
 
-    private Instant ngayTaoTaiKhoan; // Thường do hệ thống tự sinh, có thể để trống khi gửi từ client
+    private Instant ngayTaoTaiKhoan;
 
     @NotNull(message = "Vui lòng chọn giới tính")
     private Boolean gioiTinh;
+
+    @Size(max = 500, message = "Đường dẫn ảnh quá dài")
+    private String anhDaiDien;
 
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(min = 5, max = 50, message = "Tên đăng nhập phải từ 5 đến 50 ký tự")
     private String tenDangNhap;
 
     @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @Size(min = 6, message = "Mật khẩu phải có nhất 6 ký tự")
     private String matKhauDangNhap;
 
     @NotNull(message = "Vui lòng chọn trạng thái")
