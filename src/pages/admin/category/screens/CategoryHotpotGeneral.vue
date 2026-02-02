@@ -1,23 +1,33 @@
 <script setup>
+import CommonPagination from '@/components/commonPagination.vue';
 import { useHotpotSetTypeManager } from '../../../../services/foodFunction';
 import CategoryHotpotAddModal from '../modal/addModal/CategoryHotpotAddModal.vue';
 import CategoryHotpotPutModal from '../modal/updateModal/CategoryHotpotPutModal.vue';
-
-// Import thêm các biến mới
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 const { 
     hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllHotpotType,
-    // Biến mới
-    paginatedData, searchQuery, statusFilter, sortOption, 
+    paginatedData, searchQuery, statusFilter, sortOption, totalElements, 
     currentPage, totalPages, visiblePages, itemsPerPage, changePage
 } = useHotpotSetTypeManager();
+const router = useRouter();
 
 const handleRefreshList = () => {
     setTimeout(() => { getAllHotpotType(); }, 500);
 };
 
-// Dummy data cho formData modal (nếu cần)
-import { ref } from 'vue';
 const addFormData = ref({}); 
+
+const goToHotpotList = (item) => {
+    router.push({
+        name: 'foodManager',
+        query: { 
+            tab: 'setlau',      
+            preType: item.id, 
+            locked: 'true'       
+        }
+    });
+};
 </script>
 
 <template>
@@ -94,6 +104,9 @@ const addFormData = ref({});
             
             <td class="actions">
               <div class="action-group">
+                <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
+                  @click="goToHotpotList(item)"></i>
+
                 <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
                   @click="openModal(item)"></i>
 
@@ -105,19 +118,16 @@ const addFormData = ref({});
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="pagination" v-if="totalPages > 1">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
-        :class="{ 'disabled': currentPage === 1 }">&lt;</button>
-        
-      <template v-for="(page, index) in visiblePages" :key="index">
-        <button v-if="page === '...'" class="dots" disabled>...</button>
-        <button v-else @click="changePage(page)" :class="{ 'active': currentPage === page }">{{ page }}</button>
-      </template>
-      
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
-        :class="{ 'disabled': currentPage === totalPages }">&gt;</button>
+      <div style="padding-bottom: 30px;" class="pagination">
+           <CommonPagination
+                v-model:currentPage="currentPage"
+                v-model:pageSize="itemsPerPage"
+                :total-pages="totalPages"
+                :total-elements="totalElements"
+                :current-count="paginatedData.length"
+                @change="() => {}" 
+            />
+      </div>
     </div>
 
     <CategoryHotpotAddModal :isOpen="isModalOpen" :formData="addFormData" @close="isModalOpen = false" @save="handleAdd" @refresh="handleRefreshList"/>

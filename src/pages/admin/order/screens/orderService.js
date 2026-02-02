@@ -1,138 +1,140 @@
-const getUrl = "http://localhost:8080/api/hoa-don-thanh-toan";
+
+// Do axiosClient đã có baseURL là 'http://localhost:8080/api'
+
+import axiosClient from "@/services/axiosClient";
+
+// Nên ta chỉ cần khai báo phần đuôi
+const PREFIX = "/hoa-don-thanh-toan";
 
 export const BeGetAllHoaDon = async (page = 0, size = 5) => {
-    const params = new URLSearchParams();
-    params.append("page", page);
-    params.append("size", size);
-    const result = await fetch(`${getUrl}/get-all?${params.toString()}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        // Sử dụng axiosClient giúp tự động xử lý query params
+        const response = await axiosClient.get(`${PREFIX}/get-all`, {
+            params: { 
+                page, 
+                size 
+            }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeGetHoaDonById = async (id) => {
-    const result = await fetch(`${getUrl}/get-by-id/${id}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        const response = await axiosClient.get(`${PREFIX}/get-by-id/${id}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0, size = 5) => {
-    const params = new URLSearchParams();
-    if (key !== null && key !== undefined && key !== "") {
-        params.append("key", key);
+    try {
+        const params = { page, size };
+
+        // Kiểm tra hợp lệ (giữ logic của HEAD: bỏ qua null, undefined và chuỗi rỗng "")
+        // Lưu ý: Không dùng if(trangThai) vì nếu trạng thái = 0 sẽ bị coi là false
+        if (key !== null && key !== undefined && key !== "") {
+            params.key = key;
+        }
+        if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
+            params.trangThai = trangThai;
+        }
+        if (trangThaiHoanTien !== null && trangThaiHoanTien !== undefined && trangThaiHoanTien !== "") {
+            params.trangThaiHoanTien = trangThaiHoanTien;
+        }
+        if (tuNgay) params.tuNgay = tuNgay;
+        if (denNgay) params.denNgay = denNgay;
+
+        const response = await axiosClient.get(`${PREFIX}/search`, { params });
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
-        params.append("trangThai", trangThai);
-    }
-    if (trangThaiHoanTien !== null && trangThaiHoanTien !== undefined && trangThaiHoanTien !== "") {
-        params.append("trangThaiHoanTien", trangThaiHoanTien);
-    }
-    if (tuNgay) params.append("tuNgay", tuNgay);
-    if (denNgay) params.append("denNgay", denNgay);
-    params.append("page", page);
-    params.append("size", size);
-    const result = await fetch(`${getUrl}/search?${params.toString()}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
-    }
-    return await result.json();
 };
 
 export const BeGetChiTietHoaDon = async (idHoaDon) => {
-    const result = await fetch(`${getUrl}/chi-tiet-hoa-don/${idHoaDon}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        const response = await axiosClient.get(`${PREFIX}/chi-tiet-hoa-don/${idHoaDon}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeGetChiTietSetLau = async (idSetLau) => {
-    const result = await fetch(`${getUrl}/chi-tiet-hoa-don/chi-tiet-set-lau/${idSetLau}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        const response = await axiosClient.get(`${PREFIX}/chi-tiet-hoa-don/chi-tiet-set-lau/${idSetLau}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeXacNhanThanhToan = async (payload) => {
-    const result = await fetch(`${getUrl}/xac-nhan-thanh-toan`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    if (!result.ok) throw new Error(await result.text());
-    return true;
+    try {
+        // Axios tự động stringify body
+        const response = await axiosClient.put(`${PREFIX}/xac-nhan-thanh-toan`, payload);
+        return true; // Hoặc return response.data nếu backend có trả về gì đó
+    } catch (error) {
+        throw error;
+    }
 };
 
 export const BeGetLichSuThanhToan = async (id) => {
-    const result = await fetch(`${getUrl}/lich-su-thanh-toan/${id}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        const response = await axiosClient.get(`${PREFIX}/lich-su-thanh-toan/${id}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeGetLichSuHoaDon = async (idHoaDon) => {
-    const result = await fetch(`${getUrl}/lich-su/${idHoaDon}`);
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(result.status + ": " + errorText);
+    try {
+        const response = await axiosClient.get(`${PREFIX}/lich-su/${idHoaDon}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await result.json();
 };
 
 export const BeUpdateMonDaLen = async (idChiTiet) => {
-    const result = await fetch(`${getUrl}/chi-tiet-hoa-don/cap-nhat-da-len/${idChiTiet}`, {
-        method: 'PUT'
-    });
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(errorText);
+    try {
+        await axiosClient.put(`${PREFIX}/chi-tiet-hoa-don/cap-nhat-da-len/${idChiTiet}`);
+        return true;
+    } catch (error) {
+        throw error;
     }
-    return true;
 };
 
 export const BeUpdateTatCaDaLen = async (idHoaDon) => {
-    const result = await fetch(`${getUrl}/chi-tiet-hoa-don/cap-nhat-tat-ca-da-len/${idHoaDon}`, {
-        method: 'PUT'
-    });
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(errorText);
+    try {
+        await axiosClient.put(`${PREFIX}/chi-tiet-hoa-don/cap-nhat-tat-ca-da-len/${idHoaDon}`);
+        return true;
+    } catch (error) {
+        throw error;
     }
-    return true;
 };
 
 export const BeHuyHoaDon = async (payload) => {
-    const result = await fetch(`${getUrl}/huy-don`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!result.ok) {
-        const errorText = await result.text();
-        throw new Error(errorText);
+    try {
+        await axiosClient.put(`${PREFIX}/huy-don`, payload);
+        return true;
+    } catch (error) {
+        throw error;
     }
-    return true;
 };
 
-const systemUrl = "http://localhost:8080/api/tham-so-he-thong";
+const SYSTEM_PREFIX = "/tham-so-he-thong";
 export const BeGetThamSoHeThong = async () => {
-    const result = await fetch(`${systemUrl}/get-all-system`);
-    if (!result.ok) {
-        throw new Error("Lỗi lấy cấu hình hệ thống");
+    try {
+        const response = await axiosClient.get(`${SYSTEM_PREFIX}/get-all-system`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi lấy cấu hình hệ thống:", error);
+        throw error;
     }
-    return await result.json();
 };
