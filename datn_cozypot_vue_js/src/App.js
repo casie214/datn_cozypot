@@ -1,22 +1,26 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "./pages/guest/authentication/authenticationServices/authenticationService";
 
 const routes = [
     {
         path: "/manage/food",
         name: "foodManager",
         component: () =>
-            import ("./pages/admin/food/screens/foodManager.vue")
+            import ("./pages/admin/food/screens/foodManager.vue"),
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' }
     },
     {
         path: "/admin/staff",
         name: "staffManager",
-        component: () => import("@/pages/admin/staff/screens/staffManager.vue")
+        component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' }
     },
     {
         path: "/manage/category",
         name: "categoryManager",
         component: () =>
-            import ("./pages/admin/category/screens/categoryManager.vue")
+            import ("./pages/admin/category/screens/categoryManager.vue"),
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' }
     },
     {
         path: '/manage/food/hotpot/add',
@@ -25,13 +29,37 @@ const routes = [
             import ("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'setlau'
+            activeTab: 'setlau',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
-        path: "/admin/client", 
+        path: "/admin/client",
         name: "clientManager",
-        component: () => import("@/pages/admin/client/screens/clientManager.vue")
+        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+    {
+        path: "/login",
+        name: "login",
+        component: () => import("@/pages/guest/authentication/loginPage.vue")
+    },
+    {
+        path: "/register",
+        name: "register",
+        component: () => import("@/pages/guest/authentication/registerPage.vue")
+    },
+    {
+        path: "/admin/promotion", 
+        name: "promotionManager",
+        component: () => import("@/pages/admin/promotion/screens/promotionManager.vue"),
+        meta: 
+        { 
+            requiresAuth: true, 
+            requiredRole: 'ADMIN' 
+        }
     },
     {
         path: "/test",
@@ -46,7 +74,9 @@ const routes = [
             import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'setlau'
+            activeTab: 'setlau',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -56,7 +86,9 @@ const routes = [
             import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'setlau'
+            activeTab: 'setlau',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -66,7 +98,9 @@ const routes = [
             import ('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'chitietTD'
+            activeTab: 'chitietTD',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -76,7 +110,9 @@ const routes = [
             import ('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'thucdon'
+            activeTab: 'thucdon',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -87,7 +123,9 @@ const routes = [
         meta: {
                 title: 'Cập nhật Món Ăn',
                 parentMenu: 'foodManager',
-                activeTab: 'thucdon'
+                activeTab: 'thucdon',
+                requiresAuth: true, 
+                requiredRole: 'ADMIN'
             }
     },
     {
@@ -95,10 +133,12 @@ const routes = [
         name: 'viewFood',
         component: () =>
             import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
-        meta: { 
-            title: 'Chi tiết Món Ăn', 
+        meta: {
+            title: 'Chi tiết Món Ăn',
             parentMenu: 'foodManager',
-            activeTab: 'thucdon' 
+            activeTab: 'thucdon',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -108,7 +148,9 @@ const routes = [
             import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'chitietTD'
+            activeTab: 'chitietTD',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -118,9 +160,63 @@ const routes = [
             import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
-            activeTab: 'chitietTD'
+            activeTab: 'chitietTD',
+            requiresAuth: true, 
+            requiredRole: 'ADMIN'
         }
-    }
+    },
+    
+    {
+        path: "/",
+        redirect: "/home"
+    },
+
+    {
+        path: "/admin/orders",
+        name: "orderManager",
+        component: () => import("@/pages/admin/order/screens/OrderManager.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+
+    {
+        path: "/admin/orders/detail/:id",
+        name: "OrderDetail",
+        component: () => import("@/pages/admin/order/screens/OrderDetailPage.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+
+    {
+        path: "/admin/payment/:id",
+        name: "paymentScreen",
+        component: () => import("@/pages/admin/order/screens/PaymentScreen.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+
+    {
+        path: "/admin/add-food/:id",
+        name: "addFoodScreen",
+        component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+    {
+        path: '/admin/voucher',
+        name: 'AdminVoucher',
+        component: () => import('@/pages/admin/voucher/screens/voucherManager.vue'),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+    {
+        path: "/admin/promotions", 
+        name: "voucherManager",
+        component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+    
 ];
 
 const router = createRouter({
@@ -129,6 +225,37 @@ const router = createRouter({
     scrollBehavior() {
         return { top: 0 }; 
     }
+});
+
+router.beforeEach((to, from, next) => {
+    const authStore = useAuthStore();
+    
+    const isLoggedIn = !!authStore.token;
+    const userRole = authStore.role;    
+
+
+    if (to.meta.requiresAuth) {
+        
+        if (!isLoggedIn) {
+            alert("Vui lòng đăng nhập để tiếp tục!");
+            return next('/login');
+        }
+
+        if (to.meta.requiredRole) {
+            if (userRole !== to.meta.requiredRole) {
+                alert("Bạn không có quyền truy cập trang này!");
+                return next(false); 
+            }
+        }
+    }
+
+
+    if (to.path === '/login' && isLoggedIn) {
+        if (userRole === 'ADMIN') return next('/admin/dashboard');
+        return next('/');
+    }
+
+    next();
 });
 
 export default router;

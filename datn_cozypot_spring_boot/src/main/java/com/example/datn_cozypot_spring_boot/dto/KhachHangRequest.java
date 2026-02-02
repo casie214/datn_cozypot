@@ -54,4 +54,6 @@ public class KhachHangRequest {
     @Size(max = 255, message = "Địa chỉ không được vượt quá 255 ký tự")
     private String diaChi;
 
+    public static class PhieuGiamGiaResponseDTO {
+    }
 }

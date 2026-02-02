@@ -14,11 +14,26 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+// Import cho POI (Xử lý Excel)
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+// Import cho Spring Framework (Resource & Response)
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+// Import cho Java IO
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @Service
 public class NhanVienService {
@@ -163,4 +178,79 @@ public class NhanVienService {
         }
         return res;
     }
-}
+
+    public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) throws IOException {
+        java.util.List<NhanVien> list = repo.searchNhanVien(keyword, trangThai, tuNgay, Pageable.unpaged()).getContent();
+
+        // Khai báo định dạng ngày tháng Việt Nam
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        String[] columns = {
+                "STT", "Mã NV", "Họ Tên", "SĐT", "Email", "Giới Tính", "Ngày Sinh",
+                "Số CCCD", "Ngày Cấp", "Nơi Cấp", "Địa Chỉ", "Vai Trò",
+                "Ngày Vào Làm", "Tên Đăng Nhập", "Trạng Thái"
+        };
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Danh Sách Nhân Viên");
+
+            // --- Style cho Header ---
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // --- Đổ dữ liệu ---
+            int rowIdx = 1;
+            for (NhanVien nv : list) {
+                Row row = sheet.createRow(rowIdx++);
+
+                row.createCell(0).setCellValue(rowIdx - 1);
+                row.createCell(1).setCellValue(nv.getMaNhanVien() != null ? nv.getMaNhanVien() : "");
+                row.createCell(2).setCellValue(nv.getHoTenNhanVien() != null ? nv.getHoTenNhanVien() : "");
+                row.createCell(3).setCellValue(nv.getSdtNhanVien() != null ? nv.getSdtNhanVien() : "");
+                row.createCell(4).setCellValue(nv.getEmail() != null ? nv.getEmail() : "");
+                row.createCell(5).setCellValue(nv.getGioiTinh() != null ? (nv.getGioiTinh() ? "Nam" : "Nữ") : "");
+
+                // Định dạng: Ngày Sinh
+                row.createCell(6).setCellValue(nv.getNgaySinh() != null ? nv.getNgaySinh().format(formatter) : "");
+
+                row.createCell(7).setCellValue(nv.getSoCccd() != null ? nv.getSoCccd() : "");
+
+                // Định dạng: Ngày Cấp CCCD
+                row.createCell(8).setCellValue(nv.getNgayCapCccd() != null ? nv.getNgayCapCccd().format(formatter) : "");
+
+                row.createCell(9).setCellValue(nv.getNoiCapCccd() != null ? nv.getNoiCapCccd() : "");
+                row.createCell(10).setCellValue(nv.getDiaChi() != null ? nv.getDiaChi() : "");
+                row.createCell(11).setCellValue(nv.getIdVaiTro() != null ? nv.getIdVaiTro().getTenVaiTro() : "N/A");
+
+                // Định dạng: Ngày Vào Làm
+                row.createCell(12).setCellValue(nv.getNgayVaoLam() != null ? nv.getNgayVaoLam().format(formatter) : "");
+
+                row.createCell(13).setCellValue(nv.getTenDangNhap() != null ? nv.getTenDangNhap() : "");
+                row.createCell(14).setCellValue(nv.getTrangThaiLamViec() != null ? (nv.getTrangThaiLamViec() == 1 ? "Đang làm việc" : "Ngừng hoạt động") : "");
+            }
+
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+            InputStreamResource resource = new InputStreamResource(in);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Danh_Sach_Nhan_Vien.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(resource);
+        }
+    }}

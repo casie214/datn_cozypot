@@ -21,7 +21,6 @@ public class KhachHangController {
     @Autowired
     private KhachHangService service;
 
-    // 1. Lấy danh sách (Phân trang + Tìm kiếm)
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,
@@ -87,5 +86,26 @@ public class KhachHangController {
             @RequestParam(required = false) Integer excludeId) {
         boolean isExists = service.checkDuplicate(type, value, excludeId);
         return ResponseEntity.ok(Map.of("exists", isExists));
+    }
+    // 7. Xuất file Excel khách hàng
+    @GetMapping("/export-excel")
+    public ResponseEntity<byte[]> exportExcel(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+        try {
+            // Gọi service để lấy mảng byte của file Excel
+            byte[] data = service.exportExcel(keyword, trangThai, tuNgay);
+
+            // Tạo tên file kèm thời gian hiện tại cho chuyên nghiệp
+            String fileName = "DS_KhachHang_" + LocalDate.now() + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=" + fileName)
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
