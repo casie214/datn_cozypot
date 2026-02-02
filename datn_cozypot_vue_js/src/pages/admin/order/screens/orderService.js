@@ -1,8 +1,9 @@
 const getUrl = "http://localhost:8080/api/hoa-don-thanh-toan";
 
-export const BeGetAllHoaDon = async (page = 0) => {
+export const BeGetAllHoaDon = async (page = 0, size = 5) => {
     const params = new URLSearchParams();
     params.append("page", page);
+    params.append("size", size);
     const result = await fetch(`${getUrl}/get-all?${params.toString()}`);
     if (!result.ok) {
         const errorText = await result.text();
@@ -20,7 +21,7 @@ export const BeGetHoaDonById = async (id) => {
     return await result.json();
 };
 
-export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0) => {
+export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0, size = 5) => {
     const params = new URLSearchParams();
     if (key !== null && key !== undefined && key !== "") {
         params.append("key", key);
@@ -34,6 +35,7 @@ export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, 
     if (tuNgay) params.append("tuNgay", tuNgay);
     if (denNgay) params.append("denNgay", denNgay);
     params.append("page", page);
+    params.append("size", size);
     const result = await fetch(`${getUrl}/search?${params.toString()}`);
     if (!result.ok) {
         const errorText = await result.text();
