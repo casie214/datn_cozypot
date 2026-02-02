@@ -13,7 +13,6 @@ export const useAuthStore = defineStore('auth', {
         async login(username, password, isClient) {
             try {
 
-                // api trong controller
                 const endpoint = isClient ? '/auth/client/login' : '/auth/admin/login';
 
                 const payload = {
@@ -36,6 +35,16 @@ export const useAuthStore = defineStore('auth', {
                 return true; 
             } catch (error) {
                 console.error("Login Error:", error);
+                throw error; 
+            }
+        },
+
+        async register(payload) {
+            try {
+                await axiosClient.post('/auth/register', payload);
+                return true;
+            } catch (error) {
+                console.error("Register Error:", error);
                 throw error; 
             }
         },

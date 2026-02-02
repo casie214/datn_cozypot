@@ -15,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/khach-hang")
+@CrossOrigin(origins = "http://localhost:5173")
 public class KhachHangController {
 
     @Autowired
@@ -86,10 +87,25 @@ public class KhachHangController {
         boolean isExists = service.checkDuplicate(type, value, excludeId);
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
+    // 7. Xuất file Excel khách hàng
+    @GetMapping("/export-excel")
+    public ResponseEntity<byte[]> exportExcel(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+        try {
+            // Gọi service để lấy mảng byte của file Excel
+            byte[] data = service.exportExcel(keyword, trangThai, tuNgay);
 
-    @GetMapping("/active")
-    public ResponseEntity<?> getActiveCustomers() {
-        return ResponseEntity.ok(service.getActive());
+            // Tạo tên file kèm thời gian hiện tại cho chuyên nghiệp
+            String fileName = "DS_KhachHang_" + LocalDate.now() + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=" + fileName)
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
-
 }

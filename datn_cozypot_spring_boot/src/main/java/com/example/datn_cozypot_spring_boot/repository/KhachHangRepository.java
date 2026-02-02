@@ -28,12 +28,10 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
             @Param("tuNgay") LocalDateTime tuNgay,
             Pageable pageable);
 
-    // Các hàm check trùng khớp với tên biến Entity
     boolean existsBySoDienThoai(String soDienThoai);
     boolean existsByEmail(String email);
     boolean existsByTenDangNhap(String tenDangNhap);
 
-    // Check trùng khi update (trừ ID hiện tại)
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
     boolean existsByEmailAndIdNot(String email, Integer id);
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
