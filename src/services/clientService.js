@@ -1,0 +1,50 @@
+import axiosClient from './axiosClient';
+
+const clientService = {
+  getAll: (params) => {
+    return axiosClient.get('/khach-hang', {
+      params: {
+        keyword: params.keyword || null,
+        trangThai: params.trangThai !== undefined ? params.trangThai : null,
+        tuNgay: params.tuNgay || null,
+        page: params.page || 0,
+        size: params.size || 10
+      }
+    });
+  },
+
+  getDetail: (id) => {
+    return axiosClient.get(`/khach-hang/${id}`);
+  },
+
+  // SỬA: Thêm config headers để axios hiểu là gửi Form Data có kèm file
+  create: (formData) => {
+    return axiosClient.post('/khach-hang/add', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // SỬA: Tương tự cho update
+  update: (id, formData) => {
+    return axiosClient.put(`/khach-hang/update/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  toggleStatus: (id) => {
+    return axiosClient.patch(`/khach-hang/${id}/toggle-status`);
+  },
+
+  // BỔ SUNG: Hàm kiểm tra trùng dữ liệu realtime
+  checkDuplicate: (type, value, excludeId = null) => {
+    return axiosClient.get('/khach-hang/check-duplicate', {
+      params: { type, value, excludeId }
+    });
+  }
+};
+
+export default clientService;
