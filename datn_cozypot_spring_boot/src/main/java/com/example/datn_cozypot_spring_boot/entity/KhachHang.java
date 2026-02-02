@@ -8,8 +8,8 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -51,7 +51,7 @@ public class KhachHang {
 
     @ColumnDefault("getdate()")
     @Column(name = "ngay_tao_tai_khoan")
-    private Instant ngayTaoTaiKhoan;
+    private LocalDateTime ngayTaoTaiKhoan;
 
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;

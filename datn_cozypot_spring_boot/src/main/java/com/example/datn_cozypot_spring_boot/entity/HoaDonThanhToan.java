@@ -9,7 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -47,10 +47,10 @@ public class HoaDonThanhToan {
 
     @ColumnDefault("getdate()")
     @Column(name = "thoi_gian_tao")
-    private Instant thoiGianTao;
+    private LocalDateTime thoiGianTao;
 
     @Column(name = "thoi_gian_thanh_toan")
-    private Instant thoiGianThanhToan;
+    private LocalDateTime thoiGianThanhToan;
 
     @ColumnDefault("0")
     @Column(name = "tong_tien_chua_giam", precision = 18)

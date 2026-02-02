@@ -1,12 +1,11 @@
 <script setup>
-import { fetchAllCheckIn } from "../../../../services/tableManageService";
+import {
+  fetchAllBanAn,
+  fetchAllCheckIn,
+  updateTrangThaiBan,
+} from "../../../../services/tableManageService";
 import { computed, onMounted, ref, onUnmounted } from "vue";
 import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import timezone from "dayjs/plugin/timezone";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 // --- QUẢN LÝ BÀN ---
 const activeFloor = ref(1);
@@ -14,8 +13,7 @@ const danhSachBan = ref([]);
 
 const fetchAllBan = async () => {
   try {
-    const res = await fetch("http://localhost:8080/dat-ban/danh-sach-ban-an");
-    const data = await res.json();
+    const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
       // 3 bàn mỗi hàng trên lưới 12 cột:
@@ -54,6 +52,7 @@ const thongKeTang = computed(() => {
 
 // --- QUẢN LÝ KHÁCH CHỜ ---
 const searchQuery = ref("");
+const filterDate = ref(null); // yyyy-MM-dd từ <input type="date">
 const danhSachCho = ref([]);
 
 const handleFetchAllCheckIn = async () => {
@@ -68,10 +67,11 @@ const handleFetchAllCheckIn = async () => {
 // Logic lọc: Tìm kiếm + Chỉ hiện khách chưa tới giờ (Hiện tại <= Thời gian đặt)
 const danhSachLoc = computed(() => {
   return danhSachCho.value.filter((khach) => {
-    // ❌ CHƯA xếp bàn → loại
+    //  Chưa xếp bàn
     if (!khach.maBan && !khach.idBanAn) return false;
 
-    const thoiGianDat = new Date(khach.thoiGianDat);
+    const thoiGianDat = dayjs(khach.thoiGianDat);
+    const hienTai = dayjs(currentTime.value);
 
     const matchSearch =
       khach.soDienThoai?.includes(searchQuery.value) ||
@@ -79,10 +79,18 @@ const danhSachLoc = computed(() => {
         ?.toLowerCase()
         .includes(searchQuery.value.toLowerCase());
 
-    // Chưa tới giờ
-    const chuaToiGio = currentTime.value <= thoiGianDat;
+    //  Cho phép check-in tới +10 phút
+    //  Hiển thị nếu: Chưa tới giờ HOẶC quá giờ dưới 10 phút
+    const phutChenh = hienTai.diff(thoiGianDat, "minute");
+    const trongThoiGianCheckIn = phutChenh <= 10;
 
-    return matchSearch && chuaToiGio;
+    //  Lọc theo ngày
+    let matchDate = true;
+    if (filterDate.value) {
+      matchDate = thoiGianDat.format("YYYY-MM-DD") === filterDate.value;
+    }
+
+    return matchSearch && trongThoiGianCheckIn && matchDate;
   });
 });
 
@@ -105,34 +113,33 @@ onUnmounted(() => clearInterval(timer));
 const getCountdown = (dbTime) => {
   if (!dbTime) return "00:00:00";
 
-  const now = dayjs().utc();
-  const target = dayjs.utc(dbTime);
-
-  // ⬇️ TRỪ 7 GIỜ (7 * 60 * 60 * 1000)
-  const diff = target.diff(now) - 7 * 60 * 60 * 1000;
+  const now = dayjs(currentTime.value);
+  const target = dayjs(dbTime);
+  const diff = target.diff(now);
 
   if (diff <= 0) return "00:00:00";
 
-  const h = Math.floor(diff / 3600000).toString().padStart(2, "0");
-  const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
-  const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+  const h = Math.floor(diff / 3600000)
+    .toString()
+    .padStart(2, "0");
+  const m = Math.floor((diff % 3600000) / 60000)
+    .toString()
+    .padStart(2, "0");
+  const s = Math.floor((diff % 60000) / 1000)
+    .toString()
+    .padStart(2, "0");
 
   return `${h}:${m}:${s}`;
 };
-
-
-
-
 
 // --- HELPER UI ---
 const getStatusClass = (s) => {
   s = Number(s);
 
   if (s === 1) return "status-occupied-light"; // Có khách
-  if (s === 2) return "status-booked";         // Đã đặt
-  return "status-empty";                       // Trống (0 hoặc null)
+  if (s === 2) return "status-booked"; // Đã đặt
+  return "status-empty"; // Trống (0 hoặc null)
 };
-
 
 const getStatusText = (s) => {
   s = Number(s);
@@ -140,8 +147,6 @@ const getStatusText = (s) => {
   if (s === 2) return "Đã đặt";
   return "Trống";
 };
-
-
 
 // --- QUẢN LÝ MODAL & CẬP NHẬT ---
 const isShowModal = ref(false);
@@ -175,23 +180,13 @@ const updateStatus = async () => {
     id: selectedPhieu.value?.id || null, // ID Phiếu (có thể null nếu đổi trạng thái thủ công)
     idBanAn: selectedBan.value.id, // ID Bàn
     trangThai: Number(selectedBan.value.trangThai),
-     // Gửi trạng thái mới ("0" hoặc "1")
+    // Gửi trạng thái mới ("0" hoặc "1")
   };
   console.log(selectedBan.value);
 
-
   console.log("Dữ liệu gửi đi:", payload);
   try {
-    const res = await fetch(
-      "http://localhost:8080/dat-ban/update-table-status",
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
-
-    if (!res.ok) throw new Error("Chưa có phiếu đặt bàn");
+    await updateTrangThaiBan(payload);
 
     alert(`Cập nhật bàn ${selectedBan.value.maBan} thành công!`);
     closeModal();
@@ -203,9 +198,10 @@ const updateStatus = async () => {
   }
 };
 
-const formatDate = (time) =>
-  dayjs.utc(time).format("DD/MM/YYYY HH:mm");
-
+const formatDate = (time) => {
+  if (!time) return "";
+  return dayjs(time).format("DD/MM/YYYY HH:mm");
+};
 </script>
 
 <template>
@@ -476,7 +472,9 @@ const formatDate = (time) =>
                         </div>
 
                         <div class="card-body">
-                          <p class="time-info">{{ formatDate(khach.thoiGianDat) }}</p>
+                          <p class="time-info">
+                            {{ formatDate(khach.thoiGianDat) }}
+                          </p>
                           <div class="card-footer">
                             <button class="btn btn-checkable">
                               Có thể check-in
@@ -618,7 +616,6 @@ hr {
   /* Chỉnh độ dày ở đây */
 }
 
-
 .btn-checkable {
   background-color: #7d161a !important; /* Đỏ đậm hơn */
   color: white !important;
@@ -640,14 +637,13 @@ hr {
   font-weight: 600;
 }
 
-
 /* Button tầng */
 /* Trạng thái cho nút ĐANG được chọn (Active) */
-.btn{
+.btn {
   background-color: white;
   color: #333;
 }
-.btn:hover{
+.btn:hover {
   background-color: #5c0a16 !important; /* Đỏ đậm hơn một chút khi di chuột */
   color: white !important;
 }

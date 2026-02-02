@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -60,10 +60,10 @@ public class PhieuGiamGia {
     private BigDecimal donHangToiThieu;
 
     @Column(name = "ngay_bat_dau")
-    private Instant ngayBatDau;
+    private LocalDateTime ngayBatDau;
 
     @Column(name = "ngay_ket_thuc")
-    private Instant ngayKetThuc;
+    private LocalDateTime ngayKetThuc;
 
     @Column(name = "so_luong_phat_hanh")
     private Integer soLuongPhatHanh;
@@ -77,10 +77,10 @@ public class PhieuGiamGia {
 
     @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_sua")
-    private Instant ngaySua;
+    private LocalDateTime ngaySua;
 
     @Size(max = 100)
     @Nationalized

@@ -151,8 +151,19 @@ public class DatBanService {
         );
     }
 
+    @Transactional
+    public void autoUpdateTrangThaiPhieu() {
 
+        int quaHan = phieuDatBanRepository.updateChoXacNhanQuaHan();
+        int daHuy = phieuDatBanRepository.updateDaXacNhanQuaGio();
 
+        System.out.println(
+                "Auto update: " + quaHan + " QUÁ HẠN, " + daHuy + " ĐÃ HỦY"
+        );
+    }
 
-
+    @Transactional
+    public void updateTrangThai(Integer id, Integer trangThai) {
+        phieuDatBanRepository.updateTrangThai(id, trangThai);
+    }
 }

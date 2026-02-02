@@ -10,7 +10,7 @@ import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -41,7 +41,7 @@ public class PhieuDatBan {
     private String maDatBan;
 
     @Column(name = "thoi_gian_dat")
-    private Instant thoiGianDat;
+    private LocalDateTime thoiGianDat;
 
     @Column(name = "hinh_thuc_dat")
     private Integer hinhThucDat;
@@ -51,10 +51,10 @@ public class PhieuDatBan {
 
     @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_sua")
-    private Instant ngaySua;
+    private LocalDateTime ngaySua;
 
     @Size(max = 100)
     @Nationalized

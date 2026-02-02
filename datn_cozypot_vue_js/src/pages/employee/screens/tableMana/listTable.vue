@@ -81,8 +81,8 @@ const showUpdateModal = ref(false);
 const openUpdateModal = async (id) => {
   try {
     await handleFetchAllKhuVuc();
-    await fetchDetailBanAn(id); // 👈 load chi tiết bàn
-    showUpdateModal.value = true;  // 👈 mở modal SAU khi có data
+    await fetchDetailBanAn(id); //  load chi tiết bàn
+    showUpdateModal.value = true;  //  mở modal SAU khi có data
   } catch (error) {
     console.error("Lỗi lấy chi tiết bàn:", error);
   }

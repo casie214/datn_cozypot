@@ -3,7 +3,7 @@ package com.example.datn_cozypot_spring_boot.dto.request;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 public class UpdateBanAnRequest {
@@ -17,6 +17,6 @@ public class UpdateBanAnRequest {
     private Integer idKhuVuc;
     @NotNull(message = "Trạng thái không được trống")
     private Integer trangThai;
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
     private String nguoiTao;
 }
