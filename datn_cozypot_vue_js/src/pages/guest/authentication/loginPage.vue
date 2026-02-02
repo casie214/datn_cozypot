@@ -22,13 +22,18 @@ const validate = () => {
     let isValid = true;
 
     // validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.value) {
-        errors.value.email = "Email không được để trống";
+        // Kiểm tra rỗng chung cho cả 2
+        errors.value.email = isClientLogin.value ? "Email không được để trống" : "Tên đăng nhập không được để trống";
         isValid = false;
-    } else if (!emailRegex.test(email.value)) {
-        errors.value.email = "Email không đúng định dạng";
-        isValid = false;
+    } 
+    // 🔥 SỬA Ở ĐÂY: Chỉ check định dạng Email nếu là Client
+    else if (isClientLogin.value) { 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.value)) {
+            errors.value.email = "Email không đúng định dạng";
+            isValid = false;
+        }
     }
 
     // validate Mật khẩu

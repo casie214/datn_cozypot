@@ -1,156 +1,123 @@
-const baseURL = "http://localhost:8080/dat-ban"
+import axiosClient from "@/services/axiosClient"; // Đảm bảo đường dẫn import đúng
+
+// Định nghĩa Prefix cho module này
+// URL thực tế sẽ là: http://localhost:8080/api/dat-ban/...
+const PREFIX = "/dat-ban";
 
 export const fetchAll = async () => {
-    const response = await fetch(`${baseURL}/danh-sach`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const fetchAllBanAn = async () => {
-    const response = await fetch(`${baseURL}/danh-sach-ban-an`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach-ban-an`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const fetchBanAnById = async (id) => {
-    const response = await fetch(`${baseURL}/ban-an-detail/${id}`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/ban-an-detail/${id}`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const fetchSearchDatBan = async () => {
-    const response = await fetch(`${baseURL}/search`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/search`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const fetchAllCheckIn = async () => {
-    const response = await fetch(`${baseURL}/danh-sach-check-in`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach-check-in`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const addBanAn = async (banAn) => {
-    const response = await fetch(`${baseURL}/add-ban-an`,{
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(banAn)
-    })
-if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        // Axios tự động stringify body
+        await axiosClient.post(`${PREFIX}/add-ban-an`, banAn);
+        return true;
+    } catch (error) {
+        throw error;
     }
 }
 
 export const updateBanAn = async (banAn) => {
-    const response = await fetch(`${baseURL}/update-ban-an`,{
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(banAn)
-    })
-if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        await axiosClient.put(`${PREFIX}/update-ban-an`, banAn);
+        return true;
+    } catch (error) {
+        throw error;
     }
 }
 
 export const fetchAllKhuVuc = async () => {
-    const response = await fetch(`${baseURL}/danh-sach-khu-vuc`)
-    if (!response.ok) {
-        throw new Error(response.status + ": " + await response.text())
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach-khu-vuc`);
+        return response.data;
+    } catch (error) {
+        throw error;
     }
-    return await response.json()
 }
 
 export const updateTrangThaiBan = async (payload) => {
-  const res = await fetch(
-    `${baseURL}/update-trang-thai-ban`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+    try {
+        const response = await axiosClient.put(`${PREFIX}/update-trang-thai-ban`, payload);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data || "Chưa có phiếu đặt bàn");
     }
-  );
-
-  if (!res.ok) {
-    throw new Error("Chưa có phiếu đặt bàn");
-  }
-
-  return true; // nếu backend không trả body thì có thể bỏ dòng này
 };
 
 export const searchDatBanService = async ({ payload, page, size }) => {
-  const res = await fetch(
-    `${baseURL}/search?page=${page}&size=${size}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error("Lỗi khi tìm kiếm");
+  try {
+    const response = await axiosClient.post(`${PREFIX}/search`, payload, {
+      params: { page, size }
+    });
+    return response.data;
+  } catch (error) {
+    // 🔥 SỬA: In lỗi ra console để debug
+    console.error("🔥 Lỗi chi tiết từ Backend:", error.response);
+    
+    // Ném lỗi gốc ra để Vue bắt được (error.response.data thường chứa message từ Java)
+    throw error; 
   }
-
-  return await res.json();
 };
 
-
 export const updatePhieuDatBanService = async (payload) => {
-  const res = await fetch(
-    `${baseURL}/update`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+    try {
+        await axiosClient.put(`${PREFIX}/update`, payload);
+        return true;
+    } catch (error) {
+        throw new Error("Cập nhật thất bại");
     }
-  );
-
-  if (!res.ok) {
-    throw new Error("Cập nhật thất bại");
-  }
-
-  return true; 
 };
 
 export const updateTTPhieuDatBan = async (id, trangThai) => {
-  const url = `${baseURL}/update-trang-thai-phieu`;
-
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      id: id,
-      trangThai: trangThai,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Cập nhật trạng thái thất bại");
-  }
-
-  return true;
+    try {
+        await axiosClient.put(`${PREFIX}/update-trang-thai-phieu`, {
+            id: id,
+            trangThai: trangThai
+        });
+        return true;
+    } catch (error) {
+        throw new Error("Cập nhật trạng thái thất bại");
+    }
 };
-
-

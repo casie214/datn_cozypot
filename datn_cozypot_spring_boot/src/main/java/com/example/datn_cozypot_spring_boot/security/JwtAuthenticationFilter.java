@@ -25,13 +25,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        String authHeader = request.getHeader("Authorization");
+        System.out.println("🔥 [DEBUG] Header Authorization: " + authHeader);
         try {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String username = tokenProvider.getUsername(jwt);
                 String role = tokenProvider.getRole(jwt);
-
+                boolean isValid = tokenProvider.validateToken(jwt);
+                System.out.println("🔥 [DEBUG] Token hợp lệ? " + isValid);
+                if(isValid){
+                    System.out.println("🔥 [DEBUG] Role trong token: " + role);
+                }else{
+                    System.out.println("🔥 [DEBUG] Không tìm thấy JWT trong request này");
+                }
                 List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -40,7 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (Exception ex) { /* Log error */ }
+        } catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
+        }
 
         filterChain.doFilter(request, response);
     }
