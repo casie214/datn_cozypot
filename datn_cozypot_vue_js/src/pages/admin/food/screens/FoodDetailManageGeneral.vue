@@ -1,17 +1,25 @@
 <script setup>
-import { useFoodDetailManager } from '../../../../services/foodFunction';
+import { useFoodDetailManager } from '../../../../services/foodFunction'; // Sửa lại đường dẫn
 import { useRouter } from 'vue-router';
+// --- IMPORT THƯ VIỆN ---
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
+import CommonPagination from '@/components/commonPagination.vue';
 
 const {
   paginatedData, searchQuery, currentPage, totalPages, visiblePages, itemsPerPage, changePage,
-  getAllFoodDetails, handleViewDetails: _handleViewDetails, handleToggleStatus, sortOption, statusFilter,
+  getAllFoodDetails, handleToggleStatus, sortOption, statusFilter,
+  selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters,
+  handleMinChange, handleMaxChange,
 
-  selectedPriceRange,
-  globalMinPrice,
-  globalMaxPrice,
-  clearFilters
+  // Các biến mới
+  categoryFilter,
+  foodFilter,
+  listCategories,
+  availableFoods, totalElements,
+  hotpotFilter, availableHotpots, exportToExcel
 } = useFoodDetailManager();
 
 const router = useRouter();
@@ -25,15 +33,30 @@ const handleEdit = (item) => {
   router.push({ name: 'updateFoodDetail', params: { id: item.id } });
 };
 
-const getImg = (url) => {
-  if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
-    return url;
+const handleSelectFood = (val) => {
+  if (val) {
+    hotpotFilter.value = null;
   }
-  return 'https://placehold.co/100x100?text=No+Img';
-}
+};
+
+const handleSelectHotpot = (val) => {
+  if (val) {
+    foodFilter.value = null;
+  }
+};
 </script>
 
 <template>
+  <div class="flex-row">
+    <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
+    <div class="action-row">
+      <button class="btn-add" @click="goToAddScreen">+ Thêm chi tiết món</button>
+      <button class="btn-excel" @click="exportToExcel" title="Xuất Excel">
+         <i class="fas fa-file-excel"></i> Xuất Excel
+      </button>
+    </div>
+  </div>
+
   <div class="tab-content">
     <div class="filter-box">
       <div class="filter-row">
@@ -43,6 +66,26 @@ const getImg = (url) => {
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm chi tiết (mã, tên)" />
             <button class="search-btn">🔍</button>
+          </div>
+        </div>
+
+
+
+        <div class="filter-item">
+          <label>Món ăn gốc</label>
+          <div class="multiselect-wrapper">
+            <Multiselect v-model="foodFilter" :options="availableFoods" valueProp="id" label="tenMonAn"
+              placeholder="-- Tất cả --" :searchable="true" :canClear="true" @change="handleSelectFood"
+              noOptionsText="Không có món ăn nào" noResultsText="Không tìm thấy món" />
+          </div>
+        </div>
+
+        <div class="filter-item">
+          <label>Set Lẩu</label>
+          <div class="multiselect-wrapper">
+            <Multiselect v-model="hotpotFilter" :options="availableHotpots" valueProp="id" label="tenSetLau"
+              placeholder="-- Tất cả --" :searchable="true" :canClear="true" @change="handleSelectHotpot"
+              noOptionsText="Không có set lẩu nào" noResultsText="Không tìm thấy" />
           </div>
         </div>
 
@@ -60,27 +103,21 @@ const getImg = (url) => {
           <select v-model="sortOption" class="form-control">
             <option value="id_asc">Số thứ tự tăng dần</option>
             <option value="id_desc">Mới thêm gần đây</option>
-            <option value="price_asc">Giá bán: Thấp -> Cao</option>
-            <option value="price_desc">Giá bán: Cao -> Thấp</option>
-            <option value="name_asc">Tên: A -> Z</option>
+            <option value="price_asc">Giá thấp -> Cao</option>
+            <option value="price_desc">Giá cao -> Thấp</option>
           </select>
         </div>
 
-        <div class="filter-item price-filter-item">
-          <div class="" style="display: flex; flex-direction: row; justify-content: space-between;">
-            <label>
-              Khoảng giá:
-              <span class="price-range-text">
-                {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
-              </span>
-            </label>
+        <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
 
+        <div class="filter-item price-filter-item">
+          <div style="display: flex; flex-direction: row; justify-content: space-between;">
+            <label>Khoảng giá: <span class="price-range-text">{{ selectedPriceRange[0].toLocaleString() }} - {{
+              selectedPriceRange[1].toLocaleString() }}</span></label>
             <div class="slider-wrapper" v-if="globalMaxPrice > 0">
               <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="5000"
                 :tooltips="false" />
             </div>
-            <div v-else class="loading-text">Đang tải...</div>
-
           </div>
           <div class="price-inputs">
             <input type="number" v-model="selectedPriceRange[0]" @change="handleMinChange" class="price-input-small"
@@ -89,22 +126,14 @@ const getImg = (url) => {
             <input type="number" v-model="selectedPriceRange[1]" @change="handleMaxChange" class="price-input-small"
               placeholder="Đến">
           </div>
-
         </div>
-
-        <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
       </div>
-    </div>
-
-    <div class="action-row">
-      <button class="btn-add" @click="goToAddScreen">+ Thêm chi tiết món</button>
     </div>
 
     <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
-            <th></th>
             <th>STT</th>
             <th>MÃ CHI TIẾT</th>
             <th>TÊN CHI TIẾT</th>
@@ -122,20 +151,12 @@ const getImg = (url) => {
               <div class="empty-state-content">
                 <div class="empty-icon">🍜</div>
                 <h3>Không tìm thấy món nào!</h3>
-                <p>Thử thay đổi bộ lọc hoặc tìm kiếm từ khóa khác xem sao nhé.</p>
-                <button class="btn-reset-empty" @click="clearFilters">
-                  Xóa bộ lọc
-                </button>
+                <button class="btn-reset-empty" @click="clearFilters">Xóa bộ lọc</button>
               </div>
             </td>
           </tr>
           <tr v-for="(item, index) in paginatedData" :key="item.id">
-            <td>
-              <div class="hero-image">
-                <img :src="getImg(item.hinhAnh)" alt="Food Img">
-              </div>
-            </td>
-            <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+            <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maChiTietMonAn }}</td>
             <td><b>{{ item.tenChiTietMonAn }}</b></td>
             <td>{{ item.monAnDiKem ? item.monAnDiKem.tenMonAn : (item.tenMonAnDiKem || '---') }}</td>
@@ -147,49 +168,55 @@ const getImg = (url) => {
             </td>
             <td class="actions">
               <div class="action-group">
-                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
-                  @click="handleView(item)"></i>
-
-                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
-                  @click="handleEdit(item)"></i>
-
-                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
+                <i class="fas fa-eye view-icon" @click="handleView(item)"></i>
+                <i class="fas fa-pen edit-icon" @click="handleEdit(item)"></i>
+                <i :class="item.trangThai === 1 ? 'fas fa-unlock-alt' : 'fas fa-lock'"
                   @click="handleToggleStatus(item)"></i>
-                <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <div class="pagination" v-if="totalPages > 1">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
-        :class="{ 'disabled': currentPage === 1 }">&lt;</button>
-      <template v-for="(page, index) in visiblePages" :key="index">
-        <button v-if="page === '...'" class="dots" disabled>...</button>
-        <button v-else @click="changePage(page)" :class="{ 'active': currentPage === page }">{{ page }}</button>
-      </template>
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
-        :class="{ 'disabled': currentPage === totalPages }">&gt;</button>
+      <div style="padding-bottom: 30px;" class="pagination">
+        <CommonPagination
+            v-model:currentPage="currentPage"
+            v-model:pageSize="itemsPerPage"
+            :total-pages="totalPages"
+            :total-elements="totalElements"
+            :current-count="paginatedData.length"
+            @change="() => {}" 
+        />
+      </div>
     </div>
-
   </div>
 </template>
 
 <style scoped src="/src/assets/foodManager.css"></style>
+<style src="@vueform/multiselect/themes/default.css"></style>
 
 <style scoped>
+/* CSS cho Multiselect */
+.multiselect-wrapper {
+  width: 200px;
+}
+
+:deep(.multiselect) {
+  min-height: 38px;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  --ms-tag-bg: #d32f2f;
+  --ms-ring-color: rgba(211, 47, 47, 0.3);
+  --ms-option-bg-selected: #d32f2f;
+  --ms-option-bg-selected-pointed: #b71c1c;
+}
+
+/* CSS Slider & Actions (Giữ nguyên của bạn) */
 .slider-wrapper {
   width: 200px;
   padding: 0 10px;
   margin-top: 5px;
-  --slider-connect-bg: #d32f2f;
-  --slider-tooltip-bg: #d32f2f;
-  --slider-handle-ring-color: rgba(211, 47, 47, 0.3);
-  --slider-height: 6px;
 }
-
 
 :deep(.slider-connect) {
   background: #d32f2f !important;
@@ -202,12 +229,7 @@ const getImg = (url) => {
 
 :deep(.slider-handle) {
   background: #d32f2f !important;
-  box-shadow: none !important;
   border: 2px solid white;
-}
-
-:deep(.slider-handle:focus) {
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3) !important;
 }
 
 .price-filter-item {
@@ -230,8 +252,6 @@ const getImg = (url) => {
 
 .action-group {
   display: flex;
-  align-items: center;
-  justify-content: start;
   gap: 15px;
 }
 
@@ -243,5 +263,9 @@ const getImg = (url) => {
 
 .action-group i:hover {
   transform: scale(1.2);
+}
+
+.form-control {
+  min-width: 140px;
 }
 </style>

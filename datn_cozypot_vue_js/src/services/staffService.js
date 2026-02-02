@@ -43,11 +43,21 @@ const staffService = {
     return axiosClient.patch(`/nhan-vien/${id}/toggle-status`);
   },
   // staffService.js
-checkDuplicate: (params) => {
-  // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
-  return axiosClient.get('/nhan-vien/check-duplicate', { params });
-},
+  checkDuplicate: (params) => {
+    // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
+    return axiosClient.get('/nhan-vien/check-duplicate', { params });
+  },
 
+  exportStaffExcel(filters) {
+    return axiosClient.get('/nhan-vien/export', { // Bỏ /api nếu axiosClient đã có baseURL
+      params: {
+        keyword: filters.keyword || null,
+        trangThai: filters.trangThai || null,
+        tuNgay: filters.tuNgay || null
+      },
+      responseType: 'blob', // BẮT BUỘC
+    });
+  }
 };
 
 export default staffService;

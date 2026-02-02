@@ -21,6 +21,12 @@ public class KhuVuc {
     @Column(name = "id_khu_vuc", nullable = false)
     private Integer id;
 
+    @Size(max = 10)
+    @NotNull
+    @ColumnDefault("isnull(CONVERT([varchar](10), 'KV'+right('000'+CONVERT([varchar](10), [id_khu_vuc]), 3)), '')")
+    @Column(name = "ma_khu_vuc", nullable = false, length = 10)
+    private String maKhuVuc;
+
     @Size(max = 100)
     @NotNull
     @Nationalized

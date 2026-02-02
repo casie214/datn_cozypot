@@ -1,8 +1,10 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.example.datn_cozypot_spring_boot.config.AuthProvider;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -76,6 +78,9 @@ public class KhachHang {
     @Nationalized
     @Column(name = "dia_chi")
     private String diaChi;
+
+    @Enumerated(EnumType.STRING)
+    private AuthProvider authProvider;
 
     @JsonBackReference
     @OneToMany(mappedBy = "idKhachHang")

@@ -442,8 +442,8 @@ import promotionService from '@/services/promotionService';
 import '../promotionStyle.css';
 const exportExcel = async () => {
     try {
-        const response = await axios.get(
-            'http://localhost:8080/api/dot-khuyen-mai/export-excel',
+        const response = await axiosClient.get(
+            '/dot-khuyen-mai/export-excel',
             {
                 params: {
                     keyword: filters.keyword,
@@ -493,6 +493,7 @@ const pagination = reactive({
     totalPages: 0,
     totalElements: 0
 });
+import axiosClient from '@/services/axiosClient.js';
 
 // --- STATE ---
 const { getStatusDisplay, fetchData } = usePromotionLogic();
@@ -760,14 +761,14 @@ const handleToggleStatus = async (km) => {
 
 const fetchListSetLau = async () => {
     try {
-        const res = await axios.get('http://localhost:8080/api/set-lau/active');
+        const res = await axiosClient.get('http://localhost:8080/api/set-lau/active');
         listSetLau.value = res.data;
     } catch (e) { console.error(e); }
 };
 
 const fetchListMonAn = async () => {
     try {
-        const res = await axios.get('http://localhost:8080/api/mon-an-di-kem/active');
+        const res = await axiosClient.get('http://localhost:8080/api/mon-an-di-kem/active');
         listMonAnDiKem.value = res.data || [];
     } catch (e) { console.error(e); }
 };

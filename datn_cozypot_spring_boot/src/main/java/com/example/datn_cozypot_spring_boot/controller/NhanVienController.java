@@ -80,4 +80,19 @@ public class NhanVienController {
         boolean isExists = service.checkDuplicate(type, value, excludeId);
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
+
+    // 7. Xuất file Excel
+    @GetMapping("/export")
+    public ResponseEntity<org.springframework.core.io.Resource> exportExcel(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+        try {
+            // Gọi service để tạo file Excel (trả về InputStreamResource)
+            return service.exportExcel(keyword, trangThai, tuNgay);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }

@@ -803,7 +803,15 @@ font-weight: bold;
 
 @keyframes fadeOut {
     to { opacity: 0; transform: translateX(100%); }
+}.search-customer .btn {
+    border-left: 0;
 }
+
+.search-customer .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 /* Toast Notification Container */
 .toast-container {
