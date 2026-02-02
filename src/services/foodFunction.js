@@ -10,97 +10,98 @@ import CategoryHotpotGeneral from '../pages/admin/category/screens/CategoryHotpo
 import { useRoute, useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
+import axiosClient from './axiosClient';
 
-const API_BASE_EMPLOYEE = "http://localhost:8080/api/manage";
+const API_BASE_EMPLOYEE = "/manage";
 
 export function getAllFoodGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food`);
 }
 
 export function getFoodById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/${id}`);
 };
 
 export function getFoodGeneralModalById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
 }
 
 export function getAllHotpotGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
 }
 
 export function getHotpotById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
 }
 
 export function getAllFoodDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
 }
 
 export function getFoodDetailById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
 }
 
 export function getAllCategory() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category`);
 }
 
 export function getAllCategoryDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
 }
 
 export function getAllCategoryHotpot() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
 }
 
 export function postNewFood(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food`, data);
 }
 
 export function putNewFood(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
 }
 
 export function putNewFoodDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
 }
 
 export function postNewHotpot(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
 }
 
 export function putNewCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
 }
 
 export function postNewFoodDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
 }
 export function putNewHotpot(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
 }
 export function postNewCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category`, data);
 }
 
 export function putNewHotpotCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
 }
 
 export function putCategoryDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
 }
 
 export function postCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewHotpotCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
 }
 
 
