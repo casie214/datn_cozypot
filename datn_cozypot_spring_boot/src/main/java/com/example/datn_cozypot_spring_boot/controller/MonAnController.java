@@ -14,10 +14,12 @@ import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.DanhMuc;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.List;
 public class MonAnController {
     private final MonAnService monAnService;
 
+    @Operation(summary = "Lấy danh sách món ăn", description = "Trả về danh sách tất cả món ăn trong hệ thống")
     @GetMapping
     public ResponseEntity<List<MonAnResponse>> findAllMonAn() {
         List<MonAnResponse> monAnResponses = monAnService.findAllMonAn();
@@ -72,6 +75,7 @@ public class MonAnController {
         List<MonAnChiTietResponse> monAnChiTietResponses = monAnService.findChiTietMonAnByMonAnId(id);
         return ResponseEntity.ok(monAnChiTietResponses);
     }
+
 
     @GetMapping("/category")
     public ResponseEntity<List<DanhMucResponse>> findMonAnCategory(){

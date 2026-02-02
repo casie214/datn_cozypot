@@ -20,7 +20,6 @@ public class KhachHangController {
     @Autowired
     private KhachHangService service;
 
-    // 1. Lấy danh sách (Phân trang + Tìm kiếm)
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,

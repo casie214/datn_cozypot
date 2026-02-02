@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
@@ -38,4 +39,5 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
     List<KhachHang> findByTrangThai(Integer trangThai);
 
+    Optional<KhachHang> findKhachHangByEmail(String identifier);
 }
