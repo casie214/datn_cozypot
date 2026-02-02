@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -57,6 +58,7 @@ public class LoaiSetLau {
     private Integer trangThai;
 
     @OneToMany(mappedBy = "idLoaiSet")
+    @JsonIgnore
     private Set<SetLau> setLaus = new LinkedHashSet<>();
 
 }

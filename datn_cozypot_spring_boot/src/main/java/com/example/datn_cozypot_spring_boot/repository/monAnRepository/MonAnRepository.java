@@ -5,7 +5,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface MonAnRepository extends JpaRepository<MonAnDiKem, Integer> {
-    @Query("SELECT m.maMonAn FROM MonAnDiKem m WHERE m.maMonAn LIKE :prefix% ORDER BY m.maMonAn DESC LIMIT 1")
+
+    @Query(value = """
+    SELECT TOP 1 ma_mon_an\s
+            FROM mon_an_di_kem\s
+            WHERE ma_mon_an LIKE CONCAT(:prefix, '%')\s
+            ORDER BY ma_mon_an DESC
+""", nativeQuery = true)
     String findMaxCodeByPrefix(@Param("prefix") String prefix);
+
+    List<MonAnDiKem> findAllByTrangThai(Integer trangThai);
+
 }

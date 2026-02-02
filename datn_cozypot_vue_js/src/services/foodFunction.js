@@ -8,96 +8,100 @@ import CategoryGeneral from '../pages/admin/category/screens/CategoryGeneral.vue
 import CategoryDetailGeneral from '../pages/admin/category/screens/CategoryDetailGeneral.vue';
 import CategoryHotpotGeneral from '../pages/admin/category/screens/CategoryHotpotGeneral.vue';
 import { useRoute, useRouter } from 'vue-router';
-const API_BASE_EMPLOYEE = "http://localhost:8080/api/manage";
+import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
+import axiosClient from './axiosClient';
+
+const API_BASE_EMPLOYEE = "/manage";
 
 export function getAllFoodGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food`);
 }
 
 export function getFoodById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/${id}`);
 };
 
 export function getFoodGeneralModalById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
 }
 
 export function getAllHotpotGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
 }
 
 export function getHotpotById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
 }
 
 export function getAllFoodDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
 }
 
 export function getFoodDetailById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
 }
 
 export function getAllCategory() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category`);
 }
 
 export function getAllCategoryDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
 }
 
 export function getAllCategoryHotpot() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
 }
 
 export function postNewFood(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food`, data);
 }
 
 export function putNewFood(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
 }
 
 export function putNewFoodDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
 }
 
 export function postNewHotpot(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
 }
 
 export function putNewCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
 }
 
 export function postNewFoodDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
 }
 export function putNewHotpot(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
 }
 export function postNewCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category`, data);
 }
 
 export function putNewHotpotCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
 }
 
 export function putCategoryDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
 }
 
 export function postCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewHotpotCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
 }
 
 
@@ -126,55 +130,127 @@ export function useTabManager() {
 }
 
 export function useFoodDetailManager() {
+    const route = useRoute();
     const detailData = ref([]);
 
     const searchQuery = ref('');
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
     const sortOption = ref('id_asc');
-    const statusFilter = ref('all'); 
+    const statusFilter = ref('all');
 
-    const { 
-        selectedPriceRange, 
-        globalMinPrice, 
-        globalMaxPrice, 
-        calculatePriceLimits, 
-        resetPriceFilter 
+    // Filter states
+    const categoryFilter = ref(null);
+    const foodFilter = ref(null);     
+    const hotpotFilter = ref(null);
+
+    // Data Lists
+    const listCategories = ref([]); 
+    const listFoods = ref([]);      
+    const listHotpotSets = ref([]); 
+
+    const {
+        selectedPriceRange,
+        globalMinPrice,
+        globalMaxPrice,
+        calculatePriceLimits,
+        resetPriceFilter
     } = usePriceFilter();
 
-    const handleMinChange = () => {
-  if (selectedPriceRange.value[0] < globalMinPrice.value) {
-    selectedPriceRange.value[0] = globalMinPrice.value;
-  }
-  if (selectedPriceRange.value[0] > selectedPriceRange.value[1]) {
-    selectedPriceRange.value[0] = selectedPriceRange.value[1];
-  }
-};
+    // 1. Fetch Data
+    const fetchFilterData = async () => {
+        try {
+            const [catRes, foodRes, hotpotRes] = await Promise.all([
+                getAllCategory(),
+                getAllFoodGeneral(),
+                getAllHotpotGeneral()
+            ]);
+            listCategories.value = catRes.data || [];
+            listFoods.value = foodRes.data || [];
+            listHotpotSets.value = hotpotRes.data || [];
+            console.log("Check Set Lẩu đầu tiên:", listHotpotSets.value[0]);
+        } catch (e) {
+            console.error("Lỗi data:", e);
+        }
+    };
 
-const handleMaxChange = () => {
-  if (selectedPriceRange.value[1] > globalMaxPrice.value) {
-    selectedPriceRange.value[1] = globalMaxPrice.value;
-  }
-  if (selectedPriceRange.value[1] < selectedPriceRange.value[0]) {
-    selectedPriceRange.value[1] = selectedPriceRange.value[0];
-  }
-};
+    // 2. Main Filtering Logic
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
+        // Search
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
-            result = result.filter(item => 
+            result = result.filter(item =>
                 (item.tenChiTietMonAn || '').toLowerCase().includes(query) ||
                 (item.maChiTietMonAn || '').toLowerCase().includes(query)
             );
         }
 
+        // Status
         if (statusFilter.value !== 'all') {
-            const statusValue = Number(statusFilter.value); 
+            const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
+        // --- FILTER: DANH MỤC ---
+        if (categoryFilter.value) {
+            const filterVal = String(categoryFilter.value);
+            result = result.filter(item => {
+                const catId = item.monAnDiKem?.danhMuc?.id || 
+                              item.monAnDiKem?.idDanhMuc || 
+                              item.danhMuc?.id;
+                return catId != null && String(catId) === filterVal;
+            });
+        }
+
+        // --- FILTER: MÓN ĂN ---
+        if (foodFilter.value) {
+            const filterVal = String(foodFilter.value);
+            result = result.filter(item => {
+                if (item.idSetLau || item.setLau) return false;
+
+                const parentId = item.monAnDiKem?.id || item.idMonAnDiKem;
+                return parentId != null && String(parentId) === filterVal;
+            });
+        }
+
+        // --- FILTER: SET LẨU ---
+        if (hotpotFilter.value) {
+            const filterVal = String(hotpotFilter.value);
+            
+            // Tìm Set đang chọn
+            const selectedSet = listHotpotSets.value.find(s => String(s.id) === filterVal);
+
+            if (selectedSet) {
+                // Lấy danh sách con
+                const listChildren = selectedSet.listChiTietSetLau || [];
+                
+                // Debug: Xem cấu trúc con nó là gì để map cho đúng
+                if (listChildren.length > 0) {
+                    console.log("Mẫu 1 món trong Set:", listChildren[0]);
+                }
+
+                // Map lấy ID. Ưu tiên các trường có khả năng là ID món ăn nhất
+                const validIds = listChildren.map(child => {
+                    return String(
+                        child.idChiTietMonAn || 
+                        child.chiTietMonAn?.id || 
+                        child.monAnChiTietId || 
+                        child.id // Cẩn thận: id này có thể là id của bảng nối, không phải id món
+                    );
+                });
+
+                console.log("Danh sách ID lọc được:", validIds);
+
+                // Lọc bảng chính
+                result = result.filter(item => validIds.includes(String(item.id)));
+            } else {
+                result = [];
+            }
+        }
+
+        // Price
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -183,6 +259,7 @@ const handleMaxChange = () => {
             });
         }
 
+        // Sort
         return result.sort((a, b) => {
             const priceA = parseFloat(a.giaBan) || 0;
             const priceB = parseFloat(b.giaBan) || 0;
@@ -199,18 +276,36 @@ const handleMaxChange = () => {
         });
     });
 
-    watch([searchQuery, statusFilter, sortOption, selectedPriceRange], () => {
+    watch([searchQuery, statusFilter, sortOption, selectedPriceRange, categoryFilter, foodFilter, hotpotFilter], () => {
         currentPage.value = 1;
     });
 
+    // 3. Dropdown Data Logic
+    const availableFoods = computed(() => {
+        if (!categoryFilter.value) return listFoods.value;
+        const filterVal = String(categoryFilter.value);
+        return listFoods.value.filter(f => {
+            const catId = f.danhMuc?.id || f.idDanhMuc;
+            return catId != null && String(catId) === filterVal;
+        });
+    });
+
+    // --- FIX: Available Hotpots ---
+    // Vì dữ liệu Set lẩu không có idDanhMuc (theo log), ta trả về toàn bộ danh sách
+    // để tránh việc chọn Danh mục xong thì mất hết Set lẩu.
+    const availableHotpots = computed(() => {
+        return listHotpotSets.value;
+    });
+
+    // Pagination & Helpers
     const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
         return filteredData.value.slice(start, end);
     });
-
-    const visiblePages = computed(() => {
+    const totalElements = computed(() => filteredData.value.length);
+    const visiblePages = computed(() => { /* ... giữ nguyên code cũ ... */ 
         const total = totalPages.value;
         const current = currentPage.value;
         const delta = 2;
@@ -229,42 +324,58 @@ const handleMaxChange = () => {
         }
         return rangeWithDots;
     });
-
-    const changePage = (page) => {
-        if (page >= 1 && page <= totalPages.value) currentPage.value = page;
-    };
+    
+    const changePage = (page) => { if (page >= 1 && page <= totalPages.value) currentPage.value = page; };
+    const handleMinChange = () => { /* ... giữ nguyên ... */ };
+    const handleMaxChange = () => { /* ... giữ nguyên ... */ };
 
     function getAllFoodDetails() {
-        getAllFoodDetail()
-            .then(async res => {
-                detailData.value = res.data;
-                calculatePriceLimits(detailData.value);
-                await nextTick();
-            })
-            .catch(console.error);
+        return getAllFoodDetail().then(res => {
+             detailData.value = res.data || [];
+             calculatePriceLimits(detailData.value);
+
+             const itemInSet = detailData.value.find(x => 
+                 (x.listSetLau && x.listSetLau.length > 0) || 
+                 (x.setLaus && x.setLaus.length > 0) ||
+                 (x.chiTietSetLaus && x.chiTietSetLaus.length > 0)
+             );
+             console.log("Mẫu dữ liệu N-N:", itemInSet ? itemInSet : "Không tìm thấy món nào có thông tin Set Lẩu đi kèm");
+        }).catch(console.error);
     }
 
-    onMounted(() => { getAllFoodDetails(); });
+    onMounted(async () => { 
+        await Promise.all([ getAllFoodDetails(), fetchFilterData() ]);
+        if (route.query.preCategory) categoryFilter.value = isNaN(Number(route.query.preCategory)) ? route.query.preCategory : Number(route.query.preCategory);
+        if (route.query.preFood) {
+            await nextTick();
+            foodFilter.value = isNaN(Number(route.query.preFood)) ? route.query.preFood : Number(route.query.preFood);
+        }
+        if (route.query.preHotpot) {
+            await nextTick();
+            const hpVal = route.query.preHotpot;
+            
+            hotpotFilter.value = isNaN(Number(hpVal)) ? hpVal : Number(hpVal);
+            
+            foodFilter.value = null; 
+        }
+    });
 
+
+    // Modal & Actions
     const isModalOpen = ref(false);
     const selectedDetail = ref(null);
     const isAddModalOpen = ref(false);
-
     const openEditModal = (item) => { selectedDetail.value = item; isModalOpen.value = true; };
     const handleSaveData = () => { isModalOpen.value = false; };
-
-    const handleToggleStatus = async(item) => {
+    const handleToggleStatus = async (item) => { 
         const oldStatus = item.trangThai;
         const newStatus = oldStatus === 1 ? 0 : 1;
         item.trangThai = newStatus;
         try {
-            const payload = {...item, trangThai: newStatus };
-            if (item.monAnDiKem && item.monAnDiKem.id) {
-                payload.idMonAnDiKem = item.monAnDiKem.id;
-            }
+            const payload = { ...item, trangThai: newStatus };
+            if (item.monAnDiKem?.id) payload.idMonAnDiKem = item.monAnDiKem.id;
             await putNewFoodDetail(item.id, payload);
         } catch (error) {
-            console.error("Lỗi: ", error);
             item.trangThai = oldStatus;
         }
     };
@@ -273,15 +384,44 @@ const handleMaxChange = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'id_asc';
+        categoryFilter.value = null;
+        foodFilter.value = null;
+        hotpotFilter.value = null;
         resetPriceFilter();
     };
 
+    watch(foodFilter, (newVal) => {
+        if (newVal !== null && newVal !== undefined && newVal !== '') {
+            hotpotFilter.value = null;
+        }
+    });
+
+    watch(hotpotFilter, (newVal) => {
+        if (newVal !== null && newVal !== undefined && newVal !== '') {
+            foodFilter.value = null;
+        }
+    });
+
+    const exportToExcel = () => {
+        const dataToExport = filteredData.value.map((item, index) => ({
+            'STT': index + 1,
+            'Mã Chi Tiết': item.maChiTietMonAn,
+            'Tên Chi Tiết': item.tenChiTietMonAn,
+            'Giá Bán': item.giaBan,
+            'Trạng Thái': item.trangThai === 1 ? 'Hoạt động' : 'Ngưng'
+        }));
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "ChiTietMon");
+        XLSX.writeFile(wb, "Danh_Sach_Chi_Tiet.xlsx");
+    };
+
     return {
-        detailData, searchQuery, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, changePage,
+        detailData, searchQuery, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, changePage, totalElements,
         isModalOpen, isAddModalOpen, selectedDetail, getAllFoodDetails, openEditModal, handleSaveData, handleToggleStatus,
-        sortOption, statusFilter,
-        
-        selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters
+        sortOption, statusFilter, selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters, handleMinChange, handleMaxChange,
+        categoryFilter, foodFilter, hotpotFilter,
+        listCategories, availableFoods, availableHotpots, exportToExcel
     };
 }
 
@@ -327,11 +467,15 @@ export function usePriceFilter() {
 // 2. LOGIC QUẢN LÝ MÓN ĂN (CHÍNH)
 export function useFoodManager() {
     const router = useRouter();
+    const route = useRoute();
     const mockData = ref([]);
     const activeTab = ref('thucdon');
     const isModalOpen = ref(false);
     const selectedItem = ref(null);
+    const isCategoryLocked = ref(false);
     const isAddFoodModalOpen = ref(false);
+
+    
 
     // --- Filter & Sort ---
     const searchQuery = ref('');
@@ -340,7 +484,7 @@ export function useFoodManager() {
     
     // --- Pagination ---
     const currentPage = ref(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = ref(5);
 
     // --- [MỚI] BIẾN CHO LỌC DANH MỤC ---
     const isCategoryFilterOpen = ref(false); // Đóng/Mở Modal
@@ -454,16 +598,17 @@ export function useFoodManager() {
 
     const paginatedData = computed(() => {
         if (filteredAndSortedData.value.length === 0) return [];
-        const start = (currentPage.value - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
+        const start = (currentPage.value - 1) * itemsPerPage.value; // Thêm .value
+        const end = start + itemsPerPage.value; // Thêm .value
         return filteredAndSortedData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage) || 1);
-
+    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage.value) || 1);
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages.value) currentPage.value = page;
     };
+
+    const totalElements = computed(() => filteredAndSortedData.value.length);
 
     const visiblePages = computed(() => {
         const total = totalPages.value;
@@ -529,20 +674,119 @@ export function useFoodManager() {
         }
     };
 
+    onMounted(async () => {
+        await Promise.all([
+            getAllFood(),
+            fetchCategories() 
+        ]);
+
+        if (route.query.preRoot) {
+            const rootId = Number(route.query.preRoot);
+            selectedRootCate.value = isNaN(rootId) ? route.query.preRoot : rootId;
+
+            if (route.query.locked === 'true') {
+                isCategoryLocked.value = true;
+            } else {
+                isCategoryLocked.value = false;
+            }
+
+            if (route.query.preSub) {
+                await nextTick(); 
+                const subId = Number(route.query.preSub);
+                selectedSubCate.value = isNaN(subId) ? route.query.preSub : subId;
+            }
+        } else {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+            selectedSubCate.value = '';
+        }
+    });
+
     const clearFilters = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'newest';
-        selectedRootCate.value = ''; // Reset root category
-        selectedSubCate.value = '';  // Reset sub category
+        
+        if (!isCategoryLocked.value) {
+            selectedRootCate.value = '';
+        }
+        
+        selectedSubCate.value = '';
         resetPriceFilter(); 
+        
+        if (isCategoryLocked.value) {
+            currentPage.value = 1;
+        }
     };
+
+    const exportToExcel = () => {
+        const dataToExport = filteredAndSortedData.value.map((item, index) => {
+            
+            const min = item.giaThapNhat || 0;
+            const max = item.giaCaoNhat || 0;
+            let priceText = '0';
+            if (min === 0 && max === 0) priceText = 'Chưa cập nhật';
+            else if (min === max) priceText = min; 
+            else priceText = `${min} - ${max}`;
+
+            return {
+                'STT': index + 1,
+                'Mã Món': item.maMonAn,
+                'Tên Món Ăn': item.tenMonAn,
+                'Khoảng Giá (VNĐ)': priceText,
+                'Danh Mục Gốc': item.tenDanhMuc || '',
+                'Danh Mục Chi Tiết': item.tenDanhMucChiTiet || '',
+                'Trạng Thái': item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh',
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+        const wscols = [
+            { wch: 5 }, 
+            { wch: 15 }, 
+            { wch: 30 }, 
+            { wch: 20 },
+            { wch: 20 },
+            { wch: 20 }, 
+            { wch: 20 } 
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Tạo Workbook
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachMonAn");
+
+        // Xuất file
+        XLSX.writeFile(workbook, "Danh_Sach_Mon_An.xlsx");
+    };
+
+    watch(() => route.query, (newQuery) => {
+        if (!newQuery.preRoot) {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+        } else {
+            selectedRootCate.value = Number(newQuery.preRoot);
+            isCategoryLocked.value = newQuery.locked === 'true';
+        }
+    });
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preFood: id
+            }
+        });
+    };
+
 
     return {
         mockData, paginatedData, currentPage, itemsPerPage, totalPages, visiblePages, goToPage,
         handleViewDetails,
         handleEditFood, getAllFood, handleToggleStatus, activeTab, isModalOpen, selectedItem, isAddFoodModalOpen,
-        searchQuery, sortOption, statusFilter, clearFilters,
+        searchQuery, sortOption, statusFilter, clearFilters, isCategoryLocked,
         globalMinPrice, globalMaxPrice, selectedPriceRange,
         
         // EXPORT CÁC BIẾN MỚI
@@ -550,17 +794,21 @@ export function useFoodManager() {
         listRootCategories,
         selectedRootCate,
         selectedSubCate,
-        availableSubCategories
+        availableSubCategories,
+        exportToExcel,
+        goToDetailTable,
+        totalElements
     };
 }
+
+
 
 export function useFoodUpdate() {
     const route = useRoute();
     const router = useRouter();
     const foodId = route.params.id;
 
-    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
-
+    // --- STATE ---
     const isViewMode = computed(() => route.name === 'viewFood');
     const fileInputRef = ref(null);
 
@@ -575,91 +823,101 @@ export function useFoodUpdate() {
         trangThaiKinhDoanh: 1 
     });
 
+    const errors = ref({
+        tenMonAn: '',
+        idDanhMuc: '',
+        idDanhMucChiTiet: '',
+        hinhAnh: ''
+    });
+
     const foodInfo = ref(null);
     const variants = ref([]);
     const listDanhMuc = ref([]);
-    const listDanhMucChiTiet = ref([]); // Toàn bộ danh mục chi tiết
+    const listDanhMucChiTiet = ref([]);
+    const existingFoods = ref([]);
     const isLoading = ref(false);
 
-    // --- DROPDOWN LOGIC (NEW) ---
-
-    // 1. Dropdown Danh Mục Gốc
+    // --- DROPDOWN LOGIC ---
     const isCatDropdownOpen = ref(false);
     const catSearchQuery = ref('');
 
     const toggleCatDropdown = () => {
-        if (isViewMode.value) return; // Không mở khi ở chế độ xem
+        if (isViewMode.value) return;
         isCatDropdownOpen.value = !isCatDropdownOpen.value;
-        if (isCatDropdownOpen.value) {
-            catSearchQuery.value = '';
-            isSubCatDropdownOpen.value = false;
+        if (isCatDropdownOpen.value) { 
+            catSearchQuery.value = ''; 
+            isSubCatDropdownOpen.value = false; 
         }
     };
 
     const filteredCategories = computed(() => {
         if (!catSearchQuery.value) return listDanhMuc.value;
-        const query = catSearchQuery.value.toLowerCase();
-        return listDanhMuc.value.filter(item => item.tenDanhMuc.toLowerCase().includes(query));
+        return listDanhMuc.value.filter(item => 
+            item.tenDanhMuc.toLowerCase().includes(catSearchQuery.value.toLowerCase())
+        );
     });
 
     const selectCategory = (item) => {
         formData.value.idDanhMuc = item.id;
-        formData.value.idDanhMucChiTiet = ''; // Reset chi tiết
+        formData.value.idDanhMucChiTiet = '';
+        errors.value.idDanhMuc = ''; 
         isCatDropdownOpen.value = false;
     };
 
+    // FIX: Convert IDs to String for loose comparison
     const selectedCategoryName = computed(() => {
-        const found = listDanhMuc.value.find(i => i.id === formData.value.idDanhMuc);
+        const found = listDanhMuc.value.find(i => String(i.id) === String(formData.value.idDanhMuc));
         return found ? found.tenDanhMuc : '';
     });
 
-    // 2. Dropdown Danh Mục Chi Tiết
     const isSubCatDropdownOpen = ref(false);
     const subCatSearchQuery = ref('');
 
     const toggleSubCatDropdown = () => {
         if (isViewMode.value || !formData.value.idDanhMuc) return;
         isSubCatDropdownOpen.value = !isSubCatDropdownOpen.value;
-        if (isSubCatDropdownOpen.value) {
-            subCatSearchQuery.value = '';
-            isCatDropdownOpen.value = false;
+        if (isSubCatDropdownOpen.value) { 
+            subCatSearchQuery.value = ''; 
+            isCatDropdownOpen.value = false; 
         }
     };
 
-    // Lọc danh mục con theo ID cha (logic nghiệp vụ)
     const subCategoriesByParent = computed(() => {
         if (!formData.value.idDanhMuc) return [];
         return listDanhMucChiTiet.value.filter(item => {
             const parentId = item.idDanhMuc || (item.danhMuc ? item.danhMuc.id : null);
+            // FIX: Comparison using String()
             return String(parentId) === String(formData.value.idDanhMuc);
         });
     });
 
-    // Lọc tiếp theo từ khóa tìm kiếm (logic search)
     const filteredSubCategories = computed(() => {
         const list = subCategoriesByParent.value;
         if (!subCatSearchQuery.value) return list;
-        const query = subCatSearchQuery.value.toLowerCase();
-        return list.filter(item => item.tenDanhMucChiTiet.toLowerCase().includes(query));
+        return list.filter(item => 
+            item.tenDanhMucChiTiet.toLowerCase().includes(subCatSearchQuery.value.toLowerCase())
+        );
     });
 
     const selectSubCategory = (item) => {
         formData.value.idDanhMucChiTiet = item.id;
+        errors.value.idDanhMucChiTiet = '';
         isSubCatDropdownOpen.value = false;
     };
 
+    // FIX: Comparison using String()
     const selectedSubCategoryName = computed(() => {
-        // Tìm trong list chi tiết CỦA CHA để hiện thị đúng
-        const found = listDanhMucChiTiet.value.find(i => i.id === formData.value.idDanhMucChiTiet);
+        // Look in the full list to ensure it's found even if not currently filtered
+        const found = listDanhMucChiTiet.value.find(i => String(i.id) === String(formData.value.idDanhMucChiTiet));
         return found ? found.tenDanhMucChiTiet : '';
     });
 
-    const closeAllDropdowns = () => {
-        isCatDropdownOpen.value = false;
-        isSubCatDropdownOpen.value = false;
+    const closeAllDropdowns = () => { 
+        isCatDropdownOpen.value = false; 
+        isSubCatDropdownOpen.value = false; 
     };
 
-    // --- CÁC LOGIC KHÁC GIỮ NGUYÊN ---
+    // --- UPLOAD IMAGE (No Changes) ---
     const resizeImage = (file, maxWidth = 800) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -683,48 +941,68 @@ export function useFoodUpdate() {
     const handleFileUpload = async (event) => {
         if (isViewMode.value) return;
         const file = event.target.files[0];
-        if (!file || !file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        if (!file) return;
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn file ảnh hợp lệ!' });
+            return;
+        }
         try {
             const resized = await resizeImage(file);
             formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; 
         } catch (e) { console.error(e); }
         event.target.value = '';
     };
 
     const removeImage = () => {
         if (isViewMode.value) return;
-        showConfirm("Xóa ảnh này?", () => { formData.value.hinhAnh = ''; }, "Xóa ảnh", "warning");
+        Swal.fire({
+            title: 'Xóa ảnh?', text: "Bạn có chắc muốn xóa ảnh này?", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) formData.value.hinhAnh = '';
+        });
     };
 
+    // --- FETCH DATA (CRITICAL FIX) ---
     const fetchData = async () => {
         try {
             isLoading.value = true;
-            const [resParent, resVariants, resCat, resSubCat] = await Promise.all([
+            const [resParent, resVariants, resCat, resSubCat, resAllFoods] = await Promise.all([
                 getFoodById(foodId),
                 getFoodGeneralModalById(foodId),
                 getAllCategory(),
-                getAllCategoryDetail()
+                getAllCategoryDetail(),
+                getAllFoodGeneral()
             ]);
 
             listDanhMuc.value = resCat.data;
             listDanhMucChiTiet.value = resSubCat.data;
+            if(resAllFoods.data) existingFoods.value = resAllFoods.data;
 
             const parentData = resParent.data;
             if (parentData) {
                 foodInfo.value = { ...parentData };
                 
+                // 1. Get raw IDs from API response
                 const subCatId = parentData.idDanhMucChiTiet || (parentData.danhMucChiTiet ? parentData.danhMucChiTiet.id : '');
                 let rootCatId = parentData.idDanhMuc || (parentData.danhMuc ? parentData.danhMuc.id : '');
 
+                // 2. Logic to populate rootCatId if missing (reverse lookup)
                 if (!rootCatId && subCatId) {
-                    const foundSub = listDanhMucChiTiet.value.find(sub => sub.id === subCatId);
-                    if (foundSub) rootCatId = foundSub.idDanhMuc;
+                    // FIX: Use String() for safe comparison
+                    const foundSub = listDanhMucChiTiet.value.find(sub => String(sub.id) === String(subCatId));
+                    if (foundSub) {
+                        rootCatId = foundSub.idDanhMuc || (foundSub.danhMuc ? foundSub.danhMuc.id : '');
+                    }
                 }
 
+                // 3. Assign to formData
                 formData.value = {
                     id: parentData.id,
                     tenMonAn: parentData.tenMonAn,
-                    idDanhMuc: rootCatId,
+                    idDanhMuc: rootCatId, 
                     idDanhMucChiTiet: subCatId,
                     moTa: parentData.moTa,
                     giaBan: parentData.giaBan,
@@ -741,64 +1019,166 @@ export function useFoodUpdate() {
                 }
             }
         } catch (e) {
-            console.error(e);
-            showError("Lỗi tải dữ liệu!");
-        } finally { isLoading.value = false; }
+            console.error("Lỗi fetch data:", e);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tải được dữ liệu món ăn!' });
+        } finally {
+            isLoading.value = false;
+        }
     };
 
     onMounted(() => { if (foodId) fetchData(); });
 
-    // Category Name cho hiển thị ở Hero Card (chỉ đọc)
-    const categoryName = computed(() => {
-        const found = listDanhMuc.value.find(c => c.id == formData.value.idDanhMuc);
-        return found ? found.tenDanhMuc : '---';
-    });
+    // --- VALIDATION & ACTIONS ---
+    const validateForm = () => {
+        let isValid = true;
+        errors.value = { tenMonAn: '', idDanhMuc: '', idDanhMucChiTiet: '', hinhAnh: '' };
+
+        if (!formData.value.tenMonAn || !formData.value.tenMonAn.trim()) {
+            errors.value.tenMonAn = 'Tên món ăn không được để trống.';
+            isValid = false;
+        } else if (formData.value.tenMonAn.length < 5) {
+            errors.value.tenMonAn = 'Tên món ăn phải có ít nhất 5 ký tự.';
+            isValid = false;
+        } else {
+            const isDuplicate = existingFoods.value.some(f => 
+                String(f.id) !== String(formData.value.id) && // FIX: Compare ID safely
+                f.tenMonAn.toLowerCase() === formData.value.tenMonAn.trim().toLowerCase()
+            );
+            if (isDuplicate) {
+                errors.value.tenMonAn = 'Tên món ăn này đã tồn tại.';
+                isValid = false;
+            }
+        }
+
+        if (!formData.value.idDanhMuc) {
+            errors.value.idDanhMuc = 'Vui lòng chọn danh mục gốc.';
+            isValid = false;
+        }
+        if (!formData.value.idDanhMucChiTiet) {
+            errors.value.idDanhMucChiTiet = 'Vui lòng chọn chi tiết danh mục.';
+            isValid = false;
+        }
+        if (!formData.value.hinhAnh) {
+            errors.value.hinhAnh = 'Vui lòng chọn hình ảnh.';
+            isValid = false;
+        }
+
+        return isValid;
+    };
 
     const handleUpdate = async () => {
-        if (!formData.value.tenMonAn?.trim()) { showAlert("Chưa nhập tên món!", "Lỗi"); return; }
-        if (!formData.value.hinhAnh) { showAlert("Chưa có hình ảnh!", "Lỗi"); return; }
+        if (!validateForm()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi nhập liệu',
+                text: 'Vui lòng kiểm tra lại thông tin.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            return;
+        }
 
-        showConfirm("Cập nhật thông tin món ăn?", async () => {
-            try {
-                isLoading.value = true;
-                const payload = {
-                    ...formData.value,
-                    trangThaiKinhDoanh: Number(formData.value.trangThaiKinhDoanh)
-                };
-                await putNewFood(formData.value.id, payload);
-                showSuccess("Cập nhật thành công!");
-                setTimeout(() => goBack(), 1500); 
-            } catch (e) {
-                console.error(e);
-                showError("Lỗi cập nhật!");
-            } finally { isLoading.value = false; }
-        }, "Xác nhận cập nhật");
+        Swal.fire({
+            title: 'Xác nhận cập nhật',
+            text: 'Bạn có chắc chắn muốn lưu thay đổi?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Lưu',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    isLoading.value = true;
+                    const payload = {
+                        ...formData.value,
+                        tenMonAn: formData.value.tenMonAn.trim(),
+                        trangThaiKinhDoanh: Number(formData.value.trangThaiKinhDoanh)
+                    };
+                    await putNewFood(formData.value.id, payload);
+                    
+                    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã cập nhật.', timer: 1500, showConfirmButton: false });
+                    setTimeout(() => goBack(), 1500);
+                } catch (e) {
+                    console.error(e);
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Cập nhật thất bại!' });
+                } finally { isLoading.value = false; }
+            }
+        });
     };
 
     const handleToggleDetailStatus = (variant) => {
         const newStatus = variant.trangThai === 1 ? 0 : 1;
-        showConfirm(`Đổi trạng thái biến thể "${variant.tenChiTietMonAn}"?`, async () => {
-            try {
-                await putNewFoodDetail(variant.id, { ...variant, trangThai: newStatus });
-                const index = variants.value.findIndex(v => v.id === variant.id);
-                if (index !== -1) variants.value[index].trangThai = newStatus;
-                showSuccess("Đổi trạng thái thành công!");
-            } catch (e) { showError("Lỗi cập nhật trạng thái!"); }
-        }, "Xác nhận");
+        Swal.fire({
+            title: 'Đổi trạng thái?',
+            text: `Bạn muốn ${newStatus === 1 ? 'kích hoạt' : 'ngưng'} biến thể "${variant.tenChiTietMonAn}"?`,
+            icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await putNewFoodDetail(variant.id, { ...variant, trangThai: newStatus });
+                    const index = variants.value.findIndex(v => v.id === variant.id);
+                    if (index !== -1) variants.value[index].trangThai = newStatus;
+                    Swal.fire({ icon: 'success', title: 'Thành công', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật trạng thái.' }); }
+            }
+        });
+    };
+
+    const goToDetailTable = () => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preFood: formData.value.id 
+            }
+        });
+    };
+
+    const goToFoodListFilter = (type) => {
+    const queryParams = { tab: 'thucdon' }; // Tab danh sách món ăn
+
+    if (type === 'root' && formData.value.idDanhMuc) {
+        // Chỉ lọc theo danh mục gốc
+        queryParams.preRoot = formData.value.idDanhMuc;
+    } 
+    else if (type === 'sub' && formData.value.idDanhMucChiTiet) {
+        // Lọc theo cả gốc và chi tiết (để dropdown hiển thị đúng logic)
+        queryParams.preRoot = formData.value.idDanhMuc; 
+        queryParams.preSub = formData.value.idDanhMucChiTiet;
+    }
+
+    router.push({ 
+        name: 'foodManager', 
+        query: queryParams 
+    });
+};
+
+    const goToCategorizedTable = () => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'thucdon', 
+                preCategory: formData.value.idDanhMuc 
+            }
+        });
     };
 
     const goBack = () => router.back();
     const goToAddDetail = () => { router.push({ name: 'addFoodDetail', query: { parentId: foodId } }); };
 
     return {
-        isViewMode, isLoading, formData, foodInfo, variants, listDanhMuc, filteredSubCategories, categoryName,
+        isViewMode, isLoading, formData, foodInfo, variants, categoryName: selectedCategoryName,
         handleUpdate, goBack, goToAddDetail, handleToggleDetailStatus,
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose,
-        fileInputRef, triggerFileInput, handleFileUpload, removeImage,
-
-        // Dropdown Variables Export
+        fileInputRef, triggerFileInput, handleFileUpload, removeImage, goToDetailTable, goToFoodListFilter,
         isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
-        isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, selectSubCategory, selectedSubCategoryName, closeAllDropdowns
+        isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
+        errors 
     };
 }
 
@@ -806,9 +1186,6 @@ export function useFoodDetailUpdate() {
     const router = useRouter();
     const route = useRoute();
     const detailId = route.params.id;
-
-    // --- 1. GỌI DIALOG ---
-    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
 
     // --- STATE ---
     const isViewMode = computed(() => route.name === 'viewFoodDetail');
@@ -827,18 +1204,26 @@ export function useFoodDetailUpdate() {
         moTaChiTiet: ''
     });
 
+    // Biến lưu lỗi Validation
+    const errors = ref({
+        tenChiTietMonAn: '',
+        idMonAnDiKem: '',
+        giaBan: '',
+        hinhAnh: '',
+        kichCo: '',
+        donVi: ''
+    });
+
     const listMonAn = ref([]); 
     const originalInfo = ref(null);
     const isLoading = ref(true);
-    
-    // Biến chứa toàn bộ chi tiết (để check trùng & tính giá)
     const allGlobalDetails = ref([]); 
 
     // Search & Sort
     const searchQuery = ref('');
     const sortOption = ref('name_asc');
 
-    // --- COMPUTED: LỌC MÓN ĂN ---
+    // --- COMPUTED: LỌC MÓN ---
     const filteredMonAnList = computed(() => {
         let result = [...listMonAn.value];
         if (searchQuery.value) {
@@ -851,22 +1236,15 @@ export function useFoodDetailUpdate() {
         return result.sort((a, b) => {
             const nameA = (a.tenMonAn || '').toLowerCase();
             const nameB = (b.tenMonAn || '').toLowerCase();
-            const priceA = parseFloat(a.giaThapNhat) || parseFloat(a.giaBan) || 0;
-            const priceB = parseFloat(b.giaThapNhat) || parseFloat(b.giaBan) || 0;
-
-            switch (sortOption.value) {
-                case 'name_asc': return nameA.localeCompare(nameB);
-                case 'price_asc': return priceA - priceB;
-                case 'price_desc': return priceB - priceA;
-                default: return 0;
-            }
+            if (sortOption.value === 'price_asc') return (a.giaBan || 0) - (b.giaBan || 0);
+            if (sortOption.value === 'price_desc') return (b.giaBan || 0) - (a.giaBan || 0);
+            return nameA.localeCompare(nameB); 
         });
     });
 
-    // --- HÀM TÍNH KHOẢNG GIÁ (MIN - MAX) ---
+    // --- HÀM TÍNH KHOẢNG GIÁ ---
     const getPriceRange = (foodItem) => {
         const childDetails = allGlobalDetails.value.filter(detail => {
-            // Lọc các chi tiết con của món cha này
             if (detail.idMonAnDiKem && typeof detail.idMonAnDiKem === 'object') {
                 return detail.idMonAnDiKem.id === foodItem.id;
             }
@@ -874,31 +1252,32 @@ export function useFoodDetailUpdate() {
         });
 
         if (childDetails.length === 0) return foodItem.giaBan ? `${foodItem.giaBan.toLocaleString()}đ` : 'Chưa có giá';
-
+        
         const prices = childDetails.map(d => d.giaBan).filter(p => p !== null && p >= 0);
         if (prices.length === 0) return 'Chưa có giá';
 
         const min = Math.min(...prices);
         const max = Math.max(...prices);
-        return min === max ? `${min.toLocaleString()}đ` : `${min.toLocaleString()} - ${max.toLocaleString()}đ`;
+        return (min === max) ? `${min.toLocaleString()}đ` : `${min.toLocaleString()} - ${max.toLocaleString()}đ`;
     };
 
-    // --- CHECK TRÙNG TÊN (Global Check) ---
+    // --- CHECK TRÙNG TÊN (AN TOÀN) ---
     const isDetailNameDuplicate = (name) => {
         if (!name) return false;
         const normalizedName = name.trim().toLowerCase();
         
-        // Kiểm tra xem tên này có tồn tại trong DB không
-        // VÀ ID của nó KHÁC với ID hiện tại đang sửa (để cho phép giữ nguyên tên cũ)
+        // Kiểm tra an toàn để tránh crash
         return allGlobalDetails.value.some(d => 
+            d.tenChiTietMonAn && 
             d.tenChiTietMonAn.toLowerCase() === normalizedName && 
-            String(d.id) !== String(detailId) // Quan trọng: Loại trừ chính nó
+            String(d.id) !== String(detailId) // Loại trừ chính nó
         );
     };
 
     const selectParentFood = (food) => {
         if (isViewMode.value) return;
         formData.value.idMonAnDiKem = food.id;
+        errors.value.idMonAnDiKem = ''; // Xóa lỗi khi chọn
     };
 
     const parentName = computed(() => {
@@ -914,8 +1293,6 @@ export function useFoodDetailUpdate() {
     const fetchDetailData = async () => {
         try {
             isLoading.value = true;
-            
-            // Gọi song song 3 API: Chi tiết hiện tại, Danh sách món cha, Toàn bộ chi tiết
             const [resDetail, resListFood, resAllDetails] = await Promise.all([
                 getFoodDetailById(detailId),
                 getAllFoodGeneral(),
@@ -930,7 +1307,6 @@ export function useFoodDetailUpdate() {
             const data = resDetail.data;
             originalInfo.value = data; 
 
-            // Map dữ liệu vào form
             formData.value = {
                 id: data.id,
                 maChiTietMonAn: data.maChiTietMonAn,
@@ -941,19 +1317,21 @@ export function useFoodDetailUpdate() {
                 kichCo: data.kichCo,
                 donVi: data.donVi,
                 hinhAnh: data.hinhAnh,
-                moTaChiTiet: data.moTaChiTiet || '', // Thêm mô tả
+                moTaChiTiet: data.moTaChiTiet || '',
                 trangThai: Number(data.trangThai) === 1 ? 1 : 0 
             };
         } catch (e) {
             console.error("Lỗi:", e);
-            showError("Không tìm thấy dữ liệu!");
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tìm thấy dữ liệu!' });
             setTimeout(() => router.back(), 1500);
         } finally {
             isLoading.value = false;
         }
     };
 
-    onMounted(() => { if (detailId) fetchDetailData(); });
+    onMounted(() => { 
+        if (detailId) fetchDetailData(); 
+    });
 
     // --- UPLOAD ẢNH ---
     const resizeImage = (file, maxWidth = 800) => {
@@ -979,53 +1357,99 @@ export function useFoodDetailUpdate() {
         if (isViewMode.value) return;
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi định dạng', text: 'Vui lòng chọn file ảnh!' });
+            return;
+        }
         try {
             const resized = await resizeImage(file);
             formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; 
         } catch (e) { console.error(e); }
+        event.target.value = '';
     };
 
-    // --- UPDATE ---
-    const handleUpdate = async () => {
-        // Validate
-        if (!formData.value.idMonAnDiKem) { showAlert("Chưa chọn món ăn gốc!", "Thiếu thông tin"); return; }
-        
+    // --- VALIDATION & UPDATE ---
+    const validateForm = () => {
+        let isValid = true;
+        errors.value = { tenChiTietMonAn: '', idMonAnDiKem: '', giaBan: '', hinhAnh: '', kichCo: '', donVi: '' };
+
+        if (!formData.value.idMonAnDiKem) {
+            errors.value.idMonAnDiKem = 'Vui lòng chọn món ăn gốc.';
+            isValid = false;
+        }
+
         const name = formData.value.tenChiTietMonAn ? formData.value.tenChiTietMonAn.trim() : '';
-        if (!name) { showAlert("Chưa nhập tên chi tiết!", "Thiếu thông tin"); return; }
+        if (!name) {
+            errors.value.tenChiTietMonAn = 'Vui lòng nhập tên chi tiết.';
+            isValid = false;
+        } else if (name.length < 5) {
+            errors.value.tenChiTietMonAn = 'Tên phải chứa trên 5 kí tự.';
+            isValid = false;
+        } else if (isDetailNameDuplicate(name)) {
+            errors.value.tenChiTietMonAn = 'Tên chi tiết này đã tồn tại.';
+            isValid = false;
+        }
 
-        if (name.length < 5) { showAlert("Tên phải chứa trên 5 kí tự", "Thiếu thông tin"); return; }
+        if (formData.value.giaBan === "" || formData.value.giaBan < 0) {
+            errors.value.giaBan = 'Giá bán không hợp lệ.';
+            isValid = false;
+        }
 
-        if (isDetailNameDuplicate(name)) {
-            showAlert(`Tên chi tiết "${name}" đã được sử dụng (ở món khác hoặc biến thể khác)!`, "Trùng lặp", "warning");
+        if (!formData.value.kichCo) { errors.value.kichCo = 'Nhập kích cỡ.'; isValid = false; }
+        if (!formData.value.donVi) { errors.value.donVi = 'Nhập đơn vị.'; isValid = false; }
+
+        if (!formData.value.hinhAnh) {
+            errors.value.hinhAnh = 'Vui lòng chọn ảnh.';
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleUpdate = async () => {
+        if (!validateForm()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi nhập liệu',
+                text: 'Vui lòng kiểm tra lại thông tin.',
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+            });
             return;
         }
 
-        if (formData.value.giaBan < 0) { showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu"); return; }
-        if (!formData.value.hinhAnh) { showAlert("Chưa có hình ảnh!", "Thiếu thông tin"); return; }
-
-        showConfirm(
-            "Bạn có chắc chắn muốn cập nhật thay đổi?",
-            async () => {
+        Swal.fire({
+            title: 'Xác nhận cập nhật',
+            text: 'Bạn có chắc chắn muốn lưu thay đổi?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
+            confirmButtonText: 'Lưu', cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
                 try {
                     isLoading.value = true;
                     const payload = {
                         ...formData.value,
-                        tenChiTietMonAn: name, // Đã trim
+                        tenChiTietMonAn: formData.value.tenChiTietMonAn.trim(),
                         moTaChiTiet: formData.value.moTaChiTiet ? formData.value.moTaChiTiet.trim() : '',
                         trangThai: Number(formData.value.trangThai)
                     };
                     await putNewFoodDetail(detailId, payload);
                     
-                    showSuccess("Cập nhật thành công!");
+                    Swal.fire({
+                        icon: 'success', title: 'Thành công!',
+                        text: 'Cập nhật thành công.',
+                        timer: 1500, showConfirmButton: false
+                    });
+                    
                     setTimeout(() => goBack(), 1500);
                 } catch (e) {
                     console.error(e);
-                    showError("Lỗi cập nhật!");
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Đã xảy ra lỗi khi cập nhật!' });
                 } finally { isLoading.value = false; }
-            },
-            "Xác nhận cập nhật"
-        );
+            }
+        });
     };
     
     const goBack = () => router.back();
@@ -1035,8 +1459,7 @@ export function useFoodDetailUpdate() {
         formData, listMonAn, originalInfo, parentName, isLoading, isViewMode,
         searchQuery, sortOption, filteredMonAnList, selectParentFood,
         handleUpdate, goBack, handleFileUpload, goToEdit, getPriceRange,
-
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose
+        errors // Export errors
     };
 }
 
@@ -1047,9 +1470,11 @@ export function useHotpotManager() {
     const searchQuery = ref('');
     const sortOption = ref('newest');
     const currentPage = ref(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = ref(5);
     const statusFilter = ref('all'); 
-    const typeFilter = ref('all');   
+    const typeFilter = ref(null);   
+    const isTypeLocked = ref(false);
+    const route = useRoute();
 
     // 1. GỌI HOOK XỬ LÝ GIÁ
     const { 
@@ -1075,7 +1500,7 @@ export function useHotpotManager() {
     const filteredAndSortedData = computed(() => {
         let result = [...hotpotData.value];
 
-        // A. Lọc theo Tên/Mã
+        // A. Search
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item =>
@@ -1084,8 +1509,7 @@ export function useHotpotManager() {
             );
         }
 
-        // B. Lọc theo Khoảng giá (THÊM MỚI)
-        // Set lẩu thường chỉ có 'giaBan', không có 'giaThapNhat' phức tạp như món ăn
+        // B. Giá
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -1094,30 +1518,24 @@ export function useHotpotManager() {
             });
         }
 
-        // C. Lọc theo Trạng thái
+        // C. Trạng thái
         if (statusFilter.value !== 'all') {
             const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
-        // D. Lọc theo Loại Set Lẩu
-        if (typeFilter.value !== 'all') {
+        // D. Loại Set (Sửa cho Multiselect)
+        if (typeFilter.value && typeFilter.value !== 'all') {
             result = result.filter(item => item.idLoaiSet == typeFilter.value);
         }
 
-        // E. Sắp xếp
+        // E. Sort
         switch (sortOption.value) {
             case 'price_asc': result.sort((a, b) => (a.giaBan || 0) - (b.giaBan || 0)); break;
             case 'price_desc': result.sort((a, b) => (b.giaBan || 0) - (a.giaBan || 0)); break;
-            case 'name_asc': 
-                result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); 
-                break;
-            case 'newest': 
-            default: 
-                result.sort((a, b) => b.id - a.id); 
-                break;
+            case 'name_asc': result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); break;
+            case 'newest': default: result.sort((a, b) => b.id - a.id); break;
         }
-
         return result;
     });
 
@@ -1128,13 +1546,13 @@ export function useHotpotManager() {
 
     // --- PHÂN TRANG ---
     const paginatedData = computed(() => {
-        const start = (currentPage.value - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
+        const start = (currentPage.value - 1) * itemsPerPage.value;
+        const end = start + itemsPerPage.value;
         return filteredAndSortedData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage) || 1);
-
+    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredAndSortedData.value.length);
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages.value) currentPage.value = page;
     };
@@ -1172,7 +1590,20 @@ export function useHotpotManager() {
         }).catch(console.error);
     }
     
-    onMounted(() => { getAllHotpot(); });
+    onMounted(async () => {
+        await getAllHotpot();
+        
+        if (route.query.preType) {
+            const typeId = Number(route.query.preType);
+            
+            typeFilter.value = isNaN(typeId) ? route.query.preType : typeId;
+            
+            isTypeLocked.value = route.query.locked === 'true';
+        } else {
+            typeFilter.value = 'all';
+            isTypeLocked.value = false;
+        }
+    });
     
     const isModalOpen = ref(false);
     const selectedHotpot = ref(null);
@@ -1233,15 +1664,42 @@ export function useHotpotManager() {
         resetPriceFilter();
     };
 
+    const exportToExcel = () => {
+        const dataToExport = filteredAndSortedData.value.map((item, index) => ({
+            'STT': index + 1,
+            'Mã Set': item.maSetLau,
+            'Tên Set Lẩu': item.tenSetLau,
+            'Giá Bán': item.giaBan,
+            'Loại Lẩu': item.tenLoaiSet,
+            'Trạng Thái': item.trangThai === 1 ? 'Kinh doanh' : 'Ngưng'
+        }));
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "SetLau");
+        XLSX.writeFile(wb, "Danh_Sach_Set_Lau.xlsx");
+    };
+    const router = useRouter();
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preHotpot: id 
+            }
+        });
+    };
+
     return {
         hotpotData, getAllHotpot, isModalOpen, selectedHotpot, handleViewDetails, handleToggleStatus,
         searchQuery, sortOption, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, goToPage,
-        statusFilter, typeFilter, uniqueTypes, clearFilters,
+        statusFilter, typeFilter, uniqueTypes, clearFilters, exportToExcel, totalElements,
         
         // RETURN CÁC BIẾN SLIDER
-        selectedPriceRange,
+        selectedPriceRange, goToDetailTable,
         globalMinPrice,
-        globalMaxPrice
+        globalMaxPrice,
+        isTypeLocked
     };
 }
 
@@ -1250,9 +1708,6 @@ export function useHotpotUpdate() {
     const route = useRoute();
     const hotpotId = route.params.id;
     
-    // --- 1. GỌI DIALOG ---
-    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
-
     // --- STATE ---
     const hotpotInfo = ref(null);
     const listLoaiSet = ref([]);
@@ -1274,6 +1729,15 @@ export function useHotpotUpdate() {
         hinhAnh: '',
         moTa: '',
         trangThai: 1
+    });
+
+    // Biến lưu lỗi Validation
+    const errors = ref({
+        tenSetLau: '',
+        idLoaiSet: '',
+        giaBan: '',
+        hinhAnh: '',
+        selectedIngredients: '' 
     });
 
     // --- COMPUTED ---
@@ -1370,7 +1834,7 @@ export function useHotpotUpdate() {
             }
         } catch (e) {
             console.error(e);
-            showError("Không thể tải dữ liệu Set Lẩu!");
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải dữ liệu Set Lẩu!' });
             setTimeout(() => router.back(), 1500);
         } finally {
             isLoading.value = false;
@@ -1403,10 +1867,14 @@ export function useHotpotUpdate() {
         if (isViewMode.value) return;
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn file hình ảnh!' });
+            return;
+        }
         try {
             const resized = await resizeImage(file);
             formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; 
         } catch (e) { console.error(e); }
         event.target.value = '';
     };
@@ -1426,41 +1894,72 @@ export function useHotpotUpdate() {
                 soLuong: 1
             });
         }
+        errors.value.selectedIngredients = ''; // Xóa lỗi
     };
 
     const removeIngredient = (index) => {
         if (isViewMode.value) return;
-        showConfirm("Loại bỏ món này khỏi Set?", () => selectedIngredients.value.splice(index, 1), "Xóa thành phần", "warning");
+        Swal.fire({
+            title: 'Xóa thành phần?', text: "Bạn muốn loại bỏ món này khỏi Set?", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) selectedIngredients.value.splice(index, 1);
+        });
     };
 
-    // --- UPDATE ---
-    const handleUpdate = async() => {
-        const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
+    // --- VALIDATE & UPDATE ---
+    const validateForm = () => {
+        let isValid = true;
+        errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '' };
 
-        // Validate
-        if (!setName) { showAlert("Chưa nhập tên Set Lẩu!", "Thiếu thông tin"); return; }
-        if(setName.length < 5){
-            showAlert("Tên set lẩu phải chứa trên 5 kí tự", "Thiếu thông tin"); return;
+        const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
+        if (!setName) {
+            errors.value.tenSetLau = 'Vui lòng nhập tên Set Lẩu.'; isValid = false;
+        } else if (setName.length < 5) {
+            errors.value.tenSetLau = 'Tên set lẩu phải chứa trên 5 kí tự.'; isValid = false;
+        } else if (isSetNameDuplicate(setName)) {
+            errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
-        // CHECK TRÙNG
-        if (isSetNameDuplicate(setName)) {
-            showAlert(`Tên Set Lẩu "${setName}" đã tồn tại!`, "Trùng lặp", "warning");
+
+        if (!formData.value.idLoaiSet) { errors.value.idLoaiSet = 'Vui lòng chọn Loại Set.'; isValid = false; }
+        
+        if (formData.value.giaBan === "" || formData.value.giaBan < 0) { 
+            errors.value.giaBan = 'Giá bán không hợp lệ.'; isValid = false; 
+        }
+
+        if (!formData.value.hinhAnh) { errors.value.hinhAnh = 'Vui lòng chọn hình ảnh.'; isValid = false; }
+
+        if (selectedIngredients.value.length === 0) {
+            errors.value.selectedIngredients = 'Vui lòng chọn ít nhất 1 món ăn vào Set.'; isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleUpdate = async() => {
+        if (!validateForm()) {
+            Swal.fire({
+                icon: 'error', title: 'Lỗi nhập liệu', text: 'Vui lòng kiểm tra lại thông tin.',
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
+            });
             return;
         }
 
-        if (!formData.value.idLoaiSet) { showAlert("Chưa chọn Loại Set!", "Thiếu thông tin"); return; }
-        if (formData.value.giaBan < 0) { showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu"); return; }
-        if (selectedIngredients.value.length === 0) { showAlert("Set lẩu cần ít nhất 1 món ăn!", "Thiếu thành phần"); return; }
-        if (!formData.value.hinhAnh) { showAlert("Chưa có hình ảnh!", "Thiếu thông tin"); return; }
-
-        showConfirm(
-            "Cập nhật thông tin Set Lẩu?",
-            async () => {
+        Swal.fire({
+            title: 'Xác nhận cập nhật?',
+            text: 'Bạn có chắc chắn muốn cập nhật thông tin Set Lẩu?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
                 try {
                     isLoading.value = true;
                     const payload = {
                         ...formData.value,
-                        tenSetLau: setName,
+                        tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
                         trangThai: Number(formData.value.trangThai),
                         listChiTietSetLau: selectedIngredients.value.map(item => ({
@@ -1470,15 +1969,19 @@ export function useHotpotUpdate() {
                     };
                     
                     await putNewHotpot(hotpotId, payload);
-                    showSuccess("Cập nhật thành công!");
+                    
+                    Swal.fire({
+                        icon: 'success', title: 'Thành công!', text: 'Cập nhật thành công.',
+                        timer: 1500, showConfirmButton: false
+                    });
+                    
                     setTimeout(() => router.back(), 1500);
                 } catch (e) {
                     console.error(e);
-                    showError("Lỗi cập nhật!");
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi khi cập nhật! Vui lòng thử lại.' });
                 } finally { isLoading.value = false; }
-            },
-            "Xác nhận cập nhật"
-        );
+            }
+        });
     };
 
     const goBack = () => router.back();
@@ -1487,10 +1990,8 @@ export function useHotpotUpdate() {
         formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
         searchQuery, sortOption, filteredFoodList, hotpotInfo, categoryName, 
         isViewMode, isLoading,
-
         handleFileUpload, addIngredient, removeIngredient, handleUpdate, goBack,
-
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose
+        errors // Export errors
     };
 }
 
@@ -1520,23 +2021,18 @@ export function useCategoryManager() {
     const categoryData = ref([]);
     const isLoading = ref(false);
 
-    // --- STATE ---
     const searchQuery = ref('');
     
-    // 1. Biến Sắp xếp Trạng thái (Riêng biệt)
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp Chính (Tên, ID)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10); // Số lượng/trang
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...categoryData.value];
 
-        // A. Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -1545,24 +2041,19 @@ export function useCategoryManager() {
             );
         }
 
-        // B. Sắp xếp (Logic kết hợp)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái (nếu user chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang hoạt động (1) lên đầu
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng hoạt động (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính ---
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMuc || '').localeCompare(b.tenDanhMuc || '');
@@ -1575,15 +2066,15 @@ export function useCategoryManager() {
         });
     });
 
-    // --- PHÂN TRANG ---
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
+    
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -1660,7 +2151,7 @@ export function useCategoryManager() {
         categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
         
         // Return các biến mới
-        paginatedData, searchQuery, 
+        paginatedData, searchQuery, totalElements,
         sortOption, statusSort, // 2 biến sort riêng biệt
         currentPage, totalPages, visiblePages, itemsPerPage, changePage
     };
@@ -1671,24 +2162,19 @@ export function useCategoryDetailManager() {
     const parentCategories = ref([]); 
     const isLoading = ref(false);
 
-    // --- STATE FILTER & SORT ---
     const searchQuery = ref('');
-    const categoryFilter = ref('all'); 
+    const categoryFilter = ref(null);
     
-    // 1. Tách riêng biến Sắp xếp Trạng thái
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp chính (Tên, Mã...)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10);
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
-        // A. Lọc Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -1697,30 +2183,29 @@ export function useCategoryDetailManager() {
             );
         }
 
-        // B. Lọc Danh mục gốc
-        if (categoryFilter.value !== 'all') {
-            result = result.filter(item => item.tenDanhMuc === categoryFilter.value);
-        }
+        if (categoryFilter.value) { 
+        const filterId = Number(categoryFilter.value); 
+    
+        result = result.filter(item => {
+            const idInObject = item.danhMuc?.id; 
+            const idDirect = item.idDanhMuc;
+            return (idInObject == filterId) || (idDirect == filterId);
+        });
+}
 
-        // C. LOGIC SẮP XẾP KẾT HỢP (QUAN TRỌNG)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái trước (nếu có chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang kinh doanh (1) lên đầu -> Ngưng (0) xuống dưới
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng kinh doanh (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính (Tên, Mã...) ---
-            // Nếu trạng thái giống nhau (hoặc không sort trạng thái), thì sort tiếp theo cái này
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMucChiTiet || '').localeCompare(b.tenDanhMucChiTiet || '');
@@ -1742,8 +2227,8 @@ export function useCategoryDetailManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -1821,6 +2306,7 @@ export function useCategoryDetailManager() {
         paginatedData, 
         searchQuery, 
         categoryFilter,
+        totalElements,
         
         sortOption, // Sort chính
         statusSort, // Sort trạng thái (Mới)
@@ -1889,7 +2375,8 @@ export function useHotpotSetTypeManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
 
     const visiblePages = computed(() => {
         const total = totalPages.value;
@@ -1978,6 +2465,7 @@ export function useHotpotSetTypeManager() {
         totalPages,
         visiblePages,
         itemsPerPage,
+        totalElements,
         changePage
     };
 }
@@ -1985,9 +2473,8 @@ export function useHotpotSetTypeManager() {
 
 export function useFoodAddScreen() {
     const router = useRouter();
-    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
 
-    // --- STATE CƠ BẢN ---
+    // --- STATE ---
     const formData = ref({
         tenMonAn: '',
         idDanhMuc: '',
@@ -1996,6 +2483,15 @@ export function useFoodAddScreen() {
         giaBan: 0,
         hinhAnh: '',
         trangThaiKinhDoanh: 1
+    });
+
+    // Biến lưu lỗi validation
+    const errors = ref({
+        tenMonAn: '',
+        idDanhMuc: '',
+        idDanhMucChiTiet: '',
+        hinhAnh: '',
+        listChiTiet: ''
     });
 
     const listChiTiet = ref([]);
@@ -2008,57 +2504,49 @@ export function useFoodAddScreen() {
         trangThai: 1,
         hinhAnh: ''
     });
-
-    const listDanhMuc = ref([]);
-    const listDanhMucChiTiet = ref([]); // Tất cả danh mục chi tiết
-    const existingFoods = ref([]);
-    const existingDetails = ref([]);
     
-    // --- DROPDOWN LOGIC (MỚI) ---
-    
-    // 1. Dropdown Danh Mục Gốc
-    const isCatDropdownOpen = ref(false);
-    const catSearchQuery = ref('');
-
-    const toggleCatDropdown = () => {
-        isCatDropdownOpen.value = !isCatDropdownOpen.value;
-        if (isCatDropdownOpen.value) {
-            catSearchQuery.value = ''; // Reset search
-            isSubCatDropdownOpen.value = false; // Đóng cái kia nếu đang mở
-        }
-    };
-
-    const filteredCategories = computed(() => {
-        if (!catSearchQuery.value) return listDanhMuc.value;
-        const query = catSearchQuery.value.toLowerCase();
-        return listDanhMuc.value.filter(item => item.tenDanhMuc.toLowerCase().includes(query));
+    // Biến lỗi cho phần thêm chi tiết
+    const detailErrors = ref({
+        tenChiTietMonAn: '',
+        kichCo: '',
+        giaBan: '',
+        hinhAnh: ''
     });
 
+    const listDanhMuc = ref([]);
+    const listDanhMucChiTiet = ref([]);
+    const existingFoods = ref([]);
+    const existingDetails = ref([]);
+
+    // --- DROPDOWN LOGIC (Giữ nguyên logic dropdown search của bạn) ---
+    const isCatDropdownOpen = ref(false);
+    const catSearchQuery = ref('');
+    const toggleCatDropdown = () => {
+        isCatDropdownOpen.value = !isCatDropdownOpen.value;
+        if (isCatDropdownOpen.value) { catSearchQuery.value = ''; isSubCatDropdownOpen.value = false; }
+    };
+    const filteredCategories = computed(() => {
+        if (!catSearchQuery.value) return listDanhMuc.value;
+        return listDanhMuc.value.filter(item => item.tenDanhMuc.toLowerCase().includes(catSearchQuery.value.toLowerCase()));
+    });
     const selectCategory = (item) => {
         formData.value.idDanhMuc = item.id;
-        formData.value.idDanhMucChiTiet = ''; // Reset chi tiết khi đổi gốc
+        formData.value.idDanhMucChiTiet = '';
+        errors.value.idDanhMuc = ''; // Xóa lỗi khi chọn
         isCatDropdownOpen.value = false;
     };
-
     const selectedCategoryName = computed(() => {
         const found = listDanhMuc.value.find(i => i.id === formData.value.idDanhMuc);
         return found ? found.tenDanhMuc : '';
     });
 
-    // 2. Dropdown Danh Mục Chi Tiết
     const isSubCatDropdownOpen = ref(false);
     const subCatSearchQuery = ref('');
-
     const toggleSubCatDropdown = () => {
-        if (!formData.value.idDanhMuc) return; // Disable nếu chưa chọn gốc
+        if (!formData.value.idDanhMuc) return;
         isSubCatDropdownOpen.value = !isSubCatDropdownOpen.value;
-        if (isSubCatDropdownOpen.value) {
-            subCatSearchQuery.value = '';
-            isCatDropdownOpen.value = false;
-        }
+        if (isSubCatDropdownOpen.value) { subCatSearchQuery.value = ''; isCatDropdownOpen.value = false; }
     };
-
-    // Logic cũ: Lọc theo ID cha
     const subCategoriesByParent = computed(() => {
         if (!formData.value.idDanhMuc) return [];
         return listDanhMucChiTiet.value.filter(item => {
@@ -2066,73 +2554,44 @@ export function useFoodAddScreen() {
             return String(parentId) === String(formData.value.idDanhMuc);
         });
     });
-
-    // Logic mới: Lọc thêm theo Search Query
     const filteredSubCategories = computed(() => {
         const list = subCategoriesByParent.value;
         if (!subCatSearchQuery.value) return list;
-        const query = subCatSearchQuery.value.toLowerCase();
-        return list.filter(item => item.tenDanhMucChiTiet.toLowerCase().includes(query));
+        return list.filter(item => item.tenDanhMucChiTiet.toLowerCase().includes(subCatSearchQuery.value.toLowerCase()));
     });
-
     const selectSubCategory = (item) => {
         formData.value.idDanhMucChiTiet = item.id;
+        errors.value.idDanhMucChiTiet = ''; // Xóa lỗi
         isSubCatDropdownOpen.value = false;
     };
-
     const selectedSubCategoryName = computed(() => {
         const found = listDanhMucChiTiet.value.find(i => i.id === formData.value.idDanhMucChiTiet);
         return found ? found.tenDanhMucChiTiet : '';
     });
+    const closeAllDropdowns = () => { isCatDropdownOpen.value = false; isSubCatDropdownOpen.value = false; };
 
-    const closeAllDropdowns = () => {
-        isCatDropdownOpen.value = false;
-        isSubCatDropdownOpen.value = false;
-    };
-
-
-    // --- CÁC HÀM XỬ LÝ ẢNH, VALIDATE, SAVE (GIỮ NGUYÊN) ---
+    // --- LOGIC ẢNH & CHECK TRÙNG (Giữ nguyên logic, chỉ bỏ showAlert cũ) ---
     const mainFileInput = ref(null);
     const detailFileInput = ref(null);
 
     const isFoodNameDuplicate = (name) => {
         if (!name) return false;
-        const normalizedInput = name.trim().toLowerCase();
-        return existingFoods.value.some(foodName => foodName.toLowerCase() === normalizedInput);
-    };
-
-    const isDetailNameDuplicate = (name) => {
-        if (!name) return false;
-        const normalizedInput = name.trim().toLowerCase();
-        const isDuplicateInCurrentList = listChiTiet.value.some(item => 
-            item.tenChiTietMonAn.toLowerCase() === normalizedInput
-        );
-        if (isDuplicateInCurrentList) return true;
-        const isDuplicateInDB = existingDetails.value.some(detailName => 
-            detailName.toLowerCase() === normalizedInput
-        );
-        return isDuplicateInDB; 
+        return existingFoods.value.some(foodName => foodName.toLowerCase() === name.trim().toLowerCase());
     };
 
     const resizeImage = (file, maxWidth = 800) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = (event) => {
+            reader.onload = (e) => {
                 const img = new Image();
-                img.src = event.target.result;
+                img.src = e.target.result;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
+                    let w = img.width, h = img.height;
+                    if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                     resolve(canvas.toDataURL('image/jpeg', 0.8));
                 };
             };
@@ -2140,131 +2599,281 @@ export function useFoodAddScreen() {
         });
     };
 
-    const triggerMainImageUpload = () => { if(mainFileInput.value) mainFileInput.value.click(); };
+    const triggerMainImageUpload = () => mainFileInput.value.click();
     const handleMainFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi định dạng', text: 'Vui lòng chọn file hình ảnh!' });
+            return;
+        }
         try {
-            const resizedBase64 = await resizeImage(file);
-            formData.value.hinhAnh = resizedBase64;
+            const resized = await resizeImage(file);
+            formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; // Xóa lỗi ảnh
         } catch (e) { console.error(e); }
         event.target.value = '';
     };
 
-    const triggerDetailImageUpload = () => { if (detailFileInput.value) detailFileInput.value.click(); };
+    const triggerDetailImageUpload = () => detailFileInput.value.click();
     const handleDetailImageUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.match('image.*')) { showAlert("Sai định dạng ảnh!", "Lỗi"); return; }
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi định dạng', text: 'Vui lòng chọn file hình ảnh!' });
+            return;
+        }
         try {
-            const resizedBase64 = await resizeImage(file);
-            newDetail.value.hinhAnh = resizedBase64;
+            const resized = await resizeImage(file);
+            newDetail.value.hinhAnh = resized;
+            detailErrors.value.hinhAnh = ''; // Xóa lỗi ảnh chi tiết
         } catch (e) { console.error(e); }
         event.target.value = '';
     };
 
     onMounted(async () => {
+        /* ... (Giữ nguyên logic fetch data) ... */
         try {
-            const resDM = await getAllCategory();
-            listDanhMuc.value = resDM.data;
-            const resDMCT = await getAllCategoryDetail();
-            listDanhMucChiTiet.value = resDMCT.data;
-        } catch (e) { console.error("Lỗi load danh mục:", e); }
-
-        try {
+            const resDM = await getAllCategory(); listDanhMuc.value = resDM.data;
+            const resDMCT = await getAllCategoryDetail(); listDanhMucChiTiet.value = resDMCT.data;
             const resFood = await getAllFoodGeneral();
-            if (resFood && resFood.data) {
-                existingFoods.value = resFood.data.map(f => f.tenMonAn);
-            }
-            const resDetail = await getAllFoodDetail(); 
-            if (resDetail && resDetail.data) {
-                existingDetails.value = resDetail.data.map(d => d.tenChiTietMonAn);
-            }
-        } catch (e) { console.error("Lỗi load món ăn:", e); }
+            if (resFood?.data) existingFoods.value = resFood.data.map(f => f.tenMonAn);
+            const resDetail = await getAllFoodDetail();
+            if (resDetail?.data) existingDetails.value = resDetail.data.map(d => d.tenChiTietMonAn);
+        } catch (e) { console.error(e); }
     });
 
-    const addDetailToList = () => {
-        const name = newDetail.value.tenChiTietMonAn ? newDetail.value.tenChiTietMonAn.trim() : '';
-        if (!name) { showAlert("Vui lòng nhập tên chi tiết!", "Thiếu thông tin"); return; }
-        if (name.length < 5) { showAlert("Tên chi tiết món ăn phải có trên 5 kí tự!", "Thiếu thông tin"); return; }
-        if (isDetailNameDuplicate(name)) { showAlert(`Biến thể "${name}" đã có trong danh sách!`, "Trùng lặp", "warning"); return; }
-        if (!newDetail.value.kichCo || !newDetail.value.kichCo.trim()) { showAlert("Vui lòng nhập kích cỡ!", "Thiếu thông tin"); return; }
-        if (newDetail.value.giaBan === "" || newDetail.value.giaBan < 0) { showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu", "error"); return; }
-        if (!newDetail.value.hinhAnh) { showAlert("Vui lòng chọn ảnh cho biến thể này!", "Thiếu thông tin"); return; }
+    // --- HÀM VALIDATE MỚI ---
+    const validateMainForm = () => {
+        let isValid = true;
+        errors.value = { tenMonAn: '', idDanhMuc: '', idDanhMucChiTiet: '', hinhAnh: '', listChiTiet: '' }; // Reset lỗi
 
+        if (!formData.value.tenMonAn.trim()) {
+            errors.value.tenMonAn = 'Tên món ăn không được bỏ trống.';
+            isValid = false;
+        } else if (formData.value.tenMonAn.length < 5) {
+            errors.value.tenMonAn = 'Tên món ăn phải có ít nhất 5 ký tự.';
+            isValid = false;
+        } else if (isFoodNameDuplicate(formData.value.tenMonAn)) {
+            errors.value.tenMonAn = 'Tên món ăn đã tồn tại trong hệ thống.';
+            isValid = false;
+        }
+
+        if (!formData.value.idDanhMuc) {
+            errors.value.idDanhMuc = 'Vui lòng chọn danh mục gốc.';
+            isValid = false;
+        }
+        if (!formData.value.idDanhMucChiTiet) {
+            errors.value.idDanhMucChiTiet = 'Vui lòng chọn chi tiết danh mục.';
+            isValid = false;
+        }
+        if (!formData.value.hinhAnh) {
+            errors.value.hinhAnh = 'Vui lòng chọn hình ảnh món ăn.';
+            isValid = false;
+        }
+        if (listChiTiet.value.length === 0) {
+            errors.value.listChiTiet = 'Vui lòng thêm ít nhất một biến thể món ăn.';
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const isDetailNameDuplicate = (name) => {
+        if (!name) return false;
+        const normalizedInput = name.trim().toLowerCase();
+
+        // Check trong list đang thêm (Client side)
+        const isDuplicateInCurrentList = listChiTiet.value.some(item => 
+            item.tenChiTietMonAn && // Kiểm tra tồn tại trước
+            item.tenChiTietMonAn.trim().toLowerCase() === normalizedInput
+        );
+        if (isDuplicateInCurrentList) return true;
+
+        // Check trong DB (Server side data) -> NGUYÊN NHÂN GÂY LỖI Ở ĐÂY
+        // Cần kiểm tra d.tenChiTietMonAn có tồn tại không trước khi toLowerCase()
+        const isDuplicateInDB = existingDetails.value.some(d => 
+            d.tenChiTietMonAn && 
+            d.tenChiTietMonAn.trim().toLowerCase() === normalizedInput
+        );
+        
+        return isDuplicateInDB; 
+    };
+
+    // --- 2. THÊM VALIDATE CHI TIẾT (ĐẦY ĐỦ) ---
+    const validateDetailForm = () => {
+        let isValid = true;
+        // Reset lỗi cũ
+        detailErrors.value = { tenChiTietMonAn: '', kichCo: '', giaBan: '', hinhAnh: '' };
+
+        // 1. Validate Tên
+        if (!newDetail.value.tenChiTietMonAn || !newDetail.value.tenChiTietMonAn.trim()) {
+            detailErrors.value.tenChiTietMonAn = 'Vui lòng nhập tên chi tiết.';
+            isValid = false;
+        } else if (newDetail.value.tenChiTietMonAn.length < 2) { // Ví dụ độ dài tối thiểu
+            detailErrors.value.tenChiTietMonAn = 'Tên quá ngắn.';
+            isValid = false;
+        } else if (isDetailNameDuplicate(newDetail.value.tenChiTietMonAn)) {
+            detailErrors.value.tenChiTietMonAn = 'Tên biến thể này đã tồn tại!';
+            isValid = false;
+        }
+
+        // 2. Validate Kích cỡ
+        if (!newDetail.value.kichCo || !newDetail.value.kichCo.trim()) {
+            detailErrors.value.kichCo = 'Vui lòng nhập kích cỡ.';
+            isValid = false;
+        }
+
+        // 3. Validate Giá bán
+        if (newDetail.value.giaBan === "" || newDetail.value.giaBan === null || newDetail.value.giaBan < 0) {
+            detailErrors.value.giaBan = 'Giá bán không hợp lệ.';
+            isValid = false;
+        }
+
+        // 4. Validate Ảnh
+        if (!newDetail.value.hinhAnh) {
+            detailErrors.value.hinhAnh = 'Vui lòng chọn ảnh.';
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    // --- 3. CẬP NHẬT HÀM THÊM VÀO LIST ---
+    const addDetailToList = () => {
+        // Gọi hàm validate trước
+        if (!validateDetailForm()) {
+            // Nếu không hợp lệ -> Dừng lại (Lỗi đỏ đã hiện ra nhờ biến detailErrors)
+            return; 
+        }
+
+        // Nếu hợp lệ -> Thêm vào list
         listChiTiet.value.push({
             ...newDetail.value,
-            tenChiTietMonAn: name,
+            tenChiTietMonAn: newDetail.value.tenChiTietMonAn.trim(),
             kichCo: newDetail.value.kichCo.trim(),
-            donVi: newDetail.value.donVi.trim()
+            donVi: newDetail.value.donVi ? newDetail.value.donVi.trim() : 'Cốc',
+            giaBan: Number(newDetail.value.giaBan),
+            giaVon: Number(newDetail.value.giaVon) || 0
         });
-        newDetail.value = { tenChiTietMonAn: '', giaBan: 0, giaVon: 0, kichCo: '', donVi: 'Cốc', trangThai: 1, hinhAnh: '' };
+
+        // Xóa lỗi chung của list (nếu có)
+        errors.value.listChiTiet = ''; 
+
+        // Reset form nhập chi tiết về ban đầu
+        newDetail.value = { 
+            tenChiTietMonAn: '', 
+            giaBan: 0, 
+            giaVon: 0, 
+            kichCo: '', 
+            donVi: 'Cốc', 
+            trangThai: 1, 
+            hinhAnh: '' 
+        };
+        
+        // Reset lỗi form con
+        detailErrors.value = { tenChiTietMonAn: '', kichCo: '', giaBan: '', hinhAnh: '' };
     };
 
     const removeDetailFromList = (index) => {
-        showConfirm("Bạn muốn xóa chi tiết này?", () => { listChiTiet.value.splice(index, 1); }, "Xóa chi tiết", "error");
+        Swal.fire({
+            title: 'Xóa biến thể?',
+            text: "Bạn có chắc chắn muốn xóa dòng này?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                listChiTiet.value.splice(index, 1);
+            }
+        });
     };
 
     const handleSave = async () => {
-        const foodName = formData.value.tenMonAn ? formData.value.tenMonAn.trim() : '';
-        if (!foodName) { showAlert("Vui lòng nhập tên món ăn!", "Thiếu thông tin"); return; }
-        if(foodName.length < 5){showAlert("Tên món ăn phải trên 5 kí tự", "Thiếu thông tin"); return;}
-        if (isFoodNameDuplicate(foodName)) { showAlert(`Món "${foodName}" đã tồn tại!`, "Trùng tên", "error"); return; }
-        if (!formData.value.idDanhMucChiTiet) { showAlert("Vui lòng chọn danh mục chi tiết!", "Thiếu thông tin"); return; }
-        if (!formData.value.hinhAnh) { showAlert("Vui lòng chọn hình ảnh chính!", "Thiếu thông tin"); return; }
-        if (listChiTiet.value.length === 0) { showAlert("Vui lòng thêm ít nhất một biến thể!", "Cảnh báo"); return; }
-        
-        showConfirm(
-            "Xác nhận thêm món ăn này?",
-            async () => {
+        if (!validateMainForm()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi nhập liệu',
+                text: 'Bạn chưa nhập đủ thông tin hoặc thông tin không hợp lệ.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                      toast.addEventListener("mouseenter", Swal.stopTimer);
+                      toast.addEventListener("mouseleave", Swal.resumeTimer);
+                }
+            });
+            return;
+        }
+
+        // 2. Confirm Save
+        Swal.fire({
+            title: 'Xác nhận thêm mới?',
+            text: `Bạn có chắc chắn muốn thêm món "${formData.value.tenMonAn}"?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
                 try {
                     const payload = {
                         ...formData.value,
-                        tenMonAn: foodName,
+                        tenMonAn: formData.value.tenMonAn.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
                         listChiTiet: listChiTiet.value
                     };
                     await postNewFood(payload);
-                    showSuccess("Thêm mới thành công!");
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Thêm món ăn mới thành công.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    
                     setTimeout(() => router.back(), 1500);
                 } catch (e) {
                     console.error(e);
-                    showError("Lỗi khi thêm mới!");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi hệ thống',
+                        text: 'Đã xảy ra lỗi khi lưu dữ liệu.'
+                    });
                 }
-            },
-            "Thêm Món Ăn", "success"
-        );
+            }
+        });
     };
 
     const goBack = () => router.back();
 
     return {
-        formData, listDanhMuc, filteredSubCategories, // filteredSubCategories ở đây là bản có search
-        listChiTiet, newDetail, 
+        formData, listDanhMuc, filteredSubCategories, listChiTiet, newDetail, 
         handleSave, goBack, addDetailToList, removeDetailFromList,
         mainFileInput, handleMainFileUpload, triggerMainImageUpload,
         detailFileInput, handleDetailImageUpload, triggerDetailImageUpload,
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose,
-
-        // Return biến Dropdown
+        
+        // Export biến Dropdown
         isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
-        isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, selectSubCategory, selectedSubCategoryName, closeAllDropdowns
+        isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
+
+        // Export biến Error
+        errors, detailErrors
     };
 }
-
 
 export function useHotpotAdd() {
     const router = useRouter();
     
-    // --- 1. KHỞI TẠO DIALOG ---
-    const { 
-        isVisible, dialogConfig, 
-        showAlert, showError, showSuccess, showConfirm, 
-        handleConfirm, handleClose 
-    } = useDialog();
-
-    // --- 2. STATE ---
+    // --- 1. STATE ---
     const formData = ref({
         tenSetLau: '',
         idLoaiSet: '',
@@ -2274,57 +2883,57 @@ export function useHotpotAdd() {
         trangThai: 1
     });
 
+    // Biến lưu lỗi Validation
+    const errors = ref({
+        tenSetLau: '',
+        idLoaiSet: '',
+        giaBan: '',
+        hinhAnh: '',
+        selectedIngredients: '' // Lỗi cho danh sách thành phần
+    });
+
     // Dữ liệu API
     const listLoaiSet = ref([]);
-    const listFoodDetails = ref([]); // Danh sách nguyên liệu (Chi tiết món)
-    const existingSetNames = ref([]); // Danh sách tên Set đã tồn tại (Global Check)
+    const listFoodDetails = ref([]); 
+    const existingSetNames = ref([]); 
 
     // Dữ liệu thao tác
     const selectedIngredients = ref([]);
     const searchQuery = ref("");
     const sortOption = ref("name_asc");
 
-    // --- 3. LOGIC CHECK TRÙNG TÊN SET (TOÀN CỤC) ---
+    // --- 2. CHECK TRÙNG TÊN ---
     const isSetNameDuplicate = (name) => {
         if (!name) return false;
         const normalizedName = name.trim().toLowerCase();
-        // Kiểm tra trong danh sách đã tải từ DB
         return existingSetNames.value.some(dbName => dbName.toLowerCase() === normalizedName);
     };
 
-    // --- 4. COMPUTED ---
+    // --- 3. COMPUTED ---
     const filteredFoodList = computed(() => {
         let result = listFoodDetails.value;
-
-        // Lọc theo tên
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
                 (item.tenChiTietMonAn || item.tenDanhMucChiTiet || '').toLowerCase().includes(query)
             );
         }
-
-        // Sắp xếp
         return result.sort((a, b) => {
             const nameA = (a.tenChiTietMonAn || a.tenDanhMucChiTiet || '').toLowerCase();
             const nameB = (b.tenChiTietMonAn || b.tenDanhMucChiTiet || '').toLowerCase();
-            
-            if (sortOption.value === 'name_asc') return nameA.localeCompare(nameB);
             if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
             if (sortOption.value === 'price_desc') return b.giaBan - a.giaBan;
-            return 0;
+            return nameA.localeCompare(nameB);
         });
     });
 
-    // Tính tổng giá vốn của các thành phần trong Set
     const totalComponentsPrice = computed(() => {
         return selectedIngredients.value.reduce((sum, item) => sum + (item.giaBan * item.soLuong), 0);
     });
 
-    // --- 5. FETCH DATA ---
+    // --- 4. FETCH DATA ---
     const fetchInitialData = async() => {
         try {
-            // Gọi song song 3 API: Loại Set, Chi tiết món, Danh sách Set lẩu (để check trùng)
             const [resLoaiSet, resFoodDetail, resAllHotpots] = await Promise.all([
                 getAllCategoryHotpot(),
                 getAllFoodDetail(),
@@ -2334,22 +2943,18 @@ export function useHotpotAdd() {
             listLoaiSet.value = resLoaiSet.data;
             listFoodDetails.value = resFoodDetail.data;
 
-            // Lưu danh sách tên Set lẩu vào mảng để check trùng
             if (resAllHotpots && resAllHotpots.data) {
                 existingSetNames.value = resAllHotpots.data.map(set => set.tenSetLau);
             }
-
         } catch (e) {
             console.error("Lỗi load dữ liệu:", e);
-            showError("Không thể tải dữ liệu hệ thống!");
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải dữ liệu hệ thống!' });
         }
     };
 
-    onMounted(() => {
-        fetchInitialData();
-    });
+    onMounted(() => { fetchInitialData(); });
 
-    // --- 6. ACTIONS (THÊM/XÓA NGUYÊN LIỆU) ---
+    // --- 5. ACTIONS ---
     const addIngredient = (foodItem) => {
         const exists = selectedIngredients.value.find(item => item.id === foodItem.id);
         if (exists) {
@@ -2364,13 +2969,15 @@ export function useHotpotAdd() {
                 soLuong: 1
             });
         }
+        errors.value.selectedIngredients = ''; // Xóa lỗi khi thêm
     };
 
     const removeIngredient = (index) => {
+        // Dùng Swal Confirm cho đẹp (Optional)
         selectedIngredients.value.splice(index, 1);
     };
 
-    // --- 7. UPLOAD ẢNH (Logic Resize chuẩn) ---
+    // --- 6. UPLOAD ẢNH ---
     const resizeImage = (file, maxWidth = 800) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -2394,58 +3001,71 @@ export function useHotpotAdd() {
         const file = event.target.files[0];
         if (!file) return;
         if (!file.type.match('image.*')) {
-            showAlert("Vui lòng chọn file hình ảnh!", "Sai định dạng");
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn file hình ảnh!' });
             return;
         }
         try {
             const resized = await resizeImage(file);
             formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; 
         } catch (e) { console.error(e); }
-        event.target.value = ''; // Reset input
+        event.target.value = '';
     };
 
     const goBack = () => router.back();
 
-    // --- 8. SAVE (VALIDATE & CONFIRM) ---
-    const handleSave = async() => {
+    // --- 7. VALIDATE & SAVE ---
+    const validateForm = () => {
+        let isValid = true;
+        errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '' };
+
         const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
-
-        // Validate Cơ bản
         if (!setName) {
-            showAlert("Vui lòng nhập tên Set Lẩu!", "Thiếu thông tin"); return;
+            errors.value.tenSetLau = 'Vui lòng nhập tên Set Lẩu.'; isValid = false;
+        } else if (setName.length < 5) {
+            errors.value.tenSetLau = 'Tên set lẩu phải chứa trên 5 kí tự.'; isValid = false;
+        } else if (isSetNameDuplicate(setName)) {
+            errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
 
-        if(setName.length < 5){
-            showAlert("Tên set lẩu phải chứa trên 5 kí tự", "Thiếu thông tin"); return;
+        if (!formData.value.idLoaiSet) { errors.value.idLoaiSet = 'Vui lòng chọn Loại Set.'; isValid = false; }
+        
+        if (!formData.value.giaBan || formData.value.giaBan < 0) { 
+            errors.value.giaBan = 'Giá bán không hợp lệ.'; isValid = false; 
         }
 
-        // >>> CHECK TRÙNG TÊN SET (GLOBAL) <<<
-        if (isSetNameDuplicate(setName)) {
-            showAlert(`Tên Set Lẩu "${setName}" đã tồn tại! Vui lòng đặt tên khác.`, "Trùng tên", "error");
+        if (!formData.value.hinhAnh) { errors.value.hinhAnh = 'Vui lòng chọn hình ảnh.'; isValid = false; }
+
+        if (selectedIngredients.value.length === 0) {
+            errors.value.selectedIngredients = 'Vui lòng chọn ít nhất 1 món ăn vào Set.'; isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleSave = async() => {
+        if (!validateForm()) {
+            Swal.fire({
+                icon: 'error', title: 'Lỗi nhập liệu',
+                text: 'Vui lòng kiểm tra lại thông tin.',
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000
+            });
             return;
         }
 
-        if (!formData.value.idLoaiSet) {
-            showAlert("Vui lòng chọn Loại Set!", "Thiếu thông tin"); return;
-        }
-        if (!formData.value.giaBan || formData.value.giaBan < 0) {
-            showAlert("Giá bán không hợp lệ!", "Lỗi nhập liệu"); return;
-        }
-        if (selectedIngredients.value.length === 0) {
-            showAlert("Vui lòng thêm ít nhất 1 món ăn vào Set!", "Thiếu thành phần"); return;
-        }
-        if (!formData.value.hinhAnh) {
-            showAlert("Vui lòng chọn hình ảnh!", "Thiếu thông tin"); return;
-        }
-
-        // Confirm Dialog
-        showConfirm(
-            "Bạn có chắc chắn muốn thêm Set Lẩu mới này?",
-            async () => {
+        Swal.fire({
+            title: 'Xác nhận thêm mới?',
+            text: 'Bạn có chắc chắn muốn thêm Set Lẩu này?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
                 try {
                     const payload = {
                         ...formData.value,
-                        tenSetLau: setName, // Dữ liệu đã trim
+                        tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
                         listChiTietSetLau: selectedIngredients.value.map(item => ({
                             idChiTietMonAn: item.id,
@@ -2454,7 +3074,12 @@ export function useHotpotAdd() {
                     };
 
                     await postNewHotpot(payload);
-                    showSuccess("Thêm mới thành công!");
+                    
+                    Swal.fire({
+                        icon: 'success', title: 'Thành công!',
+                        text: 'Thêm mới thành công.',
+                        timer: 1500, showConfirmButton: false
+                    });
                     
                     setTimeout(() => {
                         router.push({ name: 'foodManager', query: { tab: 'setlau' } });
@@ -2462,19 +3087,17 @@ export function useHotpotAdd() {
 
                 } catch (e) {
                     console.error(e);
-                    showError("Lỗi khi thêm mới! Vui lòng thử lại.");
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi khi thêm mới! Vui lòng thử lại.' });
                 }
-            },
-            "Xác nhận thêm mới"
-        );
+            }
+        });
     };
 
     return {
         formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
         searchQuery, sortOption, filteredFoodList,
         addIngredient, removeIngredient, handleSave, goBack, handleFileUpload,
-        
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose
+        errors // Export errors
     };
 }
 
@@ -2482,8 +3105,6 @@ export function useFoodDetailAdd() {
     const router = useRouter();
     const route = useRoute();
     const parentIdFromUrl = route.query.parentId;
-
-    const { isVisible, dialogConfig, showAlert, showError, showSuccess, showConfirm, handleConfirm, handleClose } = useDialog();
 
     // --- STATE ---
     const formData = ref({
@@ -2498,26 +3119,37 @@ export function useFoodDetailAdd() {
         trangThai: 1
     });
 
+    // Biến lưu lỗi Validation
+    const errors = ref({
+        tenChiTietMonAn: '',
+        idMonAnDiKem: '',
+        giaBan: '',
+        hinhAnh: '',
+        kichCo: '',
+        donVi: ''
+    });
+
     const listMonAn = ref([]); 
     const isParentLocked = ref(false); 
     const parentFoodName = ref('');
-    
-    // Thêm biến chứa danh sách tên chi tiết đã tồn tại (Global Check)
     const existingDetailNames = ref([]);
     const allGlobalDetails = ref([]);
 
-    // State tìm kiếm & sắp xếp
+    // Search & Sort
     const searchQuery = ref('');
     const sortOption = ref('name_asc');
 
-    // --- HÀM CHECK TRÙNG TÊN CHI TIẾT (TOÀN CỤC) ---
+    // --- HÀM CHECK TRÙNG TÊN (AN TOÀN) ---
     const isDetailNameDuplicate = (name) => {
         if (!name) return false;
         const normalizedName = name.trim().toLowerCase();
-        return allGlobalDetails.value.some(d => d.tenChiTietMonAn.toLowerCase() === normalizedName);
+        // Kiểm tra an toàn để tránh lỗi crash nếu dữ liệu null
+        return allGlobalDetails.value.some(d => 
+            d.tenChiTietMonAn && d.tenChiTietMonAn.toLowerCase() === normalizedName
+        );
     };
 
-    // --- COMPUTED: LỌC DANH SÁCH MÓN GỐC ---
+    // --- COMPUTED: LỌC MÓN ---
     const filteredMonAnList = computed(() => {
         let result = [...listMonAn.value];
         if (searchQuery.value) {
@@ -2527,10 +3159,12 @@ export function useFoodDetailAdd() {
                 (item.maMonAn && item.maMonAn.toLowerCase().includes(query))
             );
         }
+        // Logic sort đơn giản
         return result.sort((a, b) => {
             const nameA = (a.tenMonAn || '').toLowerCase();
             const nameB = (b.tenMonAn || '').toLowerCase();
-            // Logic sort giữ nguyên...
+            if (sortOption.value === 'price_asc') return (a.giaBan || 0) - (b.giaBan || 0);
+            if (sortOption.value === 'price_desc') return (b.giaBan || 0) - (a.giaBan || 0);
             return nameA.localeCompare(nameB); 
         });
     });
@@ -2543,35 +3177,35 @@ export function useFoodDetailAdd() {
             return String(detail.idMonAnDiKem) === String(foodItem.id);
         });
 
-        if (childDetails.length === 0) {
-            return foodItem.giaBan ? `${foodItem.giaBan.toLocaleString()}đ` : 'Chưa có giá';
-        }
-        const prices = childDetails.map(d => d.giaBan).filter(p => p !== null && p >= 0);
+        if (childDetails.length === 0) return foodItem.giaBan ? `${foodItem.giaBan.toLocaleString()}đ` : 'Chưa có giá';
         
+        const prices = childDetails.map(d => d.giaBan).filter(p => p !== null && p >= 0);
         if (prices.length === 0) return 'Chưa có giá';
 
         const min = Math.min(...prices);
         const max = Math.max(...prices);
-
-        if (min === max) return `${min.toLocaleString()}đ`;
-        return `${min.toLocaleString()} - ${max.toLocaleString()}đ`;
+        return (min === max) ? `${min.toLocaleString()}đ` : `${min.toLocaleString()} - ${max.toLocaleString()}đ`;
     };
 
-    const selectParentFood = (food) => { if (isParentLocked.value) return; formData.value.idMonAnDiKem = food.id; };
+    const selectParentFood = (food) => { 
+        if (isParentLocked.value) return; 
+        formData.value.idMonAnDiKem = food.id;
+        errors.value.idMonAnDiKem = ''; // Xóa lỗi khi chọn
+    };
 
     // --- FETCH DATA ---
     const fetchInitialData = async() => {
         try {
-            // 1. Lấy danh sách món ăn cha
-            const resAllFood = await getAllFoodGeneral();
+            const [resAllFood, resAllDetails] = await Promise.all([
+                getAllFoodGeneral(),
+                getAllFoodDetail()
+            ]);
+            
             listMonAn.value = resAllFood.data;
-
-            const resAllDetails = await getAllFoodDetail();
             if (resAllDetails && resAllDetails.data) {
                 allGlobalDetails.value = resAllDetails.data;
             }
 
-            // Logic khóa món cha nếu truyền ID từ URL
             if (parentIdFromUrl) {
                 const pId = parseInt(parentIdFromUrl);
                 const parent = listMonAn.value.find(f => f.id === pId);
@@ -2583,14 +3217,13 @@ export function useFoodDetailAdd() {
             }
         } catch (e) {
             console.error("Lỗi load dữ liệu:", e);
-            showError("Lỗi tải dữ liệu hệ thống!");
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không tải được dữ liệu hệ thống!' });
         }
     };
-    
 
     onMounted(() => { fetchInitialData(); });
 
-    // --- UPLOAD ẢNH (Logic Resize ảnh giống phần Add Món) ---
+    // --- UPLOAD ẢNH ---
     const resizeImage = (file, maxWidth = 800) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -2613,43 +3246,98 @@ export function useFoodDetailAdd() {
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.match('image.*')) { showAlert("Vui lòng chọn ảnh!", "Lỗi định dạng"); return; }
+        if (!file.type.match('image.*')) {
+            Swal.fire({ icon: 'error', title: 'Lỗi định dạng', text: 'Vui lòng chọn file ảnh!' });
+            return;
+        }
         try {
             const resized = await resizeImage(file);
             formData.value.hinhAnh = resized;
+            errors.value.hinhAnh = ''; // Xóa lỗi ảnh
         } catch (e) { console.error(e); }
         event.target.value = '';
     };
 
-    const handleSave = async() => {
-        if (!formData.value.idMonAnDiKem) { showAlert("Chưa chọn món ăn gốc!", "Thiếu thông tin"); return; }
-        
-        const detailName = formData.value.tenChiTietMonAn ? formData.value.tenChiTietMonAn.trim() : '';
-        if (!detailName) { showAlert("Chưa nhập tên chi tiết!", "Thiếu thông tin"); return; }
-        if (detailName.length < 5) { showAlert("Tên chi tiết phải chứa trên 5 kí tự", "Thiếu thông tin"); return; }
+    // --- VALIDATION & SAVE ---
+    const validateForm = () => {
+        let isValid = true;
+        // Reset errors
+        errors.value = { tenChiTietMonAn: '', idMonAnDiKem: '', giaBan: '', hinhAnh: '', kichCo: '', donVi: '' };
 
-        if (isDetailNameDuplicate(detailName)) {
-            showAlert(`Tên chi tiết "${detailName}" đã tồn tại!`, "Trùng lặp dữ liệu", "error");
+        if (!formData.value.idMonAnDiKem) {
+            errors.value.idMonAnDiKem = 'Vui lòng chọn món ăn gốc từ danh sách bên phải.';
+            isValid = false;
+        }
+
+        const detailName = formData.value.tenChiTietMonAn ? formData.value.tenChiTietMonAn.trim() : '';
+        if (!detailName) {
+            errors.value.tenChiTietMonAn = 'Vui lòng nhập tên chi tiết.';
+            isValid = false;
+        } else if (detailName.length < 5) {
+            errors.value.tenChiTietMonAn = 'Tên chi tiết phải có ít nhất 5 ký tự.';
+            isValid = false;
+        } else if (isDetailNameDuplicate(detailName)) {
+            errors.value.tenChiTietMonAn = 'Tên chi tiết này đã tồn tại trong hệ thống.';
+            isValid = false;
+        }
+
+        if (formData.value.giaBan === "" || formData.value.giaBan < 0) {
+            errors.value.giaBan = 'Giá bán không hợp lệ.';
+            isValid = false;
+        }
+
+        if (!formData.value.kichCo) { errors.value.kichCo = 'Nhập kích cỡ.'; isValid = false; }
+        if (!formData.value.donVi) { errors.value.donVi = 'Nhập đơn vị.'; isValid = false; }
+
+        if (!formData.value.hinhAnh) {
+            errors.value.hinhAnh = 'Vui lòng chọn hình ảnh.';
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleSave = async() => {
+        if (!validateForm()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi nhập liệu',
+                text: 'Vui lòng kiểm tra lại các trường báo đỏ.',
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+            });
             return;
         }
 
-        if (!formData.value.hinhAnh) { showAlert("Chưa chọn ảnh!", "Thiếu thông tin"); return; }
-
-        showConfirm("Xác nhận thêm chi tiết mới?", async () => {
-            try {
-                const payload = {
-                    ...formData.value,
-                    tenChiTietMonAn: detailName,
-                    trangThai: Number(formData.value.trangThai)
-                };
-                await postNewFoodDetail(payload);
-                showSuccess("Thêm mới thành công!");
-                setTimeout(() => router.back(), 1500);
-            } catch (e) {
-                console.error(e);
-                showError("Lỗi khi lưu dữ liệu!");
+        Swal.fire({
+            title: 'Xác nhận thêm mới?',
+            text: 'Bạn có chắc chắn muốn thêm chi tiết này?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6', cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý', cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    const payload = {
+                        ...formData.value,
+                        tenChiTietMonAn: formData.value.tenChiTietMonAn.trim(),
+                        trangThai: Number(formData.value.trangThai)
+                    };
+                    await postNewFoodDetail(payload);
+                    
+                    Swal.fire({
+                        icon: 'success', title: 'Thành công!',
+                        text: 'Thêm chi tiết mới thành công.',
+                        timer: 1500, showConfirmButton: false
+                    });
+                    
+                    setTimeout(() => router.back(), 1500);
+                } catch (e) {
+                    console.error(e);
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Đã xảy ra lỗi khi lưu dữ liệu!' });
+                }
             }
-        }, "Thêm Chi Tiết");
+        });
     };
 
     const goBack = () => router.back();
@@ -2657,12 +3345,8 @@ export function useFoodDetailAdd() {
     return {
         formData, listMonAn, isParentLocked, parentFoodName,
         searchQuery, sortOption, filteredMonAnList, selectParentFood,
-        handleSave, goBack, handleFileUpload,
-        
-        // Export thêm hàm tính khoảng giá để dùng ở Template
-        getPriceRange,
-
-        dialogVisible: isVisible, dialogConfig, handleDialogConfirm: handleConfirm, handleDialogClose: handleClose
+        handleSave, goBack, handleFileUpload, getPriceRange,
+        errors // Export errors
     };
 }
 
@@ -2699,7 +3383,7 @@ export function useCategoryAddModal(props, emit) {
             return false;
         }
 
-        if (!formData.value.tenDanhMuc.length < 5) {
+        if (formData.value.tenDanhMuc.length < 5) {
             showAlert("Tên danh mục phải chứa ít nhất 5 kí tự", "Thiếu thông tin");
             return false;
         }
@@ -2789,7 +3473,7 @@ export function useCategoryPutModal(props, emit) {
             showAlert("Vui lòng nhập tên danh mục!", "Thiếu thông tin");
             return false;
         }
-        if (!formData.value.tenDanhMuc.length < 5) {
+        if (formData.value.tenDanhMuc.length < 5) {
             showAlert("Tên danh mục phải chứa ít nhất 5 kí tự", "Thiếu thông tin");
             return false;
         }
@@ -2884,7 +3568,7 @@ export function useCategoryHotpotPutModal(props, emit) {
             return false;
         }
 
-        if (!formData.value.tenLoaiSet.length < 5) {
+        if (formData.value.tenLoaiSet.length < 5) {
             showAlert("Tên loại set phải chứa ít nhất 5 kí tự", "Thiếu thông tin");
             return false;
         }
@@ -2974,7 +3658,7 @@ export function useHotpotCategoryAddModal(props, emit) {
             return false;
         }
 
-        if (!formData.value.tenLoaiSet.length < 5) {
+        if (formData.value.tenLoaiSet.length < 5) {
             showAlert("Tên loại set phải chứa ít nhất 5 kí tự", "Thiếu thông tin");
             return false;
         }

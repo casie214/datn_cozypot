@@ -5,9 +5,13 @@
     <div class="flex-grow-1 staff-manager-wrapper">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="title-page">Quản lý nhân viên</h2>
-        <button class="btn-red-dark" @click="openModalAdd">
-          <i class="fas fa-plus me-2"></i> Thêm nhân viên
-        </button>
+        <div class="d-flex gap-2"> <button class="btn-export-excel" @click="exportToExcel">
+            <i class="fas fa-file-export me-2"></i> Xuất Excel
+          </button>
+          <button class="btn-red-dark" @click="openModalAdd">
+            <i class="fas fa-plus me-2"></i> Thêm nhân viên
+          </button>
+        </div>
       </div>
 
       <div class="filter-card">
@@ -114,19 +118,63 @@
         </div>
       </div>
 
-      <nav v-if="pagination.totalPages > 1" class="mt-4 d-flex justify-content-center">
-        <ul class="pagination pagination-custom">
-          <li class="page-item">
-            <button class="page-link" :disabled="pagination.currentPage === 1" @click="changePage(-1)">&lt;</button>
-          </li>
-          <li v-for="p in pagination.totalPages" :key="p" class="page-item" :class="{active: pagination.currentPage === p}">
-            <button class="page-link" @click="pagination.currentPage = p; handleSearch()">{{p}}</button>
-          </li>
-          <li class="page-item">
-            <button class="page-link" :disabled="pagination.currentPage === pagination.totalPages" @click="changePage(1)">&gt;</button>
-          </li>
-        </ul>
-      </nav>
+      <div class="pagination-wrapper d-flex justify-content-between align-items-center mt-4">
+  <div class="d-flex align-items-center">
+    <span class="me-2">Hiển thị</span>
+    <select v-model="pagination.pageSize" class="form-select form-select-sm select-per-page" @change="handleSearch">
+      <option :value="5">5 dòng</option>
+      <option :value="8">8 dòng</option>
+      <option :value="10">10 dòng</option>
+      <option :value="20">20 dòng</option>
+    </select>
+  </div>
+
+  <div class="pagination-controls d-flex align-items-center">
+  <button class="btn-page" :disabled="pagination.currentPage === 1" @click="goToPage(1)">
+    <i class="fas fa-step-backward"></i>
+  </button>
+  <button class="btn-page" :disabled="pagination.currentPage === 1" @click="changePage(-1)">
+    <i class="fas fa-chevron-left"></i>
+  </button>
+  
+  <div class="mx-3 d-flex align-items-center">
+    <template v-if="pagination.totalPages <= 5">
+      <span 
+        v-for="p in pagination.totalPages" 
+        :key="p" 
+        class="page-number" 
+        :class="{ active: pagination.currentPage === p }"
+        @click="goToPage(p)"
+      >
+        {{ p }}
+      </span>
+    </template>
+
+    <template v-else>
+      <div class="input-page-wrapper d-flex align-items-center">
+        <input 
+          type="number" 
+          v-model.number="inputPage" 
+          class="input-go-to" 
+          @keyup.enter="jumpToPage"
+        >
+        <span class="ms-2 text-muted">/ {{ pagination.totalPages }}</span>
+      </div>
+    </template>
+  </div>
+  
+  <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages" @click="changePage(1)">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+  <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages" @click="goToPage(pagination.totalPages)">
+    <i class="fas fa-step-forward"></i>
+  </button>
+</div>
+
+  <div class="total-info text-muted">
+    Hiển thị {{ listNhanVien.length }} trong tổng số {{ pagination.totalElements }} nhân viên
+  </div>
+</div>
     </div>
 
     <StaffModal 
@@ -145,33 +193,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue'; // Đã thêm watch
 import { useStaffLogic } from './staffFunction.js';
 import StaffModal from '../modal/staffModal.vue';
-import StaffDetailModal from '../modal/staffDetailModal.vue'; // Import file mới
+import StaffDetailModal from '../modal/staffDetailModal.vue';
 import dayjs from 'dayjs';
 import '../staffStyle.css';
+import staffService from '@/services/staffService.js';
 
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
 
-// State quản lý danh sách & filters
+// --- STATE QUẢN LÝ ---
 const listNhanVien = ref([]);
 const filters = reactive({ 
   keyword: '', 
   trangThai: null, 
   tuNgay: '' 
 });
-const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0 });
 
-// State quản lý Modal Thêm/Sửa
+const pagination = reactive({ 
+  currentPage: 1, 
+  pageSize: 8, 
+  totalPages: 0,
+  totalElements: 0 
+});
+
+const inputPage = ref(1); // Biến hỗ trợ ô nhập số trang
 const isModalOpen = ref(false);
 const selectedStaffId = ref(null);
-
-// State quản lý Modal Xem chi tiết
 const isDetailModalOpen = ref(false);
 const detailStaffId = ref(null);
 
-// --- Logic xử lý ---
+// --- LOGIC XỬ LÝ DỮ LIỆU ---
+
+// Đồng bộ ô nhập số mỗi khi trang hiện tại thay đổi (do bấm nút mũi tên)
+watch(() => pagination.currentPage, (newVal) => {
+  inputPage.value = newVal;
+});
 
 const formatDate = (date) => {
   if (!date) return '---';
@@ -183,13 +241,10 @@ const handleSearch = async () => {
     const data = await fetchData(filters, pagination);
     listNhanVien.value = data.content || [];
     pagination.totalPages = data.totalPages || 0;
+    pagination.totalElements = data.totalElements || 0;
   } catch (error) {
     console.error("Lỗi khi load danh sách:", error);
   }
-};
-
-const onToggleStatus = async (nv) => {
-  await toggleStaffStatus(nv, handleSearch);
 };
 
 const onSearchInput = () => {
@@ -200,12 +255,35 @@ const onSearchInput = () => {
   }, 500);
 };
 
+// Hàm nhảy trang khi nhập số và nhấn Enter
+const jumpToPage = () => {
+  let p = parseInt(inputPage.value);
+  if (p >= 1 && p <= pagination.totalPages) {
+    goToPage(p);
+  } else {
+    // Nếu nhập sai, trả về số trang hiện tại của hệ thống
+    inputPage.value = pagination.currentPage;
+  }
+};
+
 const changePage = (step) => {
-  pagination.currentPage += step;
+  const newPage = pagination.currentPage + step;
+  if (newPage >= 1 && newPage <= pagination.totalPages) {
+    pagination.currentPage = newPage;
+    handleSearch();
+  }
+};
+
+const goToPage = (page) => {
+  pagination.currentPage = page;
   handleSearch();
 };
 
-// --- Logic đóng mở Modal ---
+const onToggleStatus = async (nv) => {
+  await toggleStaffStatus(nv, handleSearch);
+};
+
+// --- LOGIC MODAL ---
 
 const openModalAdd = () => {
   selectedStaffId.value = null;
@@ -221,7 +299,6 @@ const closeModal = () => {
   isModalOpen.value = false;
 };
 
-// Mở Modal xem chi tiết
 const openModalView = (id) => {
   detailStaffId.value = id;
   isDetailModalOpen.value = true;
@@ -231,5 +308,38 @@ const closeDetailModal = () => {
   isDetailModalOpen.value = false;
 };
 
+
+
+
+const exportToExcel = async () => {
+  try {
+    console.log("Đang xuất file với bộ lọc:", filters);
+    
+    // SỬA TẠI ĐÂY: Gọi thông qua staffService
+    const response = await staffService.exportStaffExcel(filters);
+
+    // Xử lý dữ liệu nhị phân (Blob)
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const fileName = `DS_NhanVien_${dayjs().format('DD_MM_YYYY')}.xlsx`;
+    link.setAttribute('download', fileName);
+    
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Lỗi khi xuất file:", error);
+    alert("Không thể xuất file. Vui lòng kiểm tra lại phía Server!");
+  }
+};
 onMounted(handleSearch);
 </script>

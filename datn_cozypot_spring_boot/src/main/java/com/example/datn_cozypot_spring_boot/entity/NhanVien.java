@@ -18,7 +18,7 @@ public class NhanVien {
     @Column(name = "id_nhan_vien", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_vai_tro")
     private VaiTro idVaiTro;
 

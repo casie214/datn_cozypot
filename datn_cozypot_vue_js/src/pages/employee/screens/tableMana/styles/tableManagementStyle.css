@@ -1,0 +1,270 @@
+.layout-table {
+  display: flex;
+}
+
+.navbar-search {
+  width: 100%;
+}
+
+.search-form {
+  border: solid 1px #cacaca;
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.notice-contain {
+  display: flex;
+  justify-content: baseline;
+}
+
+.notice {
+  border: solid 1px #cacaca;
+  border-radius: 15px;
+  padding: 30px;
+  margin-right: 1%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  align-content: center;
+}
+
+.notice i {
+  border: 1px solid;
+  border-radius: 8px;
+  width: 20%;
+  padding: 7px;
+  margin-right: 4px;
+}
+
+.btn-active {
+  background-color: #7d161a;
+  color: white;
+}
+
+.btn-outline {
+  background-color: white;
+  color: #7d161a;
+  border: 1px solid #7d161a;
+}
+
+.floor-frame {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.floor-plan-layout {
+  display: flex;
+  gap: 15px;
+  height: 100%;
+  width: 100%;
+}
+
+.floor-plan-section {
+  flex: 2;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floor-header {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+/* Vùng chứa lưới có chức năng scroll */
+.grid-container {
+  flex-grow: 1;
+  overflow: auto; /* Hiện thanh cuộn khi grid bên trong lớn hơn */
+  position: relative;
+  background-color: #f8f9fa;
+}
+
+/* Lưới bàn - Thiết lập kích thước cố định để buộc phải scroll */
+.grid-canvas {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(
+    15,
+    1fr
+  ); /* Tăng số hàng và cố định chiều cao mỗi hàng (ví dụ 100px) */
+  gap: 15px;
+  padding: 20px;
+  width: 100%;
+  min-width: 750px; /* Đảm bảo không bị quá hẹp trên màn hình nhỏ */
+  box-sizing: border-box;
+  background-image:
+    linear-gradient(to right, #eee 1px, transparent 1px),
+    linear-gradient(to bottom, #eee 1px, transparent 1px);
+  background-size: calc(100% / 12) 100px;
+}
+
+.grid-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.grid-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.grid-container::-webkit-scrollbar-thumb {
+  background: #7d161a;
+  border-radius: 10px;
+}
+
+.grid-container::-webkit-scrollbar-thumb:hover {
+  background: #5c0a16;
+}
+
+.editing-mode {
+  border: 2px dashed #7d161a;
+}
+
+/* Thẻ bàn */
+.table-card {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  /* 👇 thêm hiệu ứng mượt */
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.table-card:hover {
+    transform: translateY(-6px) scale(1.01);
+}
+
+
+.table-card.highlight-red {
+  background: #f9ebeb;
+}
+
+.table-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.table-id strong {
+  font-size: 14px;
+  display: block;
+}
+
+.table-id span {
+  font-size: 13px;
+  color: #555;
+}
+
+/* Badge trạng thái */
+.status-tag {
+  text-align: center;
+  padding: 6px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+}
+
+.status-occupied-light {
+  background-color: #e67e22;
+}
+.status-empty {
+  background-color: #5c0a16;
+}
+.status-booked {
+  background-color: #f1c40f;
+  color: #333;
+}
+
+/* Badge cơ bản */
+.badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 11px;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  border: none;
+}
+
+/* Badge Trống */
+.badge-empty {
+  background: linear-gradient(135deg, #7d161a, #a52a2a);
+}
+
+/* Badge Có khách */
+.badge-occupied {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
+/* Badge Đặt trước */
+.badge-booked {
+  background: linear-gradient(135deg, #f1c40f, #f39c12);
+  color: #2c3e50;
+}
+
+.list-section {
+  max-width: 450px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.list-card {
+  font-size: 16px;
+}
+
+/* Style cơ bản cho nút Chỉnh sửa (Xám nhẹ) */
+.edit-pos-btn {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Style khi nút chuyển sang trạng thái "Lưu vị trí" (Màu đỏ) */
+.btn-save {
+  background-color: #7d161a !important; /* Màu đỏ thương hiệu của bạn */
+  color: white !important;
+  border-color: #5c0a16 !important;
+  box-shadow: 0 2px 5px rgba(125, 22, 26, 0.3);
+}
+
+/* Hiệu ứng khi di chuột vào nút Lưu */
+.btn-save:hover {
+  background-color: #a52a2a !important; /* Đỏ tươi hơn một chút khi hover */
+  transform: translateY(-1px);
+}
+
+.action-list:hover {
+  color: #7d161a;
+}
