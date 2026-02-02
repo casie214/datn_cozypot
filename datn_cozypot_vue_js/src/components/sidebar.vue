@@ -4,10 +4,10 @@ import { useRoute, useRouter } from "vue-router";
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/manage/table' },
     { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
-    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/admin/tables' },
+    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/manage/tableCheckIn' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
 
