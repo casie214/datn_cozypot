@@ -288,9 +288,9 @@ onMounted(() => {
   </div>
 </template>
 
+<style src="@/pages/admin/table/tableManagementStyle.css"></style>
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
-@import url("styles/tableManagementStyle.css");
 .wifi-icon {
   position: absolute;
   top: 8px;

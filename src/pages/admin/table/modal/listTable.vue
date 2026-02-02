@@ -248,9 +248,11 @@ onMounted(() => {
   </div>
 </template>
 
+<style src="@/pages/admin/table/tableManagementStyle.css"></style>
+
+
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
-@import url("styles/tableManagementStyle.css");
 
 .table {
   margin-bottom: 0 !important;

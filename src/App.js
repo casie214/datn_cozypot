@@ -1,4 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
+import ListReserve from "./pages/admin/table/modal/listReserve.vue";
+import TableCalendar from "./pages/admin/table/modal/tableCalendar.vue";
+import CardTable from "./pages/admin/table/modal/cardTable.vue";
+import ListTable from "./pages/admin/table/modal/listTable.vue";
 
 const routes = [
     {
@@ -120,7 +124,51 @@ const routes = [
             parentMenu: 'foodManager',
             activeTab: 'chitietTD'
         }
-    }
+    },
+    // Table
+    {
+        path: "/manage/table",
+        name: "tableManager",
+        component: () =>
+          import("@/pages/admin/table/screen/tableReserveManager.vue"),
+        children: [
+          {
+            path: "",
+            component: ListReserve,
+          },
+          {
+            path: "calendar",
+            component: TableCalendar,
+          },
+        ],
+      },
+      {
+        path: "/manage/tableCheckIn",
+        name: "tableCheckIn",
+        component: () =>
+          import("@/pages/admin/table/screen/tableCheckIn.vue"),
+      },
+      {
+        path: "/manage/all",
+        name: "tableManaAll",
+        component: () =>
+          import("@/pages/admin/table/screen/tableManaAll.vue"),
+      },
+      {
+        path: "/tableManage",
+        component: () =>
+          import("@/pages/admin/table/screen/tableManaAll.vue"),
+        children: [
+          {
+            path: "trang-thai",
+            component: CardTable,
+          },
+          {
+            path: "danh-sach",
+            component: ListTable,
+          },
+        ],
+      }
 ];
 
 const router = createRouter({
