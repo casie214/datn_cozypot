@@ -1,6 +1,10 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.example.datn_cozypot_spring_boot.config.AuthProvider;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +14,7 @@ import org.hibernate.annotations.Nationalized;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -74,6 +79,10 @@ public class KhachHang {
     @Column(name = "dia_chi")
     private String diaChi;
 
+    @Enumerated(EnumType.STRING)
+    private AuthProvider authProvider;
+
+    @JsonBackReference
     @OneToMany(mappedBy = "idKhachHang")
     private Set<DanhGia> danhGias = new LinkedHashSet<>();
 
@@ -83,8 +92,9 @@ public class KhachHang {
     @OneToMany(mappedBy = "idKhachHang")
     private Set<PhieuDatBan> phieuDatBans = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "idKhachHang")
-    private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
+    @JsonManagedReference
+    @OneToMany(mappedBy = "khachHang")
+    private List<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans;
 
     @PrePersist
     protected void onCreate() {
@@ -93,4 +103,5 @@ public class KhachHang {
             this.diemTichLuy = 0;
         }
     }
+
 }

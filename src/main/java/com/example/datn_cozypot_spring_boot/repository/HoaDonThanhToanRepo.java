@@ -73,20 +73,10 @@ public interface HoaDonThanhToanRepo extends JpaRepository<HoaDonThanhToan, Inte
     );
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
-            "hd.id, " +
-            "hd.maHoaDon, " +
-            "kh.tenKhachHang, " +
-            "kh.soDienThoai, " +
-            "b.tenBan, " +
-            "hd.tongTienChuaGiam, " +
-            "hd.soTienDaGiam, " +
-            "hd.tongTienThanhToan, " +
-            "hd.tienCoc, " +
-            "hd.tienHoanTra, " +
-            "hd.trangThaiHoanTien, " +
-            "hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, " +
-            "pdb.hinhThucDat,pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
+            "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, " +
+            "hd.tienCoc, hd.tienHoanTra, hd.trangThaiHoanTien, hd.trangThaiHoaDon, " +
+            "hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
