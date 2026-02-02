@@ -1,19 +1,16 @@
 <script setup>
-import { fetchAllKhuVuc } from "@/services/tableManageService";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { addBanAn, fetchAllBanAn, fetchAllKhuVuc } from "@/services/tableManageService";
+import { onMounted, onUnmounted, ref } from "vue";
 
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
 const listKhuVuc = ref([]);
-const isEditing = ref(false);
-const draggingTable = ref(null);
 
 
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
 const fetchAllBan = async () => {
   try {
-    const res = await fetch("http://localhost:8080/dat-ban/danh-sach-ban-an");
-    const data = await res.json();
+    const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
       // 3 bàn mỗi hàng trên lưới 12 cột nếu chưa có tọa độ
@@ -38,15 +35,6 @@ const handleFetchAllKhuVuc = async () => {
     console.log(error);
   }
 };
-
-/* 4. LOGIC TÍNH TOÁN (COMPUTED) */
-// Lọc danh sách bàn theo tầng đang chọn
-const banTheoTang = computed(() => {
-  if (!danhSachBan.value.length) return [];
-  return danhSachBan.value.filter(
-    (ban) => Number(ban.soTang) === Number(activeFloor.value),
-  );
-});
 
 
 const currentTime = ref("");
@@ -78,12 +66,7 @@ const form = ref({
 
 const submitAddBan = async () => {
   try {
-    await fetch("http://localhost:8080/dat-ban/add-ban-an", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form.value),
-    });
-
+    await addBanAn(form.value);
     closeAddModal();
     await fetchAllBan();
     alert("Thêm thành công!")

@@ -1,6 +1,8 @@
+import ListReserve from "@/pages/employee/screens/tableMana/listReserve.vue";
 import CardTable from "../pages/employee/screens/tableMana/cardTable.vue";
 import ListTable from "../pages/employee/screens/tableMana/listTable.vue";
 import { createRouter, createWebHistory } from "vue-router";
+import TableCalendar from "@/pages/employee/screens/tableMana/tableCalendar.vue";
 
 const routes = [
   {
@@ -12,7 +14,17 @@ const routes = [
     path: "/manage/table",
     name: "tableManager",
     component: () =>
-      import("../pages/employee/screens/tableMana/tableManager.vue"),
+      import("../pages/employee/screens/tableMana/tableReserveManager.vue"),
+    children: [
+      {
+        path: "",
+        component: ListReserve,
+      },
+      {
+        path: "calendar",
+        component: TableCalendar,
+      },
+    ],
   },
   {
     path: "/manage/tableCheckIn",

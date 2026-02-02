@@ -73,3 +73,84 @@ export const fetchAllKhuVuc = async () => {
     }
     return await response.json()
 }
+
+export const updateTrangThaiBan = async (payload) => {
+  const res = await fetch(
+    `${baseURL}/update-trang-thai-ban`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Chưa có phiếu đặt bàn");
+  }
+
+  return true; // nếu backend không trả body thì có thể bỏ dòng này
+};
+
+export const searchDatBanService = async ({ payload, page, size }) => {
+  const res = await fetch(
+    `${baseURL}/search?page=${page}&size=${size}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Lỗi khi tìm kiếm");
+  }
+
+  return await res.json();
+};
+
+
+export const updatePhieuDatBanService = async (payload) => {
+  const res = await fetch(
+    `${baseURL}/update`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Cập nhật thất bại");
+  }
+
+  return true; 
+};
+
+export const updateTTPhieuDatBan = async (id, trangThai) => {
+  const url = `${baseURL}/update-trang-thai-phieu`;
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: id,
+      trangThai: trangThai,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Cập nhật trạng thái thất bại");
+  }
+
+  return true;
+};
+
+
