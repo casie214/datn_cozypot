@@ -172,11 +172,11 @@ watch(() => route.name, () => {
 }
 
 .logo-circle {
-    width: 7em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+  width: 7em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .logo {
@@ -219,6 +219,8 @@ watch(() => route.name, () => {
     text-align: center;
     font-size: 18px;
 }
+
+
 
 .arrow {
     margin-left: auto;

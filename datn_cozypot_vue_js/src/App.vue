@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Sidebar from './components/sidebar.vue';
 import Header from './components/adminHeader.vue'; // 1. Import Header
 </script>
@@ -16,8 +16,6 @@ import Header from './components/adminHeader.vue'; // 1. Import Header
     </div>
   </div>
 </template>
-
-<style>
 /* ... (Giữ nguyên style cũ) ... */
 <style>
 /* Reset padding/margin toàn trang */

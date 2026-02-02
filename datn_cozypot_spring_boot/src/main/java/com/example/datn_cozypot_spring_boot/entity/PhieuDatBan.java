@@ -1,12 +1,16 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -21,15 +25,23 @@ public class PhieuDatBan {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_ban_an")
     private BanAn idBanAn;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
 
+    @Size(max = 10)
+    @NotNull
+    @ColumnDefault("isnull(CONVERT([varchar](10), 'PDB'+right('0000'+CONVERT([varchar](10), [id_phieu_dat_ban]), 4)), '')")
+    @Column(name = "ma_dat_ban", nullable = false, length = 10)
+    private String maDatBan;
+
     @Column(name = "thoi_gian_dat")
-    private Instant thoiGianDat;
+    private LocalDateTime thoiGianDat;
 
     @Column(name = "hinh_thuc_dat")
     private Integer hinhThucDat;
@@ -37,15 +49,12 @@ public class PhieuDatBan {
     @Column(name = "so_luong_khach")
     private Integer soLuongKhach;
 
-    @Size(max = 50)
-    @Column(name = "ma_nhan_ban", length = 50)
-    private String maNhanBan;
-
+    @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_sua")
-    private Instant ngaySua;
+    private LocalDateTime ngaySua;
 
     @Size(max = 100)
     @Nationalized
