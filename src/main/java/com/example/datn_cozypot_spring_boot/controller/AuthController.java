@@ -2,11 +2,14 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.config.AuthResponse;
 import com.example.datn_cozypot_spring_boot.config.LoginRequest;
+import com.example.datn_cozypot_spring_boot.config.RegisterRequest;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import com.example.datn_cozypot_spring_boot.repository.NhanVienRepository;
 import com.example.datn_cozypot_spring_boot.security.JwtTokenProvider;
+import com.example.datn_cozypot_spring_boot.service.AuthenticationService.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Collections;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class AuthController {
     private final NhanVienRepository nhanVienRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final AuthService authService;
 
     //login cho admin
     @PostMapping("/admin/login")
@@ -53,5 +59,11 @@ public class AuthController {
 
         String token = tokenProvider.generateToken(kh.getEmail(), "USER");
         return ResponseEntity.ok(new AuthResponse(token, "USER"));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Đăng ký thành công! Vui lòng đăng nhập."));
     }
 }
