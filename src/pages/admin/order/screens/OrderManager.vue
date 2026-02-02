@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
 
@@ -13,7 +14,49 @@ const {
   currentPage,
   totalPages,
   handlePageChange,
+  pageSize,
+  totalElements,
 } = useOrderManager();
+
+const updatePageSize = (value) => {
+  pageSize.value = parseInt(value);
+  currentPage.value = 0;
+  handleSearch();
+};
+
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value + 1;
+  const delta = 1;
+
+  const range = [];
+  const rangeWithDots = [];
+
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 ||
+      i === total ||
+      (i >= current - delta && i <= current + delta)
+    ) {
+      range.push(i);
+    }
+  }
+
+  let l;
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1); // Nếu chỉ cách nhau 1 số (vd 1 và 3) thì chèn luôn số 2 chứ không dùng ...
+      } else if (i - l !== 1) {
+        rangeWithDots.push("..."); // Nếu cách xa thì chèn ...
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+});
 </script>
 
 <template>
@@ -41,7 +84,11 @@ const {
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái hóa đơn</label
               >
-              <select v-model="filters.status" @change="handleSearch" class="form-select">
+              <select
+                v-model="filters.status"
+                @change="handleSearch"
+                class="form-select"
+              >
                 <option>Tất cả</option>
                 <option>Chờ nhận bàn</option>
                 <option>Đang phục vụ</option>
@@ -54,7 +101,11 @@ const {
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái Hoàn tiền</label
               >
-              <select v-model="filters.refundStatus" @change="handleSearch" class="form-select">
+              <select
+                v-model="filters.refundStatus"
+                @change="handleSearch"
+                class="form-select"
+              >
                 <option>Tất cả</option>
                 <option>Không cần hoàn</option>
                 <option>Chờ hoàn</option>
@@ -106,13 +157,14 @@ const {
             <table class="table table-hover align-middle mb-0">
               <thead class="table-header-red">
                 <tr>
-                  <th class="py-3 ps-4">STT</th>
+                  <th class="py-3 ps-3">STT</th>
                   <th class="py-3">MÃ ĐƠN</th>
                   <th class="py-3">KHÁCH HÀNG</th>
                   <th class="py-3">SĐT</th>
                   <th class="py-3">BÀN</th>
-                  <th class="py-3">SL KHÁCH</th>
+                  <!-- <th class="py-3">SL KHÁCH</th> -->
                   <th class="py-3">LOẠI</th>
+                  <th class="py-3">NGÀY TẠO</th>
                   <th class="py-3">TỔNG TIỀN</th>
                   <th class="py-3">TIỀN CỌC</th>
                   <th class="py-3">TRẠNG THÁI</th>
@@ -127,14 +179,15 @@ const {
                 </tr>
                 <tr v-for="(order, index) in orderList" :key="order.id">
                   <td class="ps-4 fw-bold">
-                    {{ index + 1 + currentPage * 5 }}
+                    {{ index + 1 + currentPage * pageSize }}
                   </td>
                   <td>{{ order.id }}</td>
                   <td>{{ order.khachHang }}</td>
                   <td>{{ order.sdt }}</td>
                   <td>{{ order.ban }}</td>
-                  <td class="ps-4">{{ order.soLuongKhach }}</td>
+                  <!-- <td class="ps-4">{{ order.soLuongKhach }}</td> -->
                   <td>{{ order.loai }}</td>
+                  <td>{{ order.ngayTao }}</td>
                   <td class="fw-bold">{{ order.tongTien }}</td>
                   <td class="fw-bold">{{ order.tienCoc }}</td>
                   <td>{{ order.trangThai }}</td>
@@ -169,44 +222,80 @@ const {
         </div>
 
         <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 0">
-          <ul class="pagination justify-content-center mb-0">
-            <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button
-                class="page-link text-dark"
-                @click="handlePageChange(currentPage - 1)"
-                :disabled="currentPage === 0"
+          <div
+            class="d-flex justify-content-between align-items-center flex-wrap gap-3 px-2"
+          >
+            <div class="d-flex align-items-center">
+              <span class="me-2 text-muted small">Hiển thị</span>
+              <select
+                :value="pageSize"
+                @change="updatePageSize($event.target.value)"
+                class="form-select form-select-sm select-per-page"
+                style="width: auto"
               >
-                &lt;
-              </button>
-            </li>
+                <option :value="5">5 dòng</option>
+                <option :value="8">8 dòng</option>
+                <option :value="10">10 dòng</option>
+                <option :value="20">20 dòng</option>
+              </select>
+            </div>
 
-            <li class="page-item" v-for="page in totalPages" :key="page">
-              <button
-                class="page-link"
-                :class="
-                  currentPage === page - 1
-                    ? 'bg-custom-red border-custom-red text-white'
-                    : 'text-dark'
-                "
-                @click="handlePageChange(page - 1)"
-              >
-                {{ page }}
-              </button>
-            </li>
+            <ul class="pagination mb-0">
+              <li class="page-item" :class="{ disabled: currentPage === 0 }">
+                <button
+                  class="page-link text-dark"
+                  @click="handlePageChange(currentPage - 1)"
+                  :disabled="currentPage === 0"
+                >
+                  &lt;
+                </button>
+              </li>
 
-            <li
-              class="page-item"
-              :class="{ disabled: currentPage === totalPages - 1 }"
-            >
-              <button
-                class="page-link text-dark"
-                @click="handlePageChange(currentPage + 1)"
-                :disabled="currentPage === totalPages - 1"
+              <li
+                class="page-item"
+                v-for="(page, index) in visiblePages"
+                :key="index"
               >
-                &gt;
-              </button>
-            </li>
-          </ul>
+                <span
+                  v-if="page === '...'"
+                  class="page-link border-0 text-muted"
+                  style="cursor: default; background: transparent"
+                >
+                  ...
+                </span>
+                <button
+                  v-else
+                  class="page-link"
+                  :class="
+                    currentPage === page - 1
+                      ? 'bg-custom-red border-custom-red text-white'
+                      : 'text-dark'
+                  "
+                  @click="handlePageChange(page - 1)"
+                >
+                  {{ page }}
+                </button>
+              </li>
+
+              <li
+                class="page-item"
+                :class="{ disabled: currentPage === totalPages - 1 }"
+              >
+                <button
+                  class="page-link text-dark"
+                  @click="handlePageChange(currentPage + 1)"
+                  :disabled="currentPage === totalPages - 1"
+                >
+                  &gt;
+                </button>
+              </li>
+            </ul>
+
+            <div class="text-muted small fw-bold">
+              Tổng số: <span class="text-dark">{{ totalElements }}</span> bản
+              ghi
+            </div>
+          </div>
         </div>
       </div>
     </main>
