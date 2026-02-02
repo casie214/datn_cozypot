@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -21,10 +22,8 @@ public class VaiTro {
     @Column(name = "id_vai_tro", nullable = false)
     private Integer id;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'VT'+right('000'+CONVERT([varchar](10), [id_vai_tro]), 3)), '')")
-    @Column(name = "ma_vai_tro", nullable = false, length = 10)
+    @Size(max = 50)
+    @Column(name = "ma_vai_tro", insertable = false, updatable = false)
     private String maVaiTro;
 
     @Size(max = 100)
@@ -43,6 +42,8 @@ public class VaiTro {
     private Integer trangThai;
 
     @OneToMany(mappedBy = "idVaiTro")
+    @JsonIgnore
+
     private Set<NhanVien> nhanViens = new LinkedHashSet<>();
 
 }
