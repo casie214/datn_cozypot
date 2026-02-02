@@ -20,6 +20,8 @@ import {
 export function useOrderManager() {
   const currentPage = ref(0);
   const totalPages = ref(0);
+  const pageSize = ref(5); 
+  const totalElements = ref(0);
 
   const selectedOrder = ref(null);
   const orderList = ref([]);
@@ -30,6 +32,7 @@ export function useOrderManager() {
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
   const paymentHistory = ref([]);
+  const today = dayjs().format("YYYY-MM-DD");
 
   const Toast = Swal.mixin({
     toast: true,
@@ -57,15 +60,22 @@ export function useOrderManager() {
     search: "",
     status: "Tất cả",
     refundStatus: "Tất cả",
-    fromDate: "",
+    fromDate: today,
     toDate: "",
   });
 
-  const formatDate = (dateString) => {
+  const formatDateTime = (dateString) => {
     if (!dateString) return "---";
     const date = dayjs(dateString);
     if (!date.isValid()) return "Ngày lỗi";
     return date.format("HH:mm DD/MM/YYYY");
+  };
+
+    const formatDate = (dateString) => {
+    if (!dateString) return "---";
+    const date = dayjs(dateString);
+    if (!date.isValid()) return "Ngày lỗi";
+    return date.format("DD/MM/YYYY");
   };
 
   const formatCurrency = (value) => {
@@ -139,20 +149,23 @@ export function useOrderManager() {
     }
   };
 
+  // Lấy tất cả hóa đơn
   const fetchOrders = async () => {
     try {
-      const response = await BeGetAllHoaDon(currentPage.value);
+      const response = await BeGetAllHoaDon(currentPage.value, pageSize.value);
       orderList.value = processOrderData(response.content);
       totalPages.value = response.totalPages;
+      totalElements.value = response.totalElements;
     } catch (error) {
       console.error("Lỗi tải danh sách:", error);
     }
   };
 
+  // Tìm kiếm
   const performSearch = async (isNewSearch = false) => {
     try {
       if (isNewSearch) {
-        currentPage.value = 0; // Reset về trang đầu nếu bấm nút tìm
+        currentPage.value = 0; 
       }
 
       const statusMap = {
@@ -193,10 +206,12 @@ export function useOrderManager() {
         tuNgayISO,
         denNgayISO,
         currentPage.value,
+        pageSize.value
       );
 
       orderList.value = processOrderData(response.content);
       totalPages.value = response.totalPages;
+      totalElements.value = response.totalElements;
     } catch (error) {
       console.error(error);
       alert("Tìm kiếm thất bại!");
@@ -227,13 +242,15 @@ export function useOrderManager() {
       search: "",
       status: "Tất cả",
       refundStatus: "Tất cả",
-      fromDate: "",
+      fromDate: today,
       toDate: "",
     };
     currentPage.value = 0;
-    fetchOrders();
+    performSearch(true);
+    // fetchOrders();
   };
 
+  //Lịch sử hóa đơn
   const loadOrderHistory = async (order) => {
     if (!order) return;
     try {
@@ -249,7 +266,7 @@ export function useOrderManager() {
           id: item.idLog || item.idChiTietHD,
           action: item.hanhDong,
           title: item.tieuDe || item.hanhDong,
-          time: formatDate(item.thoiGianThucHien || item.thoiGian),
+          time: formatDateTime(item.thoiGianThucHien || item.thoiGian),
           user:
             item.nguoiThucHien ||
             (item.idNhanVien ? item.idNhanVien.hoTen : "Hệ thống"),
@@ -264,6 +281,7 @@ export function useOrderManager() {
     }
   };
 
+  //Chi tiết hóa đươn
   const handleViewDetail = async (dbId) => {
     try {
       const details = await BeGetChiTietHoaDon(dbId);
@@ -304,6 +322,7 @@ export function useOrderManager() {
     }
   };
 
+  //Lịch sử thanh toán
   const loadPaymentHistory = async (idHoaDon) => {
     try {
       const data = await BeGetLichSuThanhToan(idHoaDon);
@@ -322,6 +341,7 @@ export function useOrderManager() {
     isHistoryModalOpen.value = true;
   };
 
+  //2 cái này để chuyển trạng thái món đã lên(tích vô ô là đã lên)
   const handleUpdateMonDaLen = async (idChiTietHD) => {
     try {
       await BeUpdateMonDaLen(idChiTietHD);
@@ -344,6 +364,7 @@ export function useOrderManager() {
     }
   };
 
+    //Hủy hóa đơn
 const openCancelModal = async (order) => {
     if (!order) return;
 
@@ -507,12 +528,16 @@ const confirmCancelOrder = async (loiDoAi) => {
 
   onMounted(async () => {
     await fetchConfig();
-    await fetchOrders();
+    await performSearch(true);
+    // await fetchOrders();
+    // console.log("Giờ hiện tại:", dayjs().format("HH:mm:ss DD/MM/YYYY"));
   });
 
   return {
     currentPage,
     totalPages,
+    pageSize,       
+    totalElements,
     filters,
     orderList,
     paymentHistory,

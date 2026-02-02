@@ -9,96 +9,99 @@ import CategoryDetailGeneral from '../pages/admin/category/screens/CategoryDetai
 import CategoryHotpotGeneral from '../pages/admin/category/screens/CategoryHotpotGeneral.vue';
 import { useRoute, useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-const API_BASE_EMPLOYEE = "http://localhost:8080/api/manage";
+import * as XLSX from 'xlsx';
+import axiosClient from './axiosClient';
+
+const API_BASE_EMPLOYEE = "/manage";
 
 export function getAllFoodGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food`);
 }
 
 export function getFoodById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/${id}`);
 };
 
 export function getFoodGeneralModalById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/modal/${id}`);
 }
 
 export function getAllHotpotGeneral() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`);
 }
 
 export function getHotpotById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`);
 }
 
 export function getAllFoodDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail`);
 }
 
 export function getFoodDetailById(id) {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`);
 }
 
 export function getAllCategory() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category`);
 }
 
 export function getAllCategoryDetail() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/detail`);
 }
 
 export function getAllCategoryHotpot() {
-    return axios.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
+    return axiosClient.get(`${API_BASE_EMPLOYEE}/food/category/hotpotType`);
 }
 
 export function postNewFood(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food`, data);
 }
 
 export function putNewFood(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/${id}`, data);
 }
 
 export function putNewFoodDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/foodDetail/${id}`, data);
 }
 
 export function postNewHotpot(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/hotpotGeneral`, data);
 }
 
 export function putNewCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/${id}`, data);
 }
 
 export function postNewFoodDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/foodDetail`, data);
 }
 export function putNewHotpot(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/hotpotGeneral/${id}`, data);
 }
 export function postNewCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category`, data);
 }
 
 export function putNewHotpotCategory(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/hotpotType/${id}`, data);
 }
 
 export function putCategoryDetail(id, data) {
-    return axios.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
+    return axiosClient.put(`${API_BASE_EMPLOYEE}/food/category/detail/${id}`, data);
 }
 
 export function postCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewCategoryDetail(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/detail`, data);
 }
 
 export function postNewHotpotCategory(data) {
-    return axios.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
+    return axiosClient.post(`${API_BASE_EMPLOYEE}/food/category/hotpotType`, data);
 }
 
 
@@ -127,55 +130,127 @@ export function useTabManager() {
 }
 
 export function useFoodDetailManager() {
+    const route = useRoute();
     const detailData = ref([]);
 
     const searchQuery = ref('');
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
     const sortOption = ref('id_asc');
-    const statusFilter = ref('all'); 
+    const statusFilter = ref('all');
 
-    const { 
-        selectedPriceRange, 
-        globalMinPrice, 
-        globalMaxPrice, 
-        calculatePriceLimits, 
-        resetPriceFilter 
+    // Filter states
+    const categoryFilter = ref(null);
+    const foodFilter = ref(null);     
+    const hotpotFilter = ref(null);
+
+    // Data Lists
+    const listCategories = ref([]); 
+    const listFoods = ref([]);      
+    const listHotpotSets = ref([]); 
+
+    const {
+        selectedPriceRange,
+        globalMinPrice,
+        globalMaxPrice,
+        calculatePriceLimits,
+        resetPriceFilter
     } = usePriceFilter();
 
-    const handleMinChange = () => {
-  if (selectedPriceRange.value[0] < globalMinPrice.value) {
-    selectedPriceRange.value[0] = globalMinPrice.value;
-  }
-  if (selectedPriceRange.value[0] > selectedPriceRange.value[1]) {
-    selectedPriceRange.value[0] = selectedPriceRange.value[1];
-  }
-};
+    // 1. Fetch Data
+    const fetchFilterData = async () => {
+        try {
+            const [catRes, foodRes, hotpotRes] = await Promise.all([
+                getAllCategory(),
+                getAllFoodGeneral(),
+                getAllHotpotGeneral()
+            ]);
+            listCategories.value = catRes.data || [];
+            listFoods.value = foodRes.data || [];
+            listHotpotSets.value = hotpotRes.data || [];
+            console.log("Check Set Lẩu đầu tiên:", listHotpotSets.value[0]);
+        } catch (e) {
+            console.error("Lỗi data:", e);
+        }
+    };
 
-const handleMaxChange = () => {
-  if (selectedPriceRange.value[1] > globalMaxPrice.value) {
-    selectedPriceRange.value[1] = globalMaxPrice.value;
-  }
-  if (selectedPriceRange.value[1] < selectedPriceRange.value[0]) {
-    selectedPriceRange.value[1] = selectedPriceRange.value[0];
-  }
-};
+    // 2. Main Filtering Logic
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
+        // Search
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
-            result = result.filter(item => 
+            result = result.filter(item =>
                 (item.tenChiTietMonAn || '').toLowerCase().includes(query) ||
                 (item.maChiTietMonAn || '').toLowerCase().includes(query)
             );
         }
 
+        // Status
         if (statusFilter.value !== 'all') {
-            const statusValue = Number(statusFilter.value); 
+            const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
+        // --- FILTER: DANH MỤC ---
+        if (categoryFilter.value) {
+            const filterVal = String(categoryFilter.value);
+            result = result.filter(item => {
+                const catId = item.monAnDiKem?.danhMuc?.id || 
+                              item.monAnDiKem?.idDanhMuc || 
+                              item.danhMuc?.id;
+                return catId != null && String(catId) === filterVal;
+            });
+        }
+
+        // --- FILTER: MÓN ĂN ---
+        if (foodFilter.value) {
+            const filterVal = String(foodFilter.value);
+            result = result.filter(item => {
+                if (item.idSetLau || item.setLau) return false;
+
+                const parentId = item.monAnDiKem?.id || item.idMonAnDiKem;
+                return parentId != null && String(parentId) === filterVal;
+            });
+        }
+
+        // --- FILTER: SET LẨU ---
+        if (hotpotFilter.value) {
+            const filterVal = String(hotpotFilter.value);
+            
+            // Tìm Set đang chọn
+            const selectedSet = listHotpotSets.value.find(s => String(s.id) === filterVal);
+
+            if (selectedSet) {
+                // Lấy danh sách con
+                const listChildren = selectedSet.listChiTietSetLau || [];
+                
+                // Debug: Xem cấu trúc con nó là gì để map cho đúng
+                if (listChildren.length > 0) {
+                    console.log("Mẫu 1 món trong Set:", listChildren[0]);
+                }
+
+                // Map lấy ID. Ưu tiên các trường có khả năng là ID món ăn nhất
+                const validIds = listChildren.map(child => {
+                    return String(
+                        child.idChiTietMonAn || 
+                        child.chiTietMonAn?.id || 
+                        child.monAnChiTietId || 
+                        child.id // Cẩn thận: id này có thể là id của bảng nối, không phải id món
+                    );
+                });
+
+                console.log("Danh sách ID lọc được:", validIds);
+
+                // Lọc bảng chính
+                result = result.filter(item => validIds.includes(String(item.id)));
+            } else {
+                result = [];
+            }
+        }
+
+        // Price
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -184,6 +259,7 @@ const handleMaxChange = () => {
             });
         }
 
+        // Sort
         return result.sort((a, b) => {
             const priceA = parseFloat(a.giaBan) || 0;
             const priceB = parseFloat(b.giaBan) || 0;
@@ -200,18 +276,36 @@ const handleMaxChange = () => {
         });
     });
 
-    watch([searchQuery, statusFilter, sortOption, selectedPriceRange], () => {
+    watch([searchQuery, statusFilter, sortOption, selectedPriceRange, categoryFilter, foodFilter, hotpotFilter], () => {
         currentPage.value = 1;
     });
 
+    // 3. Dropdown Data Logic
+    const availableFoods = computed(() => {
+        if (!categoryFilter.value) return listFoods.value;
+        const filterVal = String(categoryFilter.value);
+        return listFoods.value.filter(f => {
+            const catId = f.danhMuc?.id || f.idDanhMuc;
+            return catId != null && String(catId) === filterVal;
+        });
+    });
+
+    // --- FIX: Available Hotpots ---
+    // Vì dữ liệu Set lẩu không có idDanhMuc (theo log), ta trả về toàn bộ danh sách
+    // để tránh việc chọn Danh mục xong thì mất hết Set lẩu.
+    const availableHotpots = computed(() => {
+        return listHotpotSets.value;
+    });
+
+    // Pagination & Helpers
     const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
         return filteredData.value.slice(start, end);
     });
-
-    const visiblePages = computed(() => {
+    const totalElements = computed(() => filteredData.value.length);
+    const visiblePages = computed(() => { /* ... giữ nguyên code cũ ... */ 
         const total = totalPages.value;
         const current = currentPage.value;
         const delta = 2;
@@ -230,42 +324,58 @@ const handleMaxChange = () => {
         }
         return rangeWithDots;
     });
-
-    const changePage = (page) => {
-        if (page >= 1 && page <= totalPages.value) currentPage.value = page;
-    };
+    
+    const changePage = (page) => { if (page >= 1 && page <= totalPages.value) currentPage.value = page; };
+    const handleMinChange = () => { /* ... giữ nguyên ... */ };
+    const handleMaxChange = () => { /* ... giữ nguyên ... */ };
 
     function getAllFoodDetails() {
-        getAllFoodDetail()
-            .then(async res => {
-                detailData.value = res.data;
-                calculatePriceLimits(detailData.value);
-                await nextTick();
-            })
-            .catch(console.error);
+        return getAllFoodDetail().then(res => {
+             detailData.value = res.data || [];
+             calculatePriceLimits(detailData.value);
+
+             const itemInSet = detailData.value.find(x => 
+                 (x.listSetLau && x.listSetLau.length > 0) || 
+                 (x.setLaus && x.setLaus.length > 0) ||
+                 (x.chiTietSetLaus && x.chiTietSetLaus.length > 0)
+             );
+             console.log("Mẫu dữ liệu N-N:", itemInSet ? itemInSet : "Không tìm thấy món nào có thông tin Set Lẩu đi kèm");
+        }).catch(console.error);
     }
 
-    onMounted(() => { getAllFoodDetails(); });
+    onMounted(async () => { 
+        await Promise.all([ getAllFoodDetails(), fetchFilterData() ]);
+        if (route.query.preCategory) categoryFilter.value = isNaN(Number(route.query.preCategory)) ? route.query.preCategory : Number(route.query.preCategory);
+        if (route.query.preFood) {
+            await nextTick();
+            foodFilter.value = isNaN(Number(route.query.preFood)) ? route.query.preFood : Number(route.query.preFood);
+        }
+        if (route.query.preHotpot) {
+            await nextTick();
+            const hpVal = route.query.preHotpot;
+            
+            hotpotFilter.value = isNaN(Number(hpVal)) ? hpVal : Number(hpVal);
+            
+            foodFilter.value = null; 
+        }
+    });
 
+
+    // Modal & Actions
     const isModalOpen = ref(false);
     const selectedDetail = ref(null);
     const isAddModalOpen = ref(false);
-
     const openEditModal = (item) => { selectedDetail.value = item; isModalOpen.value = true; };
     const handleSaveData = () => { isModalOpen.value = false; };
-
-    const handleToggleStatus = async(item) => {
+    const handleToggleStatus = async (item) => { 
         const oldStatus = item.trangThai;
         const newStatus = oldStatus === 1 ? 0 : 1;
         item.trangThai = newStatus;
         try {
-            const payload = {...item, trangThai: newStatus };
-            if (item.monAnDiKem && item.monAnDiKem.id) {
-                payload.idMonAnDiKem = item.monAnDiKem.id;
-            }
+            const payload = { ...item, trangThai: newStatus };
+            if (item.monAnDiKem?.id) payload.idMonAnDiKem = item.monAnDiKem.id;
             await putNewFoodDetail(item.id, payload);
         } catch (error) {
-            console.error("Lỗi: ", error);
             item.trangThai = oldStatus;
         }
     };
@@ -274,15 +384,44 @@ const handleMaxChange = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'id_asc';
+        categoryFilter.value = null;
+        foodFilter.value = null;
+        hotpotFilter.value = null;
         resetPriceFilter();
     };
 
+    watch(foodFilter, (newVal) => {
+        if (newVal !== null && newVal !== undefined && newVal !== '') {
+            hotpotFilter.value = null;
+        }
+    });
+
+    watch(hotpotFilter, (newVal) => {
+        if (newVal !== null && newVal !== undefined && newVal !== '') {
+            foodFilter.value = null;
+        }
+    });
+
+    const exportToExcel = () => {
+        const dataToExport = filteredData.value.map((item, index) => ({
+            'STT': index + 1,
+            'Mã Chi Tiết': item.maChiTietMonAn,
+            'Tên Chi Tiết': item.tenChiTietMonAn,
+            'Giá Bán': item.giaBan,
+            'Trạng Thái': item.trangThai === 1 ? 'Hoạt động' : 'Ngưng'
+        }));
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "ChiTietMon");
+        XLSX.writeFile(wb, "Danh_Sach_Chi_Tiet.xlsx");
+    };
+
     return {
-        detailData, searchQuery, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, changePage,
+        detailData, searchQuery, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, changePage, totalElements,
         isModalOpen, isAddModalOpen, selectedDetail, getAllFoodDetails, openEditModal, handleSaveData, handleToggleStatus,
-        sortOption, statusFilter,
-        
-        selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters
+        sortOption, statusFilter, selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters, handleMinChange, handleMaxChange,
+        categoryFilter, foodFilter, hotpotFilter,
+        listCategories, availableFoods, availableHotpots, exportToExcel
     };
 }
 
@@ -328,11 +467,15 @@ export function usePriceFilter() {
 // 2. LOGIC QUẢN LÝ MÓN ĂN (CHÍNH)
 export function useFoodManager() {
     const router = useRouter();
+    const route = useRoute();
     const mockData = ref([]);
     const activeTab = ref('thucdon');
     const isModalOpen = ref(false);
     const selectedItem = ref(null);
+    const isCategoryLocked = ref(false);
     const isAddFoodModalOpen = ref(false);
+
+    
 
     // --- Filter & Sort ---
     const searchQuery = ref('');
@@ -341,7 +484,7 @@ export function useFoodManager() {
     
     // --- Pagination ---
     const currentPage = ref(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = ref(5);
 
     // --- [MỚI] BIẾN CHO LỌC DANH MỤC ---
     const isCategoryFilterOpen = ref(false); // Đóng/Mở Modal
@@ -455,16 +598,17 @@ export function useFoodManager() {
 
     const paginatedData = computed(() => {
         if (filteredAndSortedData.value.length === 0) return [];
-        const start = (currentPage.value - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
+        const start = (currentPage.value - 1) * itemsPerPage.value; // Thêm .value
+        const end = start + itemsPerPage.value; // Thêm .value
         return filteredAndSortedData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage) || 1);
-
+    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage.value) || 1);
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages.value) currentPage.value = page;
     };
+
+    const totalElements = computed(() => filteredAndSortedData.value.length);
 
     const visiblePages = computed(() => {
         const total = totalPages.value;
@@ -530,20 +674,119 @@ export function useFoodManager() {
         }
     };
 
+    onMounted(async () => {
+        await Promise.all([
+            getAllFood(),
+            fetchCategories() 
+        ]);
+
+        if (route.query.preRoot) {
+            const rootId = Number(route.query.preRoot);
+            selectedRootCate.value = isNaN(rootId) ? route.query.preRoot : rootId;
+
+            if (route.query.locked === 'true') {
+                isCategoryLocked.value = true;
+            } else {
+                isCategoryLocked.value = false;
+            }
+
+            if (route.query.preSub) {
+                await nextTick(); 
+                const subId = Number(route.query.preSub);
+                selectedSubCate.value = isNaN(subId) ? route.query.preSub : subId;
+            }
+        } else {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+            selectedSubCate.value = '';
+        }
+    });
+
     const clearFilters = () => {
         searchQuery.value = '';
         statusFilter.value = 'all';
         sortOption.value = 'newest';
-        selectedRootCate.value = ''; // Reset root category
-        selectedSubCate.value = '';  // Reset sub category
+        
+        if (!isCategoryLocked.value) {
+            selectedRootCate.value = '';
+        }
+        
+        selectedSubCate.value = '';
         resetPriceFilter(); 
+        
+        if (isCategoryLocked.value) {
+            currentPage.value = 1;
+        }
     };
+
+    const exportToExcel = () => {
+        const dataToExport = filteredAndSortedData.value.map((item, index) => {
+            
+            const min = item.giaThapNhat || 0;
+            const max = item.giaCaoNhat || 0;
+            let priceText = '0';
+            if (min === 0 && max === 0) priceText = 'Chưa cập nhật';
+            else if (min === max) priceText = min; 
+            else priceText = `${min} - ${max}`;
+
+            return {
+                'STT': index + 1,
+                'Mã Món': item.maMonAn,
+                'Tên Món Ăn': item.tenMonAn,
+                'Khoảng Giá (VNĐ)': priceText,
+                'Danh Mục Gốc': item.tenDanhMuc || '',
+                'Danh Mục Chi Tiết': item.tenDanhMucChiTiet || '',
+                'Trạng Thái': item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh',
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+        const wscols = [
+            { wch: 5 }, 
+            { wch: 15 }, 
+            { wch: 30 }, 
+            { wch: 20 },
+            { wch: 20 },
+            { wch: 20 }, 
+            { wch: 20 } 
+        ];
+        worksheet['!cols'] = wscols;
+
+        // Tạo Workbook
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachMonAn");
+
+        // Xuất file
+        XLSX.writeFile(workbook, "Danh_Sach_Mon_An.xlsx");
+    };
+
+    watch(() => route.query, (newQuery) => {
+        if (!newQuery.preRoot) {
+            isCategoryLocked.value = false;
+            selectedRootCate.value = '';
+        } else {
+            selectedRootCate.value = Number(newQuery.preRoot);
+            isCategoryLocked.value = newQuery.locked === 'true';
+        }
+    });
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preFood: id
+            }
+        });
+    };
+
 
     return {
         mockData, paginatedData, currentPage, itemsPerPage, totalPages, visiblePages, goToPage,
         handleViewDetails,
         handleEditFood, getAllFood, handleToggleStatus, activeTab, isModalOpen, selectedItem, isAddFoodModalOpen,
-        searchQuery, sortOption, statusFilter, clearFilters,
+        searchQuery, sortOption, statusFilter, clearFilters, isCategoryLocked,
         globalMinPrice, globalMaxPrice, selectedPriceRange,
         
         // EXPORT CÁC BIẾN MỚI
@@ -551,7 +794,10 @@ export function useFoodManager() {
         listRootCategories,
         selectedRootCate,
         selectedSubCate,
-        availableSubCategories
+        availableSubCategories,
+        exportToExcel,
+        goToDetailTable,
+        totalElements
     };
 }
 
@@ -884,13 +1130,52 @@ export function useFoodUpdate() {
         });
     };
 
+    const goToDetailTable = () => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preFood: formData.value.id 
+            }
+        });
+    };
+
+    const goToFoodListFilter = (type) => {
+    const queryParams = { tab: 'thucdon' }; // Tab danh sách món ăn
+
+    if (type === 'root' && formData.value.idDanhMuc) {
+        // Chỉ lọc theo danh mục gốc
+        queryParams.preRoot = formData.value.idDanhMuc;
+    } 
+    else if (type === 'sub' && formData.value.idDanhMucChiTiet) {
+        // Lọc theo cả gốc và chi tiết (để dropdown hiển thị đúng logic)
+        queryParams.preRoot = formData.value.idDanhMuc; 
+        queryParams.preSub = formData.value.idDanhMucChiTiet;
+    }
+
+    router.push({ 
+        name: 'foodManager', 
+        query: queryParams 
+    });
+};
+
+    const goToCategorizedTable = () => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'thucdon', 
+                preCategory: formData.value.idDanhMuc 
+            }
+        });
+    };
+
     const goBack = () => router.back();
     const goToAddDetail = () => { router.push({ name: 'addFoodDetail', query: { parentId: foodId } }); };
 
     return {
         isViewMode, isLoading, formData, foodInfo, variants, categoryName: selectedCategoryName,
         handleUpdate, goBack, goToAddDetail, handleToggleDetailStatus,
-        fileInputRef, triggerFileInput, handleFileUpload, removeImage,
+        fileInputRef, triggerFileInput, handleFileUpload, removeImage, goToDetailTable, goToFoodListFilter,
         isCatDropdownOpen, catSearchQuery, toggleCatDropdown, filteredCategories, selectCategory, selectedCategoryName,
         isSubCatDropdownOpen, subCatSearchQuery, toggleSubCatDropdown, filteredSubCategories, selectSubCategory, selectedSubCategoryName, closeAllDropdowns,
         errors 
@@ -1044,7 +1329,9 @@ export function useFoodDetailUpdate() {
         }
     };
 
-    onMounted(() => { if (detailId) fetchDetailData(); });
+    onMounted(() => { 
+        if (detailId) fetchDetailData(); 
+    });
 
     // --- UPLOAD ẢNH ---
     const resizeImage = (file, maxWidth = 800) => {
@@ -1183,9 +1470,11 @@ export function useHotpotManager() {
     const searchQuery = ref('');
     const sortOption = ref('newest');
     const currentPage = ref(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = ref(5);
     const statusFilter = ref('all'); 
-    const typeFilter = ref('all');   
+    const typeFilter = ref(null);   
+    const isTypeLocked = ref(false);
+    const route = useRoute();
 
     // 1. GỌI HOOK XỬ LÝ GIÁ
     const { 
@@ -1211,7 +1500,7 @@ export function useHotpotManager() {
     const filteredAndSortedData = computed(() => {
         let result = [...hotpotData.value];
 
-        // A. Lọc theo Tên/Mã
+        // A. Search
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item =>
@@ -1220,8 +1509,7 @@ export function useHotpotManager() {
             );
         }
 
-        // B. Lọc theo Khoảng giá (THÊM MỚI)
-        // Set lẩu thường chỉ có 'giaBan', không có 'giaThapNhat' phức tạp như món ăn
+        // B. Giá
         if (selectedPriceRange.value && selectedPriceRange.value.length === 2) {
             const [min, max] = selectedPriceRange.value;
             result = result.filter(item => {
@@ -1230,30 +1518,24 @@ export function useHotpotManager() {
             });
         }
 
-        // C. Lọc theo Trạng thái
+        // C. Trạng thái
         if (statusFilter.value !== 'all') {
             const statusValue = Number(statusFilter.value);
             result = result.filter(item => item.trangThai === statusValue);
         }
 
-        // D. Lọc theo Loại Set Lẩu
-        if (typeFilter.value !== 'all') {
+        // D. Loại Set (Sửa cho Multiselect)
+        if (typeFilter.value && typeFilter.value !== 'all') {
             result = result.filter(item => item.idLoaiSet == typeFilter.value);
         }
 
-        // E. Sắp xếp
+        // E. Sort
         switch (sortOption.value) {
             case 'price_asc': result.sort((a, b) => (a.giaBan || 0) - (b.giaBan || 0)); break;
             case 'price_desc': result.sort((a, b) => (b.giaBan || 0) - (a.giaBan || 0)); break;
-            case 'name_asc': 
-                result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); 
-                break;
-            case 'newest': 
-            default: 
-                result.sort((a, b) => b.id - a.id); 
-                break;
+            case 'name_asc': result.sort((a, b) => (a.tenSetLau || '').localeCompare(b.tenSetLau || '')); break;
+            case 'newest': default: result.sort((a, b) => b.id - a.id); break;
         }
-
         return result;
     });
 
@@ -1264,13 +1546,13 @@ export function useHotpotManager() {
 
     // --- PHÂN TRANG ---
     const paginatedData = computed(() => {
-        const start = (currentPage.value - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
+        const start = (currentPage.value - 1) * itemsPerPage.value;
+        const end = start + itemsPerPage.value;
         return filteredAndSortedData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage) || 1);
-
+    const totalPages = computed(() => Math.ceil(filteredAndSortedData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredAndSortedData.value.length);
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages.value) currentPage.value = page;
     };
@@ -1308,7 +1590,20 @@ export function useHotpotManager() {
         }).catch(console.error);
     }
     
-    onMounted(() => { getAllHotpot(); });
+    onMounted(async () => {
+        await getAllHotpot();
+        
+        if (route.query.preType) {
+            const typeId = Number(route.query.preType);
+            
+            typeFilter.value = isNaN(typeId) ? route.query.preType : typeId;
+            
+            isTypeLocked.value = route.query.locked === 'true';
+        } else {
+            typeFilter.value = 'all';
+            isTypeLocked.value = false;
+        }
+    });
     
     const isModalOpen = ref(false);
     const selectedHotpot = ref(null);
@@ -1369,15 +1664,42 @@ export function useHotpotManager() {
         resetPriceFilter();
     };
 
+    const exportToExcel = () => {
+        const dataToExport = filteredAndSortedData.value.map((item, index) => ({
+            'STT': index + 1,
+            'Mã Set': item.maSetLau,
+            'Tên Set Lẩu': item.tenSetLau,
+            'Giá Bán': item.giaBan,
+            'Loại Lẩu': item.tenLoaiSet,
+            'Trạng Thái': item.trangThai === 1 ? 'Kinh doanh' : 'Ngưng'
+        }));
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "SetLau");
+        XLSX.writeFile(wb, "Danh_Sach_Set_Lau.xlsx");
+    };
+    const router = useRouter();
+
+    const goToDetailTable = (id) => {
+        router.push({
+            name: 'foodManager',
+            query: {
+                tab: 'chitietTD', 
+                preHotpot: id 
+            }
+        });
+    };
+
     return {
         hotpotData, getAllHotpot, isModalOpen, selectedHotpot, handleViewDetails, handleToggleStatus,
         searchQuery, sortOption, paginatedData, currentPage, totalPages, visiblePages, itemsPerPage, goToPage,
-        statusFilter, typeFilter, uniqueTypes, clearFilters,
+        statusFilter, typeFilter, uniqueTypes, clearFilters, exportToExcel, totalElements,
         
         // RETURN CÁC BIẾN SLIDER
-        selectedPriceRange,
+        selectedPriceRange, goToDetailTable,
         globalMinPrice,
-        globalMaxPrice
+        globalMaxPrice,
+        isTypeLocked
     };
 }
 
@@ -1699,23 +2021,18 @@ export function useCategoryManager() {
     const categoryData = ref([]);
     const isLoading = ref(false);
 
-    // --- STATE ---
     const searchQuery = ref('');
     
-    // 1. Biến Sắp xếp Trạng thái (Riêng biệt)
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp Chính (Tên, ID)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10); // Số lượng/trang
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...categoryData.value];
 
-        // A. Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -1724,24 +2041,19 @@ export function useCategoryManager() {
             );
         }
 
-        // B. Sắp xếp (Logic kết hợp)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái (nếu user chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang hoạt động (1) lên đầu
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng hoạt động (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính ---
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMuc || '').localeCompare(b.tenDanhMuc || '');
@@ -1754,15 +2066,15 @@ export function useCategoryManager() {
         });
     });
 
-    // --- PHÂN TRANG ---
     const paginatedData = computed(() => {
         const start = (currentPage.value - 1) * itemsPerPage.value;
         const end = start + itemsPerPage.value;
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
+    
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -1839,7 +2151,7 @@ export function useCategoryManager() {
         categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
         
         // Return các biến mới
-        paginatedData, searchQuery, 
+        paginatedData, searchQuery, totalElements,
         sortOption, statusSort, // 2 biến sort riêng biệt
         currentPage, totalPages, visiblePages, itemsPerPage, changePage
     };
@@ -1850,24 +2162,19 @@ export function useCategoryDetailManager() {
     const parentCategories = ref([]); 
     const isLoading = ref(false);
 
-    // --- STATE FILTER & SORT ---
     const searchQuery = ref('');
-    const categoryFilter = ref('all'); 
+    const categoryFilter = ref(null);
     
-    // 1. Tách riêng biến Sắp xếp Trạng thái
-    const statusSort = ref('default'); // default, active_first, inactive_first
+    const statusSort = ref('default'); 
     
-    // 2. Biến Sắp xếp chính (Tên, Mã...)
     const sortOption = ref('id_desc');
     
     const currentPage = ref(1);
-    const itemsPerPage = ref(10);
+    const itemsPerPage = ref(5);
 
-    // --- COMPUTED: LỌC & SẮP XẾP ---
     const filteredData = computed(() => {
         let result = [...detailData.value];
 
-        // A. Lọc Tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -1876,30 +2183,29 @@ export function useCategoryDetailManager() {
             );
         }
 
-        // B. Lọc Danh mục gốc
-        if (categoryFilter.value !== 'all') {
-            result = result.filter(item => item.tenDanhMuc === categoryFilter.value);
-        }
+        if (categoryFilter.value) { 
+        const filterId = Number(categoryFilter.value); 
+    
+        result = result.filter(item => {
+            const idInObject = item.danhMuc?.id; 
+            const idDirect = item.idDanhMuc;
+            return (idInObject == filterId) || (idDirect == filterId);
+        });
+}
 
-        // C. LOGIC SẮP XẾP KẾT HỢP (QUAN TRỌNG)
         return result.sort((a, b) => {
-            // --- Ưu tiên 1: Sắp xếp theo Trạng thái trước (nếu có chọn) ---
             if (statusSort.value !== 'default') {
                 const statusA = Number(a.trangThai);
                 const statusB = Number(b.trangThai);
                 
                 if (statusSort.value === 'active_first') {
-                    // Đang kinh doanh (1) lên đầu -> Ngưng (0) xuống dưới
                     if (statusA !== statusB) return statusB - statusA;
                 } 
                 else if (statusSort.value === 'inactive_first') {
-                    // Ngưng kinh doanh (0) lên đầu
                     if (statusA !== statusB) return statusA - statusB;
                 }
             }
 
-            // --- Ưu tiên 2: Sắp xếp theo Tiêu chí chính (Tên, Mã...) ---
-            // Nếu trạng thái giống nhau (hoặc không sort trạng thái), thì sort tiếp theo cái này
             switch (sortOption.value) {
                 case 'name_asc': 
                     return (a.tenDanhMucChiTiet || '').localeCompare(b.tenDanhMucChiTiet || '');
@@ -1921,8 +2227,8 @@ export function useCategoryDetailManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
-
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
     const visiblePages = computed(() => {
         const total = totalPages.value;
         const current = currentPage.value;
@@ -2000,6 +2306,7 @@ export function useCategoryDetailManager() {
         paginatedData, 
         searchQuery, 
         categoryFilter,
+        totalElements,
         
         sortOption, // Sort chính
         statusSort, // Sort trạng thái (Mới)
@@ -2068,7 +2375,8 @@ export function useHotpotSetTypeManager() {
         return filteredData.value.slice(start, end);
     });
 
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value));
+    const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage.value) || 1);
+    const totalElements = computed(() => filteredData.value.length);
 
     const visiblePages = computed(() => {
         const total = totalPages.value;
@@ -2157,6 +2465,7 @@ export function useHotpotSetTypeManager() {
         totalPages,
         visiblePages,
         itemsPerPage,
+        totalElements,
         changePage
     };
 }

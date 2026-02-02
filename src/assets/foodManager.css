@@ -6,6 +6,12 @@
     background-color: #f9f9f9;
 }
 
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 .main-content {
     flex: 1;
     padding: 20px 40px;
@@ -15,8 +21,46 @@
 }
 
 .page-title {
-    color: #8B0000;
-    margin-bottom: 20px;
+    color: var(--primary-red);
+    font-weight: 700;
+    font-size: 26px;
+    margin-bottom: 25px;
+}
+
+.btn-excel {
+    /* background-color: #217346; */
+    /* Màu xanh đặc trưng của Excel */
+    color: #217346;
+    border: 1px solid #217346;
+    padding: 8px 16px;
+    border-radius: 4px;
+    /* Bo góc giống các nút khác */
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+    height: 43px;
+    /* Chiều cao bằng các input/button khác */
+    margin-right: 10px;
+    /* Cách nút Thêm một chút */
+}
+
+.btn-excel:hover {
+    color: white;
+    background-color: #1e6b41;
+}
+
+
+/* Đảm bảo action-row căn chỉnh đẹp */
+
+.action-row {
+    min-width: 30%;
+    gap: 1em;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 .hero-image img {
@@ -25,6 +69,19 @@
     object-fit: cover;
     border-radius: 8px;
     border: 1px solid #eee;
+}
+
+.clickable-name {
+    cursor: pointer;
+    transition: color 0.2s;
+    font-weight: 600;
+    /* Làm đậm tên cho dễ nhìn */
+}
+
+.clickable-name:hover {
+    color: #8B0000;
+    /* Màu đỏ chủ đạo của app */
+    text-decoration: underline;
 }
 
 tr {
@@ -189,7 +246,7 @@ tr:hover {
 
 .table-container {
     background: white;
-    border-radius: 8px;
+    border-radius: 0px 0px 10px 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
@@ -273,8 +330,13 @@ td {
     gap: 5px;
 }
 
+.pagination-wrapper {
+    width: 98%;
+}
+
 .pagination button {
     width: 35px;
+    border-radius: 4px;
     height: 35px;
     border: 1px solid #ddd;
     background: white;
@@ -661,4 +723,35 @@ td {
     100% {
         transform: translateY(0px);
     }
+}
+
+.multiselect-wrapper {
+    width: 200px;
+    /* Điều chỉnh độ rộng cho vừa */
+}
+
+:deep(.multiselect) {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+:deep(.multiselect.is-active) {
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.25);
+    border-color: #d32f2f;
+}
+
+:deep(.multiselect-option.is-selected) {
+    background: #d32f2f;
+}
+
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #b71c1c;
+}
+
+
+/* Màu chữ khi placeholder hiển thị */
+
+:deep(.multiselect-placeholder) {
+    color: #495057;
 }

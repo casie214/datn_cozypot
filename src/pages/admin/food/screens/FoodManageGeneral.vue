@@ -5,6 +5,9 @@ import FoodAddModal from '../../food/modal/addModal/FoodAddModal.vue';
 import Slider from '@vueform/slider';
 import "@vueform/slider/themes/default.css";
 import { useRouter } from 'vue-router';
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
+import CommonPagination from '@/components/commonPagination.vue';
 
 const router = useRouter();
 
@@ -18,9 +21,11 @@ const {
     itemsPerPage,
     currentPage,
     totalPages,
+    totalElements,
     visiblePages,
     goToPage,
     handleViewDetails,
+    goToDetailTable,
     getAllFood,
     handleToggleStatus,
     handleEditFood,
@@ -39,7 +44,9 @@ const {
     listRootCategories,
     selectedRootCate,
     selectedSubCate,
-    availableSubCategories
+    availableSubCategories,
+    exportToExcel,
+    isCategoryLocked
 } = useFoodManager();
 
 const goToAddScreen = () => {
@@ -69,6 +76,15 @@ const getImg = (url) => {
 </script>
 
 <template>
+    <div class="flex-row">
+        <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
+        <div class="action-row">
+            <button class="btn-add" @click="goToAddScreen">+ Thêm món ăn</button>
+            <button class="btn-excel" @click="exportToExcel" title="Xuất danh sách hiện tại ra Excel">
+                <i class="fas fa-file-excel"></i> Xuất Excel
+            </button>
+        </div>
+    </div>
     <div class="filter-box">
         <div class="filter-row">
             <div class="filter-item search">
@@ -100,59 +116,34 @@ const getImg = (url) => {
             </div>
 
             <div class="filter-item">
-                <label>Danh mục</label>
-                <button class="btn-filter-category" @click="isCategoryFilterOpen = true">
-                    <span v-if="!selectedRootCate">Chọn danh mục</span>
-                    <span v-else class="active-filter-text">Đang lọc...</span>
+                <label>Danh mục gốc</label>
+                <div class="multiselect-wrapper">
+                    <Multiselect v-model="selectedRootCate" :options="listRootCategories" valueProp="id"
+                        label="tenDanhMuc" placeholder="-- Tất cả --" :searchable="true" :canClear="true" :disabled="isCategoryLocked"
+                        @change="selectedSubCate = null" noOptionsText="Không có dữ liệu"
+                        noResultsText="Không tìm thấy" />
+                </div>
+            </div>
 
-                </button>
+            <div class="filter-item">
+                <label>Danh mục chi tiết</label>
+                <div class="multiselect-wrapper">
+                    <Multiselect v-model="selectedSubCate" :options="availableSubCategories" valueProp="id"
+                        label="tenDanhMucChiTiet" placeholder="-- Tất cả --" :searchable="true" :canClear="true"
+                        :disabled="!selectedRootCate" noOptionsText="Vui lòng chọn danh mục gốc trước"
+                        noResultsText="Không tìm thấy" />
+                </div>
             </div>
 
             <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
         </div>
     </div>
 
-    <div v-if="isCategoryFilterOpen" class="category-modal-overlay" @click.self="isCategoryFilterOpen = false">
-        <div class="category-modal">
-            <div class="modal-header">
-                <h3>Lọc theo Danh Mục</h3>
-                <button class="close-btn" @click="isCategoryFilterOpen = false">×</button>
-            </div>
-
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Danh mục gốc</label>
-                    <select v-model="selectedRootCate" class="form-control" @change="selectedSubCate = ''">
-                        <option value="">-- Tất cả --</option>
-                        <option v-for="cat in listRootCategories" :key="cat.id" :value="cat.id">
-                            {{ cat.tenDanhMuc }}
-                        </option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Danh mục chi tiết</label>
-                    <select v-model="selectedSubCate" class="form-control" :disabled="!selectedRootCate">
-                        <option value="">-- Tất cả --</option>
-                        <option v-for="sub in availableSubCategories" :key="sub.id" :value="sub.id">
-                            {{ sub.tenDanhMucChiTiet }}
-                        </option>
-                    </select>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <div class="action-row">
-        <button class="btn-add" @click="goToAddScreen">+ Thêm món ăn</button>
-    </div>
 
     <div class="table-container" style="min-height: 278px;">
         <table>
             <thead>
                 <tr>
-                    <th></th>
                     <th>STT</th>
                     <th>MÃ</th>
                     <th>MÓN ĂN</th>
@@ -165,11 +156,7 @@ const getImg = (url) => {
             </thead>
             <tbody>
                 <tr v-for="(item, index) in paginatedData" :key="item.id">
-                    <td>
-                        <div class="hero-image">
-                            <img :src="getImg(item.hinhAnh)" alt="Food Img">
-                        </div>
-                    </td>
+
                     <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
 
                     <td>{{ item.maMonAn }}</td>
@@ -183,6 +170,9 @@ const getImg = (url) => {
                     </td>
                     <td class="actions">
                         <div class="action-group">
+                            <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
+                                @click="goToDetailTable(item.id)"></i>
+
                             <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                                 @click="handleViewDetails(item)"></i>
 
@@ -210,25 +200,20 @@ const getImg = (url) => {
                 </tr>
             </tbody>
         </table>
+
+        <div style="padding-bottom: 30px;" class="pagination">
+           <CommonPagination
+                v-model:currentPage="currentPage"
+                v-model:pageSize="itemsPerPage"
+                :total-pages="totalPages"
+                :total-elements="totalElements"
+                :current-count="paginatedData.length"
+                @change="() => {}" 
+            />
+        </div>
     </div>
 
-    <div class="pagination" v-if="totalPages > 1">
-        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
-            :class="{ 'disabled': currentPage === 1 }">
-            &lt;
-        </button>
 
-        <button v-for="(page, index) in visiblePages" :key="index"
-            :class="{ 'active': page === currentPage, 'dots': page === '...' }"
-            @click="page !== '...' ? goToPage(page) : null" :disabled="page === '...'">
-            {{ page }}
-        </button>
-
-        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
-            :class="{ 'disabled': currentPage === totalPages }">
-            &gt;
-        </button>
-    </div>
 </template>
 
 <style scoped src="/src/assets/foodManager.css"></style>

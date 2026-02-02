@@ -84,7 +84,7 @@
                             <i class="fas fa-sync-alt"></i> Làm mới
                         </button>
                     </div>
-                    
+
                 </div>
             </div>
 
@@ -357,7 +357,7 @@
                                             type="number" class="form-control custom-input"
                                             :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly">
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                        }}</span>
+                                            }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -429,7 +429,7 @@
                                     <div class="row g-3 align-items-end">
 
                                         <!-- Search -->
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
                                             <label class="fw-bold mb-1">Tìm khách hàng</label>
 
                                             <div class="input-group search-customer">
@@ -439,8 +439,15 @@
 
                                                 <input v-model="customerSearch" type="text" class="form-control"
                                                     placeholder="Tên, email, SĐT hoặc mã khách hàng..." />
-                                
+
+                                                <!-- 🔴 BUTTON BỎ LỌC -->
+                                                <button class="btn btn-outline-secondary" type="button"
+                                                    @click="resetCustomerFilter" :disabled="!customerSearch"
+                                                    title="Bỏ lọc">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
                                             </div>
+
                                         </div>
 
                                         <div class="row g-3 align-items-end">
@@ -614,7 +621,7 @@ const sortConfig = reactive({
 const exportExcel = async () => {
     try {
         const response = await axios.get(
-            'http://localhost:8080/api/phieu-giam-gia/export-excel',
+            '/phieu-giam-gia/export-excel',
             {
                 params: {
                     keyword: filters.keyword,
@@ -882,9 +889,9 @@ const handleSearch = async () => {
         }
 
         const res = await voucherService.fetchData(
-    { ...filters, trangThai: paramsTrangThai },
-    pagination
-);
+            { ...filters, trangThai: paramsTrangThai },
+            pagination
+        );
 
         const now = new Date().getTime();
 
@@ -948,6 +955,7 @@ const dotKhuyenMaiMap = computed(() => {
 });
 
 import dayjs from 'dayjs';
+import axiosClient from '@/services/axiosClient';
 
 // Hàm định dạng ngày tháng dd/mm/yyyy HH:mm
 const formatDate = (dateString) => {
@@ -1074,6 +1082,9 @@ const triggerToggleStatus = (pg) => {
         }
     );
 };
+const resetCustomerFilter = () => {
+    customerSearch.value = '';
+};
 
 // --- ĐIỀU HƯỚNG FORM ---
 const openFormAdd = async () => {
@@ -1096,6 +1107,7 @@ const openFormEdit = async (id) => {
     // ⭐ TRUYỀN idDotKhuyenMai
     isFormActive.value = true;
 };
+
 
 const openFormView = async (id) => {
     selectedId.value = id;
@@ -1128,6 +1140,7 @@ const loadCustomers = async () => {
             tongChiTieuTrongThang: kh.tongChiTieuTrongThang ?? 0,
             lanDatGanNhat: kh.lanDatGanNhat ?? null
         }));
+
     } catch (err) {
         console.error("Lỗi tải khách hàng", err);
         showToast("Lỗi", "Không tải được danh sách khách hàng", "error");
