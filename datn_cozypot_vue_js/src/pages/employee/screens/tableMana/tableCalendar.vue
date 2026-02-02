@@ -30,6 +30,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import axios from "axios";
 import dayjs from "dayjs";
+import axiosClient from "@/services/axiosClient";
 
 const showModal = ref(false);
 const selectedEvent = ref({});
@@ -49,7 +50,7 @@ const calendarOptions = ref({
 });
 
 async function fetchEvents(fetchInfo, successCallback) {
-  const res = await axios.get("http://localhost:8080/dat-ban/danh-sach");
+  const res = await axiosClient.get("http://localhost:8080/api/dat-ban/danh-sach");
 
   const events = res.data.map(item => {
     const start = dayjs(item.thoiGianDat);

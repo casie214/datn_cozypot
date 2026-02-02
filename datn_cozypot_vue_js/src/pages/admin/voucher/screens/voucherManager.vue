@@ -732,6 +732,7 @@ const dotKhuyenMaiMap = computed(() => {
 });
 
 import dayjs from 'dayjs';
+import axiosClient from '@/services/axiosClient';
 
 // Hàm định dạng ngày tháng dd/mm/yyyy HH:mm
 const formatDate = (dateString) => {
@@ -886,7 +887,7 @@ const openFormEdit = async (id) => {
 
 const loadDotDangHoatDong = async (selectedDotId = null) => {
     try {
-        const res = await axios.get('http://localhost:8080/api/dot-khuyen-mai/active');
+        const res = await axiosClient.get('http://localhost:8080/api/dot-khuyen-mai/active');
         let dots = res.data || [];
 
         // 🔥 Nếu đang sửa / xem & có đợt đã chọn
@@ -895,7 +896,7 @@ const loadDotDangHoatDong = async (selectedDotId = null) => {
 
             if (!existed) {
                 // gọi thêm API lấy đợt theo ID
-                const detail = await axios.get(
+                const detail = await axiosClient.get(
                     `http://localhost:8080/api/dot-khuyen-mai/${selectedDotId}`
                 );
                 dots.unshift(detail.data); // cho lên đầu combobox
@@ -922,7 +923,7 @@ const openFormView = async (id) => {
 
 const loadCustomers = async () => {
     try {
-        const res = await axios.get('http://localhost:8080/api/khach-hang/active'); // Thay bằng service của bạn
+        const res = await axiosClient.get('http://localhost:8080/api/khach-hang/active');
         listKhachHang.value = res.data;
     } catch (err) {
         console.error("Lỗi tải khách hàng", err);

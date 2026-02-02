@@ -1,5 +1,6 @@
 import axios from 'axios'; // Đảm bảo đã import axios
 import promotionService from '@/services/promotionService';
+import axiosClient from '@/services/axiosClient';
 
 const fetchData = async (filters, pagination) => {
     const params = {
@@ -36,7 +37,7 @@ export const usePromotionLogic = () => {
             };
 
             // Sử dụng baseURL từ axios config hoặc viết đầy đủ URL
-            const response = await axios.get('http://localhost:8080/api/dot-khuyen-mai/search', { params });
+            const response = await axiosClient.get('http://localhost:8080/api/dot-khuyen-mai/search', { params });
             return response.data;
         } catch (error) {
             console.error("Error fetching promotions:", error);

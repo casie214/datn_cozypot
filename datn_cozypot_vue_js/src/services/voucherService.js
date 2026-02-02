@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosClient from './axiosClient';
 
 // Đổi lại cho khớp với Controller của bạn
 const API_URL = "http://localhost:8080/api/phieu-giam-gia";
@@ -19,32 +20,32 @@ const voucherService = {
         params.page = pagination.currentPage - 1;
         params.size = pagination.pageSize;
 
-        return axios.get("http://localhost:8080/api/phieu-giam-gia/search", { params })
+        return axiosClient.get("http://localhost:8080/api/phieu-giam-gia/search", { params })
                 .then(res => res.data);
     },
 
 
     // 2. Lấy chi tiết 1 phiếu
-    getById: (id) => axios.get(`${API_URL}/${id}`).then(res => res.data),
+    getById: (id) => axiosClient.get(`${API_URL}/${id}`).then(res => res.data),
 
     // 3. Thêm mới
     // ĐỔI: Bỏ '/create', sử dụng phương thức POST tới URL gốc
-    create: (data) => axios.post(`${API_URL}`, data).then(res => res.data),
+    create: (data) => axiosClient.post(`${API_URL}`, data).then(res => res.data),
 
     // 4. Cập nhật
     // ĐỔI: Bỏ '/update/', Controller của bạn là @PutMapping("/{id}")
     update: (id, data) => {
-        return axios.put(`${API_URL}/${id}`, data).then(res => res.data);
+        return axiosClient.put(`${API_URL}/${id}`, data).then(res => res.data);
     },
 
     // 5. Đổi trạng thái (Toggle)
     toggleStatus: async (id, currentStatus) => {
         const newStatus = currentStatus === 1 ? 0 : 1;
-        const currentData = await axios.get(`${API_URL}/${id}`).then(res => res.data);
+        const currentData = await axiosClient.get(`${API_URL}/${id}`).then(res => res.data);
 
         // Tạo DTO tạm thời để gửi về update (hoặc gửi nguyên object nếu Backend nhận)
         currentData.trangThai = newStatus;
-        return axios.put(`${API_URL}/${id}`, currentData).then(res => res.data);
+        return axiosClient.put(`${API_URL}/${id}`, currentData).then(res => res.data);
     }
 };
 

@@ -36,23 +36,18 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-          .cors(cors -> cors.configurationSource(request -> {
-              var config = new org.springframework.web.cors.CorsConfiguration();
-              config.setAllowedOrigins(java.util.List.of("http://localhost:5173"));
-              config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-              config.setAllowedHeaders(java.util.List.of("*"));
-              config.setAllowCredentials(true); // Quan trọng để gửi Token
-              return config; // BẮT BUỘC PHẢI CÓ DÒNG NÀY
-          }))
+          .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Cho phép pre-flight request
-            
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
+            .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
+            .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN")
             .requestMatchers("/dat-ban/**").permitAll()
-            .requestMatchers("/uploads/**").permitAll() 
+            .requestMatchers("/uploads/**").permitAll()
             .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
 
             .anyRequest().authenticated()
