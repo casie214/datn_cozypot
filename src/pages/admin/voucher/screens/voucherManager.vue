@@ -1,5 +1,5 @@
 <template>
-    <div class="flex-grow-1 promotion-manager-wrapper ">
+    <div class="voucher-manager-wrapper ">
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id" class="custom-toast" :class="toast.type">
                 <i :class="toast.type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
@@ -32,31 +32,46 @@
 
             <div class="filter-card mb-4 shadow-sm p-3 bg-white rounded">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="filter-label fw-bold">Tìm kiếm</label>
                         <input v-model="filters.keyword" class="form-control custom-input"
                             placeholder="Mã, code hoặc tên..." @input="onSearchInput">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
+                        <label class="filter-label fw-bold">Từ ngày</label>
+                        <input type="date" v-model="filters.ngayBatDau" class="form-control custom-input"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="filter-label fw-bold">Đến ngày</label>
+                        <input type="date" v-model="filters.ngayKetThuc" class="form-control custom-input"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
+                    </div>
+                    <div class="col-md-3">
                         <label class="filter-label fw-bold">Đối tượng</label>
-                        <select v-model="filters.doiTuong" class="form-select custom-input" @change="handleSearch">
+                        <select v-model="filters.doiTuong" class="form-select custom-input"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
                             <option :value="null">Tất cả đối tượng</option>
                             <option :value="0">Công khai</option>
                             <option :value="1">Cá nhân</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="filter-label fw-bold">Loại giảm giá</label>
-                        <select v-model="filters.loaiGiamGia" class="form-select custom-input" @change="handleSearch">
+                        <select v-model="filters.loaiGiamGia" class="form-select custom-input"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
                             <option :value="null">Tất cả loại</option>
                             <option :value="1">Giảm theo %</option>
                             <option :value="2">Giảm theo tiền</option>
                         </select>
+
+
                     </div>
-                    <div class="col-md-2">
+
+                    <div class="col-md-3">
                         <label class="filter-label fw-bold">Trạng thái</label>
                         <select v-model.number="filters.trangThai" class="form-select custom-input"
-                            @change="handleSearch">
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
                             <option :value="null">Tất cả trạng thái</option>
                             <option :value="1">Đang hoạt động</option>
                             <option :value="3">Sắp diễn ra</option>
@@ -69,31 +84,14 @@
                             <i class="fas fa-sync-alt"></i> Làm mới
                         </button>
                     </div>
-                    <div class="col-md-3">
-                        <label class="filter-label fw-bold">Từ ngày</label>
-                        <input type="date" v-model="filters.ngayBatDau" class="form-control custom-input"
-                            @change="handleSearch">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="filter-label fw-bold">Đến ngày</label>
-                        <input type="date" v-model="filters.ngayKetThuc" class="form-control custom-input"
-                            @change="handleSearch">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="filter-label fw-bold">Đợt khuyến mãi</label>
-                        <select v-model="filters.idDotKhuyenMai" class="form-select custom-input"
-                            @change="handleSearch">
-                            <option :value="null">Tất cả đợt</option>
-                            <option v-for="dot in listDotKhuyenMai" :key="dot.id" :value="dot.id">
-                                {{ dot.tenDotKhuyenMai }}
-                            </option>
-                        </select>
-                    </div>
-
+                    
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end mb-3">
+            <div class="d-flex justify-content-end mb-3 gap-2">
+                <button class="btn-red-dark" @click="exportExcel">
+                    <i class="fas fa-file-excel me-2"></i> Xuất Excel
+                </button>
                 <button class="btn-red-dark" @click="openFormAdd">
                     <i class="fas fa-plus me-2"></i> Thêm phiếu giảm giá
                 </button>
@@ -158,20 +156,34 @@
                             </td>
                             <td class="text-center">
                                 <div class="action-group d-flex justify-content-center gap-2">
-                                    <i class="fas fa-eye view-icon" title="Chi tiết" @click="openFormView(pg.id)"></i>
-                                    <i class="fas fa-pen edit-icon"
-                                        :class="{ 'disabled-icon': getStatusDisplay(pg).text === 'Hết hạn' }"
-                                        title="Sửa"
-                                        @click="getStatusDisplay(pg).text !== 'Hết hạn' && openFormEdit(pg.id)">
-                                    </i>
 
-                                    <div class="form-check form-switch d-inline-block mb-0">
-                                        <input class="form-check-input custom-red-switch" type="checkbox"
-                                            :checked="pg.trangThai === 1"
-                                            :disabled="getStatusDisplay(pg).text === 'Hết hạn'"
-                                            @click.prevent="getStatusDisplay(pg).text !== 'Hết hạn' && triggerToggleStatus(pg)">
+                                    <div class="icon-tooltip">
+                                        <i class="fas fa-eye view-icon" @click="openFormView(pg.id)"></i>
+                                        <span class="tooltip-text">Xem chi tiết</span>
+                                    </div>
+
+                                    <div class="icon-tooltip">
+                                        <i class="fas fa-pen edit-icon"
+                                            :class="{ 'disabled-icon': getStatusDisplay(pg).text === 'Hết hạn' }"
+                                            @click="getStatusDisplay(pg).text !== 'Hết hạn' && openFormEdit(pg.id)"></i>
+                                        <span class="tooltip-text">Chỉnh sửa</span>
+                                    </div>
+
+                                    <div class="icon-tooltip d-inline-block">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input custom-red-switch" type="checkbox"
+                                                :checked="pg.trangThai === 1" :disabled="isExpired(pg.ngayKetThuc)"
+                                                @click.prevent="!isExpired(pg.ngayKetThuc) && triggerToggleStatus(pg)" />
+                                        </div>
+
+                                        <span class="tooltip-text">
+                                            {{ isExpired(pg.ngayKetThuc)
+                                                ? 'Phiếu giảm giá đã hết hạn'
+                                                : 'Bật / Tắt phiếu giảm giá' }}
+                                        </span>
                                     </div>
                                 </div>
+
                             </td>
                         </tr>
                         <tr v-if="listPhieuGiamGia.length === 0">
@@ -180,41 +192,65 @@
                     </tbody>
                 </table>
 
-                <div class="pagination-wrapper">
+                <div class="pagination-wrapper d-flex justify-content-between align-items-center mt-4 px-2">
 
-    <!-- Previous -->
-    <button
-        class="pg-btn"
-        :disabled="pagination.currentPage === 1"
-        @click="changePage(pagination.currentPage - 1)">
-        <i class="fas fa-chevron-left"></i>
-    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2 text-muted">Hiển thị</span>
+                        <select v-model="pagination.pageSize"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
 
-    <!-- Page numbers -->
-    <div class="pg-numbers">
-        <button
-            v-for="(page, index) in visiblePages"
-            :key="index"
-            class="pg-num"
-            :class="{
-                active: page === pagination.currentPage,
-                disabled: page === '...'
-            }"
-            :disabled="page === '...'"
-            @click="page !== '...' && changePage(page)">
-            {{ page }}
-        </button>
-    </div>
+                            <option :value="5">5 dòng</option>
+                            <option :value="8">8 dòng</option>
+                            <option :value="10">10 dòng</option>
+                            <option :value="20">20 dòng</option>
+                        </select>
+                    </div>
 
-    <!-- Next -->
-    <button
-        class="pg-btn"
-        :disabled="pagination.currentPage === pagination.totalPages"
-        @click="changePage(pagination.currentPage + 1)">
-        <i class="fas fa-chevron-right"></i>
-    </button>
+                    <div class="pagination-controls d-flex align-items-center">
+                        <button class="btn-page" :disabled="pagination.currentPage === 1" @click="goToPage(1)">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
 
-</div>
+                        <button class="btn-page" :disabled="pagination.currentPage === 1" @click="changePage(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+
+                        <div class="mx-3 d-flex align-items-center">
+                            <template v-if="pagination.totalPages <= 5">
+                                <span v-for="p in pagination.totalPages" :key="p" class="page-number"
+                                    :class="{ active: pagination.currentPage === p }" @click="goToPage(p)">
+                                    {{ p }}
+                                </span>
+                            </template>
+
+                            <template v-else>
+                                <div class="input-page-wrapper d-flex align-items-center">
+                                    <input type="number" v-model.number="inputPage" class="input-go-to"
+                                        @keyup.enter="jumpToPage">
+                                    <span class="ms-2 text-muted">
+                                        / {{ pagination.totalPages }}
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages"
+                            @click="changePage(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+
+                        <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages"
+                            @click="goToPage(pagination.totalPages)">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                    </div>
+
+                    <div class="total-info text-muted">
+                        Hiển thị {{ listPhieuGiamGia.length }} /
+                        {{ pagination.totalElements }} phiếu giảm giá
+                    </div>
+
+                </div>
 
             </div>
         </div>
@@ -233,29 +269,28 @@
 
             <form @submit.prevent="triggerSubmit">
                 <div class="row g-4">
-                    <div :class="isCustomerListOpen ? 'col-md-5' : 'col-md-12'">
+                    <div :class="isCustomerListOpen ? 'col-md-12' : 'col-md-12'">
                         <div class="card border-0 shadow-sm p-4 h-100">
                             <h5 class="mb-4 text-maroon"><i class="fa-solid fa-circle-info me-2"></i>Thông tin phiếu
                                 giảm giá</h5>
+                            <div class="row mb-3">
+                                <!-- TÊN PHIẾU GIẢM GIÁ -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Tên phiếu giảm giá <span
+                                            class="text-danger">*</span></label>
+                                    <input v-model="formData.tenPhieuGiamGia" type="text" maxlength="200"
+                                        class="form-control custom-input"
+                                        :class="{ 'is-invalid': errors.tenPhieuGiamGia }" :disabled="isReadOnly"
+                                        placeholder="Ví dụ: Khuyến mãi Tết Nguyên Đán">
+                                    <div class="invalid-feedback">{{ errors.tenPhieuGiamGia }}</div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">TÊN PHIẾU GIẢM GIÁ <span
-                                        class="text-danger">*</span></label>
-                                <input v-model="formData.tenPhieuGiamGia" type="text" maxlength="200"
-                                    class="form-control custom-input" :class="{ 'is-invalid': errors.tenPhieuGiamGia }"
-                                    :disabled="isReadOnly" placeholder="Ví dụ: Khuyến mãi Tết Nguyên Đán">
-                                <div class="invalid-feedback">{{ errors.tenPhieuGiamGia }}</div>
+                                    <small class="text-muted">
+                                        {{ formData.tenPhieuGiamGia.length }}/200 ký tự
+                                    </small>
+                                </div>
 
-                                <small class="text-muted">
-                                    {{ formData.tenPhieuGiamGia.length }}/200 ký tự
-                                </small>
-
-                                <div class="invalid-feedback">{{ errors.tenPhieuGiamGia }}</div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-mb-3">
-                                    <label class="form-label fw-bold">MÃ CODE <span class="text-danger">*</span></label>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Mã CODE <span class="text-danger">*</span></label>
                                     <input v-model="formData.codeGiamGia" type="text" maxlength="20"
                                         class="form-control custom-input text-uppercase"
                                         :class="{ 'is-invalid': errors.codeGiamGia }" :disabled="isReadOnly"
@@ -267,73 +302,56 @@
                                     </small>
 
                                 </div>
-                                <div class="row mb-3">
-                                    <!-- LOẠI GIẢM GIÁ -->
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">
-                                            LOẠI GIẢM GIÁ <span class="text-danger">*</span>
-                                        </label>
-
-                                        <div class="d-flex gap-3 mt-2">
-                                            <div class="option-card" :class="{ active: formData.loaiGiamGia === 1 }"
-                                                @click="!isReadOnly && (formData.loaiGiamGia = 1)">
-                                                <input type="radio" class="d-none" :value="1"
-                                                    v-model="formData.loaiGiamGia" />
-                                                <i class="fa-solid fa-percent me-2"></i>
-                                                Giảm %
-                                            </div>
-
-                                            <div class="option-card" :class="{ active: formData.loaiGiamGia === 2 }"
-                                                @click="!isReadOnly && (formData.loaiGiamGia = 2)">
-                                                <input type="radio" class="d-none" :value="2"
-                                                    v-model="formData.loaiGiamGia" />
-                                                <i class="fa-solid fa-money-bill-wave me-2"></i>
-                                                Giảm tiền
-                                            </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">
+                                        Loại giảm giá <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="d-flex gap-3 mt-2">
+                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 1 }"
+                                            @click="!isReadOnly && (formData.loaiGiamGia = 1)">
+                                            <input type="radio" class="d-none" :value="1"
+                                                v-model="formData.loaiGiamGia" />
+                                            <i class="fa-solid fa-percent me-2"></i>
+                                            Giảm %
                                         </div>
-                                    </div>
 
-                                    <!-- ĐỐI TƯỢNG -->
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold">
-                                            ĐỐI TƯỢNG ÁP DỤNG
-                                        </label>
-
-                                        <div class="d-flex gap-3 mt-2">
-                                            <div class="option-card" :class="{ active: formData.doiTuong === 0 }"
-                                                @click="!isReadOnly && (formData.doiTuong = 0, isCustomerListOpen = false)">
-                                                <input type="radio" class="d-none" :value="0"
-                                                    v-model="formData.doiTuong" />
-                                                <i class="fa-solid fa-users me-2"></i>
-                                                Công khai
-                                            </div>
-
-                                            <div class="option-card" :class="{ active: formData.doiTuong === 1 }"
-                                                @click="!isReadOnly && (formData.doiTuong = 1, isCustomerListOpen = true)">
-                                                <input type="radio" class="d-none" :value="1"
-                                                    v-model="formData.doiTuong" />
-                                                <i class="fa-solid fa-user-lock me-2"></i>
-                                                Cá nhân
-                                            </div>
+                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 2 }"
+                                            @click="!isReadOnly && (formData.loaiGiamGia = 2)">
+                                            <input type="radio" class="d-none" :value="2"
+                                                v-model="formData.loaiGiamGia" />
+                                            <i class="fa-solid fa-money-bill-wave me-2"></i>
+                                            Giảm tiền
                                         </div>
                                     </div>
                                 </div>
 
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">ĐỢT KHUYẾN MÃI</label>
-                                <select v-model="formData.idDotKhuyenMai" class="form-select custom-input"
-                                    :disabled="isReadOnly">
-                                    <option :value="null">-- Chọn đợt giảm giá --</option>
-                                    <option v-for="item in listDotKhuyenMai" :key="item.id" :value="item.id">
-                                        {{ item.tenDotKhuyenMai }}
-                                    </option>
-                                </select>
-                            </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">
+                                        Đối tượng áp dụng
+                                    </label>
 
+                                    <div class="d-flex gap-3 mt-2">
+                                        <div class="option-card" :class="{ active: formData.doiTuong === 0 }"
+                                            @click="!isReadOnly && (formData.doiTuong = 0, isCustomerListOpen = false)">
+                                            <input type="radio" class="d-none" :value="0" v-model="formData.doiTuong" />
+                                            <i class="fa-solid fa-users me-2"></i>
+                                            Công khai
+                                        </div>
+
+                                        <div class="option-card" :class="{ active: formData.doiTuong === 1 }"
+                                            @click="!isReadOnly && (formData.doiTuong = 1, isCustomerListOpen = true)">
+                                            <input type="radio" class="d-none" :value="1" v-model="formData.doiTuong" />
+                                            <i class="fa-solid fa-user-lock me-2"></i>
+                                            Cá nhân
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">GIÁ TRỊ GIẢM <span
+                                    <label class="form-label fw-bold">Gía trị giảm <span
                                             class="text-danger">*</span></label>
                                     <div class="input-group has-validation"> <input v-model.number="formData.giaTriGiam"
                                             type="number" class="form-control custom-input"
@@ -345,7 +363,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">SỐ LƯỢNG <span
+                                    <label class="form-label fw-bold">Số lượng <span
                                             class="text-danger">*</span></label>
                                     <input v-model.number="formData.soLuong" type="number"
                                         class="form-control custom-input" :class="{ 'is-invalid': errors.soLuong }"
@@ -354,7 +372,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">GIẢM TỐI ĐA <span
+                                    <label class="form-label fw-bold">Giảm tối đa <span
                                             class="text-danger">*</span></label>
                                     <input v-model.number="formData.giaTriGiamToiDa" type="number"
                                         class="form-control custom-input"
@@ -363,7 +381,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">ĐƠN TỐI THIỂU <span
+                                    <label class="form-label fw-bold">Đơn tối thiểu <span
                                             class="text-danger">*</span></label>
                                     <input v-model.number="formData.donHangToiThieu" type="number"
                                         class="form-control custom-input"
@@ -372,7 +390,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">NGÀY BẮT ĐẦU <span
+                                    <label class="form-label fw-bold">Ngày bắt đầu <span
                                             class="text-danger">*</span></label>
                                     <input v-model="formData.ngayBatDau" type="datetime-local"
                                         class="form-control custom-input" :class="{ 'is-invalid': errors.ngayBatDau }"
@@ -381,7 +399,7 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">NGÀY KẾT THÚC <span
+                                    <label class="form-label fw-bold">Ngày kết thúc<span
                                             class="text-danger">*</span></label>
                                     <input v-model="formData.ngayKetThuc" type="datetime-local"
                                         class="form-control custom-input" :class="{ 'is-invalid': errors.ngayKetThuc }"
@@ -389,14 +407,10 @@
                                     <div class="invalid-feedback">{{ errors.ngayKetThuc }}</div>
                                 </div>
                             </div>
-                            <div class="mt-4 d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-light px-4" @click="closeForm">Hủy</button>
-                                <button v-if="!isReadOnly" type="submit" class="btn-red-dark px-4">Lưu phiếu</button>
-                            </div>
                         </div>
                     </div>
 
-                    <div v-if="isCustomerListOpen" class="col-md-7">
+                    <div v-if="isCustomerListOpen" class="col-md-12">
                         <transition name="fade-slide">
                             <div class="card border-0 shadow-sm p-4 h-100" style="background-color: #f8f9fa;">
 
@@ -411,25 +425,75 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <div class="input-group bg-white rounded shadow-sm">
-                                        <span class="input-group-text bg-transparent border-0"><i
-                                                class="fas fa-search text-muted"></i></span>
-                                        <input v-model="customerSearch" type="text" class="form-control border-0 ps-0"
-                                            placeholder="Tìm tên, email hoặc số điện thoại...">
+                                <div class="mb-4" customer-dual-wrapper>
+                                    <div class="row g-3 align-items-end">
+
+                                        <!-- Search -->
+                                        <div class="col-md-6">
+                                            <label class="fw-bold mb-1">Tìm khách hàng</label>
+
+                                            <div class="input-group search-customer">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+
+                                                <input v-model="customerSearch" type="text" class="form-control"
+                                                    placeholder="Tên, email, SĐT hoặc mã khách hàng..." />
+                                
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3 align-items-end">
+                                            <!-- Tháng thống kê -->
+                                            <div class="col-md-4">
+                                                <label class="fw-bold mb-1">Tháng thống kê</label>
+                                                <select v-model="customerMonth" class="form-select custom-input">
+                                                    <option v-for="m in 12" :key="m"
+                                                        :value="`${dayjs().year()}-${String(m).padStart(2, '0')}`">
+                                                        Tháng {{ m }}/{{ dayjs().year() }}
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Sắp xếp -->
+                                            <div class="col-md-4">
+                                                <label class="fw-bold mb-1">Sắp xếp theo</label>
+                                                <select v-model="sortConfig.field" class="form-select custom-input">
+                                                    <option :value="null">Mặc định</option>
+                                                    <option value="soLanDatTrongThang">Số lần đặt</option>
+                                                    <option value="tongChiTieuTrongThang">Chi tiêu (tháng)</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Chiều sắp xếp -->
+                                            <div class="col-md-4">
+                                                <label class="fw-bold mb-1">Thứ tự</label>
+                                                <select v-model="sortConfig.direction" class="form-select custom-input">
+                                                    <option value="desc">Giảm dần</option>
+                                                    <option value="asc">Tăng dần</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
-
-                                <div class="table-responsive rounded bg-white shadow-sm"
-                                    style="max-height: 500px; overflow-y: auto;">
+                                <div class="table-responsive customer-table-wrapper">
                                     <table class="table table-hover align-middle mb-0">
                                         <thead class="table-light sticky-top">
                                             <tr>
-                                                <th class="text-center" style="width: 50px;">Chọn</th>
-                                                <th>Khách hàng</th>
-                                                <th>Liên hệ</th>
+                                                <th class="text-center" style="width:50px">Chọn</th>
+                                                <th>Mã KH</th>
+                                                <th>Tên KH</th>
+                                                <th>Ngày sinh</th>
+                                                <th>SĐT</th>
+                                                <th>Email</th>
+
+                                                <th class="text-center">Số lần đặt</th>
+                                                <th class="text-end">Chi tiêu (tháng)</th>
+                                                <th>Ngày mua gần nhất</th>
                                             </tr>
                                         </thead>
+
                                         <tbody v-if="formData.doiTuong === 1">
                                             <tr v-for="kh in filteredCustomers" :key="kh.id">
                                                 <td class="text-center">
@@ -437,35 +501,92 @@
                                                         v-model="formData.listIdKhachHang" class="form-check-input"
                                                         :disabled="isReadOnly" />
                                                 </td>
+
                                                 <td>
-                                                    <div class="fw-bold text-dark">{{ kh.hoTen || kh.tenKhachHang }}
-                                                    </div>
-                                                    <small class="text-muted">ID: {{ kh.id }}</small>
+                                                    <span class="fw-bold">{{ kh.maKhachHang }}</span>
                                                 </td>
+
+                                                <td>{{ kh.tenKhachHang }}</td>
+
+                                                <td>{{ formatDateOnly(kh.ngaySinh) }}</td>
+
+                                                <td>{{ kh.soDienThoai }}</td>
+
+                                                <td class="text-muted small">{{ kh.email }}</td>
+
                                                 <td>
-                                                    <div class="small"><i class="fa-solid fa-envelope me-1"></i>{{
-                                                        kh.email
-                                                        }}</div>
-                                                    <div class="small"><i class="fa-solid fa-phone me-1"></i>{{
-                                                        kh.soDienThoai }}</div>
+                                                    <span>
+                                                        {{ kh.soLanDatTrongThang }}
+                                                    </span>
                                                 </td>
+
+                                                <td class="text-danger fw-bold">
+                                                    {{ formatCurrency(kh.tongChiTieuTrongThang) }}
+                                                </td>
+
+                                                <td>
+                                                    {{ kh.lanDatGanNhat ? formatDateTime(kh.lanDatGanNhat) : '—' }}
+                                                </td>
+
                                             </tr>
                                         </tbody>
-                                        <tbody v-else>
-                                            <tr>
-                                                <td colspan="3" class="text-center py-5 text-muted">
-                                                    <i class="fa-solid fa-globe fa-2x mb-2 d-block"></i>
-                                                    Phiếu đang ở chế độ <b>Công khai</b>.<br>Tất cả khách hàng đều có
-                                                    thể sử
-                                                    dụng.
-                                                </td>
-                                            </tr>
-                                        </tbody>
+                                        <tr v-if="filteredCustomers.length === 0">
+                                            <td colspan="9" class="text-center text-muted py-4">
+                                                Không có dữ liệu khách hàng trong tháng này
+                                            </td>
+                                        </tr>
                                     </table>
                                 </div>
+                                <div class="customer-selected-card mt-4 customer-table-wrapper">
+
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0 text-maroon fw-bold">
+                                            <i class=" me-2"></i>
+                                            Danh sách khách hàng đã chọn
+                                        </h6>
+
+                                        <span class="badge badge-neutral">
+                                            {{ selectedCustomers.length }} khách hàng
+                                        </span>
+                                    </div>
+
+                                    <div class="table-responsive custom-scrollbar">
+                                        <table class="table table-hover align-middle mb-0 customer-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Mã KH</th>
+                                                    <th>Tên khách hàng</th>
+                                                    <th>Email</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr v-for="(c, index) in selectedCustomers" :key="c.id">
+                                                    <td>{{ index + 1 }}</td>
+                                                    <td>{{ c.maKhachHang }}</td>
+                                                    <td class="text-start">{{ c.tenKhachHang }}</td>
+                                                    <td class="text-start">{{ c.email }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-remove-customer"
+                                                            @click="removeCustomer(c.id)">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
                             </div>
                         </transition>
                     </div>
+                </div>
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light px-4" @click="closeForm">Hủy</button>
+                    <button v-if="!isReadOnly" type="submit" class="btn-red-dark px-4">Lưu phiếu</button>
                 </div>
             </form>
         </div>
@@ -477,6 +598,64 @@ import { ref, onMounted, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
+const formatCurrency = (value) => {
+    if (!value) return '0 đ'
+    return value.toLocaleString('vi-VN') + ' đ'
+}
+
+const formatDateTime = (value) => {
+    return new Date(value).toLocaleString('vi-VN')
+}
+const sortConfig = reactive({
+    field: null, // 'soLanDatTrongThang' | 'tongChiTieuTrongThang' | 'lanDatGanNhat'
+    direction: 'desc' // 'asc' | 'desc'
+});
+
+const exportExcel = async () => {
+    try {
+        const response = await axios.get(
+            'http://localhost:8080/api/phieu-giam-gia/export-excel',
+            {
+                params: {
+                    keyword: filters.keyword,
+                    trangThai: filters.trangThai,
+                    doiTuong: filters.doiTuong,
+                    loaiGiamGia: filters.loaiGiamGia,
+                    ngayBatDau: filters.ngayBatDau,
+                    ngayKetThuc: filters.ngayKetThuc
+                },
+                responseType: 'blob'
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'danh_sach_phieu_giam_gia.xlsx';
+        link.click();
+        window.URL.revokeObjectURL(url);
+
+        showToast('Thành công', 'Xuất Excel thành công!');
+    } catch (error) {
+        console.error(error);
+        showToast('Lỗi', 'Xuất Excel thất bại!', 'error');
+    }
+};
+const cleanParams = (obj) => {
+    const cleaned = {};
+    Object.keys(obj).forEach(key => {
+        const v = obj[key];
+        if (v !== null && v !== undefined && v !== '') {
+            cleaned[key] = v;
+        }
+    });
+    return cleaned;
+};
+
 
 // --- TRẠNG THÁI GIAO DIỆN ---
 const isFormActive = ref(false);
@@ -485,6 +664,7 @@ const selectedId = ref(null);
 const customerSearch = ref('');
 const listPhieuGiamGia = ref([]);
 const listKhachHang = ref([]);
+const customerMonth = ref(dayjs().format('YYYY-MM')); // mặc định tháng hiện tại
 
 // --- DỮ LIỆU PHIẾU GIẢM GIÁ ---
 const formData = reactive({
@@ -499,7 +679,6 @@ const formData = reactive({
     ngayBatDau: '',
     ngayKetThuc: '',
     soLuong: 1,
-    idDotKhuyenMai: null,
     listIdKhachHang: [],
     listEmails: []
 });
@@ -514,16 +693,21 @@ const filters = reactive({
     loaiGiamGia: null,
     ngayBatDau: '',
     ngayKetThuc: '',
-    idDotKhuyenMai: null // ⭐ THÊM
 
+    // ⭐ THÊM
+    phanTramMin: null,
+    phanTramMax: null,
+    tienMin: null,
+    tienMax: null
 });
+
 
 const pagination = reactive({
     currentPage: 1,
     pageSize: 5,
-    totalPages: 0
+    totalPages: 0,
+    totalElements: 0
 });
-
 
 // --- QUẢN LÝ LỖI (VALIDATE) ---
 const errors = reactive({});
@@ -641,18 +825,39 @@ const executeConfirm = async () => {
 };
 
 const filteredCustomers = computed(() => {
-    if (!listKhachHang.value) return [];
-    if (!customerSearch.value) return listKhachHang.value;
+    if (!Array.isArray(listKhachHang.value)) return [];
 
-    const k = customerSearch.value.toLowerCase().trim();
-    return listKhachHang.value.filter(kh => {
-        // Kiểm tra cả hoTen và tenKhachHang tùy theo API của bạn
-        const ten = (kh.hoTen || kh.tenKhachHang || '').toLowerCase();
-        const email = (kh.email || '').toLowerCase();
-        const sdt = (kh.soDienThoai || '');
+    let result = [...listKhachHang.value];
 
-        return ten.includes(k) || email.includes(k) || sdt.includes(k);
-    });
+    // 🔍 Search
+    const k = customerSearch.value?.toLowerCase().trim();
+    if (k) {
+        result = result.filter(kh => {
+            const ten = (kh.hoTen || kh.tenKhachHang || '').toLowerCase();
+            const email = (kh.email || '').toLowerCase();
+            const sdt = (kh.soDienThoai || '');
+            const ma = (kh.maKhachHang || '').toLowerCase();
+
+            return ten.includes(k)
+                || email.includes(k)
+                || sdt.includes(k)
+                || ma.includes(k);
+        });
+    }
+
+    // 🔃 SORT
+    if (sortConfig.field) {
+        result.sort((a, b) => {
+            const v1 = a[sortConfig.field] ?? 0;
+            const v2 = b[sortConfig.field] ?? 0;
+
+            return sortConfig.direction === 'asc'
+                ? v1 - v2
+                : v2 - v1;
+        });
+    }
+
+    return result;
 });
 
 const isAllCustomersSelected = computed(() => {
@@ -677,9 +882,9 @@ const handleSearch = async () => {
         }
 
         const res = await voucherService.fetchData(
-            { ...filters, trangThai: paramsTrangThai },
-            pagination
-        );
+    { ...filters, trangThai: paramsTrangThai },
+    pagination
+);
 
         const now = new Date().getTime();
 
@@ -687,11 +892,21 @@ const handleSearch = async () => {
         let rawData = res.content || [];
 
         // ⭐ LỌC THEO ĐỢT KHUYẾN MÃI (FE)
-        if (filters.idDotKhuyenMai) {
-            rawData = rawData.filter(pg =>
-                Number(pg.idDotKhuyenMai) === Number(filters.idDotKhuyenMai)
-            );
+        // ⭐ LỌC THEO GIÁ TRỊ GIẢM
+        if (filters.loaiGiamGia === 1) {
+            rawData = rawData.filter(pg => {
+                return (!filters.phanTramMin || pg.giaTriGiam >= filters.phanTramMin)
+                    && (!filters.phanTramMax || pg.giaTriGiam <= filters.phanTramMax);
+            });
         }
+
+        if (filters.loaiGiamGia === 2) {
+            rawData = rawData.filter(pg => {
+                return (!filters.tienMin || pg.giaTriGiam >= filters.tienMin)
+                    && (!filters.tienMax || pg.giaTriGiam <= filters.tienMax);
+            });
+        }
+
 
         // ⭐ LỌC THEO TRẠNG THÁI
         if (filters.trangThai === 1) {
@@ -718,6 +933,7 @@ const handleSearch = async () => {
         }
 
         pagination.totalPages = res.totalPages || 0;
+        pagination.totalElements = res.totalElements || 0;
     } catch (e) {
         console.error("Lỗi tải danh sách:", e);
         showToast("Lỗi", "Không thể tải danh sách phiếu giảm giá", "error");
@@ -752,6 +968,9 @@ const closeForm = () => {
     isFormActive.value = false;
     isCustomerListOpen.value = false;
 };
+const isFilterActive = computed(() => {
+    return !!customerSearch.value;
+});
 
 const loadDetail = async (id) => {
     clearErrors(); // ⭐⭐ THÊM DÒNG NÀY
@@ -765,14 +984,6 @@ const loadDetail = async (id) => {
             codeGiamGia: res.codeGiamGia,
             tenPhieuGiamGia: res.tenPhieuGiamGia
         };
-        formData.idDotKhuyenMai = res.idDotKhuyenMai != null
-            ? Number(
-                typeof res.idDotKhuyenMai === 'object'
-                    ? res.idDotKhuyenMai.id
-                    : res.idDotKhuyenMai
-            )
-            : null;
-
 
         formData.doiTuong = Number(res.doiTuong);
         isCustomerListOpen.value = formData.doiTuong === 1;
@@ -790,6 +1001,10 @@ const loadDetail = async (id) => {
     } catch (err) {
         showToast("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
     }
+};
+const isExpired = (ngayKetThuc) => {
+    if (!ngayKetThuc) return false;
+    return new Date(ngayKetThuc).getTime() < Date.now();
 };
 
 
@@ -864,7 +1079,6 @@ const triggerToggleStatus = (pg) => {
 const openFormAdd = async () => {
     resetFormData();
     clearErrors();
-    await loadDotDangHoatDong();
     selectedId.value = null;
     isReadOnly.value = false;
     isFormActive.value = true;
@@ -880,41 +1094,14 @@ const openFormEdit = async (id) => {
     }
     await loadDetail(id);
     // ⭐ TRUYỀN idDotKhuyenMai
-    await loadDotDangHoatDong(formData.idDotKhuyenMai);
     isFormActive.value = true;
 };
-
-const loadDotDangHoatDong = async (selectedDotId = null) => {
-    try {
-        const res = await axios.get('http://localhost:8080/api/dot-khuyen-mai/active');
-        let dots = res.data || [];
-
-        // 🔥 Nếu đang sửa / xem & có đợt đã chọn
-        if (selectedDotId) {
-            const existed = dots.some(d => d.id === selectedDotId);
-
-            if (!existed) {
-                // gọi thêm API lấy đợt theo ID
-                const detail = await axios.get(
-                    `http://localhost:8080/api/dot-khuyen-mai/${selectedDotId}`
-                );
-                dots.unshift(detail.data); // cho lên đầu combobox
-            }
-        }
-
-        listDotKhuyenMai.value = dots;
-    } catch (e) {
-        showToast("Lỗi", "Không tải được đợt khuyến mãi", "error");
-    }
-};
-
 
 const openFormView = async (id) => {
     selectedId.value = id;
     isReadOnly.value = true;
 
     await loadDetail(id);
-    await loadDotDangHoatDong(formData.idDotKhuyenMai);
 
     isFormActive.value = true; // Ẩn bảng, hiện form
 };
@@ -922,14 +1109,30 @@ const openFormView = async (id) => {
 
 const loadCustomers = async () => {
     try {
-        const res = await axios.get('http://localhost:8080/api/khach-hang/active'); // Thay bằng service của bạn
-        listKhachHang.value = res.data;
+        const [year, month] = customerMonth.value.split('-');
+
+        const res = await axios.get(
+            'http://localhost:8080/api/khach-hang/thong-ke',
+            {
+                params: {
+                    thang: Number(month),
+                    nam: Number(year)
+                }
+            }
+        );
+        console.log("KH API DATA:", res.data);
+
+        listKhachHang.value = (res.data || []).map(kh => ({
+            ...kh,
+            soLanDatTrongThang: kh.soLanDatTrongThang ?? 0,
+            tongChiTieuTrongThang: kh.tongChiTieuTrongThang ?? 0,
+            lanDatGanNhat: kh.lanDatGanNhat ?? null
+        }));
     } catch (err) {
         console.error("Lỗi tải khách hàng", err);
+        showToast("Lỗi", "Không tải được danh sách khách hàng", "error");
     }
 };
-
-
 
 const resetFormData = () => {
     Object.assign(formData, {
@@ -940,6 +1143,16 @@ const resetFormData = () => {
     });
 };
 
+const selectedCustomers = computed(() => {
+    return listKhachHang.value.filter(kh =>
+        formData.listIdKhachHang.includes(kh.id)
+    );
+});
+const removeCustomer = (id) => {
+    formData.listIdKhachHang =
+        formData.listIdKhachHang.filter(cid => cid !== id);
+};
+
 const resetFilters = () => {
     Object.assign(filters, {
         keyword: '',
@@ -948,16 +1161,27 @@ const resetFilters = () => {
         loaiGiamGia: null,
         ngayBatDau: '',
         ngayKetThuc: '',
-        idDotKhuyenMai: null // ⭐ THÊM
+        phanTramMin: null,
+        phanTramMax: null,
+        tienMin: null,
+        tienMax: null
     });
     pagination.currentPage = 1;
     handleSearch();
 };
 
 
-const changePage = (p) => {
-    if (p >= 1 && p <= pagination.totalPages) {
-        pagination.currentPage = p;
+const changePage = (delta) => {
+    const newPage = pagination.currentPage + delta;
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+        pagination.currentPage = newPage;
+        handleSearch();
+    }
+};
+
+const goToPage = (page) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+        pagination.currentPage = page;
         handleSearch();
     }
 };
@@ -989,9 +1213,7 @@ const getStatusDisplay = (pg) => {
 };
 
 onMounted(async () => {
-    await loadDotDangHoatDong(); // ⭐ BẮT BUỘC
-    // Tải danh sách khách hàng ngay khi trang web vừa load xong
-    await loadCustomers();
+
     handleSearch();
 
 });
@@ -1005,6 +1227,26 @@ watch(
     },
     { deep: true }
 );
+
+watch(
+    () => formData.doiTuong,
+    async (val) => {
+        if (Number(val) === 1) {
+            isCustomerListOpen.value = true;
+            await loadCustomers(); // 🔥 QUAN TRỌNG
+        } else {
+            isCustomerListOpen.value = false;
+            formData.listIdKhachHang = [];
+        }
+    }
+);
+
+watch(customerMonth, async () => {
+    if (formData.doiTuong === 1) {
+        await loadCustomers();
+    }
+});
+
 const visiblePages = computed(() => {
     const total = pagination.totalPages;
     const current = pagination.currentPage;
@@ -1033,242 +1275,28 @@ const visiblePages = computed(() => {
     return pages;
 });
 
+const fetchData = (filters, pagination) => {
+    return axios.get('/api/phieu-giam-gia', {
+        params: {
+            ...filters,
+            page: pagination.currentPage - 1,
+            size: pagination.pageSize
+        }
+    }).then(res => res.data);
+};
+
+watch(
+    () => filters.loaiGiamGia,
+    () => {
+        filters.phanTramMin = null;
+        filters.phanTramMax = null;
+        filters.tienMin = null;
+        filters.tienMax = null;
+        pagination.currentPage = 1;
+        handleSearch();
+    }
+);
+
+
+
 </script>
-
-<style scoped>
-.dot-name {
-    color: #333;
-    font-weight: 500;
-}
-
-
-/* Hiệu ứng trượt và mờ dần cho bảng khách hàng */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-    transition: all 0.4s ease-out;
-}
-
-.fade-slide-enter-from {
-    opacity: 0;
-    transform: translateX(30px);
-}
-
-.fade-slide-leave-to {
-    opacity: 0;
-    transform: translateX(-30px);
-}
-
-/* Hiệu ứng mờ dần cho hướng dẫn trống */
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
-/* Style cho phần hướng dẫn khi chưa chọn khách hàng */
-.empty-state-guide {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    border: 2px dashed #dee2e6;
-    border-radius: 1rem;
-    color: #6c757d;
-    padding: 2rem;
-    text-align: center;
-    background: #fff;
-}
-
-
-
-/* Đảm bảo chiều cao card ổn định khi chuyển đổi */
-.customer-card-container {
-    overflow: hidden;
-    background-color: #f8f9fa;
-}
-
-.text-maroon {
-    color: #800000;
-    /* Màu đỏ sẫm tiêu đề */
-}
-
-.badge-neutral {
-    background-color: #F1F3F4;
-    color: #444;
-    font-weight: 500;
-}
-
-.custom-input {
-    border-radius: 8px;
-    padding: 10px 12px;
-    border: 1px solid #dee2e6;
-}
-
-.custom-input:focus {
-    border-color: #800000;
-    box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.1);
-}
-
-.btn-red-dark {
-    background-color: #800000;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    transition: all 0.3s;
-}
-
-.btn-red-dark:hover {
-    background-color: #600000;
-    transform: translateY(-1px);
-}
-
-.table-responsive {
-    border: 1px solid white;
-    border-radius: 8px;
-}
-
-.table-responsive::-webkit-scrollbar {
-    width: 6px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 10px;
-}
-
-.input-group-text {
-    border-color: #dee2e6;
-}
-
-/* Hiệu ứng khi focus vào ô tìm kiếm khách hàng */
-.input-group:focus-within .input-group-text,
-.input-group:focus-within input {
-    border-color: #d32f2f;
-}
-
-/* Đồng bộ hóa các hiệu ứng và layout */
-.promotion-manager-wrapper {
-    background-color: white;
-    min-height: 100vh;
-}
-
-.toast-container {
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 9999;
-}
-
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #fff;
-    border-left: 6px solid #2ecc71;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    margin-bottom: 15px;
-    animation: slideIn 0.4s ease forwards;
-}
-
-.custom-toast.error {
-    border-left-color: #e74c3c;
-}
-
-.custom-toast.error i {
-    color: #e74c3c;
-}
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-.confirm-modal {
-    background: #fff;
-    padding: 30px;
-    border-radius: 16px;
-    width: 400px;
-    text-align: center;
-}
-
-.custom-input:focus {
-    border-color: #d32f2f;
-    box-shadow: 0 0 0 0.2rem rgba(211, 47, 47, 0.25);
-}
-
-.is-invalid {
-    border-color: #dc3545 !important;
-}
-
-.disabled-icon {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.transition-all {
-    transition: all 0.3s ease;
-}
-
-.sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-/* Trong thẻ <style> */
-.customer-selection-box .table-responsive {
-    height: 450px;
-    /* Tăng chiều cao một chút */
-    scrollbar-width: thin;
-    /* Làm thanh cuộn nhỏ lại cho gọn */
-}
-
-/* Đảm bảo bảng không bị vỡ chữ khi màn hình nhỏ */
-.customer-selection-box table td {
-    white-space: nowrap;
-    padding: 8px 4px;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.pgg-name {
-    white-space: normal;
-    /* cho phép xuống dòng */
-    word-break: break-word;
-    /* bẻ từ nếu quá dài */
-    overflow-wrap: anywhere;
-    /* chống tràn mọi trường hợp */
-    line-height: 1.4;
-}
-
-.doi-tuong {
-    color: #444;
-    font-weight: 500;
-}
-</style>

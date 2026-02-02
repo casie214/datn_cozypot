@@ -5,7 +5,7 @@ const routes = [
         path: "/manage/food",
         name: "foodManager",
         component: () =>
-            import ("./pages/admin/food/screens/foodManager.vue")
+            import("./pages/admin/food/screens/foodManager.vue")
     },
     {
         path: "/admin/staff",
@@ -16,13 +16,13 @@ const routes = [
         path: "/manage/category",
         name: "categoryManager",
         component: () =>
-            import ("./pages/admin/category/screens/categoryManager.vue")
+            import("./pages/admin/category/screens/categoryManager.vue")
     },
     {
         path: '/manage/food/hotpot/add',
         name: 'addHotpotSet',
         component: () =>
-            import ("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
+            import("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau'
@@ -34,7 +34,7 @@ const routes = [
         component: () => import("@/pages/admin/client/screens/clientManager.vue")
     },
     {
-        path: "/admin/promotion", 
+        path: "/admin/promotion",
         name: "promotionManager",
         component: () => import("@/pages/admin/promotion/screens/promotionManager.vue")
     },
@@ -42,13 +42,13 @@ const routes = [
         path: "/test",
         name: "test",
         component: () =>
-            import ("./components/testConnection.vue")
+            import("./components/testConnection.vue")
     },
     {
         path: '/manage/food/hotpot/update/:id',
         name: 'updateHotpotSet',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau'
@@ -58,7 +58,7 @@ const routes = [
         path: '/manage/food/hotpot/view/:id',
         name: 'viewHotpotSet',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau'
@@ -68,7 +68,7 @@ const routes = [
         path: '/manage/food/detail/add',
         name: 'addFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
+            import('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD'
@@ -78,7 +78,7 @@ const routes = [
         path: '/manage/food/add',
         name: 'addFood',
         component: () =>
-            import ('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
+            import('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'thucdon'
@@ -88,18 +88,18 @@ const routes = [
         path: '/manage/food/update/:id',
         name: 'updateFood',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
         meta: {
-                title: 'Cập nhật Món Ăn',
-                parentMenu: 'foodManager',
-                activeTab: 'thucdon'
-            }
+            title: 'Cập nhật Món Ăn',
+            parentMenu: 'foodManager',
+            activeTab: 'thucdon'
+        }
     },
     {
         path: '/manage/food/view/:id',
         name: 'viewFood',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
         meta: {
             title: 'Chi tiết Món Ăn',
             parentMenu: 'foodManager',
@@ -110,7 +110,7 @@ const routes = [
         path: '/manage/food/detail/update/:id',
         name: 'updateFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD'
@@ -120,7 +120,7 @@ const routes = [
         path: '/manage/food/detail/view/:id',
         name: 'viewFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD'
@@ -155,23 +155,23 @@ const routes = [
         component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
     },
     {
-  path: '/admin/voucher',
-  name: 'AdminVoucher',
-  component: () => import('@/pages/admin/voucher/screens/voucherManager.vue')
-},
+        path: '/admin/voucher',
+        name: 'AdminVoucher',
+        component: () => import('@/pages/admin/voucher/screens/voucherManager.vue')
+    },
     {
-        path: "/admin/promotions", 
+        path: "/admin/promotions",
         name: "voucherManager",
         component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue")
     },
-    
+
 ];
 
 const router = createRouter({
     history: createWebHistory(),
     routes,
     scrollBehavior() {
-        return { top: 0 }; 
+        return { top: 0 };
     }
 });
 

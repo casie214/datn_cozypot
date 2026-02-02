@@ -19,7 +19,6 @@ import Header from './components/adminHeader.vue'; // 1. Import Header
 
 <style>
 /* ... (Giữ nguyên style cũ) ... */
-<style>
 /* Reset padding/margin toàn trang */
 * {
   box-sizing: border-box;
