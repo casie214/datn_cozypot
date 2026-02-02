@@ -11,6 +11,7 @@ import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonS
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,20 +24,17 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/hoa-don-thanh-toan")
 @CrossOrigin(origins = "http://localhost:5173")
 public class HoaDonThanhToanController {
-    @Autowired
-    HoaDonThanhToanService hoaDonThanhToanService;
+    private final HoaDonThanhToanService hoaDonThanhToanService;
 
-    @Autowired
-    ChiTietHoaDonService chiTietHoaDonService;
+    private final ChiTietHoaDonService chiTietHoaDonService;
 
-    @Autowired
-    LichSuHoaDonService lichSuHoaDonService;
+    private final LichSuHoaDonService lichSuHoaDonService;
 
-    @Autowired
-    LichSuThanhToanService lichSuThanhToanService;
+    private final LichSuThanhToanService lichSuThanhToanService;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(@RequestParam(name = "page", required = false, defaultValue = "0") Integer page){

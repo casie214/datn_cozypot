@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/khach-hang")
+@RequestMapping("/api/")
 @CrossOrigin(origins = "http://localhost:5173")
 public class KhachHangController {
 
