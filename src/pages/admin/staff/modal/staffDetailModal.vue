@@ -86,9 +86,9 @@
                   <input type="text" class="form-control custom-input readonly-style" :value="formatDate(formData.ngayVaoLam)" readonly>
                 </div>
 
-                <div class="col-md-12">
+                <div class="col-md-6">
                   <label class="form-label-custom">Địa chỉ thường trú</label>
-                  <textarea class="form-control custom-input readonly-style" rows="2" readonly>{{ formData.diaChi }}</textarea>
+                  <text class="form-control custom-input readonly-style" rows="2" readonly>{{ formData.diaChi }}</text>
                 </div>
               </div>
             </div>

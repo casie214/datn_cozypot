@@ -65,6 +65,28 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 font-weight: bold;
 }
 
+.btn-export-excel {
+  background-color: var(--white);
+  color: var(--primary-red);
+  border: 1px solid var(--primary-red); /* Viền đỏ đô */
+  padding: 0 18px;
+  height: 38px; /* Khớp với chiều cao nút Tìm kiếm & Thêm */
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box; /* Chống xê dịch */
+}
+
+.btn-export-excel:hover {
+  background-color: #fff5f5; /* Nền hồng cực nhạt khi hover */
+  color: var(--dark-red);
+  border-color: var(--dark-red);
+  box-shadow: 0 2px 8px rgba(123, 18, 28, 0.15);
+}
+
 /* Table styling */
 .table-container {
   background: var(--white);
@@ -200,4 +222,120 @@ font-weight: bold;
     color: #ccc !important;
     cursor: not-allowed !important;
     opacity: 0.5;
+}
+
+.select-per-page {
+  width: auto;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-page {
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  color: #333;
+  cursor: pointer;
+}
+
+.btn-page:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.page-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  margin: 0 5px;
+  font-weight: bold;
+}
+
+.page-number.active {
+  background-color: #5c67f2; /* Màu xanh tím trong ảnh */
+  color: white;
+  box-shadow: 0 4px 10px rgba(92, 103, 242, 0.3);
+}
+
+.total-info {
+  font-size: 14px;
+}
+
+/* Số trang đang được chọn */
+.page-number.active {
+  background-color: #7B121C !important; /* Màu đỏ bạn yêu cầu */
+  color: white !important;
+  border: 1px solid #7B121C;
+  box-shadow: 0 4px 8px rgba(123, 18, 28, 0.2); /* Tạo hiệu ứng đổ bóng nhẹ cho chuyên nghiệp */
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px; /* Bo góc như trong ảnh mẫu */
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Nút số trang đang active */
+.page-number.active {
+  background-color: #7B121C !important;
+  color: white !important;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0 4px;
+}
+
+/* Khung bọc ô nhập trang (Nền xám như yêu cầu) */
+.input-page-wrapper {
+  background-color: #f1f3f5;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+}
+
+/* Ô input nhập số */
+.input-go-to {
+  width: 40px;
+  border: 1px solid #7B121C;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  color: #7B121C;
+  outline: none;
+}
+
+/* Ẩn nút tăng giảm của input number */
+.input-go-to::-webkit-outer-spin-button,
+.input-go-to::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.btn-page {
+  background: transparent;
+  border: none;
+  color: #495057;
+  padding: 5px 10px;
+  transition: all 0.2s;
+}
+
+.btn-page:hover:not(:disabled) {
+  color: #7B121C;
+}
+
+.btn-page:disabled {
+  color: #ced4da;
+  cursor: not-allowed;
 }

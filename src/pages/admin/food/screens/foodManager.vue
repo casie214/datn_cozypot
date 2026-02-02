@@ -26,10 +26,6 @@ onMounted(() => {
 
 <template>
     <main class="main-content">
-      <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
-      <h5 style="margin-bottom: 1em;" v-if="currentTabName == 'thucdon'">Quản lý thực đơn / Thực đơn</h5>
-      <h5 style="margin-bottom: 1em;" v-else-if="currentTabName == 'chitietTD'">Quản lý thực đơn / Thực đơn chi tiết</h5>
-      <h5 style="margin-bottom: 1em;" v-if="currentTabName == 'setlau'">Quản lý thực đơn / Set lẩu</h5>
 
       <div class="dynamic-content">
         <component :is="currentComponent" />

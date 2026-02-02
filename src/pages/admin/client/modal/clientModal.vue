@@ -1,4 +1,6 @@
 <template>
+    
+
   <div class="modal-overlay" @click.self="handleCancel">
     <div class="modal-box shadow-lg">
       <div class="modal-header-custom">
@@ -8,6 +10,16 @@
         </h5>
         <span class="close-x" @click="handleCancel">&times;</span>
       </div>
+
+      <GlobalDialogue 
+        :show="dialogVisible"  
+        :type="dialogConfig?.type" 
+        :variant="dialogConfig?.variant"
+        :title="dialogConfig?.title" 
+        :message="dialogConfig?.message" 
+        @close="handleDialogClose"
+        @confirm="handleDialogConfirm" 
+    />
 
       <div class="modal-body-custom">
         <form class="container-fluid" @submit.prevent>
@@ -89,6 +101,8 @@
       </div>
     </div>
   </div>
+
+  
 </template>
 
 <script setup>
@@ -96,6 +110,16 @@ import { reactive, ref, onMounted, watch } from 'vue';
 import clientService from '@/services/clientService';
 import dayjs from 'dayjs';
 import { useToast } from "vue-toastification";
+import { useDialog } from '@/services/foodFunction';
+import GlobalDialogue from '@/components/globalDialogue.vue';
+
+const { 
+    showConfirm, 
+    isVisible: dialogVisible,      
+    dialogConfig, 
+    handleConfirm: handleDialogConfirm, 
+    handleClose: handleDialogClose
+} = useDialog();
 
 const props = defineProps(['clientId']);
 const emit = defineEmits(['close', 'refresh']);
@@ -243,7 +267,14 @@ const handleSave = async () => {
 };
 
 const handleCancel = () => {
-  if (confirm("Dữ liệu chưa lưu sẽ bị mất. Bạn muốn thoát?")) emit('close');
+    showConfirm(
+        "Dữ liệu chưa lưu sẽ bị mất. Bạn muốn thoát?",
+        () => {
+            emit('close'); 
+        },
+        "Xác nhận thoát",
+        "warning" 
+    );
 };
 
 onMounted(async () => {

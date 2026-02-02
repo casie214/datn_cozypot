@@ -210,3 +210,47 @@ font-weight: bold;
    color:black; 
    font-weight: normal;
 }
+
+/* Khung bao quanh ô nhập số (Màu xám) */
+.input-page-wrapper {
+  background-color: #f8f9fa; /* Màu xám nhạt */
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+/* Ô nhập số trang bên trong */
+.input-go-to {
+  width: 42px;
+  border: 1px solid #7B121C; /* Viền đỏ đô */
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  color: #7B121C;
+}
+
+/* Nút số trang đang được chọn (Màu đỏ đô) */
+.page-number.active {
+  background-color: #7B121C !important;
+  color: white !important;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Các nút icon mũi tên */
+.btn-page {
+  background: transparent;
+  border: none;
+  color: #333;
+  padding: 5px 10px;
+}
+
+.btn-page:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
