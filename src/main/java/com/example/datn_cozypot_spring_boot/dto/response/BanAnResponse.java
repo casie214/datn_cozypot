@@ -5,8 +5,9 @@ import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import lombok.Data;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Data
 public class BanAnResponse {
@@ -18,7 +19,7 @@ public class BanAnResponse {
     private Integer loaiDatBan; // 0: chỉ đặt tại quầy; 1: cho đặt online
     private Integer idKhuVuc;
     private String tenKhuVuc;
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
     private String nguoiTao;
 
 
@@ -62,8 +63,11 @@ public class BanAnResponse {
     }
 
     private boolean isValidBooking(PhieuDatBan p) {
-        return p.getTrangThai() == 1 // đang đặt
-                && p.getThoiGianDat() != null
-                && p.getThoiGianDat().isAfter(Instant.now());
+        if (p.getTrangThai() != 1 || p.getThoiGianDat() == null) return false;
+
+        ZonedDateTime nowVN = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime bookingTimeVN = p.getThoiGianDat().atZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        return bookingTimeVN.isAfter(nowVN);
     }
 }

@@ -3,7 +3,7 @@ package com.example.datn_cozypot_spring_boot.dto.response;
 import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
 import com.fasterxml.jackson.annotation.JsonGetter; // Thêm import này
 import lombok.Data;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 public class DatBanListResponse {
@@ -14,7 +14,7 @@ public class DatBanListResponse {
     private String tenBan;
     private String maBan;
     private Integer soTang;
-    private Instant thoiGianDat;
+    private LocalDateTime thoiGianDat;
     private Integer soLuongKhach;
     private Integer trangThai;
 
