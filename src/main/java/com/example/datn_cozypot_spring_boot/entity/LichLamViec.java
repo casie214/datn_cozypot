@@ -19,12 +19,6 @@ public class LichLamViec {
     @Column(name = "id_lich_lam_viec", nullable = false)
     private Integer id;
 
-    @Column(name = "gio_bat_dau")
-    private LocalTime gioBatDau;
-
-    @Column(name = "gio_ket_thuc")
-    private LocalTime gioKetThuc;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien")
     private NhanVien idNhanVien;
@@ -32,17 +26,23 @@ public class LichLamViec {
     @Column(name = "ngay")
     private LocalDate ngay;
 
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
     @Size(max = 100)
     @Nationalized
     @Column(name = "vi_chi", length = 100)
     private String viChi;
 
+    @Column(name = "gio_bat_dau")
+    private LocalTime gioBatDau;
+
+    @Column(name = "gio_ket_thuc")
+    private LocalTime gioKetThuc;
+
     @Size(max = 255)
     @Nationalized
     @Column(name = "ghi_chu")
     private String ghiChu;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
 }

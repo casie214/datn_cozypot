@@ -19,12 +19,12 @@ public class HinhAnhMonAn {
     @JoinColumn(name = "id_mon_an_di_kem")
     private MonAnDiKem idMonAnDiKem;
 
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
     @Nationalized
     @Lob
     @Column(name = "url_anh")
     private String urlAnh;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
 }

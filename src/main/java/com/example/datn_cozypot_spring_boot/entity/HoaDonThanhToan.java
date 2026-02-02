@@ -1,15 +1,13 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -39,40 +37,25 @@ public class HoaDonThanhToan {
     @JoinColumn(name = "id_phieu_dat_ban")
     private PhieuDatBan idPhieuDatBan;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'HD'+right('00000'+CONVERT([varchar](10), [id_hoa_don]), 5)), '')")
-    @Column(name = "ma_hoa_don", nullable = false, length = 10)
+    @Size(max = 50)
+    @Column(name = "ma_hoa_don", length = 50)
     private String maHoaDon;
 
-    @ColumnDefault("getdate()")
     @Column(name = "thoi_gian_tao")
-    private LocalDateTime thoiGianTao;
+    private Instant thoiGianTao;
 
     @Column(name = "thoi_gian_thanh_toan")
-    private LocalDateTime thoiGianThanhToan;
+    private Instant thoiGianThanhToan;
 
-    @ColumnDefault("0")
     @Column(name = "tong_tien_chua_giam", precision = 18)
     private BigDecimal tongTienChuaGiam;
 
-    @ColumnDefault("0")
     @Column(name = "so_tien_da_giam", precision = 18)
     private BigDecimal soTienDaGiam;
 
-    @ColumnDefault("0")
     @Column(name = "tong_tien_thanh_toan", precision = 18)
     private BigDecimal tongTienThanhToan;
 
-    @ColumnDefault("0")
-    @Column(name = "diem_su_dung")
-    private Integer diemSuDung;
-
-    @ColumnDefault("0")
-    @Column(name = "diem_cong_them")
-    private Integer diemCongThem;
-
-    @ColumnDefault("0")
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;
 
@@ -81,11 +64,9 @@ public class HoaDonThanhToan {
     @Column(name = "ghi_chu")
     private String ghiChu;
 
-    @ColumnDefault("0")
     @Column(name = "tien_khach_dua", precision = 18)
     private BigDecimal tienKhachDua;
 
-    @ColumnDefault("0")
     @Column(name = "tien_thua", precision = 18)
     private BigDecimal tienThua;
 

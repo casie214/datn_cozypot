@@ -1,15 +1,18 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
+<<<<<<< HEAD
 import jakarta.validation.constraints.NotNull;
+=======
+>>>>>>> main
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -23,10 +26,8 @@ public class KhachHang {
     @Column(name = "id_khach_hang", nullable = false)
     private Integer id;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'KH'+right('0000'+CONVERT([varchar](10), [id_khach_hang]), 4)), '')")
-    @Column(name = "ma_khach_hang", nullable = false, length = 10)
+    @Size(max = 50)
+    @Column(name = "ma_khach_hang", length = 50)
     private String maKhachHang;
 
     @Size(max = 100)
@@ -49,9 +50,8 @@ public class KhachHang {
     @Column(name = "diem_tich_luy")
     private Integer diemTichLuy;
 
-    @ColumnDefault("getdate()")
     @Column(name = "ngay_tao_tai_khoan")
-    private LocalDateTime ngayTaoTaiKhoan;
+    private Instant ngayTaoTaiKhoan;
 
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;

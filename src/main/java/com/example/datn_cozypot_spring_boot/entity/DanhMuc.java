@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -22,10 +22,8 @@ public class DanhMuc {
     @Column(name = "id_danh_muc", nullable = false)
     private Integer id;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'DM'+right('000'+CONVERT([varchar](10), [id_danh_muc]), 3)), '')")
-    @Column(name = "ma_danh_muc", nullable = false, length = 10)
+    @Size(max = 50)
+    @Column(name = "ma_danh_muc", length = 50)
     private String maDanhMuc;
 
     @Size(max = 100)
@@ -41,10 +39,10 @@ public class DanhMuc {
 
     @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private LocalDateTime ngayTao;
+    private Instant ngayTao;
 
     @Column(name = "ngay_sua")
-    private LocalDateTime ngaySua;
+    private Instant ngaySua;
 
     @Size(max = 100)
     @Nationalized
