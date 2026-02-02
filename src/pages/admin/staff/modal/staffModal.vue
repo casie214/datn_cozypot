@@ -14,20 +14,18 @@
           <div class="row">
             <div class="col-md-4 text-center border-end section-left">
               <label class="form-label-custom d-block mb-3">Ảnh nhân viên</label>
-              <div class="avatar-wrapper mb-3" @click="triggerFileInput">
+              <div class="avatar-wrapper mb-2" @click="triggerFileInput">
                 <img :src="imagePreview || 'https://via.placeholder.com/150'" alt="Avatar" class="avatar-img" />
                 <div class="avatar-hint">Thay đổi ảnh</div>
               </div>
               <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
-              <small class="text-muted">Nhấn vào ảnh để tải lên</small>
+              <small class="text-muted d-block">Nhấn vào ảnh để tải lên</small>
             </div>
 
-            <div class="col-md-8 scrollable-content">
-              <div class="row g-3">
-                <div class="col-md-6">
+            <div class="col-md-8">
+              <div class="row g-2"> <div class="col-md-6">
                   <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.hoTenNhanVien}" 
-                         v-model="formData.hoTenNhanVien" placeholder="Mời nhập đầy đủ họ tên">
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.hoTenNhanVien}" v-model="formData.hoTenNhanVien" placeholder="Nhập họ tên">
                   <div class="error-text">{{ errors.hoTenNhanVien }}</div>
                 </div>
 
@@ -42,35 +40,26 @@
 
                 <div class="col-md-6">
                   <label class="form-label-custom">Số CCCD <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.soCccd}" 
-                         v-model="formData.soCccd" @blur="checkDuplicate('soCccd')" placeholder="Mời nhập số CCCD">
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.soCccd}" v-model="formData.soCccd" @blur="checkDuplicate('soCccd')" placeholder="12 chữ số">
                   <div class="error-text">{{ errors.soCccd }}</div>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label-custom">Ngày cấp <span class="star">*</span></label>
+                  <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.sdtNhanVien}" v-model="formData.sdtNhanVien" @blur="checkDuplicate('sdtNhanVien')" placeholder="Số điện thoại">
+                  <div class="error-text">{{ errors.sdtNhanVien }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Ngày cấp CCCD <span class="star">*</span></label>
                   <input type="date" class="form-control custom-input" :class="{'is-invalid': errors.ngayCapCccd}" v-model="formData.ngayCapCccd">
                   <div class="error-text">{{ errors.ngayCapCccd }}</div>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.sdtNhanVien}" 
-                         v-model="formData.sdtNhanVien" @blur="checkDuplicate('sdtNhanVien')" placeholder="Mời nhập số điện thoại">
-                  <div class="error-text">{{ errors.sdtNhanVien }}</div>
-                </div>
-
-                <div class="col-md-6">
                   <label class="form-label-custom">Nơi cấp <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.noiCapCccd}" v-model="formData.noiCapCccd " placeholder="Mời nhập nơi cấp">
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.noiCapCccd}" v-model="formData.noiCapCccd" placeholder="Nơi cấp">
                   <div class="error-text">{{ errors.noiCapCccd }}</div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label-custom">Email <span class="star">*</span></label>
-                  <input type="email" class="form-control custom-input" :class="{'is-invalid': errors.email}" 
-                         v-model="formData.email" @blur="checkDuplicate('email')" placeholder="Mời nhập email">
-                  <div class="error-text">{{ errors.email }}</div>
                 </div>
 
                 <div class="col-md-6">
@@ -80,24 +69,42 @@
                 </div>
 
                 <div class="col-md-6">
+                  <label class="form-label-custom">Giới tính <span class="star">*</span></label>
+                  <div class="d-flex gap-3 pt-2">
+                    <div class="form-check">
+                      <input class="form-check-input custom-radio" type="radio" :value="true" v-model="formData.gioiTinh" id="male">
+                      <label class="form-check-label" for="male">Nam</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input custom-radio" type="radio" :value="false" v-model="formData.gioiTinh" id="female">
+                      <label class="form-check-label" for="female">Nữ</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Email <span class="star">*</span></label>
+                  <input type="email" class="form-control custom-input" :class="{'is-invalid': errors.email}" v-model="formData.email" placeholder="Email liên hệ">
+                  <div class="error-text">{{ errors.email }}</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label-custom">Địa chỉ thường trú <span class="star">*</span></label>
+                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.diaChi}" v-model="formData.diaChi" placeholder="Số nhà, tên đường...">
+                  <div class="error-text">{{ errors.diaChi }}</div>
+                </div>
+
+                <div class="col-md-6">
                   <label class="form-label-custom">Tên đăng nhập <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.tenDangNhap}" 
-                         v-model="formData.tenDangNhap" :readonly="!!staffId" @blur="checkDuplicate('tenDangNhap')" placeholder="Mời nhập tên đăng nhập">
+                  <input type="text" class="form-control custom-input":class="{'is-invalid': errors.tenDangNhap}" v-model="formData.tenDangNhap" :readonly="!!staffId" placeholder="Tên đăng nhập">
                   <div class="error-text">{{ errors.tenDangNhap }}</div>
                 </div>
 
                 <div class="col-md-6">
                   <label class="form-label-custom">Mật khẩu <span class="star">*</span></label>
-                  <input v-if="!staffId" type="password" class="form-control custom-input" :class="{'is-invalid': errors.matKhauDangNhap}"
-                         v-model="formData.matKhauDangNhap" placeholder="Mời nhập mật khẩu">
+                  <input v-if="!staffId" type="password" class="form-control custom-input" :class="{'is-invalid': errors.matKhauDangNhap}" v-model="formData.matKhauDangNhap" placeholder="Mật khẩu">
                   <input v-else type="text" class="form-control custom-input bg-light" value="********" readonly>
-                  <div v-if="!staffId" class="error-text">{{ errors.matKhauDangNhap }}</div>
-                </div>
-
-                <div class="col-md-12">
-                  <label class="form-label-custom">Địa chỉ thường trú <span class="star">*</span></label>
-                  <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.diaChi}" v-model="formData.diaChi" placeholder="Mời nhập địa chỉ">
-                  <div class="error-text">{{ errors.diaChi }}</div>
+                  <div class="error-text">{{ errors.matKhauDangNhap }}</div>
                 </div>
               </div>
             </div>
@@ -307,7 +314,7 @@ onMounted(async () => {
     if (props.staffId) {
       const res = await staffService.getDetail(props.staffId);
       Object.assign(formData, res.data);
-      
+      formData.gioiTinh = res.data.gioiTinh === true || res.data.gioiTinh === 1;
       // Định dạng ngày để hiển thị lên <input type="date">
       formData.ngayCapCccd = res.data.ngayCapCccd ? dayjs(res.data.ngayCapCccd).format('YYYY-MM-DD') : '';
       formData.ngaySinh = res.data.ngaySinh ? dayjs(res.data.ngaySinh).format('YYYY-MM-DD') : '';

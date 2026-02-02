@@ -5,17 +5,25 @@
     <div class="flex-grow-1 staff-manager-wrapper">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="title-page">Quản lý nhân viên</h2>
-        <button class="btn-red-dark" @click="openModalAdd">
-          <i class="fas fa-plus me-2"></i> Thêm nhân viên
-        </button>
+        <div class="d-flex gap-2"> <button class="btn-export-excel" @click="exportToExcel">
+            <i class="fas fa-file-export me-2"></i> Xuất Excel
+          </button>
+          <button class="btn-red-dark" @click="openModalAdd">
+            <i class="fas fa-plus me-2"></i> Thêm nhân viên
+          </button>
+        </div>
       </div>
 
       <div class="filter-card">
         <div class="row g-3 align-items-end">
           <div class="col-md-4">
             <label class="filter-label">Tìm kiếm</label>
-            <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, email, SĐT..."
-              @input="onSearchInput">
+            <input 
+              v-model="filters.keyword" 
+              class="form-control custom-input" 
+              placeholder="Tên, mã, email, SĐT..."
+              @input="onSearchInput"
+            >
           </div>
           <div class="col-md-3">
             <label class="filter-label">Trạng thái</label>
@@ -53,17 +61,19 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(nv, index) in listNhanVien" :key="nv.id"
-              :class="{ 'row-staff-locked': nv.trangThaiLamViec === 2 }">
-
+            <tr 
+              v-for="(nv, index) in listNhanVien" 
+              :key="nv.id"
+              :class="{ 'row-staff-locked': nv.trangThaiLamViec === 2 }"
+            >
               <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
               <td class="fw-bold">{{ nv.maNhanVien }}</td>
               <td>{{ nv.hoTenNhanVien }}</td>
               <td>{{ nv.sdtNhanVien }}</td>
               <td class="text-muted">{{ nv.email }}</td>
-              <td>{{ formatDate(nv.ngayVaoLam) }}</td>
+              <td>{{ formatDate(nv.ngayVaoLam) }}</td>              
               <td>{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
-
+              
               <td :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
                 <span :class="getStatusDisplay(nv.trangThaiLamViec).class">
                   {{ getStatusDisplay(nv.trangThaiLamViec).text }}
@@ -72,15 +82,32 @@
 
               <td class="text-center" :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
                 <div class="action-group">
-                  <i class="fas fa-eye detail-icon text-dark me-2" title="Xem chi tiết" style="cursor: pointer;"
-                    @click="openModalView(nv.id)"></i>
+                  <i 
+                    class="fas fa-eye detail-icon text-dark me-2" 
+                    title="Xem chi tiết"
+                    style="cursor: pointer;"
+                    @click="openModalView(nv.id)"
+                  ></i>
 
-                  <i class="fas fa-pen edit-icon me-2" :class="{ 'disabled-icon': nv.trangThaiLamViec === 2 }"
-                    title="Sửa" @click="nv.trangThaiLamViec === 1 ? openModalEdit(nv.id) : null"></i>
+                  <i 
+                    class="fas fa-pen edit-icon me-2" 
+                    :class="{ 'disabled-icon': nv.trangThaiLamViec === 2 }"
+                    title="Sửa"
+                    @click="nv.trangThaiLamViec === 1 ? openModalEdit(nv.id) : null"
+                  ></i>
 
-                  <i v-if="nv.trangThaiLamViec === 1" class="fas fa-unlock-alt unlock-icon text-danger" title="Khóa"
-                    @click="onToggleStatus(nv)"></i>
-                  <i v-else class="fas fa-lock lock-icon text-success" title="Mở khóa" @click="onToggleStatus(nv)"></i>
+                  <i 
+                    v-if="nv.trangThaiLamViec === 1" 
+                    class="fas fa-unlock-alt unlock-icon text-danger" 
+                    title="Khóa"
+                    @click="onToggleStatus(nv)"
+                  ></i>
+                  <i 
+                    v-else 
+                    class="fas fa-lock lock-icon text-success" 
+                    title="Mở khóa"
+                    @click="onToggleStatus(nv)"
+                  ></i>
                 </div>
               </td>
             </tr>
@@ -91,63 +118,118 @@
         </div>
       </div>
 
-      <CommonPagination
-        v-model:currentPage="pagination.currentPage"
-        v-model:pageSize="pagination.pageSize"
-        :total-pages="pagination.totalPages"
-        :total-elements="pagination.totalElements"
-        :current-count="listNhanVien.length"
-        @change="handleSearch"
-      />
+      <div class="pagination-wrapper d-flex justify-content-between align-items-center mt-4">
+  <div class="d-flex align-items-center">
+    <span class="me-2">Hiển thị</span>
+    <select v-model="pagination.pageSize" class="form-select form-select-sm select-per-page" @change="handleSearch">
+      <option :value="5">5 dòng</option>
+      <option :value="8">8 dòng</option>
+      <option :value="10">10 dòng</option>
+      <option :value="20">20 dòng</option>
+    </select>
+  </div>
+
+  <div class="pagination-controls d-flex align-items-center">
+  <button class="btn-page" :disabled="pagination.currentPage === 1" @click="goToPage(1)">
+    <i class="fas fa-step-backward"></i>
+  </button>
+  <button class="btn-page" :disabled="pagination.currentPage === 1" @click="changePage(-1)">
+    <i class="fas fa-chevron-left"></i>
+  </button>
+  
+  <div class="mx-3 d-flex align-items-center">
+    <template v-if="pagination.totalPages <= 5">
+      <span 
+        v-for="p in pagination.totalPages" 
+        :key="p" 
+        class="page-number" 
+        :class="{ active: pagination.currentPage === p }"
+        @click="goToPage(p)"
+      >
+        {{ p }}
+      </span>
+    </template>
+
+    <template v-else>
+      <div class="input-page-wrapper d-flex align-items-center">
+        <input 
+          type="number" 
+          v-model.number="inputPage" 
+          class="input-go-to" 
+          @keyup.enter="jumpToPage"
+        >
+        <span class="ms-2 text-muted">/ {{ pagination.totalPages }}</span>
+      </div>
+    </template>
+  </div>
+  
+  <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages" @click="changePage(1)">
+    <i class="fas fa-chevron-right"></i>
+  </button>
+  <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages" @click="goToPage(pagination.totalPages)">
+    <i class="fas fa-step-forward"></i>
+  </button>
+</div>
+
+  <div class="total-info text-muted">
+    Hiển thị {{ listNhanVien.length }} trong tổng số {{ pagination.totalElements }} nhân viên
+  </div>
+</div>
     </div>
-    
 
-    <StaffModal v-if="isModalOpen" :staff-id="selectedStaffId" @close="closeModal" @refresh="handleSearch" />
+    <StaffModal 
+      v-if="isModalOpen" 
+      :staff-id="selectedStaffId" 
+      @close="closeModal" 
+      @refresh="handleSearch"
+    />
 
-    <StaffDetailModal v-if="isDetailModalOpen" :staff-id="detailStaffId" @close="closeDetailModal" />
+    <StaffDetailModal
+      v-if="isDetailModalOpen"
+      :staff-id="detailStaffId"
+      @close="closeDetailModal"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue'; // Đã thêm watch
 import { useStaffLogic } from './staffFunction.js';
 import StaffModal from '../modal/staffModal.vue';
-import StaffDetailModal from '../modal/staffDetailModal.vue'; // Import file mới
+import StaffDetailModal from '../modal/staffDetailModal.vue';
 import dayjs from 'dayjs';
 import '../staffStyle.css';
-import CommonPagination from '@/components/commonPagination.vue';
-
-const getImg = (imgName) => {
-  if (!imgName) return 'https://placehold.co/100x100?text=No+Img';
-  
-  // Nếu đã là link đầy đủ (ví dụ link ảnh mạng) thì giữ nguyên
-  if (imgName.startsWith('http') || imgName.startsWith('data:image')) {
-    return imgName;
-  }
-
-  return `http://localhost:8080/uploads/images/${imgName}`;
-}
+import staffService from '@/services/staffService.js';
 
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
 
-// State quản lý danh sách & filters
+// --- STATE QUẢN LÝ ---
 const listNhanVien = ref([]);
-const filters = reactive({
-  keyword: '',
-  trangThai: null,
-  tuNgay: ''
+const filters = reactive({ 
+  keyword: '', 
+  trangThai: null, 
+  tuNgay: '' 
 });
-const pagination = reactive({ currentPage: 1, pageSize: 5, totalPages: 0 });
 
-// State quản lý Modal Thêm/Sửa
+const pagination = reactive({ 
+  currentPage: 1, 
+  pageSize: 8, 
+  totalPages: 0,
+  totalElements: 0 
+});
+
+const inputPage = ref(1); // Biến hỗ trợ ô nhập số trang
 const isModalOpen = ref(false);
 const selectedStaffId = ref(null);
-
-// State quản lý Modal Xem chi tiết
 const isDetailModalOpen = ref(false);
 const detailStaffId = ref(null);
 
-// --- Logic xử lý ---
+// --- LOGIC XỬ LÝ DỮ LIỆU ---
+
+// Đồng bộ ô nhập số mỗi khi trang hiện tại thay đổi (do bấm nút mũi tên)
+watch(() => pagination.currentPage, (newVal) => {
+  inputPage.value = newVal;
+});
 
 const formatDate = (date) => {
   if (!date) return '---';
@@ -159,13 +241,10 @@ const handleSearch = async () => {
     const data = await fetchData(filters, pagination);
     listNhanVien.value = data.content || [];
     pagination.totalPages = data.totalPages || 0;
+    pagination.totalElements = data.totalElements || 0;
   } catch (error) {
     console.error("Lỗi khi load danh sách:", error);
   }
-};
-
-const onToggleStatus = async (nv) => {
-  await toggleStaffStatus(nv, handleSearch);
 };
 
 const onSearchInput = () => {
@@ -176,12 +255,35 @@ const onSearchInput = () => {
   }, 500);
 };
 
+// Hàm nhảy trang khi nhập số và nhấn Enter
+const jumpToPage = () => {
+  let p = parseInt(inputPage.value);
+  if (p >= 1 && p <= pagination.totalPages) {
+    goToPage(p);
+  } else {
+    // Nếu nhập sai, trả về số trang hiện tại của hệ thống
+    inputPage.value = pagination.currentPage;
+  }
+};
+
 const changePage = (step) => {
-  pagination.currentPage += step;
+  const newPage = pagination.currentPage + step;
+  if (newPage >= 1 && newPage <= pagination.totalPages) {
+    pagination.currentPage = newPage;
+    handleSearch();
+  }
+};
+
+const goToPage = (page) => {
+  pagination.currentPage = page;
   handleSearch();
 };
 
-// --- Logic đóng mở Modal ---
+const onToggleStatus = async (nv) => {
+  await toggleStaffStatus(nv, handleSearch);
+};
+
+// --- LOGIC MODAL ---
 
 const openModalAdd = () => {
   selectedStaffId.value = null;
@@ -197,7 +299,6 @@ const closeModal = () => {
   isModalOpen.value = false;
 };
 
-// Mở Modal xem chi tiết
 const openModalView = (id) => {
   detailStaffId.value = id;
   isDetailModalOpen.value = true;
@@ -207,5 +308,38 @@ const closeDetailModal = () => {
   isDetailModalOpen.value = false;
 };
 
+
+
+
+const exportToExcel = async () => {
+  try {
+    console.log("Đang xuất file với bộ lọc:", filters);
+    
+    // SỬA TẠI ĐÂY: Gọi thông qua staffService
+    const response = await staffService.exportStaffExcel(filters);
+
+    // Xử lý dữ liệu nhị phân (Blob)
+    const blob = new Blob([response.data], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const fileName = `DS_NhanVien_${dayjs().format('DD_MM_YYYY')}.xlsx`;
+    link.setAttribute('download', fileName);
+    
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Lỗi khi xuất file:", error);
+    alert("Không thể xuất file. Vui lòng kiểm tra lại phía Server!");
+  }
+};
 onMounted(handleSearch);
 </script>

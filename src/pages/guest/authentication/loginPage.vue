@@ -15,7 +15,37 @@ const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
 
+const errors = ref({});
+
+const validate = () => {
+    errors.value = {};
+    let isValid = true;
+
+    // validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.value) {
+        errors.value.email = "Email không được để trống";
+        isValid = false;
+    } else if (!emailRegex.test(email.value)) {
+        errors.value.email = "Email không đúng định dạng";
+        isValid = false;
+    }
+
+    // validate Mật khẩu
+    if (!password.value) {
+        errors.value.password = "Mật khẩu không được để trống";
+        isValid = false;
+    } else if (password.value.length < 6) {
+        errors.value.password = "Mật khẩu phải có ít nhất 6 ký tự";
+        isValid = false;
+    }
+    return isValid;
+}
+
 const handleLogin = async () => {
+    if(!validate()){
+        return;
+    }
     errorMessage.value = '';
 
     try {
@@ -58,15 +88,15 @@ const switchTab = (isClient) => {
                             <div class="col-12">
                                 <div class="mb-5">
                                     <h2 class="display-5 fw-bold text-center">
-                                        {{ isClientLogin ? 'Sign in' : 'Admin Portal' }}
+                                        {{ isClientLogin ? 'Đăng nhập' : 'Cổng nhân viên' }}
                                     </h2>
 
                                     <p v-if="isClientLogin" class="text-center m-0">
-                                        Don't have an account?
-                                        <a class="register-link" @click="navigateToRegister">Sign up</a>
+                                        Chưa có tài khoản?
+                                        <a style="cursor: pointer;" class="register-link" @click="navigateToRegister">Đăng ký</a>
                                     </p>
                                     <p v-else class="text-center m-0 text-secondary small">
-                                        System Management Access Only
+                                        Cho nhân viên và quản lý
                                     </p>
                                 </div>
                             </div>
@@ -87,22 +117,26 @@ const switchTab = (isClient) => {
                                                     <div class="form-floating mb-3">
                                                         <input v-model="email" type="text"
                                                             class="form-control border-0 border-bottom rounded-0"
+                                                            :class="{ 'is-invalid': errors.email }"
                                                             name="email" id="email" placeholder="name@example.com"
-                                                            required>
+                                                            >
 
                                                         <label for="email" class="form-label"
                                                             :class="{ 'admin-label': !isClientLogin }">
                                                             {{ isClientLogin ? 'Email' : 'Administrator Username' }}
                                                         </label>
+                                                        <div class="invalid-feedback">{{ errors.email }}</div>
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
                                                     <div class="form-floating mb-3">
                                                         <input v-model="password" type="password"
                                                             class="form-control border-0 border-bottom rounded-0"
+                                                            :class="{ 'is-invalid': errors.password }"
                                                             name="password" id="password" value=""
-                                                            placeholder="Password" required>
+                                                            placeholder="Password">
                                                         <label for="password" class="form-label">Password</label>
+                                                        <div class="invalid-feedback">{{ errors.password }}</div>
                                                     </div>
                                                 </div>
 
@@ -202,6 +236,8 @@ const switchTab = (isClient) => {
     </div>
 </template>
 
+
+
 <style scoped>
 .main-content {
     display: flex;
@@ -217,12 +253,6 @@ const switchTab = (isClient) => {
     justify-content: center;
     height: 100%;
     width: 80%;
-    /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); */
-}
-
-.full-sized {
-    width: 100%;
-
 }
 
 .etched-container-2 {
@@ -235,10 +265,40 @@ const switchTab = (isClient) => {
     width: 70%;
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background-color: white;
 }
 
 .container {
     width: 100% !important;
-    ;
+}
+
+.login-link:hover {
+    color: #0d6efd;
+}
+
+.half-sized {
+    width: 50%;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+    text-align: left;
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+.form-control.is-invalid:focus {
+    border-bottom: 1px solid #dc3545 !important;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
 }
 </style>
