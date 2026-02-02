@@ -23,8 +23,7 @@ public class KhachHang {
     @Column(name = "id_khach_hang", nullable = false)
     private Integer id;
 
-    @Size(max = 50)
-    @Column(name = "ma_khach_hang", length = 50)
+    @Column(name = "ma_khach_hang", insertable = false, updatable = false)
     private String maKhachHang;
 
     @Size(max = 100)
@@ -52,6 +51,13 @@ public class KhachHang {
 
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;
+
+    // --- Bổ sung các trường mới ---
+
+    @Size(max = 500)
+    @Column(name = "anh_dai_dien", length = 500)
+    private String anhDaiDien;
+    // ----------------------------
 
     @Size(max = 50)
     @Column(name = "ten_dang_nhap", length = 50)
@@ -81,4 +87,11 @@ public class KhachHang {
     @OneToMany(mappedBy = "idKhachHang")
     private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
 
+    @PrePersist
+    protected void onCreate() {
+        this.ngayTaoTaiKhoan = Instant.now();
+        if (this.diemTichLuy == null) {
+            this.diemTichLuy = 0;
+        }
+    }
 }
