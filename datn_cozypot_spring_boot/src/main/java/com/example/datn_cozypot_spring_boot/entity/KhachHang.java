@@ -1,10 +1,7 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
-<<<<<<< HEAD
-import jakarta.validation.constraints.NotNull;
-=======
->>>>>>> main
+
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
