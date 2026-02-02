@@ -1,6 +1,7 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
+import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.service.KhachHangService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -91,6 +93,16 @@ public class KhachHangController {
     @GetMapping("/active")
     public ResponseEntity<?> getActiveCustomers() {
         return ResponseEntity.ok(service.getActive());
+    }
+
+    @GetMapping("/thong-ke")
+    public ResponseEntity<List<KhachHangThongKeResponse>> thongKeKhachHang(
+            @RequestParam int thang,
+            @RequestParam int nam) {
+
+        return ResponseEntity.ok(
+                service.thongKeKhachHang(thang, nam)
+        );
     }
 
 }
