@@ -23,7 +23,7 @@ const pageSize = ref(6);
 const searchForm = ref({
   soDienThoai: "",
   trangThai: "",
-  ngayDat: "",
+  thoiGianDat: "",
 });
 
 const trangThaiList = [
@@ -43,15 +43,15 @@ const danhSachBan = ref([]);
 const buildSearchPayload = () => {
   let ngayDat = null;
 
-  if (searchForm.value.ngayDat) {
+  if (searchForm.value.thoiGianDat) {
     // logic giống format("YYYY-MM-DD")
-    ngayDat = dayjs(searchForm.value.ngayDat).format("YYYY-MM-DD");
+    ngayDat = dayjs(searchForm.value.thoiGianDat).format("YYYY-MM-DD");
   }
 
   return {
     soDienThoai: searchForm.value.soDienThoai || null,
     trangThai: searchForm.value.trangThai || null,
-    ngayDat, // yyyy-MM-dd
+    thoiGianDat: ngayDat, // yyyy-MM-dd
   };
 };
 
@@ -67,12 +67,37 @@ const searchDatBan = async () => {
     });
 
     listPhieuDatBan.value = data.content;
-    listPhieuDatBanFiltered.value = data.content; 
+    // listPhieuDatBanFiltered.value = data.content; 
     totalPages.value = data.totalPages;
   } catch (error) {
     console.error("Lỗi searchDatBan:", error);
   }
 };
+const onSearchClick = () => {
+  currentPage.value = 1;
+  searchDatBan();
+};
+// const listPhieuDatBanFiltered = computed(() => {
+//   return listPhieuDatBan.value.filter((phieu) => {
+//     if (searchForm.value.soDienThoai && 
+//         !phieu.soDienThoai?.includes(searchForm.value.soDienThoai)) {
+//       return false;
+//     }
+
+//     if (searchForm.value.trangThai && 
+//         Number(phieu.trangThai) !== Number(searchForm.value.trangThai)) {
+//       return false;
+//     }
+
+//     if (searchForm.value.ngayDat) {
+//       const phieuDate = dayjs(phieu.thoiGianDat).format("YYYY-MM-DD");
+//       const searchDate = dayjs(searchForm.value.ngayDat).format("YYYY-MM-DD");
+//       if (phieuDate !== searchDate) return false;
+//     }
+
+//     return true;
+//   });
+// });
 
 // 2. Hàm chuyển trang
 const changePage = (page) => {
@@ -137,33 +162,39 @@ const onToggleCheckIn = async (phieu) => {
     console.error("Check-in thất bại", err);
   }
 };
-const listPhieuDatBanFiltered = ref([]); // data sau khi bấm tìm kiếm
+// const listPhieuDatBanFiltered = ref([]); // data sau khi bấm tìm kiếm
 
 
 
-const onSearchClick = () => {
-  listPhieuDatBanFiltered.value = listPhieuDatBan.value.filter((phieu) => {
-    // SDT
-    const matchPhone =
-      !searchForm.value.soDienThoai ||
-      phieu.soDienThoai?.includes(searchForm.value.soDienThoai);
+// const onSearchClick = () => {
+//   console.log("searchForm.trangThai:", searchForm.value.trangThai, typeof searchForm.value.trangThai);
+//   console.log("listPhieuDatBan:", listPhieuDatBan.value.map(p => ({
+//     id: p.idDatBan,
+//     trangThai: p.trangThai,
+//     type: typeof p.trangThai
+//   })));
+//   listPhieuDatBanFiltered.value = listPhieuDatBan.value.filter((phieu) => {
+//     // SDT
+//     const matchPhone =
+//       !searchForm.value.soDienThoai ||
+//       phieu.soDienThoai?.includes(searchForm.value.soDienThoai);
 
-    // Trạng thái
-    const matchTrangThai =
-      !searchForm.value.trangThai ||
-      String(phieu.trangThai) === String(searchForm.value.trangThai);
+//     // Trạng thái
+//     const matchTrangThai =
+//       !searchForm.value.trangThai ||
+//       String(phieu.trangThai) === String(searchForm.value.trangThai);
 
-    // Ngày (logic GIỐNG cái mày đưa)
-    let matchDate = true;
-    if (searchForm.value.ngayDat) {
-      matchDate =
-        dayjs(phieu.thoiGianDat).format("YYYY-MM-DD") ===
-        searchForm.value.ngayDat;
-    }
+//     // Ngày (logic GIỐNG cái mày đưa)
+//     let matchDate = true;
+//     if (searchForm.value.ngayDat) {
+//       matchDate =
+//         dayjs(phieu.thoiGianDat).format("YYYY-MM-DD") ===
+//         searchForm.value.ngayDat;
+//     }
 
-    return matchPhone && matchTrangThai && matchDate;
-  });
-};
+//     return matchPhone && matchTrangThai && matchDate;
+//   });
+// };
 
 
 
@@ -205,7 +236,7 @@ onMounted(() => {
           <div style="width: 30%">
             <input
               type="date"
-              v-model="searchForm.ngayDat"
+              v-model="searchForm.thoiGianDat"
               class="form-control"
             />
           </div>
@@ -234,7 +265,7 @@ onMounted(() => {
             </thead>
             <tbody>
               <tr
-                v-for="(phieuDatBan, index) in listPhieuDatBanFiltered"
+                v-for="(phieuDatBan, index) in listPhieuDatBan"
                 :key="phieuDatBan.id"
               >
                 <th>{{ (currentPage - 1) * pageSize + index + 1 }}</th>

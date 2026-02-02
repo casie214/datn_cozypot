@@ -1,24 +1,47 @@
-import ListReserve from "@/pages/employee/screens/tableMana/listReserve.vue";
-import CardTable from "@/pages/employee/screens/tableMana/cardTable.vue";
-import ListTable from "@/pages/employee/screens/tableMana/listTable.vue";
+// import ListReserve from "@/pages/employee/screens/tableMana/listReserve.vue";
+// import CardTable from "@/pages/employee/screens/tableMana/cardTable.vue";
+// import ListTable from "@/pages/employee/screens/tableMana/listTable.vue";
+// import TableCalendar from "@/pages/employee/screens/tableMana/tableCalendar.vue";
+
 import { createRouter, createWebHistory } from "vue-router";
-import TableCalendar from "@/pages/employee/screens/tableMana/tableCalendar.vue";
 import { useAuthStore } from "./pages/guest/authentication/authenticationServices/authenticationService";
+import ListReserve from "./pages/admin/table/modal/listReserve.vue";
+import TableCalendar from "./pages/admin/table/modal/tableCalendar.vue";
+import CardTable from "./pages/admin/table/modal/cardTable.vue";
+import ListTable from "./pages/admin/table/modal/listTable.vue";
 
 const routes = [
+    {
+        path: "/admin/client",
+        name: "clientManager",
+        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
+    {
+        path: "/login",
+        name: "login",
+        component: () => import("@/pages/guest/authentication/loginPage.vue")
+    },
+    {
+        path: "/register",
+        name: "register",
+        component: () => import("@/pages/guest/authentication/registerPage.vue")
+    },
+
   {
-    path: "/manage/food",
-    name: "foodManager",
-    component: () => import("@/pages/admin/food/screens/foodManager.vue"),
+    path: "/admin/dashboard",
+    name: "adminDashboard",
+    component: () => import("@/pages/admin/adminDashboard.vue"),
     meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
   },
-  {
-    path: "/admin/tables",
-          name: "tableManager",   // ✅ name ở đây
 
+    //Table
+
+  {
+    path: "/admin/tables",  // ✅ name ở đây
     name: "tableManager",
     component: () =>
-      import("@/pages/employee/screens/tableMana/tableReserveManager.vue"),
+      import("@/pages/admin/table/screen/tableReserveManager.vue"),
     children: [
       {
         path: "",
@@ -35,23 +58,24 @@ const routes = [
     path: "/admin/checkin",
     name: "tableCheckIn",
     component: () =>
-      import("@/pages/employee/screens/tableMana/tableCheckIn.vue"),
+      import("@/pages/admin/table/screen/tableCheckIn.vue"),
     meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
   },
+//   {
+//     path: "/manage/all",
+//     name: "tableManaAll",
+//     component: () =>
+//       import("@/pages/admin/table/screen/tableManaAll.vue"),
+//     meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
+//   },
   {
     path: "/manage/all",
     name: "tableManaAll",
     component: () =>
-      import("@/pages/employee/screens/tableMana/tableManaAll.vue"),
-    meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
-  },
-  {
-    path: "/tableManage",
-    component: () =>
-      import("@/pages/employee/screens/tableMana/tableManaAll.vue"),
+      import("@/pages/admin/table/screen/tableManaAll.vue"),
     children: [
       {
-        path: "trang-thai",
+        path: "",
         component: CardTable,
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
       },
@@ -61,12 +85,29 @@ const routes = [
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
       },
     ],
-  },{
+  },
+  
+    //NvKh
+  
+  {
         path: "/admin/staff",
         name: "staffManager",
         component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE']}
     },
+
+
+    // Thực đơn
+
+    {
+        path: "/manage/food",
+        name: "foodManager",
+        component: () =>
+
+            import ("./pages/admin/food/screens/foodManager.vue"),
+        meta: { requiresAuth: true, requiredRole: 'ADMIN' }
+    },
+
     {
         path: "/manage/category",
         name: "categoryManager",
@@ -86,22 +127,7 @@ const routes = [
             requiredRole: ['ADMIN']
         }
     },
-    {
-        path: "/admin/client",
-        name: "clientManager",
-        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-    },
-    {
-        path: "/login",
-        name: "login",
-        component: () => import("@/pages/guest/authentication/loginPage.vue")
-    },
-    {
-        path: "/register",
-        name: "register",
-        component: () => import("@/pages/guest/authentication/registerPage.vue")
-    },
+    
     {
         path: "/admin/promotion", 
         name: "promotionManager",
@@ -218,6 +244,8 @@ const routes = [
         redirect: "/home"
     },
 
+    //Đơn hàng
+
     {
         path: "/admin/orders",
         name: "orderManager",
@@ -246,6 +274,9 @@ const routes = [
         meta: { requiresAuth: true, 
             requiredRole: 'ADMIN' }
     },
+
+    //voucher
+
     {
         path: '/admin/voucher',
         name: 'AdminVoucher',

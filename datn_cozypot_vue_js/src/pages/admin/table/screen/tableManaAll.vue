@@ -107,8 +107,8 @@ onUnmounted(() => {
         <li class="nav-item">
           <router-link
             class="nav-link"
-            active-class="active"
-            to="/tableManage/trang-thai"
+            exact-active-class="active"
+            to="/manage/all"
           >
             <i class="fa-solid fa-list"></i>
             Lịch đặt bàn
@@ -119,7 +119,7 @@ onUnmounted(() => {
           <router-link
             class="nav-link"
             active-class="active"
-            to="/tableManage/danh-sach"
+            to="/manage/all/danh-sach"
           >
             <i class="fa-regular fa-calendar"></i>
             Danh sách bàn
