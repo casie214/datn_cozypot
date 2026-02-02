@@ -5,7 +5,6 @@ import com.example.datn_cozypot_spring_boot.dto.request.DatBanSearchRequest;
 import com.example.datn_cozypot_spring_boot.dto.request.DatBanUpdateRequest;
 import com.example.datn_cozypot_spring_boot.dto.request.UpdateBanAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
-import com.example.datn_cozypot_spring_boot.dto.response.DatBanDetailResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.entity.BanAn;
@@ -16,7 +15,6 @@ import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -99,18 +98,29 @@ public class DatBanService {
 
 
     public Page<DatBanListResponse> searchDatBan(
-            DatBanSearchRequest request,
-            Pageable pageable
-    ) {
-        Page<PhieuDatBan> page = phieuDatBanRepository.search(
-                request.getSoDienThoai(),
-                request.getTrangThai(),
-                request.getThoiGianDat(),
-                pageable
-        );
+        DatBanSearchRequest request,
+        Pageable pageable
+) {
+    LocalDateTime start = null;
+    LocalDateTime end = null;
 
-        return page.map(DatBanListResponse::new);
+    if (request.getThoiGianDat() != null) {
+        LocalDate date = request.getThoiGianDat();
+        start = date.atStartOfDay();
+        end = date.plusDays(1).atStartOfDay();
     }
+
+    Page<PhieuDatBan> page = phieuDatBanRepository.search(
+            request.getSoDienThoai(),
+            request.getTrangThai(),
+            start,
+            end,
+            pageable
+    );
+
+    return page.map(DatBanListResponse::new);
+}
+
 
 
     @Transactional
