@@ -19,13 +19,6 @@ public class ChiTietHoaDon {
     @Column(name = "id_chi_tiet_hd", nullable = false)
     private Integer id;
 
-    @Column(name = "don_gia_tai_thoi_diem_ban", precision = 18)
-    private BigDecimal donGiaTaiThoiDiemBan;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_chi_tiet_mon_an")
-    private ChiTietMonAn idChiTietMonAn;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_hoa_don")
     private HoaDonThanhToan idHoaDon;
@@ -34,24 +27,31 @@ public class ChiTietHoaDon {
     @JoinColumn(name = "id_set_lau")
     private SetLau idSetLau;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_chi_tiet_mon_an")
+    private ChiTietMonAn idChiTietMonAn;
+
     @Column(name = "so_luong")
     private Integer soLuong;
 
+    @Column(name = "don_gia_tai_thoi_diem_ban", precision = 18)
+    private BigDecimal donGiaTaiThoiDiemBan;
+
     @Column(name = "thanh_tien", precision = 18)
     private BigDecimal thanhTien;
-
-    @Column(name = "trang_thai_mon")
-    private Integer trangThaiMon;
-
-    @Column(name = "ngay_gio_sua")
-    private OffsetDateTime ngayGioSua;
-
-    @Column(name = "ngay_gio_tao")
-    private OffsetDateTime ngayGioTao;
 
     @Size(max = 255)
     @Nationalized
     @Column(name = "ghi_chu_mon")
     private String ghiChuMon;
+
+    @Column(name = "trang_thai_mon")
+    private Integer trangThaiMon;
+
+    @Column(name = "ngay_gio_tao")
+    private Instant ngayGioTao;
+
+    @Column(name = "ngay_gio_sua")
+    private Instant ngayGioSua;
 
 }

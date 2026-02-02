@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,18 +19,6 @@ public class ThamSoHeThong {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tham_so", nullable = false)
     private Integer id;
-
-    @ColumnDefault("1")
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @ColumnDefault("getdate()")
-    @Column(name = "ngay_cap_nhat")
-    private OffsetDateTime ngayCapNhat;
-
-    @Size(max = 50)
-    @Column(name = "kieu_du_lieu", length = 50)
-    private String kieuDuLieu;
 
     @Size(max = 50)
     @NotNull
@@ -49,9 +37,21 @@ public class ThamSoHeThong {
     @Column(name = "gia_tri", nullable = false)
     private String giaTri;
 
+    @Size(max = 50)
+    @Column(name = "kieu_du_lieu", length = 50)
+    private String kieuDuLieu;
+
     @Size(max = 255)
     @Nationalized
     @Column(name = "mo_ta")
     private String moTa;
+
+    @ColumnDefault("getdate()")
+    @Column(name = "ngay_cap_nhat")
+    private Instant ngayCapNhat;
+
+    @ColumnDefault("1")
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
 }

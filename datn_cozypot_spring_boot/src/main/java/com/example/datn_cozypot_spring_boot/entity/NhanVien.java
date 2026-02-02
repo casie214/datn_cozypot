@@ -1,14 +1,10 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -25,14 +21,11 @@ public class NhanVien {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_vai_tro")
     private VaiTro idVaiTro;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'NV'+right('0000'+CONVERT([varchar](10), [id_nhan_vien]), 4)), '')")
-    @Column(name = "ma_nhan_vien", nullable = false, length = 10)
+    @Size(max = 50)
+    @Column(name = "ma_nhan_vien", length = 50)
     private String maNhanVien;
 
     @Size(max = 100)
@@ -52,7 +45,6 @@ public class NhanVien {
     @Column(name = "mat_khau_dang_nhap")
     private String matKhauDangNhap;
 
-    @ColumnDefault("1")
     @Column(name = "trang_thai_lam_viec")
     private Integer trangThaiLamViec;
 

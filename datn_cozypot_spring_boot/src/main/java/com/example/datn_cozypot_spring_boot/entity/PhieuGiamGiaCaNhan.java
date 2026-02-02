@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,10 +19,6 @@ public class PhieuGiamGiaCaNhan {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_hoa_don_thanh_toan")
-    private HoaDonThanhToan idHoaDonThanhToan;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
 
@@ -30,17 +26,18 @@ public class PhieuGiamGiaCaNhan {
     @JoinColumn(name = "id_phieu_giam_gia")
     private PhieuGiamGia idPhieuGiamGia;
 
-    @Column(name = "trang_thai_su_dung")
-    private Integer trangThaiSuDung;
-
-    @Column(name = "ngay_het_han")
-    private OffsetDateTime ngayHetHan;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_hoa_don_thanh_toan")
+    private HoaDonThanhToan idHoaDonThanhToan;
 
     @Column(name = "ngay_nhan")
-    private OffsetDateTime ngayNhan;
+    private Instant ngayNhan;
 
     @Column(name = "ngay_su_dung")
-    private OffsetDateTime ngaySuDung;
+    private Instant ngaySuDung;
+
+    @Column(name = "trang_thai_su_dung")
+    private Integer trangThaiSuDung;
 
     @Size(max = 100)
     @Nationalized
@@ -51,5 +48,8 @@ public class PhieuGiamGiaCaNhan {
     @Nationalized
     @Column(name = "ghi_chu")
     private String ghiChu;
+
+    @Column(name = "ngay_het_han")
+    private Instant ngayHetHan;
 
 }

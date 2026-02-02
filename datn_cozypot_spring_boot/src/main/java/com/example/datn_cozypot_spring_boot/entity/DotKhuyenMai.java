@@ -1,14 +1,13 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -21,12 +20,6 @@ public class DotKhuyenMai {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_dot_khuyen_mai", nullable = false)
     private Integer id;
-
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'DKM'+right('000'+CONVERT([varchar](10), [id_dot_khuyen_mai]), 3)), '')")
-    @Column(name = "ma_dot_khuyen_mai", nullable = false, length = 10)
-    private String maDotKhuyenMai;
 
     @Size(max = 200)
     @Nationalized
@@ -60,12 +53,11 @@ public class DotKhuyenMai {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private LocalDateTime ngayTao;
+    private Instant ngayTao;
 
     @Column(name = "ngay_sua")
-    private LocalDateTime ngaySua;
+    private Instant ngaySua;
 
     @Size(max = 100)
     @Nationalized

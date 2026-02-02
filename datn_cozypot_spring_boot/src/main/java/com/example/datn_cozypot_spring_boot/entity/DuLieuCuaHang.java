@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -20,27 +20,10 @@ public class DuLieuCuaHang {
     @Column(name = "id_du_lieu", nullable = false)
     private Integer id;
 
-    @ColumnDefault("1")
-    @Column(name = "do_uu_tien")
-    private Integer doUuTien;
-
-    @ColumnDefault("1")
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @ColumnDefault("getdate()")
-    @Column(name = "ngay_cap_nhat")
-    private OffsetDateTime ngayCapNhat;
-
     @Size(max = 200)
     @Nationalized
     @Column(name = "nhom_chu_de", length = 200)
     private String nhomChuDe;
-
-    @Size(max = 200)
-    @Nationalized
-    @Column(name = "tu_khoa", length = 200)
-    private String tuKhoa;
 
     @Nationalized
     @Lob
@@ -52,5 +35,22 @@ public class DuLieuCuaHang {
     @Lob
     @Column(name = "cau_tra_loi", nullable = false)
     private String cauTraLoi;
+
+    @Size(max = 200)
+    @Nationalized
+    @Column(name = "tu_khoa", length = 200)
+    private String tuKhoa;
+
+    @ColumnDefault("1")
+    @Column(name = "do_uu_tien")
+    private Integer doUuTien;
+
+    @ColumnDefault("getdate()")
+    @Column(name = "ngay_cap_nhat")
+    private Instant ngayCapNhat;
+
+    @ColumnDefault("1")
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
 }

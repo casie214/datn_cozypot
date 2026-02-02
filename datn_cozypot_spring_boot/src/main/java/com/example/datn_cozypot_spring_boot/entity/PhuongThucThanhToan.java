@@ -20,23 +20,23 @@ public class PhuongThucThanhToan {
     @Column(name = "id_phuong_thuc", nullable = false)
     private Integer id;
 
-    @ColumnDefault("1")
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @Size(max = 50)
-    @Column(name = "ma_phuong_thuc", length = 50)
-    private String maPhuongThuc;
-
     @Size(max = 100)
     @Nationalized
     @Column(name = "ten_phuong_thuc", length = 100)
     private String tenPhuongThuc;
 
+    @Size(max = 50)
+    @Column(name = "ma_phuong_thuc", length = 50)
+    private String maPhuongThuc;
+
     @Nationalized
     @Lob
     @Column(name = "url_anh_phuong_thuc")
     private String urlAnhPhuongThuc;
+
+    @ColumnDefault("1")
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
     @OneToMany(mappedBy = "idPhuongThucThanhToan")
     private Set<LichSuThanhToan> lichSuThanhToans = new LinkedHashSet<>();

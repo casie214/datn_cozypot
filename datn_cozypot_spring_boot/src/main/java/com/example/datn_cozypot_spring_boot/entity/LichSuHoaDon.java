@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,30 +19,30 @@ public class LichSuHoaDon {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_hoa_don")
-    private HoaDonThanhToan idHoaDon;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_nhan_vien")
     private NhanVien idNhanVien;
 
-    @Column(name = "trang_thai_moi")
-    private Integer trangThaiMoi;
-
-    @Column(name = "trang_thai_truoc_do")
-    private Integer trangThaiTruocDo;
-
-    @Column(name = "thoi_gian_thuc_hien")
-    private OffsetDateTime thoiGianThucHien;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_hoa_don")
+    private HoaDonThanhToan idHoaDon;
 
     @Size(max = 255)
     @Nationalized
     @Column(name = "hanh_dong")
     private String hanhDong;
 
+    @Column(name = "thoi_gian_thuc_hien")
+    private Instant thoiGianThucHien;
+
     @Nationalized
     @Lob
     @Column(name = "ly_do_thuc_hien")
     private String lyDoThucHien;
+
+    @Column(name = "trang_thai_truoc_do")
+    private Integer trangThaiTruocDo;
+
+    @Column(name = "trang_thai_moi")
+    private Integer trangThaiMoi;
 
 }

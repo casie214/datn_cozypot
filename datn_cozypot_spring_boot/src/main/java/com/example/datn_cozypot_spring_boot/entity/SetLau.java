@@ -7,7 +7,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -21,35 +21,13 @@ public class SetLau {
     @Column(name = "id_set_lau", nullable = false)
     private Integer id;
 
-    @Column(name = "gia_ban", precision = 18)
-    private BigDecimal giaBan;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_loai_set")
     private LoaiSetLau idLoaiSet;
 
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @Column(name = "ngay_sua")
-    private OffsetDateTime ngaySua;
-
-    @Column(name = "ngay_tao")
-    private OffsetDateTime ngayTao;
-
     @Size(max = 50)
     @Column(name = "ma_set_lau", length = 50)
     private String maSetLau;
-
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "nguoi_sua", length = 100)
-    private String nguoiSua;
-
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "nguoi_tao", length = 100)
-    private String nguoiTao;
 
     @Size(max = 200)
     @Nationalized
@@ -58,18 +36,40 @@ public class SetLau {
 
     @Nationalized
     @Lob
+    @Column(name = "mo_ta")
+    private String moTa;
+
+    @Column(name = "gia_ban", precision = 18)
+    private BigDecimal giaBan;
+
+    @Nationalized
+    @Lob
     @Column(name = "hinh_anh")
     private String hinhAnh;
 
     @Nationalized
     @Lob
-    @Column(name = "mo_ta")
-    private String moTa;
-
-    @Nationalized
-    @Lob
     @Column(name = "mo_ta_chi_tiet")
     private String moTaChiTiet;
+
+    @Column(name = "ngay_tao")
+    private Instant ngayTao;
+
+    @Column(name = "ngay_sua")
+    private Instant ngaySua;
+
+    @Size(max = 100)
+    @Nationalized
+    @Column(name = "nguoi_tao", length = 100)
+    private String nguoiTao;
+
+    @Size(max = 100)
+    @Nationalized
+    @Column(name = "nguoi_sua", length = 100)
+    private String nguoiSua;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
     @OneToMany(mappedBy = "idSetLau")
     private Set<ChiTietHoaDon> chiTietHoaDons = new LinkedHashSet<>();

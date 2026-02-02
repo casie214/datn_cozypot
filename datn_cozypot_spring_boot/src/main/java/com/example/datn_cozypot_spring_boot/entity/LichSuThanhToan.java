@@ -7,7 +7,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -20,29 +20,29 @@ public class LichSuThanhToan {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_hoa_don")
-    private HoaDonThanhToan idHoaDon;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_phuong_thuc_thanh_toan")
     private PhuongThucThanhToan idPhuongThucThanhToan;
 
-    @Column(name = "so_tien_thanh_toan", precision = 18)
-    private BigDecimal soTienThanhToan;
-
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @Column(name = "ngay_thanh_toan")
-    private OffsetDateTime ngayThanhToan;
-
-    @Size(max = 100)
-    @Column(name = "ma_giao_dich", length = 100)
-    private String maGiaoDich;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_hoa_don")
+    private HoaDonThanhToan idHoaDon;
 
     @Size(max = 100)
     @Nationalized
     @Column(name = "ten_phuong_thuc", length = 100)
     private String tenPhuongThuc;
+
+    @Size(max = 100)
+    @Column(name = "ma_giao_dich", length = 100)
+    private String maGiaoDich;
+
+    @Column(name = "so_tien_thanh_toan", precision = 18)
+    private BigDecimal soTienThanhToan;
+
+    @Column(name = "ngay_thanh_toan")
+    private Instant ngayThanhToan;
+
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 
 }
