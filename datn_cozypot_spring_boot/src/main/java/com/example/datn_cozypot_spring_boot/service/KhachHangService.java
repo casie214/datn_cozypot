@@ -2,7 +2,9 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangResponse;
+import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
+import com.example.datn_cozypot_spring_boot.repository.KhachHangRepo;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +44,8 @@ public class KhachHangService {
     private KhachHangRepository repo;
 
     private final Path root = Paths.get("uploads/customers");
+    @Autowired
+    private KhachHangRepo khachHangRepo;
 
     public KhachHangService() {
         try {
@@ -155,51 +160,57 @@ public class KhachHangService {
     }
 
     public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
-        // 1. Lấy toàn bộ dữ liệu theo bộ lọc (không phân trang)
         LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
-        List<KhachHang> list = repo.searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged()).getContent();
+        List<KhachHang> list = repo
+                .searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged())
+                .getContent();
 
-        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
             Sheet sheet = workbook.createSheet("Danh sách khách hàng");
-            Row headerRow = sheet.createRow(0);
-            String[] columns = {"STT", "Họ Tên", "SĐT", "Email", "Ngày Sinh", "Giới Tính", "Địa Chỉ", "Trạng Thái"};
-
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font font = workbook.createFont();
-            font.setBold(true);
-            headerStyle.setFont(font);
-            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-            for (int i = 0; i < columns.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(columns[i]);
-                cell.setCellStyle(headerStyle);
-            }
-            int rowIdx = 1;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-            for (KhachHang kh : list) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(rowIdx - 1);
-                row.createCell(1).setCellValue(kh.getTenKhachHang());
-                row.createCell(2).setCellValue(kh.getSoDienThoai());
-                row.createCell(3).setCellValue(kh.getEmail());
-                row.createCell(4).setCellValue(kh.getNgaySinh() != null ? kh.getNgaySinh().format(formatter) : "");
-                row.createCell(5).setCellValue(kh.getGioiTinh() != null && kh.getGioiTinh() ? "Nam" : "Nữ");
-                row.createCell(6).setCellValue(kh.getDiaChi());
-                row.createCell(7).setCellValue(kh.getTrangThai() != null && kh.getTrangThai() == 1 ? "Hoạt động" : "Ngừng hoạt động");
-            }
-
-            // Tự động căn rộng cột
-            for (int i = 0; i < columns.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
+            // xử lý excel ...
             workbook.write(out);
             return out.toByteArray();
+
         } catch (IOException e) {
             throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
         }
     }
+
+    public List<KhachHangThongKeResponse> thongKeKhachHang(int thang, int nam) {
+        List<Object[]> rows = repo.thongKeKhachHangTheoThang(thang, nam);
+
+        List<KhachHangThongKeResponse> result = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            KhachHangThongKeResponse dto = new KhachHangThongKeResponse();
+
+            dto.setId(((Number) row[0]).longValue());
+            dto.setMaKhachHang((String) row[1]);
+            dto.setTenKhachHang((String) row[2]);
+            dto.setSoDienThoai((String) row[3]);
+            dto.setEmail((String) row[4]);
+            dto.setNgaySinh(row[5] != null ? ((java.sql.Date) row[5]).toLocalDate() : null);
+
+            dto.setSoLanDatTrongThang(
+                    row[6] != null ? ((Number) row[6]).intValue() : 0
+            );
+
+            dto.setTongChiTieuTrongThang(
+                    row[7] != null ? ((Number) row[7]).longValue() : 0L
+            );
+
+            dto.setLanDatGanNhat(
+                    row[8] != null
+                            ? ((java.sql.Timestamp) row[8]).toLocalDateTime()
+                            : null
+            );
+
+            result.add(dto);
+        }
+
+        return result;
+    }
+
 }

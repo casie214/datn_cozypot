@@ -3,6 +3,10 @@ import com.example.datn_cozypot_spring_boot.dto.KhuyenMaiThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
 import com.example.datn_cozypot_spring_boot.repository.DotKhuyenMaiRepository;
 import jakarta.mail.internet.MimeMessage;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -27,9 +31,13 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async; // Thêm import này
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -296,5 +304,136 @@ public class PhieuGiamGiaService {
 
         return dto;
     }
+
+    @Transactional
+    public void exportExcel(
+            String keyword,
+            Integer trangThai,
+            Integer doiTuong,
+            Integer loaiGiamGia,
+            LocalDateTime ngayBatDau,
+            LocalDateTime ngayKetThuc,
+            OutputStream outputStream
+    ) throws IOException {
+
+        List<PhieuGiamGia> list = repo.findForExport(
+                keyword,
+                trangThai,
+                doiTuong,
+                loaiGiamGia,
+                ngayBatDau,
+                ngayKetThuc
+        );
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Phiếu giảm giá");
+
+        // ===== HEADER =====
+        Row header = sheet.createRow(0);
+        String[] columns = {
+                "STT",
+                "Mã phiếu",
+                "Code",
+                "Tên phiếu",
+                "Loại giảm",
+                "Giá trị giảm",
+                "Đối tượng",
+                "Số lượng",
+                "Ngày bắt đầu",
+                "Ngày kết thúc",
+                "Trạng thái"
+        };
+
+        for (int i = 0; i < columns.length; i++) {
+            header.createCell(i).setCellValue(columns[i]);
+        }
+
+        int rowIndex = 1;
+        int stt = 1;
+        long now = System.currentTimeMillis();
+
+        // ===== DATA =====
+        for (PhieuGiamGia pg : list) {
+            Row row = sheet.createRow(rowIndex++);
+
+            row.createCell(0).setCellValue(stt++);
+            row.createCell(1).setCellValue(pg.getMaPhieuGiamGia());
+            row.createCell(2).setCellValue(pg.getCodeGiamGia());
+            row.createCell(3).setCellValue(pg.getTenPhieuGiamGia());
+            row.createCell(4).setCellValue(pg.getLoaiGiamGia() == 1 ? "%" : "Tiền");
+            row.createCell(5).setCellValue(
+                    pg.getGiaTriGiam() != null ? pg.getGiaTriGiam().doubleValue() : 0
+            );
+            row.createCell(6).setCellValue(pg.getDoiTuong() == 0 ? "Công khai" : "Cá nhân");
+            row.createCell(7).setCellValue(pg.getSoLuong());
+
+            // NULL SAFE DATE
+            row.createCell(8).setCellValue(
+                    pg.getNgayBatDau() != null ? pg.getNgayBatDau().toString() : ""
+            );
+            row.createCell(9).setCellValue(
+                    pg.getNgayKetThuc() != null ? pg.getNgayKetThuc().toString() : ""
+            );
+
+            String trangThaiText = "Không xác định";
+            if (pg.getTrangThai() != null) {
+                if (pg.getTrangThai() == 0) {
+                    trangThaiText = "Ngừng hoạt động";
+                } else if (pg.getNgayBatDau() != null && pg.getNgayKetThuc() != null) {
+                    long start = pg.getNgayBatDau()
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant().toEpochMilli();
+                    long end = pg.getNgayKetThuc()
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant().toEpochMilli();
+
+                    if (now < start) trangThaiText = "Sắp diễn ra";
+                    else if (now > end) trangThaiText = "Hết hạn";
+                    else trangThaiText = "Hoạt động";
+                }
+            }
+
+            row.createCell(10).setCellValue(trangThaiText);
+        }
+
+        // ===== AUTO SIZE =====
+        for (int i = 0; i < columns.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        workbook.write(outputStream);
+        workbook.close();
+    }
+
+
+    @Async
+    public void sendVoucherExpiredMail(PhieuGiamGia p) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom("CozyPot <email_cua_ban@gmail.com>");
+            helper.setTo("admin@cozypot.vn"); // hoặc email KH
+            helper.setSubject("[CozyPot] Voucher đã hết hạn");
+
+            String html = """
+            <h3>Voucher đã hết hạn</h3>
+            <p>Mã: <b>%s</b></p>
+            <p>Tên: %s</p>
+            <p>Hạn: %s</p>
+        """.formatted(
+                    p.getCodeGiamGia(),
+                    p.getTenPhieuGiamGia(),
+                    p.getNgayKetThuc()
+            );
+
+            helper.setText(html, true);
+            mailSender.send(mimeMessage);
+
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi mail voucher hết hạn: " + e.getMessage());
+        }
+    }
+
 
 }

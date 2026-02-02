@@ -14,6 +14,8 @@ const routes = [
   },
   {
     path: "/admin/tables",
+          name: "tableManager",   // ✅ name ở đây
+
     name: "tableManager",
     component: () =>
       import("@/pages/employee/screens/tableMana/tableReserveManager.vue"),

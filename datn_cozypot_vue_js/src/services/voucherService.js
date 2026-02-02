@@ -24,7 +24,7 @@ const voucherService = {
                 .then(res => res.data);
     },
 
-
+    
     // 2. Lấy chi tiết 1 phiếu
     getById: (id) => axiosClient.get(`${API_URL}/${id}`).then(res => res.data),
 

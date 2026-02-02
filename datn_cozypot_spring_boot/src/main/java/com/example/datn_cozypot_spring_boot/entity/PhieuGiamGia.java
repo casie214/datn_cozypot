@@ -97,5 +97,9 @@ public class PhieuGiamGia {
     @OneToMany(mappedBy = "phieuGiamGia", fetch = FetchType.LAZY)
     private List<PhieuGiamGiaCaNhan> danhSachCaNhan;
 
+    @Column(name = "da_gui_mail_het_han")
+    private Boolean daGuiMailHetHan = false;
+
+
 
 }

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -68,6 +69,40 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
         WHERE p.trangThai = 0
     """)
     long countDaTat();
+
+    @Query("""
+SELECT p FROM PhieuGiamGia p
+WHERE p.ngayKetThuc < :now
+AND p.daGuiMailHetHan = false
+""")
+    List<PhieuGiamGia> findVoucherHetHanChuaGuiMail(
+            @Param("now") LocalDateTime now
+    );
+
+    List<PhieuGiamGia>
+    findByNgayKetThucBeforeAndDaGuiMailHetHanFalse(LocalDateTime now);
+
+    @Query("""
+SELECT p FROM PhieuGiamGia p
+WHERE (:keyword IS NULL OR 
+       LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')))
+AND (:trangThai IS NULL OR p.trangThai = :trangThai)
+AND (:doiTuong IS NULL OR p.doiTuong = :doiTuong)
+AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia)
+AND (:ngayBatDau IS NULL OR p.ngayBatDau >= :ngayBatDau)
+AND (:ngayKetThuc IS NULL OR p.ngayKetThuc <= :ngayKetThuc)
+ORDER BY p.id DESC
+""")
+    List<PhieuGiamGia> findForExport(
+            @Param("keyword") String keyword,
+            @Param("trangThai") Integer trangThai,
+            @Param("doiTuong") Integer doiTuong,
+            @Param("loaiGiamGia") Integer loaiGiamGia,
+            @Param("ngayBatDau") LocalDateTime ngayBatDau,
+            @Param("ngayKetThuc") LocalDateTime ngayKetThuc
+    );
+
 
 
 }

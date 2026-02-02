@@ -26,6 +26,7 @@ const isAdminRoute = computed(() =>{
 </template>
 
 <style>
+
 * {
   box-sizing: border-box;
 }

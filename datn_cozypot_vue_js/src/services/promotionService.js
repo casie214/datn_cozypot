@@ -9,13 +9,13 @@ const promotionService = {
         return axiosClient.get(`${API_URL}/search`, {
             params: {
                 keyword: filters.keyword || null,
-                status: filters.trangThai,
-                // ĐÃ SỬA: Thêm params ngày tháng
+                trangThai: filters.trangThai,
                 ngayBatDau: filters.ngayBatDau || null,
                 ngayKetThuc: filters.ngayKetThuc || null,
                 page: pagination.currentPage - 1,
                 size: pagination.pageSize
             }
+
         }).then(res => res.data);
     },
 
