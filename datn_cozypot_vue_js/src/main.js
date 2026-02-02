@@ -7,6 +7,7 @@ import router from "./router";
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'; 
 import '@fortawesome/fontawesome-free/css/all.min.css'
+import router from "./App";
 
 // Import Datepicker
 import { VueDatePicker } from '@vuepic/vue-datepicker';

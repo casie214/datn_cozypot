@@ -5,6 +5,10 @@ import { getAllCategory } from '../services/foodFunction';
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/manage/table' },
+    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
+    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/manage/tableCheckIn' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
     { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
     { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
