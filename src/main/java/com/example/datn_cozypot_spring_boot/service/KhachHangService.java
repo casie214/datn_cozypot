@@ -2,7 +2,9 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangResponse;
+import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
+import com.example.datn_cozypot_spring_boot.repository.KhachHangRepo;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +27,8 @@ public class KhachHangService {
     private KhachHangRepository repo;
 
     private final Path root = Paths.get("uploads/customers");
+    @Autowired
+    private KhachHangRepo khachHangRepo;
 
     public KhachHangService() {
         try {
@@ -142,6 +147,41 @@ public class KhachHangService {
                 .stream()
                 .map(this::convertToResponse)
                 .toList();
+    }
+
+    public List<KhachHangThongKeResponse> thongKeKhachHang(int thang, int nam) {
+        List<Object[]> rows = repo.thongKeKhachHangTheoThang(thang, nam);
+
+        List<KhachHangThongKeResponse> result = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            KhachHangThongKeResponse dto = new KhachHangThongKeResponse();
+
+            dto.setId(((Number) row[0]).longValue());
+            dto.setMaKhachHang((String) row[1]);
+            dto.setTenKhachHang((String) row[2]);
+            dto.setSoDienThoai((String) row[3]);
+            dto.setEmail((String) row[4]);
+            dto.setNgaySinh(row[5] != null ? ((java.sql.Date) row[5]).toLocalDate() : null);
+
+            dto.setSoLanDatTrongThang(
+                    row[6] != null ? ((Number) row[6]).intValue() : 0
+            );
+
+            dto.setTongChiTieuTrongThang(
+                    row[7] != null ? ((Number) row[7]).longValue() : 0L
+            );
+
+            dto.setLanDatGanNhat(
+                    row[8] != null
+                            ? ((java.sql.Timestamp) row[8]).toLocalDateTime()
+                            : null
+            );
+
+            result.add(dto);
+        }
+
+        return result;
     }
 
 }

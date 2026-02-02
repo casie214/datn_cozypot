@@ -3,6 +3,7 @@ package com.example.datn_cozypot_spring_boot.controller;
 import com.example.datn_cozypot_spring_boot.dto.DotKhuyenMaiDTO;
 import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
 import com.example.datn_cozypot_spring_boot.service.DotKhuyenMaiService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -80,12 +82,36 @@ public class DotKhuyenMaiController {
         }
     }
 
+    @GetMapping("/export-excel")
+    public void exportExcel(HttpServletResponse response) {
+        try {
+            response.setContentType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            response.setHeader(
+                    "Content-Disposition",
+                    "attachment; filename=dot_khuyen_mai.xlsx"
+            );
+
+            dotKhuyenMaiService.exportExcel(response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace(); // QUAN TRỌNG để thấy lỗi thật trong console
+            throw new RuntimeException("Export Excel failed", e);
+        }
+    }
+
+
+
     @GetMapping("/search")
     public Page<DotKhuyenMaiDTO> search(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngayBD,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ngayKT,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate ngayBatDau,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate ngayKetThuc,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -93,11 +119,14 @@ public class DotKhuyenMaiController {
                 page,
                 size,
                 Sort.by(Sort.Direction.DESC, "id")
-
         );
 
-        return dotKhuyenMaiService.search(keyword, status, ngayBD, ngayKT, pageable);
+        return dotKhuyenMaiService.search(
+                keyword,
+                trangThai,
+                ngayBatDau,
+                ngayKetThuc,
+                pageable
+        );
     }
-
-
 }

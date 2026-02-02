@@ -1,8 +1,7 @@
-package com.example.datn_cozypot_spring_boot.service.implementation;
+package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.entity.PhieuGiamGia;
 import com.example.datn_cozypot_spring_boot.repository.PhieuGiamGiaRepository;
-import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
