@@ -18,16 +18,20 @@
     "@fullcalendar/interaction": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
     "@fullcalendar/vue3": "^6.1.20",
-    "@vuepic/vue-datepicker": "^12.1.0",
-    "axios": "^1.13.3",
+    "@vueform/multiselect": "^2.6.11",
     "@vueform/slider": "^2.1.10",
+    "@vuepic/vue-datepicker": "^12.1.0",
+    "axios": "^1.13.4",
     "boostrap": "^2.0.0",
     "bootstrap": "^5.3.8",
     "dayjs": "^1.11.19",
+    "pinia": "^3.0.4",
     "router": "^2.2.0",
+    "sweetalert2": "^11.26.17",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4",
-    "vue-toastification": "^2.0.0-rc.5"
+    "vue-toastification": "^2.0.0-rc.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.3",

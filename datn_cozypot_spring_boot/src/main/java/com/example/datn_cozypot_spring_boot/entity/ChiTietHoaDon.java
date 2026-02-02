@@ -2,7 +2,9 @@ package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
@@ -12,6 +14,8 @@ import java.time.OffsetDateTime;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "chi_tiet_hoa_don")
 public class ChiTietHoaDon {

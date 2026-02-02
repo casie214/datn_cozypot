@@ -2,7 +2,9 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangResponse;
+import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
+import com.example.datn_cozypot_spring_boot.repository.KhachHangRepo;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,26 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
+
+// Import cho POI (Xử lý Excel)
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+// Import cho Spring Framework (Resource & Response)
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+// Import cho Java IO
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @Service
 public class KhachHangService {
@@ -23,6 +44,8 @@ public class KhachHangService {
     private KhachHangRepository repo;
 
     private final Path root = Paths.get("uploads/customers");
+    @Autowired
+    private KhachHangRepo khachHangRepo;
 
     public KhachHangService() {
         try {
@@ -135,4 +158,59 @@ public class KhachHangService {
         BeanUtils.copyProperties(kh, res);
         return res;
     }
+
+    public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
+        LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
+        List<KhachHang> list = repo
+                .searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged())
+                .getContent();
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
+            // xử lý excel ...
+            workbook.write(out);
+            return out.toByteArray();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
+        }
+    }
+
+    public List<KhachHangThongKeResponse> thongKeKhachHang(int thang, int nam) {
+        List<Object[]> rows = repo.thongKeKhachHangTheoThang(thang, nam);
+
+        List<KhachHangThongKeResponse> result = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            KhachHangThongKeResponse dto = new KhachHangThongKeResponse();
+
+            dto.setId(((Number) row[0]).longValue());
+            dto.setMaKhachHang((String) row[1]);
+            dto.setTenKhachHang((String) row[2]);
+            dto.setSoDienThoai((String) row[3]);
+            dto.setEmail((String) row[4]);
+            dto.setNgaySinh(row[5] != null ? ((java.sql.Date) row[5]).toLocalDate() : null);
+
+            dto.setSoLanDatTrongThang(
+                    row[6] != null ? ((Number) row[6]).intValue() : 0
+            );
+
+            dto.setTongChiTieuTrongThang(
+                    row[7] != null ? ((Number) row[7]).longValue() : 0L
+            );
+
+            dto.setLanDatGanNhat(
+                    row[8] != null
+                            ? ((java.sql.Timestamp) row[8]).toLocalDateTime()
+                            : null
+            );
+
+            result.add(dto);
+        }
+
+        return result;
+    }
+
 }

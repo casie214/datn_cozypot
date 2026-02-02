@@ -29,9 +29,14 @@ const searchForm = ref({
 // 1. Hàm tìm kiếm và phân trang (POST)
 const buildSearchPayload = () => {
   const payload = {
-    soDienThoai: searchForm.value.soDienThoai || null,
-    trangThai: searchForm.value.trangThai || null,
-    ngayDat: null,
+    // 1. Số điện thoại là String -> Gửi chuỗi rỗng OK
+    soDienThoai: searchForm.value.soDienThoai ? searchForm.value.soDienThoai.trim() : "", 
+    
+    // 2. Trạng thái là Số (Integer) -> Nếu rỗng phải gửi NULL, không được gửi ""
+    trangThai: searchForm.value.trangThai === "" ? null : searchForm.value.trangThai,
+    
+    // 3. Ngày đặt -> Mặc định null
+    ngayDat: null, 
   };
 
   if (searchForm.value.ngayDat) {
@@ -79,23 +84,13 @@ onMounted(() => {
       <!-- TAB -->
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <router-link
-            class="nav-link"
-            exact-active-class="active"
-            to="/manage/table"
-          >
-            <i class="fa-solid fa-list"></i>
+          <router-link class="nav-link" exact-active-class="active" to="/admin/tables"> <i class="fa-solid fa-list"></i>
             Danh sách phiếu
           </router-link>
         </li>
         <li class="nav-item">
-          <router-link
-            class="nav-link"
-            active-class="active"
-            to="/manage/table/calendar"
-          >
-            <i class="fa-regular fa-calendar"></i>
-            Lịch đặt bàn
+          <router-link class="nav-link" active-class="active" to="/admin/tables/calendar"> <i
+              class="fa-regular fa-calendar"></i> Lịch đặt bàn
           </router-link>
         </li>
       </ul>
@@ -103,7 +98,6 @@ onMounted(() => {
 
       <div class="contain-frame mt-3">
         <router-view />
-        <!-- nội dung đổi ở đây -->
       </div>
     </div>
   </div>
@@ -200,7 +194,7 @@ hr {
   left: calc(1.3 * var(--size));
 }
 
-.checkbox-wrapper-5 .check input[type="checkbox"]:checked + label {
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label {
   background: transparent;
 }
 
@@ -232,15 +226,15 @@ hr {
   transform-origin: 0 0 calc(-0.4 * var(--size));
 }
 
-.checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::before,
-.checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::before,
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::after {
   left: calc(1.55 * var(--size));
   top: calc(0.4 * var(--size));
   line-height: calc(0.1 * var(--size));
   transform: rotateY(360deg);
 }
 
-.checkbox-wrapper-5 .check input[type="checkbox"]:checked + label::after {
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::after {
   height: calc(0.16 * var(--size));
   top: calc(0.55 * var(--size));
   left: calc(1.6 * var(--size));
@@ -391,13 +385,15 @@ hr {
 }
 
 .btn-custom-outline {
-  background-color: transparent !important; /* Ép không có màu nền mặc định */
+  background-color: transparent !important;
+  /* Ép không có màu nền mặc định */
   color: #7d161a !important;
   border: 1px solid #7d161a !important;
 }
 
 .btn-custom-outline:hover {
-  background-color: #7d161a !important; /* Chỉ đỏ khi hover */
+  background-color: #7d161a !important;
+  /* Chỉ đỏ khi hover */
   color: #ffffff !important;
 }
 

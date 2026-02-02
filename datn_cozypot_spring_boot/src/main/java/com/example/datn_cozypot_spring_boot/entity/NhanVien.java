@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 import java.time.LocalDate;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -16,7 +18,7 @@ public class NhanVien {
     @Column(name = "id_nhan_vien", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_vai_tro")
     private VaiTro idVaiTro;
 
@@ -69,4 +71,17 @@ public class NhanVien {
 
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;
+
+    @OneToMany(mappedBy = "idNhanVien")
+    private Set<GiaoCa> giaoCas = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "idNhanVien")
+    private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "idNhanVien")
+    private Set<LichLamViec> lichLamViecs = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "idNhanVien")
+    private Set<LichSuHoaDon> lichSuHoaDons = new LinkedHashSet<>();
+
 }

@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import Sidebar from './components/sidebar.vue';
 import Header from './components/adminHeader.vue'; // 1. Import Header
+import { useRoute } from 'vue-router';
+import { computed } from 'vue';
+
+const route = useRoute();
+
+const isAdminRoute = computed(() =>{
+  return route.path.startsWith('/admin') || route.path.startsWith('/manage');
+})
 </script>
 
 <template>
   <div class="app-container">
-    <Sidebar class="app-sidebar" />
+    <Sidebar class="app-sidebar" v-if="isAdminRoute" />
 
     <div class="main-layout">
       <Header/>
@@ -16,9 +24,9 @@ import Header from './components/adminHeader.vue'; // 1. Import Header
     </div>
   </div>
 </template>
-/* ... (Giữ nguyên style cũ) ... */
+
 <style>
-/* Reset padding/margin toàn trang */
+
 * {
   box-sizing: border-box;
 }

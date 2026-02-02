@@ -20,7 +20,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
-@RequestMapping("/dat-ban")
+@RequestMapping("/api/dat-ban")
 public class DatBanController {
     @Autowired
     DatBanService datBanService;

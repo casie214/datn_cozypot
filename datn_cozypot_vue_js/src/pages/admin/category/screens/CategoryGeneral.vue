@@ -2,21 +2,34 @@
 import CategoryAddModal from '../modal/addModal/CategoryAddModal.vue';
 import CategoryPutModal from '../modal/updateModal/CategoryPutModal.vue';
 import { useCategoryManager } from '../../../../services/foodFunction';
+import { ref } from 'vue';
+import CommonPagination from '@/components/commonPagination.vue';
+import { useRouter } from 'vue-router';
 
-// Import các biến mới
 const { 
     categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
-    paginatedData, searchQuery, 
-    sortOption, statusSort, // Import 2 biến sort
+    paginatedData, searchQuery, totalElements,
+    sortOption, statusSort, 
     currentPage, totalPages, visiblePages, itemsPerPage, changePage
 } = useCategoryManager();
 
 const handleRefreshList = () => {
     setTimeout(() => { getAllCategories(); }, 500);
 };
+const router = useRouter();
 
-import { ref } from 'vue';
+
 const addFormData = ref({}); 
+
+const goToFoodList = (category) => {
+    router.push({
+        name: 'foodManager', 
+        query: { 
+            preRoot: category.id, 
+            locked: 'true'   
+        }
+    });
+};
 </script>
 
 <template>
@@ -59,7 +72,7 @@ const addFormData = ref({});
       <button class="btn-add" @click="isModalOpen = true">+ Thêm danh mục</button>
     </div>
 
-    <div class="table-container" style="min-height: 305px;">
+    <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
           <tr>
@@ -90,28 +103,35 @@ const addFormData = ref({});
             </td>
             
             <td class="actions">
-              <button class="btn-icon" @click="openModal(item)">✏️</button>
-              <div class="toggle-switch" :class="{ 'on': item.trangThai === 1 }"
-                   @click.stop="handleToggleStatus(item)">
-                <div class="toggle-knob"></div>
+              <div class="action-group">
+                <i style="cursor:pointer;" 
+                   class="fas fa-list-ul view-icon me-2" 
+                   title="Xem danh sách món thuộc danh mục này"
+                   @click="goToFoodList(item)">
+                </i>
+
+                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
+                  @click="openModal(item)"></i>
+
+                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
+                  @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <div class="pagination" v-if="totalPages > 1">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
-        :class="{ 'disabled': currentPage === 1 }">&lt;</button>
-        
-      <template v-for="(page, index) in visiblePages" :key="index">
-        <button v-if="page === '...'" class="dots" disabled>...</button>
-        <button v-else @click="changePage(page)" :class="{ 'active': currentPage === page }">{{ page }}</button>
-      </template>
-      
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
-        :class="{ 'disabled': currentPage === totalPages }">&gt;</button>
+      <div style="padding-bottom: 30px;" class="pagination">
+           <CommonPagination
+                v-model:currentPage="currentPage"
+                v-model:pageSize="itemsPerPage"
+                :total-pages="totalPages"
+                :total-elements="totalElements"
+                :current-count="paginatedData.length"
+                @change="() => {}" 
+            />
+      </div>
     </div>
 
     <CategoryAddModal :isOpen="isModalOpen" :formData="addFormData" @close="isModalOpen = false" @save="handleRefreshList" @refresh="handleRefreshList"/>
@@ -121,4 +141,25 @@ const addFormData = ref({});
 
 <style scoped>
 @import url("/src/assets/foodManager.css");
+.actions {
+    height: 100%;
+    display: table-cell;
+}
+
+.action-group {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 15px;
+}
+
+.action-group i {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-group i:hover {
+    transform: scale(1.2);
+}
 </style>
