@@ -13,6 +13,7 @@ const clientService = {
     });
   },
 
+  
   getDetail: (id) => {
     return axiosClient.get(`/khach-hang/${id}`);
   },

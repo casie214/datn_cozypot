@@ -1,5 +1,5 @@
 <template>
-    <div class="flex-grow-1 promotion-manager-wrapper">
+    <div class=" promotion-manager-wrapper">
         <div class="toast-container">
             <div v-for="t in toasts" :key="t.id" class="custom-toast" :class="t.type">
                 <i :class="t.type === 'error' ? 'fa-solid fa-circle-xmark' : 'fa-solid fa-circle-check'"></i>
@@ -11,19 +11,34 @@
             </div>
         </div>
 
+        <div v-if="confirmModal.show" class="modal-overlay" @click.self="confirmModal.show = false">
+            <div class="confirm-modal animate__animated animate__zoomIn">
+                <div class="confirm-icon">
+                    <i class="fa-solid fa-circle-question"></i>
+                </div>
+                <h4 class="mt-3">{{ confirmModal.title }}</h4>
+                <p class="text-muted">{{ confirmModal.message }}</p>
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <button class="btn btn-light px-4" @click="confirmModal.show = false">Hủy bỏ</button>
+                    <button class="btn-red-dark px-4" @click="executeConfirm">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="title-page">Quản lý đợt khuyến mãi</h2>
             </div>
+            
 
             <div class="filter-card mb-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-8">
                         <label class="filter-label">Tìm kiếm</label>
                         <input v-model="filters.keyword" class="form-control custom-input"
                             placeholder="Nhập mã hoặc tên để tìm..." @input="onSearchInput">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <label class="filter-label">Trạng thái</label>
                         <select v-model.number="filters.trangThai" class="form-select custom-input"
                             @change="handleSearch">
@@ -33,17 +48,36 @@
                             <option :value="2">Đã hết hạn</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="filter-label">Từ ngày</label>
                         <input type="date" v-model="filters.ngayBatDau" class="form-control custom-input"
-                            @change="handleSearch">
+                            @change="onFilterChange" />
                     </div>
-                    <div class="col-md-2">
+
+                    <div class="col-md-3">
                         <label class="filter-label">Đến ngày</label>
                         <input type="date" v-model="filters.ngayKetThuc" class="form-control custom-input"
-                            @change="handleSearch">
+                            @change="onFilterChange" />
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
+
+                    <div class="col-md-3">
+                        <label class="filter-label">
+                            Giảm giá:
+                            <span class="percent-text">
+                                {{ filters.minPercent }}% – {{ filters.maxPercent }}%
+                            </span>
+                        </label>
+
+                        <div class="range-slider">
+                            <input type="range" min="0" max="100" step="5" v-model="filters.minPercent"
+                                @input="handlePercentChange" />
+
+                            <input type="range" min="0" max="100" step="5" v-model="filters.maxPercent"
+                                @input="handlePercentChange" />
+                        </div>
+
+                    </div>
+                    <div class="col-md-3 d-flex justify-content-end align-items-end">
                         <button class="btn-reset-filter" @click="resetFilters">
                             <i class="fas fa-sync-alt"></i> Bỏ lọc
                         </button>
@@ -51,8 +85,11 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn-red-dark" @click="openFormAdd">
+            <div class="d-flex justify-content-end mb-3 gap-2">
+                <button class="btn-red-dark" @click="exportExcel">
+                    <i class="fas fa-file-excel me-2"></i> Xuất Excel
+                </button>
+                <button class="btn-red-dark " @click="openFormAdd">
                     <i class="fas fa-plus me-2"></i> Thêm đợt khuyến mãi
                 </button>
             </div>
@@ -71,14 +108,18 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- ✅ Có dữ liệu -->
                         <tr v-for="(km, index) in listKhuyenMai" :key="km.id">
                             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
                             <td class="fw-bold text-dark">{{ km.maDotKhuyenMai }}</td>
                             <td>{{ km.tenDotKhuyenMai }}</td>
                             <td class="text-center text-danger fw-bold">{{ km.phanTramGiam }}%</td>
                             <td>
-                                <small>{{ km.ngayBatDau }} <i class="fas fa-arrow-right mx-1"></i> {{ km.ngayKetThuc
-                                }}</small>
+                                <small>
+                                    {{ km.ngayBatDau }}
+                                    <i class="fas fa-arrow-right mx-1"></i>
+                                    {{ km.ngayKetThuc }}
+                                </small>
                             </td>
                             <td>
                                 <span :class="calculateStatus(km).class">
@@ -87,37 +128,99 @@
                             </td>
                             <td class="text-center">
                                 <div class="action-group">
-                                    <i class="fas fa-eye view-icon" title="Xem chi tiết"
-                                        @click="openFormView(km.id)"></i>
-                                    <i class="fas fa-pen edit-icon" title="Chỉnh sửa" @click="openFormEdit(km.id)"></i>
-                                    <div class="form-check form-switch d-inline-block mb-0">
-                                        <input class="form-check-input custom-red-switch" type="checkbox"
-                                            :checked="km.trangThai === 1" :disabled="isExpired(km.ngayKetThuc)"
-                                            @click.prevent="!isExpired(km.ngayKetThuc) && handleToggleStatus(km)"
-                                            :title="isExpired(km.ngayKetThuc) ? 'Khuyến mãi đã hết hạn, không thể đổi trạng thái' : ''">
+                                    <div class="icon-tooltip">
+                                        <i class="fas fa-eye view-icon" @click="openFormView(km.id)"></i>
+                                        <span class="tooltip-text">Xem chi tiết</span>
+                                    </div>
+                                    <div class="icon-tooltip">
+                                        <i class="fas fa-pen edit-icon" @click="openFormEdit(km.id)"></i>
+                                        <span class="tooltip-text">Chỉnh sửa</span>
+                                    </div>
+                                    <div class="icon-tooltip d-inline-block">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input custom-red-switch" type="checkbox"
+                                                :checked="km.trangThai === 1" :disabled="isExpired(km.ngayKetThuc)"
+                                                @click.prevent="!isExpired(km.ngayKetThuc) && handleToggleStatus(km)">
+                                        </div>
+
+                                        <span class="tooltip-text">
+                                            {{ isExpired(km.ngayKetThuc)
+                                                ? 'Khuyến mãi đã hết hạn'
+                                                : 'Bật / Tắt khuyến mãi' }}
+                                        </span>
                                     </div>
                                 </div>
+                            </td>
+                        </tr>
+                        <tr v-if="listKhuyenMai.length === 0">
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-search me-2"></i>
+                                Không tìm thấy dữ liệu phù hợp
                             </td>
                         </tr>
                     </tbody>
                 </table>
 
-                <div class="pagination-wrapper mt-3">
-                    <button class="pg-btn" :disabled="pagination.currentPage === 1"
-                        @click="changePage(pagination.currentPage - 1)">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="pg-numbers">
-                        <button v-for="page in pagination.totalPages" :key="page" class="pg-num"
-                            :class="{ 'active': page === pagination.currentPage }" @click="changePage(page)">
-                            {{ page }}
+                <div class="pagination-wrapper d-flex justify-content-between align-items-center mt-4 px-2">
+
+                    <div class="d-flex align-items-center">
+                        <span class="me-2 text-muted">Hiển thị</span>
+                        <select v-model="pagination.pageSize"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }">
+                            <option :value="5">5 dòng</option>
+                            <option :value="8">8 dòng</option>
+                            <option :value="10">10 dòng</option>
+                            <option :value="20">20 dòng</option>
+                        </select>
+                    </div>
+
+                    <div class="pagination-controls d-flex align-items-center">
+                        <button class="btn-page" :disabled="pagination.currentPage === 1" @click="goToPage(1)">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+
+                        <button class="btn-page" :disabled="pagination.currentPage === 1" @click="changePage(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+
+                        <div class="mx-3 d-flex align-items-center">
+                            <template v-if="pagination.totalPages <= 5">
+                                <span v-for="p in pagination.totalPages" :key="p" class="page-number"
+                                    :class="{ active: pagination.currentPage === p }" @click="goToPage(p)">
+                                    {{ p }}
+                                </span>
+                            </template>
+
+                            <template v-else>
+                                <div class="input-page-wrapper d-flex align-items-center">
+                                    <input type="number" v-model.number="inputPage" class="input-go-to"
+                                        @keyup.enter="jumpToPage">
+                                    <span class="ms-2 text-muted">
+                                        / {{ pagination.totalPages }}
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages"
+                            @click="changePage(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+
+                        <button class="btn-page" :disabled="pagination.currentPage === pagination.totalPages"
+                            @click="goToPage(pagination.totalPages)">
+                            <i class="fas fa-step-forward"></i>
                         </button>
                     </div>
-                    <button class="pg-btn" :disabled="pagination.currentPage === pagination.totalPages"
-                        @click="changePage(pagination.currentPage + 1)">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+
+                    <div class="total-info text-muted">
+                        Hiển thị {{ listKhuyenMai.length }} /
+                        {{ pagination.totalElements }} đợt khuyến mãi
+                    </div>
+
                 </div>
+
+
             </div>
         </div>
 
@@ -138,7 +241,7 @@
                             </h5>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-uppercase">Tên đợt khuyến mãi <span
+                                <label class="form-label fw-bold small ">Tên đợt khuyến mãi <span
                                         class="text-danger">*</span></label>
                                 <input v-model="formData.tenDotKhuyenMai" type="text"
                                     class="form-control custom-input shadow-none"
@@ -149,7 +252,7 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold small text-uppercase">Phần trăm giảm (%) <span
+                                    <label class="form-label fw-bold small ">Phần trăm giảm (%) <span
                                             class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <input v-model.number="formData.phanTramGiam" type="number"
@@ -165,7 +268,7 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold small text-uppercase">Ngày bắt đầu <span
+                                    <label class="form-label fw-bold small ">Ngày bắt đầu <span
                                             class="text-danger">*</span></label>
                                     <input v-model="formData.ngayBatDau" type="date"
                                         class="form-control custom-input shadow-none"
@@ -173,7 +276,7 @@
                                     <div class="invalid-feedback">{{ errors.ngayBatDau }}</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold small text-uppercase">Ngày kết thúc <span
+                                    <label class="form-label fw-bold small ">Ngày kết thúc <span
                                             class="text-danger">*</span></label>
                                     <input v-model="formData.ngayKetThuc" type="date"
                                         class="form-control custom-input shadow-none"
@@ -183,7 +286,7 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-uppercase">Mô tả chương trình</label>
+                                <label class="form-label fw-bold small ">Mô tả chương trình</label>
                                 <textarea v-model="formData.moTa" class="form-control custom-input shadow-none" rows="5"
                                     :disabled="isReadOnly"
                                     placeholder="Mô tả ngắn gọn về chương trình khuyến mãi này..."></textarea>
@@ -197,12 +300,13 @@
 
                             <div class="product-selector-card mb-4">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <label class="fw-bold small text-secondary">HÀNG HÓA / SET LẨU</label>
+                                    <label class="fw-bold small text-secondary">Hàng hóa / Set lẩu</label>
                                     <div v-if="!isReadOnly" class="form-check small">
                                         <input class="form-check-input" type="checkbox" id="selectAll"
                                             :checked="isAllSelected" @change="toggleSelectAll">
                                         <label class="form-check-label text-primary" for="selectAll"
-                                            style="cursor:pointer">Chọn tất cả</label>
+                                            style="cursor:pointer">Chọn
+                                            tất cả</label>
                                     </div>
                                 </div>
                                 <div class="input-group input-group-sm mb-2 shadow-sm">
@@ -267,6 +371,55 @@
                         </div>
                     </div>
 
+                    <div v-if="selectedProducts.length"
+                        class="selected-product-card mt-4 animate__animated animate__fadeIn">
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-primary-red mb-0">
+                                <i class="fas fa-list-check me-2"></i> Sản phẩm đã chọn
+                            </h6>
+                            <button v-if="!isReadOnly" class="btn btn-sm btn-outline-danger" @click="clearAllSelected">
+                                <i class="fas fa-trash me-1"></i> Clear
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Tên</th>
+                                        <th>Loại</th>
+                                        <th class="text-end">Giá</th>
+                                        <th v-if="!isReadOnly" class="text-center">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(item, index) in selectedProducts" :key="item.type + item.id">
+                                        <td>{{ index + 1 }}</td>
+                                        <td class="fw-semibold">{{ item.ten }}</td>
+                                        <td>
+                                            <span :class="item.type === 'SET'
+                                                ? 'badge bg-warning text-dark'
+                                                : 'badge bg-info'">
+                                                {{ item.type }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end text-danger fw-bold">
+                                            {{ formatPrice(item.gia) }}
+                                        </td>
+                                        <td v-if="!isReadOnly" class="text-center">
+                                            <button class="btn btn-sm btn-light" @click="removeSelectedItem(item)">
+                                                ❌
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+
                     <div class="card-footer bg-white border-top p-4 d-flex justify-content-end gap-3">
                         <button type="button" class="btn btn-light px-4 py-2 border text-secondary fw-bold"
                             @click="closeForm">HỦY BỎ</button>
@@ -281,12 +434,65 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { usePromotionLogic } from './promotionFunction.js';
 import promotionService from '@/services/promotionService';
 import '../promotionStyle.css';
+const exportExcel = async () => {
+    try {
+        const response = await axios.get(
+            'http://localhost:8080/api/dot-khuyen-mai/export-excel',
+            {
+                params: {
+                    keyword: filters.keyword,
+                    trangThai: filters.trangThai,
+                    ngayBatDau: filters.ngayBatDau,
+                    ngayKetThuc: filters.ngayKetThuc
+                },
+                responseType: 'blob' // ⚠️ BẮT BUỘC
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'danh_sach_dot_khuyen_mai.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        showToast('Thành công', 'Xuất file Excel thành công!');
+    } catch (error) {
+        console.error(error);
+        showToast('Lỗi', 'Xuất file Excel thất bại!', 'error');
+    }
+};
+
+const onFilterChange = () => {
+    pagination.currentPage = 1;
+    handleSearch();
+};
+const onSearchInput = () => {
+    clearTimeout(window.dt_timer);
+    window.dt_timer = setTimeout(() => {
+        pagination.currentPage = 1; // ✅ đã reset
+        handleSearch();
+    }, 500);
+};
+
+const inputPage = ref(1);
+const pagination = reactive({
+    currentPage: 1,
+    pageSize: 8,
+    totalPages: 0,
+    totalElements: 0
+});
 
 // --- STATE ---
 const { getStatusDisplay, fetchData } = usePromotionLogic();
@@ -295,10 +501,36 @@ const searchMonAn = ref('');
 const isFormActive = ref(false);
 const isReadOnly = ref(false);
 const listKhuyenMai = ref([]);
+const filteredKhuyenMai = ref([]); // ✅ THÊM DÒNG NÀY
 const selectedId = ref(null);
 const listSetLau = ref([]);
 const searchSetLau = ref('');
 const toasts = ref([]);
+const confirmModal = reactive({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: null
+});
+const openConfirm = (title, message, callback) => {
+    confirmModal.title = title;
+    confirmModal.message = message;
+    confirmModal.onConfirm = callback;
+    confirmModal.show = true;
+};
+const formatDateForApi = (dateStr) => {
+    if (!dateStr) return null;
+    // đảm bảo YYYY-MM-DD
+    return new Date(dateStr).toISOString().slice(0, 10);
+};
+
+const executeConfirm = async () => {
+    if (typeof confirmModal.onConfirm === 'function') {
+        await confirmModal.onConfirm();
+    }
+    confirmModal.show = false;
+    confirmModal.onConfirm = null;
+};
 
 const errors = reactive({
     tenDotKhuyenMai: '',
@@ -318,8 +550,22 @@ const formData = reactive({
     idMonAnChiTiet: []
 });
 
-const filters = reactive({ keyword: '', trangThai: null, ngayBatDau: '', ngayKetThuc: '' });
-const pagination = reactive({ currentPage: 1, pageSize: 5, totalPages: 0 });
+const filters = reactive({
+    keyword: '',
+    trangThai: null,
+    ngayBatDau: '',
+    ngayKetThuc: '',
+    minPercent: 0,
+    maxPercent: 100
+});
+const handlePercentChange = () => {
+    if (filters.minPercent > filters.maxPercent) {
+        const temp = filters.minPercent;
+        filters.minPercent = filters.maxPercent;
+        filters.maxPercent = temp;
+    }
+    handleSearch();
+};
 
 // --- COMPUTED ---
 const formTitle = computed(() => {
@@ -351,7 +597,6 @@ const showToast = (title, message, type = 'success') => {
     setTimeout(() => removeToast(id), 4000);
 };
 const removeToast = (id) => { toasts.value = toasts.value.filter(t => t.id !== id); };
-const monAnList = ref([])
 const isAllMonAnSelected = computed(() => {
     if (filteredMonAn.value.length === 0) return false;
     return filteredMonAn.value.every(m =>
@@ -411,55 +656,70 @@ const validateForm = () => {
 };
 
 const handleSearch = async () => {
-    let apiFilters = { ...filters };
-    let currentPagination = { ...pagination };
+    const apiFilters = {
+        keyword: filters.keyword,
+        trangThai: filters.trangThai,
+        ngayBatDau: formatDateForApi(filters.ngayBatDau),
+        ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
+    };
 
-    // Nếu lọc "Hết hạn", ta ép Server trả về số lượng lớn để dồn dữ liệu
-    if (filters.trangThai === 2) {
-        apiFilters.trangThai = null;
-        currentPagination.pageSize = 1000; // Lấy số lượng lớn để không bị chia trang ở Server
-        currentPagination.currentPage = 1;
-    }
+    // 🔥 LẤY TOÀN BỘ DATA (KHÔNG PHÂN TRANG)
+    const data = await fetchData(apiFilters, {
+        currentPage: 1,
+        pageSize: 10000 // đủ lớn
+    });
 
-    const data = await fetchData(apiFilters, currentPagination);
     let results = data.content || [];
+
+    // ===== LỌC % GIẢM =====
+    results = results.filter(km =>
+        km.phanTramGiam >= filters.minPercent &&
+        km.phanTramGiam <= filters.maxPercent
+    );
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Bắt đầu lọc logic
-    if (filters.trangThai === 1) { // Đang hoạt động
+    // ===== LỌC TRẠNG THÁI =====
+    if (filters.trangThai === 1) {
         results = results.filter(km => {
-            const endDate = new Date(km.ngayKetThuc);
-            endDate.setHours(0, 0, 0, 0);
-            return km.trangThai === 1 && endDate >= today;
+            const end = new Date(km.ngayKetThuc);
+            end.setHours(0, 0, 0, 0);
+            return km.trangThai === 1 && end >= today;
         });
     }
-    else if (filters.trangThai === 2) { // Hết hạn
+    else if (filters.trangThai === 0) {
+        results = results.filter(km => km.trangThai === 0);
+    }
+    else if (filters.trangThai === 2) {
         results = results.filter(km => {
-            const endDate = new Date(km.ngayKetThuc);
-            endDate.setHours(0, 0, 0, 0);
-            return endDate < today;
+            const end = new Date(km.ngayKetThuc);
+            end.setHours(0, 0, 0, 0);
+            return end < today;
         });
-        // Cập nhật lại tổng trang dựa trên số lượng sau khi lọc
-        pagination.totalPages = Math.ceil(results.length / pagination.pageSize);
-    } else {
-        pagination.totalPages = data.totalPages || 0;
     }
 
-    listKhuyenMai.value = results;
+    // ✅ LƯU DATA ĐÃ LỌC
+    filteredKhuyenMai.value = results;
+
+    // ===== PHÂN TRANG FE =====
+    pagination.totalElements = results.length;
+    pagination.totalPages = Math.ceil(results.length / pagination.pageSize);
+
+    const start = (pagination.currentPage - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
+
+    listKhuyenMai.value = results.slice(start, end);
 };
+
 
 const submitForm = async () => {
     if (!validateForm()) return;
-    Swal.fire({
-        title: 'Xác nhận lưu?',
-        text: `Bạn có chắc chắn muốn ${selectedId.value ? 'cập nhật' : 'tạo mới'} đợt khuyến mãi này không?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#7B121C',
-        confirmButtonText: 'Có, lưu ngay!',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
+
+    openConfirm(
+        'Xác nhận lưu?',
+        `Bạn có chắc chắn muốn ${selectedId.value ? 'cập nhật' : 'tạo mới'} đợt khuyến mãi này không?`,
+        async () => {
             try {
                 if (selectedId.value) {
                     await promotionService.update(selectedId.value, formData);
@@ -474,19 +734,17 @@ const submitForm = async () => {
                 showToast("Lỗi máy chủ", "Không thể thực hiện thao tác này.", "error");
             }
         }
-    });
+    );
 };
+
 
 const handleToggleStatus = async (km) => {
     const originalStatus = km.trangThai;
-    Swal.fire({
-        title: 'Thay đổi trạng thái?',
-        text: `Xác nhận ${originalStatus === 1 ? 'ngừng' : 'kích hoạt'} đợt khuyến mãi này?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#7B121C',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
+
+    openConfirm(
+        'Thay đổi trạng thái?',
+        `Xác nhận ${originalStatus === 1 ? 'ngừng' : 'kích hoạt'} đợt khuyến mãi này?`,
+        async () => {
             try {
                 await promotionService.toggleStatus(km.id, originalStatus);
                 showToast("Thành công", "Trạng thái đã được cập nhật.");
@@ -495,11 +753,10 @@ const handleToggleStatus = async (km) => {
                 showToast("Lỗi", "Không thể thay đổi trạng thái!", "error");
                 handleSearch();
             }
-        } else {
-            handleSearch();
         }
-    });
+    );
 };
+
 
 const fetchListSetLau = async () => {
     try {
@@ -567,22 +824,66 @@ const openFormAdd = () => {
     isFormActive.value = true;
 };
 
-const openFormEdit = async (id) => { 
-    isReadOnly.value = false; 
-    selectedId.value = id; 
-    await loadDataToForm(id); 
-    
+const openFormEdit = async (id) => {
+    isReadOnly.value = false;
+    selectedId.value = id;
+    await loadDataToForm(id);
+
     // Thêm dòng này để xóa sạch các thông báo lỗi cũ từ lần trước hoặc do logic map gây ra
-    Object.keys(errors).forEach(k => errors[k] = ''); 
-    
-    isFormActive.value = true; 
+    Object.keys(errors).forEach(k => errors[k] = '');
+
+    isFormActive.value = true;
 };
 const openFormView = async (id) => { isReadOnly.value = true; selectedId.value = id; await loadDataToForm(id); isFormActive.value = true; };
 const closeForm = () => { isFormActive.value = false; selectedId.value = null; };
-const onSearchInput = () => { clearTimeout(window.dt_timer); window.dt_timer = setTimeout(() => { pagination.currentPage = 1; handleSearch(); }, 500); };
-const changePage = (p) => { if (p >= 1 && p <= pagination.totalPages) { pagination.currentPage = p; handleSearch(); } };
-const resetFilters = () => { Object.assign(filters, { keyword: '', trangThai: null, ngayBatDau: '', ngayKetThuc: '' }); handleSearch(); };
+const resetFilters = () => {
+    Object.assign(filters, {
+        keyword: '',
+        trangThai: null,
+        ngayBatDau: '',
+        ngayKetThuc: '',
+        minPercent: 0,
+        maxPercent: 100
+    });
+    pagination.currentPage = 1;
+    handleSearch();
+};
 const formatPrice = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
+const selectedProducts = computed(() => {
+    const sets = listSetLau.value
+        .filter(s => formData.idSetLauChiTiet.includes(s.id))
+        .map(s => ({
+            id: s.id,
+            ten: s.tenSetLau,
+            gia: s.giaBan,
+            type: 'SET'
+        }));
+
+    const mons = listMonAnDiKem.value
+        .filter(m => formData.idMonAnChiTiet.includes(m.id))
+        .map(m => ({
+            id: m.id,
+            ten: m.tenMonAn,
+            gia: m.giaBan,
+            type: 'MÓN'
+        }));
+
+    return [...sets, ...mons];
+});
+const removeSelectedItem = (item) => {
+    if (item.type === 'SET') {
+        formData.idSetLauChiTiet =
+            formData.idSetLauChiTiet.filter(id => id !== item.id);
+    } else {
+        formData.idMonAnChiTiet =
+            formData.idMonAnChiTiet.filter(id => id !== item.id);
+    }
+};
+
+const clearAllSelected = () => {
+    formData.idSetLauChiTiet = [];
+    formData.idMonAnChiTiet = [];
+};
 
 const calculateStatus = (km) => {
     const today = new Date();
@@ -594,9 +895,51 @@ const calculateStatus = (km) => {
     return { text: 'Đang hoạt động', class: 'badge bg-success' };
 };
 
+const jumpToPage = () => {
+    let p = parseInt(inputPage.value);
+    if (p >= 1 && p <= pagination.totalPages) {
+        goToPage(p);
+    } else {
+        inputPage.value = pagination.currentPage;
+    }
+};
+
+const goToPage = (page) => {
+    pagination.currentPage = page;
+
+    const start = (page - 1) * pagination.pageSize;
+    const end = start + pagination.pageSize;
+    listKhuyenMai.value = filteredKhuyenMai.value.slice(start, end);
+};
+
+
+const changePage = (step) => {
+    const newPage = pagination.currentPage + step;
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+        goToPage(newPage);
+    }
+};
+
 onMounted(async () => { // Thêm async vào đây
     await handleSearch();
     await fetchListSetLau();
     await fetchListMonAn();
 });
+
+watch(() => pagination.currentPage, (val) => {
+    inputPage.value = val;
+});
+watch(() => confirmModal.show, (val) => {
+    document.body.style.overflow = val ? 'hidden' : '';
+});
+
+watch(
+    () => [filters.ngayBatDau, filters.ngayKetThuc],
+    () => {
+        pagination.currentPage = 1;
+        handleSearch();
+    }
+);
+
+
 </script>
