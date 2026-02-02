@@ -74,6 +74,7 @@ body, html {
 }
 
 .app-content {
+
   /* flex-grow: 1; -> Xóa dòng này ở style cũ */
   background-color: #fdfbfa;
 
@@ -81,7 +82,7 @@ body, html {
   flex: 1;
   overflow-y: auto;
 
-  padding: 20px 40px;
+  /* padding: 20px 40px; */
   transition: all 0.3s ease;
 }
 

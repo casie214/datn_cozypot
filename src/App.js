@@ -7,6 +7,23 @@ import { useAuthStore } from "./pages/guest/authentication/authenticationService
 
 const routes = [
     {
+        path: "/admin/client",
+        name: "clientManager",
+        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, 
+            requiredRole: 'ADMIN' }
+    },
+    {
+        path: "/login",
+        name: "login",
+        component: () => import("@/pages/guest/authentication/loginPage.vue")
+    },
+    {
+        path: "/register",
+        name: "register",
+        component: () => import("@/pages/guest/authentication/registerPage.vue")
+    },
+    {
         path: "/manage/food",
         name: "foodManager",
         component: () =>
@@ -40,23 +57,7 @@ const routes = [
             requiredRole: 'ADMIN'
         }
     },
-    {
-        path: "/admin/client",
-        name: "clientManager",
-        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
-    },
-    {
-        path: "/login",
-        name: "login",
-        component: () => import("@/pages/guest/authentication/loginPage.vue")
-    },
-    {
-        path: "/register",
-        name: "register",
-        component: () => import("@/pages/guest/authentication/registerPage.vue")
-    },
+    
     {
         path: "/admin/promotion",
         name: "promotionManager",
