@@ -33,7 +33,7 @@ public class PhieuDatBan {
     @JoinColumn(name = "id_ban_an")
     private BanAn idBanAn;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;

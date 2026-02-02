@@ -61,15 +61,23 @@ public class DatBanController {
 
 
     @PostMapping("/search")
-    public Page<DatBanListResponse> searchDatBan(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestBody DatBanSearchRequest req
+public Page<DatBanListResponse> searchDatBan(
+        @RequestParam(required = false) Integer page,
+        @RequestParam(required = false) Integer size,
+        @RequestBody DatBanSearchRequest req
+) {
+    int p = page != null ? page : 0;
+    int s = size != null ? size : 5;
 
-    ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "thoiGianDat"));
-        return datBanService.searchDatBan(req, pageable);
-    }
+    Pageable pageable = PageRequest.of(
+            p,
+            s,
+            Sort.by(Sort.Direction.ASC, "thoiGianDat")
+    );
+
+    return datBanService.searchDatBan(req, pageable);
+}
+
 
     @PostMapping("/add-ban-an")
     public void addBanAn(@RequestBody @Valid AddBanAnRequest addBanAnRequest){

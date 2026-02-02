@@ -18,29 +18,44 @@ import java.util.List;
 
 @Repository
 public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer> {
-    @Query("""
-    SELECT pdb
-    FROM PhieuDatBan pdb
-    LEFT JOIN pdb.idKhachHang kh
-    WHERE
-        (:soDienThoai IS NULL 
-            OR kh.soDienThoai LIKE CONCAT('%', :soDienThoai, '%'))
-    AND (:trangThai IS NULL 
-            OR pdb.trangThai = :trangThai)
-    AND (
-        :ngayDat IS NULL 
-        OR pdb.thoiGianDat >= :ngayDat
-    )
+//     @Query("""
+//     SELECT pdb
+//     FROM PhieuDatBan pdb
+//     LEFT JOIN pdb.idKhachHang kh
+//     WHERE
+//         (:soDienThoai IS NULL
+//             OR kh.soDienThoai LIKE CONCAT('%', :soDienThoai, '%'))
+//     AND (:trangThai IS NULL
+//             OR pdb.trangThai = :trangThai)
+//     AND (
+//         :ngayDat IS NULL
+//         OR pdb.thoiGianDat >= :ngayDat
+//     )
+// """)
+//     Page<PhieuDatBan> search(
+//             @Param("soDienThoai") String soDienThoai,
+//             @Param("trangThai") Integer trangThai,
+//             @Param("ngayDat") LocalDateTime ngayDat,
+//             Pageable pageable
+//     );
+
+@Query("""
+SELECT p FROM PhieuDatBan p
+LEFT JOIN p.idKhachHang kh
+WHERE (:soDienThoai IS NULL OR (kh IS NOT NULL AND kh.soDienThoai LIKE %:soDienThoai%))
+AND (:trangThai IS NULL OR p.trangThai = :trangThai)
+AND (
+  :start IS NULL OR 
+  (p.thoiGianDat >= :start AND p.thoiGianDat < :end)
+)
 """)
-    Page<PhieuDatBan> search(
-            @Param("soDienThoai") String soDienThoai,
-            @Param("trangThai") Integer trangThai,
-            @Param("ngayDat") LocalDateTime ngayDat,
-            Pageable pageable
-    );
-
-
-
+Page<PhieuDatBan> search(
+    @Param("soDienThoai") String soDienThoai,
+    @Param("trangThai") Integer trangThai,
+    @Param("start") LocalDateTime start,
+    @Param("end") LocalDateTime end,
+    Pageable pageable
+);
 
 
 

@@ -5,15 +5,10 @@ import { getAllCategory } from '../services/foodFunction';
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/manage/table' },
-    { name: 'Đơn hàng', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
-    { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/manage/tableCheckIn' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
-    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/booking' },
-    { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
+    { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/tables' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/admin/tables' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
+    { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
 
@@ -37,7 +32,7 @@ const menuItems = ref([
             { name: 'Loại Set Lẩu', tab: 'loaiset' }
         ]
     },
-    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+    
     {
         name: 'Khuyến mãi',
         icon: "fa-solid fa-tags",
@@ -46,7 +41,10 @@ const menuItems = ref([
             { name: 'Đợt khuyến mãi', path: '/admin/promotion' },
             { name: 'Phiếu giảm giá', path: '/admin/voucher' },
         ]
-    }
+    },
+    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' }
+
     
 ]);
 
@@ -271,7 +269,7 @@ const fetchCategoriesAndBuildMenu = async () => {
 
 .logo-container {
     width: 100%;
-    height: 10em;
+    height: 7em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -299,7 +297,7 @@ const fetchCategoriesAndBuildMenu = async () => {
 .menu-item {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
+    padding: 10px 20px;
     cursor: pointer;
     color: #555;
     font-weight: 500;
