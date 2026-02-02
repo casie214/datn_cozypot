@@ -18,8 +18,25 @@ import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+
+// Import cho POI (Xử lý Excel)
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+// Import cho Spring Framework (Resource & Response)
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+// Import cho Java IO
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @Service
 public class KhachHangService {
@@ -142,11 +159,23 @@ public class KhachHangService {
         return res;
     }
 
-    public List<KhachHangResponse> getActive() {
-        return repo.findByTrangThai(1)
-                .stream()
-                .map(this::convertToResponse)
-                .toList();
+    public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
+        LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
+        List<KhachHang> list = repo
+                .searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged())
+                .getContent();
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
+            // xử lý excel ...
+            workbook.write(out);
+            return out.toByteArray();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
+        }
     }
 
     public List<KhachHangThongKeResponse> thongKeKhachHang(int thang, int nam) {

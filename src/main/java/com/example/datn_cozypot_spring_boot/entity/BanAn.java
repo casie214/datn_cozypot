@@ -1,15 +1,19 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -27,11 +31,18 @@ public class BanAn {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_khu_vuc")
     private KhuVuc idKhuVuc;
 
-    @Size(max = 50)
-    @Column(name = "ma_ban", length = 50)
+    @Size(max = 10)
+    @ColumnDefault("isnull(CONVERT([varchar](10), 'BA'+right('000'+CONVERT([varchar](10), [id_ban_an]), 3)), '')")
+    @Column(
+            name = "ma_ban",
+            insertable = false,
+            updatable = false,
+            length = 10
+    )
     private String maBan;
 
     @Size(max = 100)
@@ -42,14 +53,20 @@ public class BanAn {
     @Column(name = "so_nguoi_toi_da")
     private Integer soNguoiToiDa;
 
+    @ColumnDefault("0")
     @Column(name = "trang_thai")
     private Integer trangThai;
 
+    @ColumnDefault("1")
+    @Column(name = "loai_dat_ban")
+    private Integer loaiDatBan;
+
+    @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
-    private Instant ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_sua")
-    private Instant ngaySua;
+    private LocalDateTime ngaySua;
 
     @Size(max = 100)
     @Nationalized

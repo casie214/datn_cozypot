@@ -38,4 +38,6 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
     boolean existsByEmailAndIdNot(String email, Integer id);
     boolean existsBySdtNhanVienAndIdNot(String sdt, Integer id);
     boolean existsBySoCccdAndIdNot(String cccd, Integer id);
+
+    Optional<NhanVien> findNhanVienByTenDangNhap(String identifier);
 }
