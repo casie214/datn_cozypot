@@ -1,7 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
@@ -21,7 +20,6 @@ public class NhanVien {
     @JoinColumn(name = "id_vai_tro")
     private VaiTro idVaiTro;
 
-    // Quan trọng: insertable = false, updatable = false để dùng cột PERSISTED từ SQL Server
     @Column(name = "ma_nhan_vien", insertable = false, updatable = false)
     private String maNhanVien;
 
@@ -31,6 +29,21 @@ public class NhanVien {
 
     @Column(name = "sdt_nhan_vien", length = 20)
     private String sdtNhanVien;
+
+    // --- Các trường mới cập nhật ---
+    @Column(name = "so_cccd", length = 20, unique = true)
+    private String soCccd;
+
+    @Column(name = "ngay_cap_cccd")
+    private LocalDate ngayCapCccd;
+
+    @Nationalized
+    @Column(name = "noi_cap_cccd")
+    private String noiCapCccd;
+
+    @Column(name = "anh_dai_dien", length = 500)
+    private String anhDaiDien;
+    // ------------------------------
 
     @Column(name = "ten_dang_nhap", length = 50, unique = true)
     private String tenDangNhap;

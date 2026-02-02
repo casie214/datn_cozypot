@@ -67,7 +67,7 @@
               <td>{{ nv.hoTenNhanVien }}</td>
               <td>{{ nv.sdtNhanVien }}</td>
               <td class="text-muted">{{ nv.email }}</td>
-              <td>{{ formatDate(nv.ngayVaoLam) }}</td>               
+              <td>{{ formatDate(nv.ngayVaoLam) }}</td>              
               <td>{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
               
               <td :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
@@ -79,21 +79,29 @@
               <td class="text-center" :class="{ 'cell-locked': nv.trangThaiLamViec === 2 }">
                 <div class="action-group">
                   <i 
-                    class="fas fa-pen edit-icon" 
+                    class="fas fa-eye detail-icon text-dark me-2" 
+                    title="Xem chi tiết"
+                    style="cursor: pointer;"
+                    @click="openModalView(nv.id)"
+                  ></i>
+
+                  <i 
+                    class="fas fa-pen edit-icon me-2" 
                     :class="{ 'disabled-icon': nv.trangThaiLamViec === 2 }"
+                    title="Sửa"
                     @click="nv.trangThaiLamViec === 1 ? openModalEdit(nv.id) : null"
                   ></i>
 
                   <i 
                     v-if="nv.trangThaiLamViec === 1" 
-                    class="fas fa-lock lock-icon text-danger" 
-                    style="pointer-events: auto; cursor: pointer;"
+                    class="fas fa-unlock-alt unlock-icon text-danger" 
+                    title="Khóa"
                     @click="onToggleStatus(nv)"
                   ></i>
                   <i 
                     v-else 
-                    class="fas fa-unlock-alt unlock-icon text-success" 
-                    style="pointer-events: auto; cursor: pointer;"
+                    class="fas fa-lock lock-icon text-success" 
+                    title="Mở khóa"
                     @click="onToggleStatus(nv)"
                   ></i>
                 </div>
@@ -127,23 +135,26 @@
       @close="closeModal" 
       @refresh="handleSearch"
     />
+
+    <StaffDetailModal
+      v-if="isDetailModalOpen"
+      :staff-id="detailStaffId"
+      @close="closeDetailModal"
+    />
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
 import { useStaffLogic } from './staffFunction.js';
 import StaffModal from '../modal/staffModal.vue';
+import StaffDetailModal from '../modal/staffDetailModal.vue'; // Import file mới
 import dayjs from 'dayjs';
 import '../staffStyle.css';
 
-// Thêm toggleStaffStatus vào đây
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
 
-const formatDate = (date) => {
-  if (!date) return '---';
-  return dayjs(date).format('DD/MM/YYYY');
-};
-
+// State quản lý danh sách & filters
 const listNhanVien = ref([]);
 const filters = reactive({ 
   keyword: '', 
@@ -152,8 +163,20 @@ const filters = reactive({
 });
 const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0 });
 
+// State quản lý Modal Thêm/Sửa
 const isModalOpen = ref(false);
 const selectedStaffId = ref(null);
+
+// State quản lý Modal Xem chi tiết
+const isDetailModalOpen = ref(false);
+const detailStaffId = ref(null);
+
+// --- Logic xử lý ---
+
+const formatDate = (date) => {
+  if (!date) return '---';
+  return dayjs(date).format('DD/MM/YYYY');
+};
 
 const handleSearch = async () => {
   try {
@@ -165,7 +188,6 @@ const handleSearch = async () => {
   }
 };
 
-// Hàm xử lý Khóa/Mở khóa khi người dùng click
 const onToggleStatus = async (nv) => {
   await toggleStaffStatus(nv, handleSearch);
 };
@@ -183,7 +205,7 @@ const changePage = (step) => {
   handleSearch();
 };
 
-onMounted(handleSearch);
+// --- Logic đóng mở Modal ---
 
 const openModalAdd = () => {
   selectedStaffId.value = null;
@@ -198,4 +220,16 @@ const openModalEdit = (id) => {
 const closeModal = () => {
   isModalOpen.value = false;
 };
+
+// Mở Modal xem chi tiết
+const openModalView = (id) => {
+  detailStaffId.value = id;
+  isDetailModalOpen.value = true;
+};
+
+const closeDetailModal = () => {
+  isDetailModalOpen.value = false;
+};
+
+onMounted(handleSearch);
 </script>

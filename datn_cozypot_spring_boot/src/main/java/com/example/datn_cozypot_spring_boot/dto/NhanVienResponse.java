@@ -22,4 +22,8 @@ public class NhanVienResponse {
     private Integer trangThaiLamViec;
     private Integer idVaiTro;
     private String tenVaiTro;
+    private String soCccd;
+    private LocalDate ngayCapCccd;
+    private String noiCapCccd;
+    private String anhDaiDien;
 }
