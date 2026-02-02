@@ -6,10 +6,14 @@ import axiosClient from "@/services/axiosClient";
 // Nên ta chỉ cần khai báo phần đuôi
 const PREFIX = "/hoa-don-thanh-toan";
 
-export const BeGetAllHoaDon = async (page = 0) => {
+export const BeGetAllHoaDon = async (page = 0, size = 5) => {
     try {
+        // Sử dụng axiosClient giúp tự động xử lý query params
         const response = await axiosClient.get(`${PREFIX}/get-all`, {
-            params: { page }
+            params: { 
+                page, 
+                size 
+            }
         });
         return response.data;
     } catch (error) {
@@ -26,14 +30,21 @@ export const BeGetHoaDonById = async (id) => {
     }
 };
 
-export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0) => {
+export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0, size = 5) => {
     try {
-        // Tạo object params, Axios sẽ tự convert sang query string (?key=...&page=...)
-        const params = { page };
+        const params = { page, size };
 
-        if (key) params.key = key;
-        if (trangThai) params.trangThai = trangThai;
-        if (trangThaiHoanTien) params.trangThaiHoanTien = trangThaiHoanTien;
+        // Kiểm tra hợp lệ (giữ logic của HEAD: bỏ qua null, undefined và chuỗi rỗng "")
+        // Lưu ý: Không dùng if(trangThai) vì nếu trạng thái = 0 sẽ bị coi là false
+        if (key !== null && key !== undefined && key !== "") {
+            params.key = key;
+        }
+        if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
+            params.trangThai = trangThai;
+        }
+        if (trangThaiHoanTien !== null && trangThaiHoanTien !== undefined && trangThaiHoanTien !== "") {
+            params.trangThaiHoanTien = trangThaiHoanTien;
+        }
         if (tuNgay) params.tuNgay = tuNgay;
         if (denNgay) params.denNgay = denNgay;
 
