@@ -39,9 +39,10 @@ public class HoaDonThanhToanController {
     LichSuThanhToanService lichSuThanhToanService;
 
     @GetMapping("/get-all")
-    public Page<HoaDonThanhToanResponse> getAll(@RequestParam(name = "page", required = false, defaultValue = "0") Integer page){
-        int pageSize = 5;
-        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("thoiGianTao").ascending());
+    public Page<HoaDonThanhToanResponse> getAll(
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "5") Integer size){
+        Pageable pageable = PageRequest.of(page, size, Sort.by("thoiGianTao").ascending());
         return hoaDonThanhToanService.getAllHoaDon(pageable);
     }
 
@@ -52,7 +53,8 @@ public class HoaDonThanhToanController {
             @RequestParam(required = false) Integer trangThaiHoanTien,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay,
-            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page) {
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "5") Integer size) {
         Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
         Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
 
@@ -60,8 +62,7 @@ public class HoaDonThanhToanController {
             key = key.trim();
         }
 
-        int pageSize = 5;
-        Pageable pageable = PageRequest.of(page, pageSize);
+        Pageable pageable = PageRequest.of(page, size);
         return hoaDonThanhToanService.searchHoaDon(key,trangThai,trangThaiHoanTien, start, end, pageable);
     }
 
