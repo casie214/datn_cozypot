@@ -134,6 +134,7 @@
 </template>
 
 <script setup>
+import Swal from 'sweetalert2';
 import { ref, onMounted, reactive, watch } from 'vue'; // Thêm watch
 import { useClientLogic } from './clientFunction.js'; 
 import CustomerModal from '../modal/clientModal.vue';
@@ -142,7 +143,15 @@ import '../clientStyle.css';
 import clientService from '@/services/clientService';
 
 const { getStatusDisplay, fetchData } = useClientLogic();
-
+const swalConfig = {
+  confirmButtonColor: '#800000',
+  cancelButtonColor: '#6c757d',
+  didOpen: () => {
+    // Đảm bảo nổi lên trên Modal nếu có (z-index của modal thường là 9999)
+    const container = document.querySelector('.swal2-container');
+    if (container) container.style.zIndex = '100000';
+  }
+};
 // --- State ---
 const listKhachHang = ref([]);
 const filters = reactive({ 
@@ -212,55 +221,68 @@ const changePage = (step) => {
 
 const handleToggleStatus = async (kh) => {
   const isLocking = kh.trangThai === 1;
-  const message = isLocking 
-    ? `Bạn có chắc chắn muốn khóa tài khoản "${kh.maKhachHang}"?` 
-    : `Bạn có chắc chắn muốn mở khóa tài khoản "${kh.maKhachHang}"?`;
+  const result = await Swal.fire({
+    ...swalConfig,
+    title: isLocking ? 'Xác nhận khóa?' : 'Xác nhận mở khóa?',
+    text: `Bạn có chắc chắn muốn ${isLocking ? 'khóa' : 'mở khóa'} khách hàng này?`,
+    icon: isLocking ? 'warning' : 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đồng ý'
+  });
 
-  if (confirm(message)) {
+  if (result.isConfirmed) {
     try {
       await clientService.toggleStatus(kh.id);
+      await Swal.fire({ ...swalConfig, icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
       handleSearch();
-    } catch (error) {
-      alert("Lỗi: " + error.message);
+    } catch (e) {
+      Swal.fire({ ...swalConfig, icon: 'error', title: 'Lỗi', text: 'Không thể xử lý!' });
     }
   }
 };
-
 const exportLoading = ref(false); // Biến trạng thái khi đang tải file
 
 const handleExportExcel = async () => {
+  const confirmExport = await Swal.fire({
+    ...swalConfig,
+    title: 'Xuất file Excel?',
+    text: 'Hệ thống sẽ tải xuống danh sách khách hàng dựa trên bộ lọc hiện tại.',
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: 'Tải xuống',
+    confirmButtonColor: '#28a745'
+  });
+
+  if (!confirmExport.isConfirmed) return;
+
   try {
     exportLoading.value = true;
-    
-    // Gọi API từ service đã bổ sung hàm exportExcel trước đó
+    Swal.fire({
+      ...swalConfig,
+      title: 'Đang tạo file...',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); }
+    });
+
     const response = await clientService.exportExcel({
       keyword: filters.keyword,
       trangThai: filters.trangThai,
       tuNgay: filters.tuNgay
     });
 
-    // Xử lý tạo file để trình duyệt tự tải về
-    const blob = new Blob([response.data], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
+    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    
-    // Đặt tên file theo ngày hiện tại
-    const dateStr = new Date().toISOString().slice(0, 10);
-    link.setAttribute('download', `Danh_Sach_Khach_Hang_${dateStr}.xlsx`);
-    
+    link.setAttribute('download', `DS_KhachHang_${dayjs().format('DD_MM_YYYY')}.xlsx`);
     document.body.appendChild(link);
     link.click();
-    
-    // Dọn dẹp bộ nhớ
     link.remove();
     window.URL.revokeObjectURL(url);
-    
+
+    Swal.close(); // Đóng loading
   } catch (error) {
-    console.error("Lỗi xuất file:", error);
-    alert("Không thể xuất file Excel lúc này!");
+    Swal.fire({ ...swalConfig, icon: 'error', title: 'Thất bại', text: 'Không thể xuất file Excel!' });
   } finally {
     exportLoading.value = false;
   }

@@ -81,7 +81,22 @@
                   <div class="error-text">{{ errors.matKhauDangNhap }}</div>
                 </div>
 
-                <div class="col-md-12">
+                <div class="col-md-6">
+                  <label class="form-label-custom">Giới tính <span class="star">*</span></label>
+                  <div class="d-flex gap-4 mt-2">
+                    <div class="form-check">
+                      <input class="form-check-input radio-red" type="radio" name="gioiTinh" 
+                            id="gtNam" :value="true" v-model="formData.gioiTinh">
+                      <label class="form-check-label cursor-pointer" for="gtNam">Nam</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input radio-red" type="radio" name="gioiTinh" 
+                            id="gtNu" :value="false" v-model="formData.gioiTinh">
+                      <label class="form-check-label cursor-pointer" for="gtNu">Nữ</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
                   <label class="form-label-custom">Địa chỉ thường trú <span class="star">*</span></label>
                   <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.diaChi}" 
                          v-model="formData.diaChi" placeholder="Mời nhập địa chỉ thường trú">
@@ -112,7 +127,16 @@ import dayjs from 'dayjs';
 import { useToast } from "vue-toastification";
 import { useDialog } from '@/services/foodFunction';
 import GlobalDialogue from '@/components/globalDialogue.vue';
+import Swal from 'sweetalert2';
 
+const swalConfig = {
+  confirmButtonColor: '#800000',
+  cancelButtonColor: '#6c757d',
+  didOpen: () => {
+    const container = document.querySelector('.swal2-container');
+    if (container) container.style.zIndex = '100000';
+  }
+};
 const { 
     showConfirm, 
     isVisible: dialogVisible,      
@@ -226,41 +250,98 @@ const onFileChange = (e) => {
 };
 
 const handleSave = async () => {
-  // Validate toàn bộ lần cuối
+  // 1. Validate toàn bộ lần cuối
   for (const key of Object.keys(errors)) {
     await validateField(key, formData[key]);
   }
 
   if (Object.values(errors).some(msg => msg !== '')) {
-    toast.error("Vui lòng hoàn thiện các trường đang báo đỏ!");
+    Swal.fire({
+      ...swalConfig,
+      icon: 'warning',
+      title: 'Thông báo',
+      text: 'Vui lòng hoàn thiện các trường đang báo đỏ!',
+    });
     return;
   }
 
+  // 2. Hỏi xác nhận
+  const confirmResult = await Swal.fire({
+    ...swalConfig,
+    title: props.clientId ? 'Cập nhật khách hàng?' : 'Thêm khách hàng mới?',
+    text: "Bạn có chắc chắn muốn lưu thông tin này không?",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Đồng ý lưu',
+    cancelButtonText: 'Kiểm tra lại'
+  });
+
+  if (!confirmResult.isConfirmed) return;
+
+  // 3. Thực thi lưu
   try {
     loading.value = true;
+    
+    // Hiển thị loading
+    Swal.fire({
+      ...swalConfig,
+      title: 'Đang xử lý dữ liệu...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+        if (document.querySelector('.swal2-container')) {
+          document.querySelector('.swal2-container').style.zIndex = '100000';
+        }
+      }
+    });
+
     const data = new FormData();
     Object.keys(formData).forEach(key => {
-      data.append(key, formData[key] !== null ? formData[key] : '');
+      // Xử lý giá trị gioiTinh sang 1/0 nếu backend yêu cầu
+      let value = formData[key];
+      if (key === 'gioiTinh') value = (value === true || value === 'true') ? 1 : 0;
+      data.append(key, value !== null && value !== undefined ? value : '');
     });
-    if (selectedFile.value) data.append('hinhAnhFile', selectedFile.value);
+
+    if (selectedFile.value) {
+      data.append('hinhAnhFile', selectedFile.value);
+    }
 
     if (props.clientId) {
       await clientService.update(props.clientId, data);
-      toast.success("Cập nhật thành công!");
     } else {
       await clientService.create(data);
-      toast.success("Thêm khách hàng thành công!");
     }
+
+    // 4. Thông báo thành công
+    await Swal.fire({
+      ...swalConfig,
+      icon: 'success',
+      title: 'Thành công!',
+      text: props.clientId ? 'Thông tin khách hàng đã được cập nhật.' : 'Đã thêm khách hàng mới thành công.',
+      timer: 2000,
+      showConfirmButton: false
+    });
+
     emit('refresh');
     emit('close');
   } catch (error) {
+    console.error("Lỗi:", error.response?.data);
+    
+    // Nếu có lỗi validate từ Backend
     if (error.response?.data?.errors) {
       const backendErrors = error.response.data.errors;
       Object.keys(backendErrors).forEach(key => {
         if (errors[key] !== undefined) errors[key] = backendErrors[key];
       });
     }
-    toast.error(error.response?.data?.message || "Lỗi lưu dữ liệu!");
+
+    Swal.fire({
+      ...swalConfig,
+      icon: 'error',
+      title: 'Lỗi lưu dữ liệu',
+      text: error.response?.data?.message || "Dữ liệu không hợp lệ, vui lòng kiểm tra lại!",
+    });
   } finally {
     loading.value = false;
   }

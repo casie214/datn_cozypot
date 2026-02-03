@@ -59,9 +59,9 @@ public class KhachHangService {
     public Page<KhachHangResponse> getAll(String keyword, Integer trangThai, LocalDate tuNgay, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "trangThai").and(Sort.by(Sort.Direction.DESC, "id"));
         Pageable pageable = PageRequest.of(page, size, sort);
-        LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
 
-        return repo.searchKhachHang(keyword, trangThai, startDateTime, pageable)
+        // Truyền thẳng tuNgay vào Repository
+        return repo.searchKhachHang(keyword, trangThai, tuNgay, pageable)
                 .map(this::convertToResponse);
     }
 
@@ -160,16 +160,17 @@ public class KhachHangService {
     }
 
     public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
-        LocalDateTime startDateTime = (tuNgay != null) ? tuNgay.atStartOfDay() : null;
-        List<KhachHang> list = repo
-                .searchKhachHang(keyword, trangThai, startDateTime, Pageable.unpaged())
-                .getContent();
+        // Sử dụng trực tiếp tuNgay (LocalDate) để thống nhất với hàm getAll phía trên
+        List<KhachHang> list = repo.searchKhachHang(keyword, trangThai, tuNgay, Pageable.unpaged()).getContent();
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
             Sheet sheet = workbook.createSheet("Danh sách khách hàng");
-            // xử lý excel ...
+
+            // --- Đoạn xử lý Excel (Row, Cell) của bạn viết tiếp ở đây ---
+            // Ví dụ: Row header = sheet.createRow(0); header.createCell(0).setCellValue("Tên khách hàng");
+
             workbook.write(out);
             return out.toByteArray();
 
