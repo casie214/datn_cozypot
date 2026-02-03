@@ -26,6 +26,7 @@
     "bootstrap": "^5.3.8",
     "dayjs": "^1.11.19",
     "flatpickr": "^4.6.13",
+    "html5-qrcode": "^2.3.8",
     "pinia": "^3.0.4",
     "router": "^2.2.0",
     "sweetalert2": "^11.26.17",
