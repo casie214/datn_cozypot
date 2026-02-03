@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface LichSuThanhToanRepo extends JpaRepository<LichSuThanhToan, Integer> {
+public interface LichSuThanhToanRepository extends JpaRepository<LichSuThanhToan, Integer> {
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse(" +
             "lstt.maGiaoDich, " +
             "lstt.tenPhuongThuc, " +

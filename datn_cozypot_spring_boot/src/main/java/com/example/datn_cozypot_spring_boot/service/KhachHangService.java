@@ -4,7 +4,6 @@ import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangResponse;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
-import com.example.datn_cozypot_spring_boot.repository.KhachHangRepo;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,16 +24,9 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 // Import cho Spring Framework (Resource & Response)
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 
 // Import cho Java IO
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 @Service
 public class KhachHangService {
@@ -44,8 +34,7 @@ public class KhachHangService {
     private KhachHangRepository repo;
 
     private final Path root = Paths.get("uploads/customers");
-    @Autowired
-    private KhachHangRepo khachHangRepo;
+
 
     public KhachHangService() {
         try {

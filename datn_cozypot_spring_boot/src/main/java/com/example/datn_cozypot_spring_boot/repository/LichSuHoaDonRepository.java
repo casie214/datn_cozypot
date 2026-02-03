@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface LichSuHoaDonRepo extends JpaRepository<LichSuHoaDon, Integer> {
+public interface LichSuHoaDonRepository extends JpaRepository<LichSuHoaDon, Integer> {
     @Query("SELECT l FROM LichSuHoaDon l WHERE l.idHoaDon.id = :idHoaDon ORDER BY l.thoiGianThucHien DESC")
     List<LichSuHoaDon> findByHoaDonId(@Param("idHoaDon") Integer idHoaDon);
 }
