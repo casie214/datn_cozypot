@@ -127,6 +127,7 @@
 import { reactive, ref, onMounted, watch } from 'vue';
 import staffService from '@/services/staffService';
 import dayjs from 'dayjs';
+import Swal from 'sweetalert2';
 import { useToast } from "vue-toastification";
 
 const props = defineProps(['staffId']);
@@ -271,39 +272,112 @@ const validateForm = () => {
 };
 
 const handleSave = async () => {
+  // Cấu hình Z-index để tái sử dụng
+  const swalConfig = {
+    confirmButtonColor: '#800000',
+    // Ép SweetAlert nổi lên trên mức 9999 của modal-overlay
+    didOpen: () => {
+      const container = document.querySelector('.swal2-container');
+      if (container) container.style.zIndex = '100000';
+    }
+  };
+
+  // 1. Validate form
   if (!validateForm()) {
-    toast.error("Vui lòng hoàn thiện các trường còn thiếu!");
+    Swal.fire({
+      ...swalConfig,
+      icon: 'warning',
+      title: 'Thông báo',
+      text: 'Vui lòng hoàn thiện các trường còn thiếu!',
+    });
     return;
   }
 
   if (Object.values(errors).some(v => v && v.includes("tồn tại"))) {
-    toast.warning("Vui lòng xử lý các thông tin bị trùng lặp!");
+    Swal.fire({
+      ...swalConfig,
+      icon: 'info',
+      title: 'Chú ý',
+      text: 'Vui lòng xử lý các thông tin bị trùng lặp!',
+    });
     return;
   }
 
+  // 2. Hỏi xác nhận
+  const confirmResult = await Swal.fire({
+    ...swalConfig,
+    title: props.staffId ? 'Xác nhận cập nhật?' : 'Xác nhận thêm mới?',
+    text: "Hành động này sẽ lưu dữ liệu vào hệ thống.",
+    icon: 'question',
+    showCancelButton: true,
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (!confirmResult.isConfirmed) return;
+
+  // 3. Thực thi lưu
   try {
     loading.value = true;
-    const data = new FormData();
-    Object.keys(formData).forEach(key => {
-      if (formData[key] !== null && formData[key] !== undefined) {
-        data.append(key, formData[key]);
+    
+    // Loading State
+    Swal.fire({
+      ...swalConfig,
+      title: 'Đang gửi dữ liệu...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+        // Vẫn phải ép z-index cho loading vì nó render lại container
+        if (document.querySelector('.swal2-container')) {
+          document.querySelector('.swal2-container').style.zIndex = '100000';
+        }
       }
     });
+
+    const data = new FormData();
+    Object.keys(formData).forEach(key => {
+      let value = formData[key];
+      if (key === 'gioiTinh') value = (value === true || value === 'true') ? 1 : 0;
+      if (value !== null && value !== undefined && value !== '') {
+        data.append(key, value);
+      }
+    });
+
     if (selectedFile.value) data.append('hinhAnhFile', selectedFile.value);
 
     if (props.staffId) {
       await staffService.update(props.staffId, data);
-      toast.success("Cập nhật thành công!");
     } else {
       await staffService.create(data);
-      toast.success("Thêm nhân viên mới thành công!");
     }
+
+    // 4. Thành công
+    await Swal.fire({
+      ...swalConfig,
+      icon: 'success',
+      title: 'Thành công!',
+      text: props.staffId ? 'Thông tin nhân viên đã được cập nhật.' : 'Đã thêm nhân viên mới thành công.',
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: true
+    });
     
     emit('refresh');
     emit('close');
   } catch (error) {
-    toast.error(error.response?.data?.message || "Lỗi lưu dữ liệu");
-  } finally { loading.value = false; }
+    // 5. Thất bại (Lỗi 400 hoặc lỗi mạng)
+    const errorMsg = error.response?.data?.message || "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại!";
+    Swal.fire({
+      ...swalConfig,
+      icon: 'error',
+      title: 'Lỗi lưu dữ liệu',
+      text: errorMsg,
+      confirmButtonColor: '#d33' // Đổi màu nút confirm riêng cho lỗi
+    });
+  } finally { 
+    loading.value = false; 
+  }
 };
 
 onMounted(async () => {
@@ -330,6 +404,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+
 /* Giữ nguyên phần Style bạn đã viết rất tốt ở trên */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
 .modal-box { background: #fff; width: 1000px; border-radius: 20px; overflow: hidden; animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -353,4 +428,6 @@ onMounted(async () => {
 .btn-main-custom { background: #800000; color: #fff; border: none; padding: 10px 30px; border-radius: 8px; font-weight: 700; transition: 0.3s; }
 .btn-main-custom:hover:not(:disabled) { background: #a00000; transform: translateY(-2px); }
 .btn-light-custom { background: #eee; color: #333; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 600; }
+/* Đảm bảo mọi thông báo SweetAlert luôn nằm trên Modal */
+
 </style>

@@ -193,12 +193,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch } from 'vue'; // Đã thêm watch
+
+import { ref, onMounted, reactive, watch, nextTick } from 'vue'; // Đã thêm watch
 import { useStaffLogic } from './staffFunction.js';
 import StaffModal from '../modal/staffModal.vue';
 import StaffDetailModal from '../modal/staffDetailModal.vue';
 import dayjs from 'dayjs';
 import '../staffStyle.css';
+import Swal from 'sweetalert2';
 import staffService from '@/services/staffService.js';
 
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
@@ -308,37 +310,51 @@ const closeDetailModal = () => {
   isDetailModalOpen.value = false;
 };
 
-
-
-
 const exportToExcel = async () => {
-  try {
-    console.log("Đang xuất file với bộ lọc:", filters);
-    
-    // SỬA TẠI ĐÂY: Gọi thông qua staffService
-    const response = await staffService.exportStaffExcel(filters);
+  // 1. Hỏi xác nhận
+  const result = await Swal.fire({
+    title: 'Xác nhận xuất file?',
+    text: "Hệ thống sẽ trích xuất danh sách nhân viên ra file Excel.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Đồng ý xuất',
+    cancelButtonText: 'Hủy'
+  });
 
-    // Xử lý dữ liệu nhị phân (Blob)
-    const blob = new Blob([response.data], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
-    
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    const fileName = `DS_NhanVien_${dayjs().format('DD_MM_YYYY')}.xlsx`;
-    link.setAttribute('download', fileName);
-    
-    document.body.appendChild(link);
-    link.click();
+  if (result.isConfirmed) {
+    try {
+      // Hiện loading (tùy chọn nhưng nên có vì xuất file có thể lâu)
+      Swal.showLoading();
+      
+      const response = await staffService.exportStaffExcel(filters);
+      
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `DS_NhanVien_${dayjs().format('DD_MM_YYYY')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
-    link.remove();
-    window.URL.revokeObjectURL(url);
-
-  } catch (error) {
-    console.error("Lỗi khi xuất file:", error);
-    alert("Không thể xuất file. Vui lòng kiểm tra lại phía Server!");
+      // 2. Thông báo thành công
+      Swal.fire({
+        title: 'Thành công!',
+        text: 'File của bạn đã được tải xuống.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error("Lỗi:", error);
+      // 3. Thông báo thất bại
+      Swal.fire('Lỗi!', 'Không thể xuất file. Vui lòng thử lại sau.', 'error');
+    }
   }
 };
 onMounted(handleSearch);
