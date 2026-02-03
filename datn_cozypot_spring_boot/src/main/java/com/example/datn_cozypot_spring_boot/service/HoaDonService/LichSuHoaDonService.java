@@ -2,7 +2,7 @@ package com.example.datn_cozypot_spring_boot.service.HoaDonService;
 
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
-import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepo;
+import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +12,10 @@ import java.util.stream.Collectors;
 @Service
 public class LichSuHoaDonService {
     @Autowired
-    LichSuHoaDonRepo lichSuHoaDonRepo;
+    LichSuHoaDonRepository lichSuHoaDonRepository;
 
     public List<LichSuHoaDonResponse> layLichSuDonHang(Integer idHoaDon) {
-        List<LichSuHoaDon> logs = lichSuHoaDonRepo.findByHoaDonId(idHoaDon);
+        List<LichSuHoaDon> logs = lichSuHoaDonRepository.findByHoaDonId(idHoaDon);
         return logs.stream().map(log -> {
             String type = "add";
 
