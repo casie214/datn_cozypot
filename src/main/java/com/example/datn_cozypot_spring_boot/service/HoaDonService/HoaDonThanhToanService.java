@@ -3,11 +3,10 @@ package com.example.datn_cozypot_spring_boot.service.HoaDonService;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.entity.*;
-import com.example.datn_cozypot_spring_boot.repository.BanAnRepo;
-import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepo;
-import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepo;
-import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepo;
-import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
+import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
+import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
+import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,30 +19,30 @@ import java.util.List;
 @Service
 public class HoaDonThanhToanService {
     @Autowired
-    HoaDonThanhToanRepo hoaDonThanhToanRepo;
+    HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
     @Autowired
     ChiTietHoaDonService chiTietHoaDonService;
 
     @Autowired
-    ChiTietHoaDonRepo chiTietHoaDonRepo;
+    ChiTietHoaDonRepository chiTietHoaDonRepository;
 
     @Autowired
-    LichSuHoaDonRepo lichSuHoaDonRepo;
+    LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @Autowired
-    BanAnRepo banAnRepo;
+    BanAnRepository banAnRepo;
 
     public Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable){
-        return hoaDonThanhToanRepo.getAllHoaDon(pageable);
+        return hoaDonThanhToanRepository.getAllHoaDon(pageable);
     }
 
     public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Integer trangThaiHoanTien, Instant tuNgay, Instant denNgay, Pageable pageable){
-        return hoaDonThanhToanRepo.searchHoaDon(key, trangThai, trangThaiHoanTien, tuNgay, denNgay, pageable);
+        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, trangThaiHoanTien, tuNgay, denNgay, pageable);
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
-        return hoaDonThanhToanRepo.getHoaDonById(id);
+        return hoaDonThanhToanRepository.getHoaDonById(id);
     }
 
     @Transactional
@@ -52,7 +51,7 @@ public class HoaDonThanhToanService {
             throw new RuntimeException("Không thể hủy hóa đơn vì đã có món ăn được phục vụ!");
         }
 
-        HoaDonThanhToan hd = hoaDonThanhToanRepo.findById(request.getIdHoaDon())
+        HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(request.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
 
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
@@ -75,12 +74,12 @@ public class HoaDonThanhToanService {
             hd.setTienHoanTra(BigDecimal.ZERO);
         }
 
-        List<ChiTietHoaDon> listgetAllMonAn = chiTietHoaDonRepo.findByIdHoaDon(hd.getId());
+        List<ChiTietHoaDon> listgetAllMonAn = chiTietHoaDonRepository.findByIdHoaDon(hd.getId());
         for (ChiTietHoaDon chiTietHoaDon : listgetAllMonAn){
             chiTietHoaDon.setTrangThaiMon(0);
         }
-        chiTietHoaDonRepo.saveAll(listgetAllMonAn);
-        hoaDonThanhToanRepo.save(hd);
+        chiTietHoaDonRepository.saveAll(listgetAllMonAn);
+        hoaDonThanhToanRepository.save(hd);
         if (hd.getIdBanAn()!= null){
             hd.getIdBanAn().setTrangThai(0);
             banAnRepo.save(hd.getIdBanAn());
@@ -104,18 +103,18 @@ public class HoaDonThanhToanService {
             log.setIdNhanVien(nv);
         }
 
-        lichSuHoaDonRepo.save(log);
+        lichSuHoaDonRepository.save(log);
     }
 
     @Transactional
     public void thanhToanHoaDon(LichSuHoaDonRequest request) {
-        HoaDonThanhToan hd = hoaDonThanhToanRepo.findById(request.getIdHoaDon())
+        HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(request.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
 
         Instant now = Instant.now();
         hd.setTrangThaiHoaDon(2);
         hd.setThoiGianThanhToan(now);
-        hoaDonThanhToanRepo.save(hd);
+        hoaDonThanhToanRepository.save(hd);
 
         if (hd.getIdBanAn()!= null){
             hd.getIdBanAn().setTrangThai(3);
@@ -135,7 +134,7 @@ public class HoaDonThanhToanService {
             log.setIdNhanVien(nv);
         }
 
-        lichSuHoaDonRepo.save(log);
+        lichSuHoaDonRepository.save(log);
     }
 
 
