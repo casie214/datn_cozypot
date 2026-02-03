@@ -24,6 +24,20 @@
 
 }
 
+/* Hiển thị placeholder dd/mm/yyyy khi chưa chọn ngày */
+input[type="date"]::before {
+  content: "dd/mm/yyyy";
+  color: #aaa;
+  margin-right: 0.5rem;
+  display: none; /* Mặc định ẩn, hiện khi cần */
+}
+
+/* Tùy chỉnh định dạng hiển thị cho người dùng Việt Nam */
+/* Lưu ý: Cách tốt nhất vẫn là cài đặt ngôn ngữ trình duyệt Tiếng Việt */
+input[type="date"] {
+  position: relative;
+}
+
 .filter-card {
   background: var(--white);
   border-radius: 15px;

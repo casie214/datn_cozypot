@@ -17,15 +17,15 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
     @Query("SELECT kh FROM KhachHang kh WHERE " +
             "(:keyword IS NULL OR kh.maKhachHang LIKE %:keyword% " +
-            "OR kh.tenKhachHang LIKE %:keyword% " + // Đã khớp với ten_khach_hang
+            "OR kh.tenKhachHang LIKE %:keyword% " +
             "OR kh.soDienThoai LIKE %:keyword% " +
             "OR kh.email LIKE %:keyword%) AND " +
             "(:trangThai IS NULL OR kh.trangThai = :trangThai) AND " +
-            "(CAST(:tuNgay AS date) IS NULL OR kh.ngayTaoTaiKhoan >= :tuNgay)")
+            "(:tuNgay IS NULL OR CAST(kh.ngayTaoTaiKhoan AS date) >= :tuNgay)") // Sửa chỗ này
     Page<KhachHang> searchKhachHang(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
-            @Param("tuNgay") LocalDateTime tuNgay,
+            @Param("tuNgay") java.time.LocalDate tuNgay, // Đổi từ LocalDateTime sang LocalDate
             Pageable pageable);
 
     boolean existsBySoDienThoai(String soDienThoai);
