@@ -23,6 +23,16 @@
             </div>
 
             <div class="col-md-8">
+              <div class="col-12">
+      <div class="scanner-container">
+        <button type="button" class="btn btn-scan-qr w-100" @click="toggleScanner">
+          <i class="fas" :class="isScanning ? 'fa-times-circle' : 'fa-qrcode'"></i> 
+          {{ isScanning ? ' Ngừng quét' : ' Quét mã QR trên CCCD' }}
+        </button>
+        <div v-show="isScanning" id="reader" class="mt-2 border rounded shadow-sm"></div>
+        <div v-if="isScanning" class="scan-hint">Vui lòng đưa mã QR trên CCCD vào khung hình</div>
+      </div>
+    </div>
               <div class="row g-2"> <div class="col-md-6">
                   <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
                   <input type="text" class="form-control custom-input" :class="{'is-invalid': errors.hoTenNhanVien}" v-model="formData.hoTenNhanVien" placeholder="Nhập họ tên">
@@ -129,7 +139,83 @@ import staffService from '@/services/staffService';
 import dayjs from 'dayjs';
 import Swal from 'sweetalert2';
 import { useToast } from "vue-toastification";
+import { Html5QrcodeScanner } from "html5-qrcode";
+import { onUnmounted } from 'vue';
 
+// Đảm bảo tắt camera khi thoát modal bất thình lình
+onUnmounted(() => {
+  stopScanner();
+});
+
+
+
+const isScanning = ref(false);
+let html5QrcodeScanner = null;
+
+// Hàm bật/tắt Scanner
+const toggleScanner = () => {
+  isScanning.value = !isScanning.value;
+  if (isScanning.value) {
+    // Đợi DOM render xong id="reader" rồi mới khởi tạo
+    setTimeout(() => {
+      html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 } 
+      });
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }, 200);
+  } else {
+    stopScanner();
+  }
+};
+
+const stopScanner = () => {
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.clear().catch(error => console.error("Lỗi khi đóng scanner:", error));
+    html5QrcodeScanner = null;
+  }
+  isScanning.value = false;
+};
+
+// Hàm xử lý khi quét thành công
+const onScanSuccess = (decodedText) => {
+  const parts = decodedText.split('|');
+  
+  if (parts.length >= 6) {
+    formData.soCccd = parts[0];
+    formData.hoTenNhanVien = parts[2];
+    
+    // Xử lý Ngày sinh
+    const rawDate = parts[3];
+    if (rawDate && rawDate.length === 8) {
+      formData.ngaySinh = `${rawDate.substring(4, 8)}-${rawDate.substring(2, 4)}-${rawDate.substring(0, 2)}`;
+    }
+    
+    formData.gioiTinh = parts[4] === 'Nam';
+    formData.diaChi = parts[5];
+    
+    // 1. Tự động điền Nơi cấp (Vì tất cả CCCD chip đều từ một nơi)
+    formData.noiCapCccd = "Cục Cảnh sát quản lý hành chính về trật tự xã hội";
+
+    // 2. Xử lý Ngày cấp (Nếu có ở index 6)
+    if (parts[6]) {
+        const rawIssueDate = parts[6];
+        if (rawIssueDate.length === 8) {
+            formData.ngayCapCccd = `${rawIssueDate.substring(4, 8)}-${rawIssueDate.substring(2, 4)}-${rawIssueDate.substring(0, 2)}`;
+        }
+    }
+
+    toast.success("Đã lấy thông tin thành công!");
+    checkDuplicate('soCccd');
+    stopScanner(); 
+  } else {
+    toast.error("Mã QR không đúng định dạng");
+  }
+};
+
+const onScanFailure = (error) => {
+  // Hàm này chạy liên tục khi camera chưa tìm thấy mã QR, để trống để tránh spam log
+};
 const props = defineProps(['staffId']);
 const emit = defineEmits(['close', 'refresh']);
 const toast = useToast();
@@ -429,5 +515,30 @@ onMounted(async () => {
 .btn-main-custom:hover:not(:disabled) { background: #a00000; transform: translateY(-2px); }
 .btn-light-custom { background: #eee; color: #333; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 600; }
 /* Đảm bảo mọi thông báo SweetAlert luôn nằm trên Modal */
+.btn-scan-qr {
+  border: 2px dashed #800000;
+  color: #800000;
+  background: #fff;
+  font-weight: 700;
+  padding: 12px;
+  transition: 0.3s;
+}
 
+.btn-scan-qr:hover {
+  background: #fff5f5;
+  border-style: solid;
+}
+
+.scan-hint {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+#reader {
+  overflow: hidden;
+  background: #000;
+}
 </style>
