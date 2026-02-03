@@ -146,9 +146,6 @@ import { onUnmounted } from 'vue';
 onUnmounted(() => {
   stopScanner();
 });
-
-
-
 const isScanning = ref(false);
 let html5QrcodeScanner = null;
 
@@ -216,6 +213,8 @@ const onScanSuccess = (decodedText) => {
 const onScanFailure = (error) => {
   // Hàm này chạy liên tục khi camera chưa tìm thấy mã QR, để trống để tránh spam log
 };
+
+
 const props = defineProps(['staffId']);
 const emit = defineEmits(['close', 'refresh']);
 const toast = useToast();
