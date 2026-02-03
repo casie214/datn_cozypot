@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ChiTietHoaDonRepo extends JpaRepository<ChiTietHoaDon, Integer> {
+public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, Integer> {
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +

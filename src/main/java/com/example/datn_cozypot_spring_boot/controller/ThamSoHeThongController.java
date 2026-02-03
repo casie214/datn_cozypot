@@ -1,7 +1,7 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.entity.ThamSoHeThong;
-import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepo;
+import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,7 +13,7 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:5173")
 public class ThamSoHeThongController {
     @Autowired
-    ThamSoHeThongRepo thamSoRepo;
+    ThamSoHeThongRepository thamSoRepo;
 
     @GetMapping("/get-all-system")
     public Map<String, Object> getGlobalParams() {
