@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-grow-1 client-manager-wrapper">
+  <div class="flex-grow-1 client-manager-wrapper" style="padding: 25px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="title-page">Quản lý khách hàng</h2>
   <div class="d-flex gap-2"> <button class="btn-export-excel" @click="handleExportExcel" :disabled="exportLoading">

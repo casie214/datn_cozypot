@@ -44,7 +44,7 @@ const goToFoodList = (category) => {
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text"
               placeholder="Tìm kiếm (mã, tên)" />
-            <button class="search-btn">🔍</button>
+            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
@@ -107,10 +107,10 @@ const goToFoodList = (category) => {
           <tr v-for="(item, index) in paginatedData" :key="item.id">
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maDanhMucChiTiet }}</td>
-            <td><b>{{ item.tenDanhMucChiTiet }}</b></td>
-            <td style="color: #8B0000; font-weight: 500;">{{ item.tenDanhMuc }}</td>
+            <td>{{ item.tenDanhMucChiTiet }}</td>
+            <td >{{ item.tenDanhMuc }}</td>
             <td>{{ item.moTa || '---' }}</td>
-            <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
+            <td :class="item.trangThai === 1 ? '' : ''">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
             <td class="actions">

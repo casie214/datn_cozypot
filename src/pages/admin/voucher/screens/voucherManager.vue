@@ -125,7 +125,7 @@
 
 
                             <td>
-                                <div class="text-danger fw-bold">
+                                <div class=" fw-bold">
                                     Giảm: {{ pg.loaiGiamGia === 1 ? pg.giaTriGiam + '%' : formatPrice(pg.giaTriGiam) }}
                                 </div>
                                 <div class="small text-muted" style="font-size: 0.8rem;">
@@ -145,8 +145,8 @@
                             <td>{{ pg.soLuong }}</td>
                             <td>
                                 <div class="small">
-                                    <span class="text-success">Bắt đầu:</span> {{ formatDate(pg.ngayBatDau) }} <br>
-                                    <span class="text-danger">Kết thúc:</span> {{ formatDate(pg.ngayKetThuc) }}
+                                    <span class="">Bắt đầu:</span> {{ formatDate(pg.ngayBatDau) }} <br>
+                                    <span class="">Kết thúc:</span> {{ formatDate(pg.ngayKetThuc) }}
                                 </div>
                             </td>
                             <td>
@@ -592,8 +592,20 @@
                     </div>
                 </div>
                 <div class="mt-4 d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-light px-4" @click="closeForm">Hủy</button>
-                    <button v-if="!isReadOnly" type="submit" class="btn-red-dark px-4">Lưu phiếu</button>
+                    <div
+                            class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
+                            <button type="button"
+                                class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
+                                style="height: 42px; background-color: #800000;" @click="closeForm">
+                                HỦY BỎ
+                            </button>
+
+                            <button v-if="!isReadOnly" type="submit"
+                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
+                                >
+                                <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
+                            </button>
+                        </div>
                 </div>
             </form>
         </div>

@@ -120,7 +120,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <div class="container search-form">
+  <div class=" search-form">
     <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
     <div class="mb-3">
       <button
@@ -310,6 +310,24 @@ onMounted(() => {
 
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   z-index: 3;
+}
+
+.btn-active {
+  background-color: #7d161a !important;
+  color: white !important;
+  border: 1px solid #7d161a !important;
+}
+
+/* 2. Trạng thái KHÔNG CHỌN (Nền trắng, chữ đỏ, viền đỏ) */
+.btn-outline {
+  background-color: white !important;
+  color: #7d161a !important;
+  border: 1px solid #7d161a !important;
+}
+
+/* Hiệu ứng khi di chuột vào nút không chọn */
+.btn-outline:hover {
+  background-color: #fdf2f2 !important; /* Màu hồng nhạt */
 }
 
 .table-card {

@@ -60,7 +60,7 @@ const getImg = (url) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn">🔍</button>
+            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
@@ -136,11 +136,11 @@ const getImg = (url) => {
 
             <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maSetLau }}</td>
-            <td><b>{{ item.tenSetLau }}</b></td>
-            <td style="color:#d32f2f"><b>{{ item.giaBan?.toLocaleString() }} đ</b></td>
+            <td>{{ item.tenSetLau }}</td>
+            <td>{{ item.giaBan?.toLocaleString() }} VNĐ</td>
             <td>{{ item.tenLoaiSet }}</td>
 
-            <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
+            <td :class="item.trangThai === 1 ? '' : ''">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
 

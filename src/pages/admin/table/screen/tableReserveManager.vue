@@ -109,6 +109,25 @@ onMounted(() => {
   background-color: white;
 }
 
+.nav-tabs .nav-link {
+  color: #7d161a !important;      
+  font-weight: 600;    
+  border-radius: 10px 10px 0 0; 
+}
+
+.nav-tabs .nav-link:hover {
+  color: #5a0f12 !important;     
+  background-color: #fcf4f4; 
+  border-color: #e9ecef #e9ecef #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+  color: #7d161a !important; 
+  background-color: #fff;   
+  font-weight: bold;      
+  border-color: #dee2e6 #dee2e6 #fff;
+}
+
 .search-form {
   border: solid 1px #cacaca;
   border-radius: 15px;

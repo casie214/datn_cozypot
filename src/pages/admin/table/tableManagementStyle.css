@@ -18,6 +18,31 @@
   justify-content: baseline;
 }
 
+.nav-tabs .nav-link {
+  color: #7d161a !important; /* Chuyển màu chữ sang Đỏ */
+  font-weight: 500;
+}
+
+/* 2. Trạng thái Hover (Di chuột vào) */
+.nav-tabs .nav-link:hover {
+  color: #5c0a16 !important; /* Đỏ đậm hơn chút */
+  background-color: #fdf2f2; /* Nền hồng nhạt */
+  border-color: #e9ecef #e9ecef #dee2e6;
+}
+
+/* 3. Trạng thái Active (Đang ở tab đó) */
+.nav-tabs .nav-link.active {
+  color: #7d161a !important; /* Vẫn giữ màu đỏ */
+  font-weight: bold; /* In đậm lên */
+  background-color: #fff; /* Nền trắng */
+  border-color: #dee2e6 #dee2e6 #fff; /* Viền khớp với khung bên dưới */
+}
+
+/* Xóa viền focus xấu xí khi click */
+.nav-link:focus {
+  box-shadow: none;
+}
+
 .notice {
   border: solid 1px #cacaca;
   border-radius: 15px;

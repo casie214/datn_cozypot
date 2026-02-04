@@ -102,7 +102,7 @@ font-weight: bold;
 
 .custom-table td {
   padding: 15px;
-  font-size: 14px;
+  font-size: 14px !important;
   vertical-align: middle;
   border-bottom: 1px solid #eee;
 }

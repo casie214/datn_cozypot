@@ -40,7 +40,7 @@ const goToFoodList = (category) => {
           <label>Tìm kiếm</label>
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text" placeholder="Tìm kiếm danh mục (mã, tên)" />
-            <button class="search-btn">🔍</button>
+            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
         
@@ -95,10 +95,10 @@ const goToFoodList = (category) => {
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             
             <td>{{ item.maDanhMuc }}</td>
-            <td><b>{{ item.tenDanhMuc }}</b></td>
+            <td>{{ item.tenDanhMuc }}</td>
             <td>{{ item.moTa || '---' }}</td>
             
-            <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
+            <td :class="item.trangThai === 1 ? '' : ''">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
             

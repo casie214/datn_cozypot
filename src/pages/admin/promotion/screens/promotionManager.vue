@@ -29,7 +29,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="title-page">Quản lý đợt khuyến mãi</h2>
             </div>
-            
+
 
             <div class="filter-card mb-4">
                 <div class="row g-3 align-items-end">
@@ -60,7 +60,7 @@
                             @change="onFilterChange" />
                     </div>
 
-                    <div class="col-md-3">
+                    <!-- <div class="col-md-3">
                         <label class="filter-label">
                             Giảm giá:
                             <span class="percent-text">
@@ -76,7 +76,29 @@
                                 @input="handlePercentChange" />
                         </div>
 
+                    </div> -->
+
+                    <div class="col-md-3">
+                        <label class="filter-label d-flex justify-content-between">
+                            <span>Giảm giá:</span>
+                            <span class="percent-text fw-bold">
+                                {{ filters.minPercent }}% – {{ filters.maxPercent }}%
+                            </span>
+                        </label>
+
+                        <div class="range-slider-wrapper">
+                            <div class="slider-track-bg"></div>
+
+                            <div class="slider-track-active" :style="sliderTrackStyle"></div>
+
+                            <input type="range" min="0" max="100" step="5" v-model.number="filters.minPercent"
+                                @input="handlePercentChange" class="slider-input" />
+
+                            <input type="range" min="0" max="100" step="5" v-model.number="filters.maxPercent"
+                                @input="handlePercentChange" class="slider-input" />
+                        </div>
                     </div>
+
                     <div class="col-md-3 d-flex justify-content-end align-items-end">
                         <button class="btn-reset-filter" @click="resetFilters">
                             <i class="fas fa-sync-alt"></i> Bỏ lọc
@@ -113,7 +135,7 @@
                             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
                             <td class="fw-bold text-dark">{{ km.maDotKhuyenMai }}</td>
                             <td>{{ km.tenDotKhuyenMai }}</td>
-                            <td class="text-center text-danger fw-bold">{{ km.phanTramGiam }}%</td>
+                            <td class="text-center fw-bold">{{ km.phanTramGiam }}%</td>
                             <td>
                                 <small>
                                     {{ km.ngayBatDau }}
@@ -138,7 +160,7 @@
                                     </div>
                                     <div class="icon-tooltip d-inline-block">
                                         <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input custom-red-switch" type="checkbox"
+                                            <input class="form-check-input custom-red-checkbox custom-red-switch" type="checkbox"
                                                 :checked="km.trangThai === 1" :disabled="isExpired(km.ngayKetThuc)"
                                                 @click.prevent="!isExpired(km.ngayKetThuc) && handleToggleStatus(km)">
                                         </div>
@@ -302,9 +324,9 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="fw-bold small text-secondary">Hàng hóa / Set lẩu</label>
                                     <div v-if="!isReadOnly" class="form-check small">
-                                        <input class="form-check-input" type="checkbox" id="selectAll"
+                                        <input class="form-check-input custom-red-checkbox" type="checkbox" id="selectAll"
                                             :checked="isAllSelected" @change="toggleSelectAll">
-                                        <label class="form-check-label text-primary" for="selectAll"
+                                        <label class="form-check-label custom-red-checkbox" for="selectAll"
                                             style="cursor:pointer">Chọn
                                             tất cả</label>
                                     </div>
@@ -321,7 +343,7 @@
                                     <div v-for="set in filteredSetLau" :key="set.id"
                                         class="item-row px-3 py-2 border-bottom">
                                         <div class="form-check">
-                                            <input class="form-check-input me-2" type="checkbox" :id="'set-' + set.id"
+                                            <input class="form-check-input custom-red-checkbox me-2" type="checkbox" :id="'set-' + set.id"
                                                 :value="set.id" v-model="formData.idSetLauChiTiet"
                                                 :disabled="isReadOnly">
                                             <label :for="'set-' + set.id"
@@ -338,9 +360,9 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="fw-bold small text-secondary">MÓN ĂN LẺ ĐI KÈM</label>
                                     <div v-if="!isReadOnly" class="form-check small">
-                                        <input class="form-check-input" type="checkbox" id="selectAllMonAn"
+                                        <input class="form-check-input custom-red-checkbox" type="checkbox" id="selectAllMonAn"
                                             :checked="isAllMonAnSelected" @change="toggleSelectAllMonAn">
-                                        <label class="form-check-label text-primary" for="selectAllMonAn"
+                                        <label class="form-check-label custom-red-checkbox" for="selectAllMonAn"
                                             style="cursor:pointer">Chọn tất cả</label>
                                     </div>
                                 </div>
@@ -356,7 +378,7 @@
                                     <div v-for="mon in filteredMonAn" :key="mon.id"
                                         class="item-row px-3 py-2 border-bottom">
                                         <div class="form-check">
-                                            <input class="form-check-input me-2" type="checkbox" :id="'mon-' + mon.id"
+                                            <input class="form-check-input custom-red-checkbox me-2" type="checkbox" :id="'mon-' + mon.id"
                                                 :value="mon.id" v-model="formData.idMonAnChiTiet"
                                                 :disabled="isReadOnly">
                                             <label :for="'mon-' + mon.id"
@@ -421,11 +443,20 @@
 
 
                     <div class="card-footer bg-white border-top p-4 d-flex justify-content-end gap-3">
-                        <button type="button" class="btn btn-light px-4 py-2 border text-secondary fw-bold"
-                            @click="closeForm">HỦY BỎ</button>
-                        <button v-if="!isReadOnly" type="submit" class="btn btn-red-dark px-5 py-2 fw-bold shadow-sm">
-                            <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
-                        </button>
+                        <div
+                            class="card-footer under-nav bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
+                            <button type="button"
+                                class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
+                                style="height: 42px; color: white;background-color: #800000;" @click="closeForm">
+                                HỦY BỎ
+                            </button>
+
+                            <button v-if="!isReadOnly" type="submit"
+                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
+                                >
+                                <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -713,6 +744,16 @@ const handleSearch = async () => {
     listKhuyenMai.value = results.slice(start, end);
 };
 
+const sliderTrackStyle = computed(() => {
+    const min = Math.min(filters.minPercent, filters.maxPercent);
+    const max = Math.max(filters.minPercent, filters.maxPercent);
+
+    return {
+        left: `${min}%`,
+        width: `${max - min}%`
+    };
+});
+
 
 const submitForm = async () => {
     if (!validateForm()) return;
@@ -944,3 +985,33 @@ watch(
 
 
 </script>
+
+<style scoped>
+.form-switch .form-check-input {
+    background-color: #e9ecef;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280, 0, 0, 0.25%29'/%3e%3c/svg%3e");
+}
+
+
+.form-switch .form-check-input:checked {
+    background-color: #c0392b !important; 
+    border-color: #c0392b !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+}
+
+.form-switch .form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(192, 57, 43, 0.25) !important;
+    border-color: #c0392b;
+}
+
+.custom-red-checkbox:checked {
+    background-color: #7d161a !important; /* Màu đỏ của bạn */
+    border-color: #7d161a !important;
+}
+
+/* Màu viền khi click vào (Focus) để mất viền xanh mặc định */
+.custom-red-checkbox:focus {
+    border-color: #7d161a;
+    box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25); /* Hiệu ứng tỏa sáng đỏ nhạt */
+}
+</style>

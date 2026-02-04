@@ -29,7 +29,7 @@ const menuItems = ref([
         children: [
             { name: 'Danh mục gốc', tab: 'danhmuc' },
             { name: 'Danh mục chi tiết', tab: 'chitietDM' },
-            { name: 'Loại Set Lẩu', tab: 'loaiset' }
+            { name: 'Loại set lẩu', tab: 'loaiset' }
         ]
     },
     
