@@ -48,6 +48,7 @@ public class SecurityConfig {
                   .requestMatchers(
                           "/api/dot-khuyen-mai/export-excel"
                   ).permitAll()
+                  .requestMatchers("/api/guest/**").permitAll()
                   .requestMatchers("/api/khach-hang/**").permitAll()
 
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

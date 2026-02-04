@@ -12,14 +12,18 @@ import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest
 import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietResponse;
 import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.*;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -30,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,7 @@ public class MonAnServiceImplementation implements MonAnService {
     private final DanhMucRepository danhMucRepository;
     private final DanhMucChiTietRepository danhMucChiTietRepository;
     private final ModelMapper modelMapper;
+    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
 
     private String generatePrefixFromData(String name) {
         if (name == null || name.isEmpty()) return "XX";
@@ -538,6 +544,39 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     public void deleteFoodDetailById(int id) {
         monAnChiTietRepository.deleteById(id);
+    }
+
+    @Override
+    public List<SetLauResponse> findSetLauTop(int metric) {
+        int limit = (metric > 0) ? metric : 3;
+        Pageable topPage = PageRequest.of(0, limit);
+
+        // 2. Gọi Repo lấy danh sách Top (Kiểu TopSetLauResponse)
+        List<TopSetLauResponse> topSellingList = chiTietHoaDonRepository.findTopSellingSetLau(topPage);
+
+        // 3. Chuyển đổi (Map) sang List<SetLauResponse>
+        return topSellingList.stream()
+                .map(item -> {
+                    // Lấy Entity SetLau từ kết quả
+                    SetLau entity = item.getSetLau();
+
+                    // Map sang DTO Response (Map thủ công hoặc dùng ModelMapper)
+                    SetLauResponse response = new SetLauResponse();
+                    response.setId(entity.getId());
+                    response.setMaSetLau(entity.getMaSetLau());
+                    response.setTenSetLau(entity.getTenSetLau());
+                    response.setGiaBan(entity.getGiaBan());
+                    response.setHinhAnh(entity.getHinhAnh());
+                    response.setMoTa(entity.getMoTa());
+                    response.setTrangThai(entity.getTrangThai());
+                    // ... map nốt các trường khác nếu cần ...
+
+                    // (Tùy chọn) Nếu SetLauResponse có trường 'soLuongDaBan' để hiển thị
+                    // response.setSoLuongDaBan(item.getTongSoLuongBan());
+
+                    return response;
+                })
+                .collect(Collectors.toList());
     }
 
     public MonAnResponse convertToResponse(MonAnDiKem entity) {
