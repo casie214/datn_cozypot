@@ -60,7 +60,7 @@ const visiblePages = computed(() => {
 </script>
 
 <template>
-  <div class="d-flex bg-light" style="min-height: 100vh">
+  <div class="d-flex" style="min-height: 100vh">
     <main class="flex-grow-1 p-4 main-offset">
       <h1 class="page-title mb-4">Quản lý hóa đơn</h1>
 
@@ -99,7 +99,7 @@ const visiblePages = computed(() => {
 
             <div class="col-md-2">
               <label class="form-label text-muted small fw-bold"
-                >Trạng thái Hoàn tiền</label
+                >Trạng thái hoàn tiền</label
               >
               <select
                 v-model="filters.refundStatus"
@@ -173,7 +173,7 @@ const visiblePages = computed(() => {
               </thead>
               <tbody>
                 <tr v-if="orderList.length === 0">
-                  <td colspan="9" class="text-center py-4 text-muted">
+                  <td colspan="11" class="text-center py-4 text-muted">
                     Không tìm thấy dữ liệu
                   </td>
                 </tr>
@@ -185,7 +185,6 @@ const visiblePages = computed(() => {
                   <td>{{ order.khachHang }}</td>
                   <td>{{ order.sdt }}</td>
                   <td>{{ order.ban }}</td>
-                  <!-- <td class="ps-4">{{ order.soLuongKhach }}</td> -->
                   <td>{{ order.loai }}</td>
                   <td>{{ order.ngayTao }}</td>
                   <td class="fw-bold">{{ order.tongTien }}</td>

@@ -131,7 +131,6 @@ onUnmounted(() => {
 
       <div class="contain-frame mt-3">
         <router-view />
-        <!-- 👈 nội dung đổi ở đây -->
       </div>
     </div>
   </div>

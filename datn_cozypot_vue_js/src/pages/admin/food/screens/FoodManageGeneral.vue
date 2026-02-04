@@ -63,8 +63,8 @@ const formatPriceRange = (item) => {
     const min = item.giaThapNhat || 0;
     const max = item.giaCaoNhat || 0;
     if (min === 0 && max === 0) return 'Chưa cập nhật';
-    if (min === max) return min.toLocaleString() + ' đ';
-    return `${min.toLocaleString()} - ${max.toLocaleString()} đ`;
+    if (min === max) return min.toLocaleString() + ' VNĐ';
+    return `${min.toLocaleString()} - ${max.toLocaleString()} VNĐ`;
 };
 
 const getImg = (url) => {
@@ -92,7 +92,7 @@ const getImg = (url) => {
                 <div class="input-group">
                     <input v-model="searchQuery" type="text" class="form-search form-control"
                         placeholder="Tìm kiếm món (mã, tên)" />
-                    <button class="search-btn">🔍</button>
+                    <button class="search-btn"><i class="fas fa-search me-1"></i></button>
                 </div>
             </div>
 
@@ -165,7 +165,7 @@ const getImg = (url) => {
                     <td>{{ item.tenDanhMuc }}</td>
                     <td>{{ item.tenDanhMucChiTiet }}</td>
 
-                    <td :class="item.trangThaiKinhDoanh === 1 ? 'status-active' : 'status-inactive'">
+                    <td :class="item.trangThaiKinhDoanh === 1 ? '' : ''">
                         {{ item.trangThaiKinhDoanh === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                     </td>
                     <td class="actions">
