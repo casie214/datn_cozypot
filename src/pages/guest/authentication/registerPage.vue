@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import Swal from 'sweetalert2'
+import CommonNav from '@/components/commonNav.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -136,6 +137,7 @@ const navigateToLogin = () => {
 </script>
 
 <template>
+    <CommonNav></CommonNav>
     <div class="main-content">
         <div class="etched-container">
             <section class="py-3 py-md-5 py-xl-8 etched-container-2">
