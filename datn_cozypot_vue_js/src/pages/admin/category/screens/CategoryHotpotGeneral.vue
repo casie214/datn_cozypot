@@ -38,7 +38,7 @@ const goToHotpotList = (item) => {
           <label>Tìm kiếm</label>
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text" placeholder="Tìm kiếm loại lẩu (mã, tên)" />
-            <button class="search-btn">🔍</button>
+            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
@@ -95,10 +95,10 @@ const goToHotpotList = (item) => {
             <td align="center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             
             <td>{{ item.maLoaiSet }}</td>
-            <td><b>{{ item.tenLoaiSet }}</b></td>
+            <td>{{ item.tenLoaiSet }}</td>
             <td>{{ item.moTa }}</td>
             
-            <td :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
+            <td :class="item.trangThai === 1 ? '' : ''">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
             

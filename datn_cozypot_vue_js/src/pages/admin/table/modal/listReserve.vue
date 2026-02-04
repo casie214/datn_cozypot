@@ -208,7 +208,7 @@ onMounted(() => {
 <template>
   <div class="layout-table">
     <div class="navbar-search m-4">
-      <div class="container search-form">
+      <div class="search-form">
         Tìm kiếm
         <form class="d-flex gap-2 mt-2" role="search">
           <input

@@ -14,7 +14,7 @@
 
 .main-content {
     flex: 1;
-    padding: 20px 40px;
+    padding: 25px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -23,33 +23,26 @@
 .page-title {
     color: var(--primary-red);
     font-weight: 700;
-    font-size: 26px;
+    font-size: 24px;
     margin-bottom: 25px;
 }
 
 .btn-excel {
-    /* background-color: #217346; */
-    /* Màu xanh đặc trưng của Excel */
-    color: #217346;
-    border: 1px solid #217346;
+    background-color: #8B0000;
+    color: white;
     padding: 8px 16px;
     border-radius: 4px;
-    /* Bo góc giống các nút khác */
+    border: none;
     cursor: pointer;
     font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: background 0.2s;
-    height: 43px;
-    /* Chiều cao bằng các input/button khác */
-    margin-right: 10px;
-    /* Cách nút Thêm một chút */
+    height: 45px;
 }
 
 .btn-excel:hover {
     color: white;
-    background-color: #1e6b41;
+    background-color: #8B0000;
 }
 
 

@@ -65,7 +65,7 @@ const handleSelectHotpot = (val) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm chi tiết (mã, tên)" />
-            <button class="search-btn">🔍</button>
+            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
@@ -158,12 +158,12 @@ const handleSelectHotpot = (val) => {
           <tr v-for="(item, index) in paginatedData" :key="item.id">
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maChiTietMonAn }}</td>
-            <td><b>{{ item.tenChiTietMonAn }}</b></td>
+            <td>{{ item.tenChiTietMonAn }}</td>
             <td>{{ item.monAnDiKem ? item.monAnDiKem.tenMonAn : (item.tenMonAnDiKem || '---') }}</td>
-            <td style="color:#d32f2f; font-weight:bold">{{ item.giaBan?.toLocaleString() }}</td>
+            <td >{{ item.giaBan?.toLocaleString() }}</td>
             <td>{{ item.kichCo }}</td>
             <td>{{ item.donVi }}</td>
-            <td :class="item.trangThai ? 'status-active' : 'status-inactive'">
+            <td :class="item.trangThai ? '' : ''">
               {{ item.trangThai ? 'Đang hoạt động' : 'Ngưng bán' }}
             </td>
             <td class="actions">

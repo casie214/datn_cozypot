@@ -1,8 +1,8 @@
 <template>
   <div class="d-flex">
-    <sidebar />
+    
 
-    <div class="flex-grow-1 staff-manager-wrapper">
+    <div class="flex-grow-1 staff-manager-wrapper" style="padding: 25px;">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="title-page">Quản lý nhân viên</h2>
         <div class="d-flex gap-2"> <button class="btn-export-excel" @click="exportToExcel">

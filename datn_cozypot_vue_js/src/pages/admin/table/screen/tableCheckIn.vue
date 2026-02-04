@@ -211,7 +211,7 @@ const formatDate = (time) => {
         Check-in bàn
       </h3>
 
-      <div class="container search-form">
+      <div class=" search-form">
         <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
 
         <!-- Button chọn tầng -->
@@ -604,6 +604,19 @@ const formatDate = (time) => {
   padding-top: 1%;
   padding-left: 2%;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline {
+  border: 1px solid #ccc !important;
+  background-color: white;
+  color: #333;
+}
+
+/* Tùy chỉnh thêm hiệu ứng khi hover vào nút chưa chọn */
+.btn-outline:hover {
+  border-color: #7d161a !important;
+  color: #7d161a !important;
+  background-color: #fff5f5 !important;
 }
 
 .navbar-search {
