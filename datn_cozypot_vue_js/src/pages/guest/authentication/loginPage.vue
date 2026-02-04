@@ -127,7 +127,7 @@ const switchTab = (isClient) => {
 
                                                         <label for="email" class="form-label"
                                                             :class="{ 'admin-label': !isClientLogin }">
-                                                            {{ isClientLogin ? 'Email' : 'Administrator Username' }}
+                                                            {{ isClientLogin ? 'Email' : 'Tên đăng nhập' }}
                                                         </label>
                                                         <div class="invalid-feedback">{{ errors.email }}</div>
                                                     </div>
@@ -139,37 +139,44 @@ const switchTab = (isClient) => {
                                                             :class="{ 'is-invalid': errors.password }"
                                                             name="password" id="password" value=""
                                                             placeholder="Password">
-                                                        <label for="password" class="form-label">Password</label>
+                                                        <label for="password" class="form-label">Mật khẩu</label>
                                                         <div class="invalid-feedback">{{ errors.password }}</div>
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12">
                                                     <div class="row justify-content-between">
-                                                        <div class="col-6">
+                                                        <div class="col-12">
+                                                            <div class="text-start">
+                                                                <a href="#!"
+                                                                    class="link-secondary text-decoration-none">Quên mật khẩu?</a>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <div class="row justify-content-between">
+                                                        <div class="col-12">
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox" value=""
                                                                     name="remember_me" id="remember_me">
                                                                 <label class="form-check-label text-secondary"
-                                                                    for="remember_me">Remember me</label>
+                                                                    for="remember_me">Nhớ đăng nhập</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-6">
-                                                            <div class="text-end">
-                                                                <a href="#!"
-                                                                    class="link-secondary text-decoration-none">Forgot
-                                                                    password?</a>
-                                                            </div>
-                                                        </div>
+                                                        
                                                     </div>
                                                 </div>
+                                                
 
                                                 <div class="col-12">
                                                     <div class="d-grid">
                                                         <button class="btn btn-lg rounded-0 fs-6"
                                                             :class="isClientLogin ? 'btn-dark' : 'btn-danger'"
                                                             type="submit">
-                                                            {{ isClientLogin ? 'Log in' : 'Access Dashboard' }}
+                                                            {{ isClientLogin ? 'Đăng nhập' : 'Truy cập' }}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -200,7 +207,7 @@ const switchTab = (isClient) => {
                                                         <path
                                                             d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.689 7.689 0 0 1 5.352 2.082l-2.284 2.284A4.347 4.347 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.792 4.792 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.702 3.702 0 0 0 1.599-2.431H8v-3.08h7.545z" />
                                                     </svg>
-                                                    <span class="ms-2 fs-6 flex-grow-1">Continue with Google</span>
+                                                    <span class="ms-2 fs-6 flex-grow-1">Tiếp tục với Google</span>
                                                 </a>
                                                 <a href="#!"
                                                     class="btn bsb-btn-2xl btn-outline-dark rounded-0 d-flex align-items-center">
@@ -210,7 +217,7 @@ const switchTab = (isClient) => {
                                                         <path
                                                             d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z" />
                                                     </svg>
-                                                    <span class="ms-2 fs-6 flex-grow-1">Continue with Facebook</span>
+                                                    <span class="ms-2 fs-6 flex-grow-1">Tiếp tục với Facebook</span>
                                                 </a>
                                             </div>
                                         </div>
@@ -225,12 +232,12 @@ const switchTab = (isClient) => {
                     <div class="btn-group shadow-sm" role="group" aria-label="Login Type">
                         <button type="button" class="btn btn-sm px-4"
                             :class="isClientLogin ? 'btn-dark' : 'btn-outline-dark'" @click="isClientLogin = true">
-                            Client
+                            Khách hàng
                         </button>
                         <button type="button" class="btn btn-sm px-4"
                             :class="!isClientLogin ? 'btn-danger' : 'btn-outline-secondary'"
                             @click="isClientLogin = false">
-                            Admin
+                            Quản lý
                         </button>
                     </div>
                 </div>
