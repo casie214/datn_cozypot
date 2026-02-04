@@ -16,7 +16,7 @@ const isAdminRoute = computed(() =>{
     <Sidebar class="app-sidebar" v-if="isAdminRoute" />
 
     <div class="main-layout">
-      <Header/>
+      <Header v-if="isAdminRoute"/>
 
       <div class="app-content">
         <router-view />
@@ -30,7 +30,10 @@ const isAdminRoute = computed(() =>{
 * {
   box-sizing: border-box;
 }
-
+.navbar {
+  height: 70px;
+    overflow: visible !important; 
+}
 body, html {
   margin: 0;
   padding: 0;
@@ -91,7 +94,7 @@ body, html {
   flex-grow: 1; /* Chiếm toàn bộ không gian còn lại */
   background-color: #fdfbfa; /* Màu nền nhẹ đặc trưng của Admin Layout */
   overflow-y: auto; /* Cho phép cuộn nội dung trang con */
-  padding: 20px 40px;
+  
   transition: all 0.3s ease;
 }
 

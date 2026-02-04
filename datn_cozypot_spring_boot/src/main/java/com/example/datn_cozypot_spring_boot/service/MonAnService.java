@@ -63,4 +63,6 @@ public interface MonAnService {
     MonAnChiTietResponse findChiTietMonAnById(int id);
 
     void deleteFoodDetailById(int id);
+
+    List<SetLauResponse> findSetLauTop(int metric);
 }
