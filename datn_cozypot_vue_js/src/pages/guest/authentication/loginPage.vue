@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
+import CommonNav from '@/components/commonNav.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -23,11 +24,9 @@ const validate = () => {
 
     // validate email
     if (!email.value) {
-        // Kiểm tra rỗng chung cho cả 2
         errors.value.email = isClientLogin.value ? "Email không được để trống" : "Tên đăng nhập không được để trống";
         isValid = false;
     } 
-    // 🔥 SỬA Ở ĐÂY: Chỉ check định dạng Email nếu là Client
     else if (isClientLogin.value) { 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.value)) {
@@ -36,7 +35,7 @@ const validate = () => {
         }
     }
 
-    // validate Mật khẩu
+    // validate mật khẩu
     if (!password.value) {
         errors.value.password = "Mật khẩu không được để trống";
         isValid = false;
@@ -82,11 +81,11 @@ const switchTab = (isClient) => {
 </script>
 
 <template>
+    <CommonNav></CommonNav>
     <div class="main-content">
+        
         <div class="etched-container">
             <section class="py-3 py-md-5 py-xl-8 etched-container-2">
-
-
                 <div class="container">
                     <div class="container-fluid px-5">
                         <div class="row">

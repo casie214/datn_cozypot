@@ -1,7 +1,9 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
+import com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +41,10 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
     @Query("SELECT COUNT(c) > 0 FROM ChiTietHoaDon c WHERE c.idHoaDon.id = :idHoaDon AND c.trangThaiMon = :trangThai")
     boolean existsByIdHoaDonAndTrangThaiMon(@Param("idHoaDon") Integer idHoaDon, @Param("trangThai") Integer trangThai);
 
+    @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse(c.idSetLau, SUM(c.soLuong)) " +
+            "FROM ChiTietHoaDon c " +
+            "WHERE c.idSetLau IS NOT NULL " + // Chỉ lấy dòng có set lẩu (bỏ qua món lẻ)
+            "GROUP BY c.idSetLau " +
+            "ORDER BY SUM(c.soLuong) DESC")
+    List<TopSetLauResponse> findTopSellingSetLau(Pageable pageable);
 }
