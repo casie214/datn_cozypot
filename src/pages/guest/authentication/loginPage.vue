@@ -81,7 +81,6 @@ const switchTab = (isClient) => {
 </script>
 
 <template>
-    <CommonNav></CommonNav>
     <div class="main-content">
         
         <div class="etched-container">
