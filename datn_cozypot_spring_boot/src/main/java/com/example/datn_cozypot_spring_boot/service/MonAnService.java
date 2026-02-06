@@ -65,4 +65,14 @@ public interface MonAnService {
     void deleteFoodDetailById(int id);
 
     List<SetLauResponse> findSetLauTop(int metric);
+
+    List<MonAnResponse> findMonAnActive();
+
+    List<DanhMucResponse> findDanhMucActive();
+
+    List<SetLauResponse> findSetLauActive();
+
+    List<DanhMucChiTietResponse> findDanhMucChiTietActive();
+
+    List<LoaiLauResponse> findLoaiSetLauActive();
 }

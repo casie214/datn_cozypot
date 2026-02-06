@@ -579,6 +579,51 @@ public class MonAnServiceImplementation implements MonAnService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<MonAnResponse> findMonAnActive() {
+        return monAnRepository.findByTrangThaiKinhDoanh(1).stream().map(monAnDiKem -> modelMapper.map(monAnDiKem, MonAnResponse.class)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DanhMucResponse> findDanhMucActive() {
+        return danhMucRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        danhMuc -> modelMapper.map(danhMuc, DanhMucResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<SetLauResponse> findSetLauActive() {
+        return setLauRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        setLau -> modelMapper.map(setLau, SetLauResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<DanhMucChiTietResponse> findDanhMucChiTietActive() {
+        return danhMucChiTietRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        danhMucChiTiet -> modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<LoaiLauResponse> findLoaiSetLauActive() {
+        return loaiLauRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        loaiLau -> modelMapper.map(loaiLau, LoaiLauResponse.class)
+                )
+                .toList();
+    }
+
     public MonAnResponse convertToResponse(MonAnDiKem entity) {
         MonAnResponse dto = new MonAnResponse();
         // ... map các trường khác ...

@@ -256,7 +256,16 @@ const routes = [{
             requiresAuth: false
         }
     },
-    //Đơn hàng
+
+    {
+        path: "/menu",
+        name: "menu",
+        component: () =>
+            import ("./pages/guest/viewPages/food-menu.vue"),
+        meta: {
+            requiresAuth: false
+        }
+    },
 
     {
         path: "/admin/orders",
