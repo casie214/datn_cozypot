@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import CommonNav from '@/components/commonNav.vue';
+import GoogleLoginCallback from './googleLoginCallback.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -77,6 +78,17 @@ const switchTab = (isClient) => {
     email.value = '';
     password.value = '';
 }
+
+const loginWithGoogle = () => {
+    const clientId = "20518372642-a98sqlousqg989t519jf8fbse68q5iqk.apps.googleusercontent.com";
+    const redirectUri = "http://localhost:5173/auth/google/callback";
+    const scope = "email profile";
+    const responseType = "code";
+    
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}`;
+    
+    window.location.href = googleAuthUrl;
+};
 
 </script>
 
@@ -198,7 +210,7 @@ const switchTab = (isClient) => {
                                         </div>
                                         <div class="col-12 col-lg-5 d-flex align-items-center">
                                             <div class="d-flex gap-3 flex-column w-100 ">
-                                                <a href="#!"
+                                                <a @click="loginWithGoogle"
                                                     class="btn bsb-btn-2xl btn-outline-dark rounded-0 d-flex align-items-center">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                                         fill="currentColor" class="bi bi-google text-danger"

@@ -8,6 +8,7 @@ import com.example.datn_cozypot_spring_boot.repository.NhanVienRepository;
 import com.example.datn_cozypot_spring_boot.security.CustomUserDetailsService;
 import com.example.datn_cozypot_spring_boot.security.JwtTokenProvider;
 import com.example.datn_cozypot_spring_boot.service.AuthenticationService.AuthService;
+import com.example.datn_cozypot_spring_boot.service.AuthenticationService.GoogleAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,8 +36,8 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
+    private final GoogleAuthService googleAuthService;
 
-    //login cho admin
     @PostMapping("/admin/login")
     public ResponseEntity<?> loginAdmin(@RequestBody LoginRequest req) {
         NhanVien nv = nhanVienRepository.findNhanVienByTenDangNhap(req.getUsername())
@@ -105,5 +107,16 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Lỗi refresh token");
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Refresh token không hợp lệ");
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        try {
+            Map<String, String> result = googleAuthService.loginWithGoogle(code);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi đăng nhập Google: " + e.getMessage());
+        }
     }
 }
