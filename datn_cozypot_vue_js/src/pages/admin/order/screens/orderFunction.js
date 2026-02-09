@@ -440,6 +440,7 @@ const openCancelModal = async (order) => {
         const minutesLate = Math.round(Math.abs(diffMinutes));
         message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong 15p giữ bàn). Khách hủy => MẤT CỌC.`;
       } else {
+        isWarning = true;
         message = `Đã quá thời gian giữ bàn (15p). Đơn lẽ ra đã bị hủy tự động.`;
       }
     } else if (diffHours < 2) {
