@@ -80,23 +80,24 @@ public class AuthController {
 
         try {
             if (tokenProvider.validateToken(requestRefreshToken)) {
-                // 1. Lấy username từ refresh token
                 String username = tokenProvider.getUsernameFromToken(requestRefreshToken);
-
-                // 2. Load lại thông tin user từ DB để lấy Role mới nhất
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 3. Lấy Role ra (Giả sử User chỉ có 1 role, nếu nhiều role phải xử lý list)
-                String role = userDetails.getAuthorities().stream()
+                // 👇 ĐOẠN GÂY LỖI LÀ Ở ĐÂY 👇
+                // String role = userDetails.getAuthorities().stream().findFirst().get().getAuthority();
+                // Dòng trên sẽ trả về "ROLE_ADMIN", gây lỗi lệch pha.
+
+                // 👇 SỬA THÀNH:
+                String fullRole = userDetails.getAuthorities().stream()
                         .findFirst()
                         .map(item -> item.getAuthority())
-                        .orElse("USER"); // Mặc định nếu không tìm thấy
+                        .orElse("USER");
 
-                // 4. 👇 QUAN TRỌNG: Gọi hàm tạo token có tham số ROLE
+                // Cắt bỏ tiền tố "ROLE_" nếu có để đồng bộ với lúc Login
+                String role = fullRole.replace("ROLE_", "");
+
+                // Tạo token mới với role "sạch" (ADMIN)
                 String newAccessToken = tokenProvider.generateToken(username, role);
-
-                // 5. Tạo Refresh token mới (nếu muốn xoay vòng) hoặc trả lại cái cũ
-                // Lưu ý: Nếu tạo refresh token mới thì nhớ dùng hàm generateRefreshToken (hạn dài)
 
                 return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken, requestRefreshToken, role));
             }
