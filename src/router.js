@@ -319,6 +319,12 @@ const routes = [{
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
+    {
+    path: '/auth/google/callback',
+    name: 'GoogleCallback',
+    component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
+    meta: { requiresAuth: false } 
+    },
 
 
 ];
