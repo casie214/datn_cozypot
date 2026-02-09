@@ -75,4 +75,6 @@ public interface MonAnService {
     List<DanhMucChiTietResponse> findDanhMucChiTietActive();
 
     List<LoaiLauResponse> findLoaiSetLauActive();
+
+    List<MonAnChiTietResponse> findChiTietMonAnActive();
 }
