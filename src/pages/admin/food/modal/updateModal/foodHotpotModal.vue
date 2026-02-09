@@ -33,6 +33,15 @@ const goToDetailTable = () => {
         alert("Không tìm thấy ID Set Lẩu");
     }
 };
+
+const goToVariantDetail = (variant) => {
+  router.push({
+    name: 'viewFoodDetail', 
+    params: { 
+      id: variant.id 
+    }
+  });
+};
 </script>
 
 <template>
@@ -185,7 +194,7 @@ const goToDetailTable = () => {
             <div v-for="(item, index) in selectedIngredients" :key="item.id" class="selected-item-row">
               <img :src="getImg(item.hinhAnh)" class="selected-thumb">
               <div class="selected-info">
-                <div class="selected-name">{{ item.ten }}</div>
+                <div class="selected-name clickable-name" @click="goToVariantDetail(item)">{{ item.ten }}</div>
                 <div class="selected-unit">{{ item.donVi }}</div>
                 <div class="selected-price-mini" v-if="isViewMode">
                    {{ item.giaBan?.toLocaleString() }}đ x {{ item.soLuong }}

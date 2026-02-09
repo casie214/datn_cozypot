@@ -20,6 +20,14 @@ const getImg = (url) => {
   return 'https://placehold.co/100x100?text=No+Img';
 }
 
+const goToVariantDetail = (variant) => {
+  router.push({
+    name: 'viewFoodDetail', 
+    params: { 
+      id: variant.id 
+    }
+  });
+};
 
 </script>
 
