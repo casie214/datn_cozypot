@@ -44,6 +44,7 @@ public class SecurityConfig {
 
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
+                  .requestMatchers("/api/auth/refresh-token").permitAll()
                   .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                   .requestMatchers(
                           "/api/dot-khuyen-mai/export-excel"
