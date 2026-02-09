@@ -85,20 +85,13 @@ public class AuthController {
                 String username = tokenProvider.getUsernameFromToken(requestRefreshToken);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 👇 ĐOẠN GÂY LỖI LÀ Ở ĐÂY 👇
-                // String role = userDetails.getAuthorities().stream().findFirst().get().getAuthority();
-                // Dòng trên sẽ trả về "ROLE_ADMIN", gây lỗi lệch pha.
-
-                // 👇 SỬA THÀNH:
                 String fullRole = userDetails.getAuthorities().stream()
                         .findFirst()
                         .map(item -> item.getAuthority())
                         .orElse("USER");
 
-                // Cắt bỏ tiền tố "ROLE_" nếu có để đồng bộ với lúc Login
                 String role = fullRole.replace("ROLE_", "");
 
-                // Tạo token mới với role "sạch" (ADMIN)
                 String newAccessToken = tokenProvider.generateToken(username, role);
 
                 return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken, requestRefreshToken, role));

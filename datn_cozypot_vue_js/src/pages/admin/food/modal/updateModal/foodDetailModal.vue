@@ -53,7 +53,7 @@ const goToParentFood = () => {
                             <span class="code-badge">#{{ originalInfo.maChiTietMonAn }}</span>
                         </h2>
                         <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
-                            {{ originalInfo.trangThaiKinhDoanh === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+                            {{ originalInfo.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
                         </span>
                     </div>
                     <div class="hero-meta-grid">
