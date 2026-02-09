@@ -19,28 +19,36 @@ public class ThamSoHeThongController {
     public Map<String, Object> getGlobalParams() {
         Map<String, Object> params = new HashMap<>();
 
-        // Lấy VAT (Chuyển String sang Double)
-        ThamSoHeThong vatParam = thamSoRepo.findByMaThamSo("VAT").orElse(null);
-        if (vatParam != null) {
-            try {
-                params.put("VAT", Double.parseDouble(vatParam.getGiaTri()));
-            } catch (NumberFormatException e) {
-                params.put("VAT", 10.0); // Mặc định nếu DB nhập sai
-            }
-        } else {
-            params.put("VAT", 0.0); // Không tìm thấy thì 0%
-        }
+        // 1. VAT
+        params.put("VAT", getParamValue("VAT", 10.0)); // Mặc định 10%
 
-        // Lấy thời gian chờ (Chuyển String sang Int)
-        ThamSoHeThong timeParam = thamSoRepo.findByMaThamSo("MIN_RESERVE").orElse(null);
-        if (timeParam != null) {
-            try {
-                params.put("MIN_RESERVE", Integer.parseInt(timeParam.getGiaTri()));
-            } catch (NumberFormatException e) {
-                params.put("MIN_RESERVE", 30);
-            }
-        }
+        // 2. Thời gian đặt trước tối thiểu (phút)
+        params.put("MIN_RESERVE", getParamValue("MIN_RESERVE", 30));
+
+        // 3. Thời gian giữ bàn (phút) - MỚI
+        params.put("MAX_HOLD_TIME", getParamValue("MAX_HOLD_TIME", 15)); // Mặc định 15p
+
+        // 4. Giới hạn hủy trước giờ (giờ) - MỚI
+        params.put("CANCEL_LIMIT_HOURS", getParamValue("CANCEL_LIMIT_HOURS", 2.0)); // Mặc định 2h
 
         return params;
+    }
+
+    // Hàm phụ trợ để lấy giá trị an toàn (đỡ phải try-catch nhiều lần)
+    private <T> T getParamValue(String maThamSo, T defaultValue) {
+        ThamSoHeThong param = thamSoRepo.findByMaThamSo(maThamSo).orElse(null);
+        if (param == null) return defaultValue;
+
+        try {
+            String val = param.getGiaTri();
+            if (defaultValue instanceof Integer) {
+                return (T) Integer.valueOf(val);
+            } else if (defaultValue instanceof Double) {
+                return (T) Double.valueOf(val);
+            }
+            return (T) val;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 }

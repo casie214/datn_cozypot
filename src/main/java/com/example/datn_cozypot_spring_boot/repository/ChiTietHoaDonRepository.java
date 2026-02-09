@@ -32,7 +32,7 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
             "LEFT JOIN cthd.idSetLau s " +
             "LEFT JOIN cthd.idChiTietMonAn ctma " +
             "LEFT JOIN ctma.idMonAnDiKem m " +
-            "WHERE cthd.idHoaDon.id = :idHoaDon")
+            "WHERE cthd.idHoaDon.id = :idHoaDon AND (cthd.trangThaiMon <> 0 OR cthd.idHoaDon.trangThaiHoaDon = 0)")
     List<ChiTietHoaDonResponse> findChiTietByHoaDonId(@Param("idHoaDon") Integer idHoaDon);
 
     @Query("SELECT c FROM ChiTietHoaDon c WHERE c.idHoaDon.id = :idHoaDon")
