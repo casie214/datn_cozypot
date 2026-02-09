@@ -28,6 +28,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -41,7 +43,7 @@ public class SecurityConfig {
           .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
+                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(unauthorizedHandler))
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
                   .requestMatchers("/api/auth/refresh-token").permitAll()
