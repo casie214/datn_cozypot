@@ -4,6 +4,7 @@ import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
+import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import lombok.RequiredArgsConstructor;
@@ -51,4 +52,12 @@ public class GuestController {
     public ResponseEntity<List<MonAnResponse>> getMonAnActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findMonAnActive());
     }
+
+    @GetMapping("/food-detail/active")
+    public ResponseEntity<List<MonAnChiTietResponse>> getChiTietMonAnActive(){
+        return ResponseEntity.status(HttpStatus.OK).body(monAnService.findChiTietMonAnActive());
+    }
+
+//    @GetMapping("/search/active/{name}")
+//    public ResponseEntity
 }

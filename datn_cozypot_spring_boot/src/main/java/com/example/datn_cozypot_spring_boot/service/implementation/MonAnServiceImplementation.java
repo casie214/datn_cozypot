@@ -624,6 +624,16 @@ public class MonAnServiceImplementation implements MonAnService {
                 .toList();
     }
 
+    @Override
+    public List<MonAnChiTietResponse> findChiTietMonAnActive() {
+        return monAnChiTietRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        monAnChiTiet -> modelMapper.map(monAnChiTiet, MonAnChiTietResponse.class)
+                )
+                .toList();
+    }
+
     public MonAnResponse convertToResponse(MonAnDiKem entity) {
         MonAnResponse dto = new MonAnResponse();
         // ... map các trường khác ...

@@ -8,16 +8,18 @@ const menuData = ref([]);
 const isLoading = ref(false);
 const cart = ref([]);
 const activeCategory = ref('');
+const searchQuery = ref('')
 
 const fetchData = async () => {
     isLoading.value = true;
     try {
-        const [resDanhMuc, resMonAn, resSetLau, resChiTiet, resLoaiSet] = await Promise.all([
+        const [resDanhMuc, resMonAn, resSetLau, resChiTiet, resLoaiSet, resFoodDetail] = await Promise.all([
             axiosClient.get('/guest/category/active'),
             axiosClient.get('/guest/food/active'),
             axiosClient.get('/guest/hotpot/active'),
             axiosClient.get('/guest/category-detail/active'),
-            axiosClient.get('/guest/hotpot-type/active') 
+            axiosClient.get('/guest/hotpot-type/active'),
+            axiosClient.get('/guest/food-detail/active')
         ]);
 
         const listDanhMuc = resDanhMuc.data || [];
@@ -25,11 +27,14 @@ const fetchData = async () => {
         const listSetLau = resSetLau.data || [];
         const listChiTiet = resChiTiet.data || [];
         const listLoaiSet = resLoaiSet.data || [];
+        const listFoodDetail = resFoodDetail.data || [];
 
 
         const subToRootMap = {};
         const subNameMap = {};
         const rootToSubsList = {};
+
+        const priceMap = {};
 
         listChiTiet.forEach(sub => {
             subToRootMap[sub.id] = sub.idDanhMuc;
@@ -42,6 +47,18 @@ const fetchData = async () => {
                 id: sub.id,
                 name: sub.tenDanhMucChiTiet
             });
+        });
+
+        listFoodDetail.forEach(detail => {
+            const foodId = detail.idMonAnDiKem;
+            const price = detail.giaBan;
+
+            if (!priceMap[foodId]) {
+                priceMap[foodId] = { min: price, max: price, hasDetail: true };
+            } else {
+                priceMap[foodId].min = Math.min(priceMap[foodId].min, price);
+                priceMap[foodId].max = Math.max(priceMap[foodId].max, price);
+            }
         });
 
         const processedMenu = [];
@@ -64,7 +81,8 @@ const fetchData = async () => {
                     image: item.hinhAnh || 'https://placehold.co/400x300?text=Combo',
                     desc: item.moTa || 'Set lẩu đầy đặn, phù hợp cho nhóm.',
                     type: 'SET',
-                    groupId: item.idLoaiSet
+                    groupId: item.idLoaiSet,
+                    isRange: false
                 }))
             });
         }
@@ -88,16 +106,33 @@ const fetchData = async () => {
                     categoryName: dm.tenDanhMuc.toUpperCase(),
                     activeFilter: 'all',
                     filters: subFilters,
-                    items: monsInCat.map(item => ({
-                        id: item.id,
-                        name: item.tenMonAn,
-                        price: item.giaBan,
-                        image: item.hinhAnh || 'https://placehold.co/300x200?text=Mon+An',
-                        desc: item.moTa || '',
-                        type: 'MON',
-                        subCategoryName: subNameMap[item.idDanhMucChiTiet] || '',
-                        groupId: item.idDanhMucChiTiet // 👈 Quan trọng: Dùng để lọc
-                    }))
+                    items: monsInCat.map(item => {
+
+                        const detailPrice = priceMap[item.id];
+                        let finalPrice = item.giaBan; // Mặc định lấy giá gốc
+                        let isRange = false;
+
+                        if (detailPrice) {
+                            if (detailPrice.min !== detailPrice.max) {
+                                isRange = true; // Đánh dấu là khoảng giá
+                                finalPrice = { min: detailPrice.min, max: detailPrice.max };
+                            } else {
+                                finalPrice = detailPrice.min; // Nếu min == max thì hiện 1 giá
+                            }
+                        }
+                        return {
+
+                            id: item.id,
+                            name: item.tenMonAn,
+                            price: finalPrice,
+                            image: item.hinhAnh || 'https://placehold.co/300x200?text=Mon+An',
+                            desc: item.moTa || '',
+                            type: 'MON',
+                            isRange: isRange,
+                            subCategoryName: subNameMap[item.idDanhMucChiTiet] || '',
+                            groupId: item.idDanhMucChiTiet 
+                        };
+                    })
                 });
             }
         });
@@ -142,13 +177,42 @@ const addToCart = (item) => {
 };
 const totalCount = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0));
 const totalPrice = computed(() => cart.value.reduce((sum, item) => sum + (item.price * item.quantity), 0));
-const formatPrice = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
+const formatPrice = (value) => {
+    if (typeof value !== 'number' || isNaN(value)) {
+        if (typeof value === 'object' && value.min) return formatPrice(value.min);
+        return '0 ₫';
+    }
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
 const pageContainer = ref(null);
 const scrollToCategory = (id) => {
     activeCategory.value = id;
     const element = document.getElementById(id);
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+
+const allSearchItem = computed(() => {
+    if (!menuData.value) {
+        return [];
+    }
+    return menuData.value.flatMap(section => section.items);
+})
+
+const searchResult = computed(() => {
+    if (!searchQuery.value || searchQuery.value.trim() === '') {
+        return [];
+    }
+    const query = searchQuery.value.trim().toLowerCase();
+    return allSearchItem.value.filter(item => {
+        const matchName = item.name.toLowerCase().includes(query);
+        return matchName;
+    })
+})
+
+const clearSearch = () => {
+    searchQuery.value = '';
+}
+
 const onScroll = () => {
     const offset = 150;
     for (const cat of categories.value) {
@@ -184,15 +248,72 @@ onUnmounted(() => {
 
         <div v-else>
             <nav class="category-nav">
-                <div class="container">
-                    <ul class="nav-list">
-                        <li v-for="cat in categories" :key="cat.id" :id="`nav-item-${cat.id}`" class="nav-item"
-                            :class="{ active: activeCategory === cat.id }" @click="scrollToCategory(cat.id)">
-                            {{ cat.name }}
-                        </li>
-                    </ul>
+                <div class="container d-flex align-items-center justify-content-between h-100">
+
+                    <div class="nav-scroll-container">
+                        <ul class="nav-list">
+                            <li v-for="cat in categories" :key="cat.id" :id="`nav-item-${cat.id}`" class="nav-item"
+                                :class="{ active: activeCategory === cat.id }" @click="scrollToCategory(cat.id)">
+                                {{ cat.name }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="search-wrapper ms-3" style="position: relative; z-index: 1050;">
+
+                        <div class="search-input-group d-flex align-items-center bg-white border rounded-pill px-3 py-1"
+                            style="width: 250px;">
+                            <input type="text" class="form-control border-0 shadow-none p-0" placeholder="Tìm món..."
+                                v-model="searchQuery">
+                            <i v-if="searchQuery" class="fas fa-times text-muted cursor-pointer ms-2"
+                                @click="clearSearch"></i>
+                            <i v-else class="fas fa-search text-muted ms-2"></i>
+                        </div>
+
+                        <div v-if="searchQuery" class="search-dropdown shadow-lg animate__animated animate__fadeIn">
+                            <div v-if="searchResult.length > 0" class="search-results-list custom-scrollbar">
+                                <div v-for="item in searchResult" :key="item.id + item.type" class="search-item"
+                                    @click="addToCart(item)">
+
+                                    <div class="search-img-box">
+                                        <img :src="item.image" :alt="item.name">
+                                        <span v-if="item.type === 'SET'" class="badge-mini-set">SET</span>
+                                    </div>
+
+                                    <div class="search-item-info">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <h6 class="search-item-name">{{ item.name }}</h6>
+                                        </div>
+                                        <p class="search-item-desc text-muted mb-1"
+                                            style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            {{ item.desc }}</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <span class="search-item-price">
+                                                <template v-if="item.isRange">
+                                                    {{ formatPrice(item.price.min) }} - {{ formatPrice(item.price.max)
+                                                    }}
+                                                </template>
+
+                                                <template v-else>
+                                                    {{ formatPrice(item.price) }}
+                                                </template>
+                                            </span>
+                                            <button class="btn-search-add"><i class="fas fa-plus"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-4 text-muted">
+                                <i class="fas fa-search mb-2" style="font-size: 20px; opacity: 0.5;"></i>
+                                <p class="mb-0 small">Không tìm thấy món nào.</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </nav>
+
+
 
             <div class="main-content container py-4">
                 <div v-for="section in menuData" :key="section.categoryId" :id="section.categoryId"
@@ -228,7 +349,18 @@ onUnmounted(() => {
                                         {{ item.name }}</h5>
                                     <p v-if="section.categoryId === 'combo-set'" class="food-desc">{{ item.desc }}</p>
                                     <div class="card-footer-action">
-                                        <span class="food-price">{{ formatPrice(item.price) }}</span>
+                                        <span class="food-price">
+                                            <span class="food-price" :class="section.categoryId === 'combo-set' ? 'food-price-lg' : ''">
+                                                <template v-if="item.isRange">
+                                                    {{ formatPrice(item.price.min) }} - {{ formatPrice(item.price.max)
+                                                    }}
+                                                </template>
+                                                <template v-else>
+                                                    {{ formatPrice(item.price) }}
+                                                </template>
+                                            </span>
+
+                                        </span>
                                         <button class="btn-add" @click="addToCart(item)"><i
                                                 class="fas fa-plus"></i></button>
                                     </div>
@@ -301,8 +433,31 @@ onUnmounted(() => {
     z-index: 1000;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     white-space: nowrap;
-    overflow-x: auto;
     border-bottom: 1px solid #eee;
+}
+
+.nav-scroll-container {
+    flex: 1;
+    /* Chiếm hết chỗ trống bên trái */
+    overflow-x: auto;
+    /* Cuộn ngang */
+    white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    /* Ẩn thanh cuộn */
+    scrollbar-width: none;
+}
+
+.nav-scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+.search-wrapper {
+    /* Đảm bảo search luôn nổi lên trên */
+    position: relative;
+    z-index: 2000;
+    /* Cao hơn nội dung bên dưới */
 }
 
 .category-nav::-webkit-scrollbar {
@@ -443,7 +598,13 @@ onUnmounted(() => {
 .food-price {
     font-weight: 800;
     color: #7d161a;
-    font-size: 16px;
+    font-size: 13px;
+}
+
+.food-price-lg {
+    font-weight: 800;
+    color: #7d161a;
+    font-size: 16px !important;
 }
 
 .btn-add {
@@ -625,7 +786,7 @@ onUnmounted(() => {
 .filter-list-enter-from,
 .filter-list-leave-to {
     opacity: 0;
-    transform: scale(0.9) translateY(30px); 
+    transform: scale(0.9) translateY(30px);
 }
 
 .filter-list-move {
@@ -633,7 +794,188 @@ onUnmounted(() => {
 }
 
 .filter-list-leave-active {
-    position: absolute; 
-    z-index: -1; 
+    position: absolute;
+    z-index: -1;
+}
+
+.search-img-box {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    /* Không bị co lại */
+}
+
+.search-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Badge SET màu đỏ nhỏ xíu đè lên góc ảnh */
+.badge-mini-set {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(125, 22, 26, 0.9);
+    /* Màu đỏ chủ đạo */
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    padding: 2px 0;
+    line-height: 1;
+}
+
+/* Chỉnh lại tên món để không bị dính */
+.search-item-name {
+    font-size: 13px;
+    margin-bottom: 0;
+    color: #333;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    /* Nằm ngay dưới ô input */
+    left: 0;
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    margin-top: 8px;
+    z-index: 1100;
+    border: 1px solid #eee;
+    overflow: hidden;
+    /* Bo góc */
+}
+
+.search-results-list {
+    max-height: 350px;
+    /* Chiều cao tối đa */
+    overflow-y: auto;
+    /* Cho phép cuộn dọc */
+}
+
+/* Từng dòng kết quả */
+.search-item {
+    display: flex;
+    padding: 10px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-item:hover {
+    background-color: #f9f9f9;
+}
+
+.search-item:last-child {
+    border-bottom: none;
+}
+
+.search-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    /* Tránh vỡ layout nếu text dài */
+}
+
+/* Ảnh thumbnail */
+.search-img-box {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    margin-right: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.search-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Badge SET */
+.badge-mini-set {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(125, 22, 26, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    padding: 1px 0;
+}
+
+/* Text styles */
+.search-item-name {
+    font-size: 13px;
+    margin-bottom: 2px;
+    color: #333;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-desc {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-price {
+    font-size: 12px;
+    color: #7d161a;
+    font-weight: 800;
+}
+
+/* Nút cộng nhỏ */
+.btn-search-add {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #7d161a;
+    background: white;
+    color: #7d161a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s;
+}
+
+.search-item:hover .btn-search-add {
+    background: #7d161a;
+    color: white;
+}
+
+/* Thanh cuộn đẹp */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
 }
 </style>
