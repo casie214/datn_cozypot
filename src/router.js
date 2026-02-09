@@ -333,8 +333,6 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
-
-    // Ép kiểu boolean để đảm bảo isLoggedIn là true/false
     const isLoggedIn = !!authStore.token;
     const userRole = authStore.role;
 
@@ -367,7 +365,9 @@ router.beforeEach((to, from, next) => {
                     timerProgressBar: true
                 });
 
-
+                if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
+                    return next(false); 
+                }
                 return next('/');
             }
         }
