@@ -256,7 +256,16 @@ const routes = [{
             requiresAuth: false
         }
     },
-    //Đơn hàng
+
+    {
+        path: "/menu",
+        name: "menu",
+        component: () =>
+            import ("./pages/guest/viewPages/food-menu.vue"),
+        meta: {
+            requiresAuth: false
+        }
+    },
 
     {
         path: "/admin/orders",
@@ -310,6 +319,12 @@ const routes = [{
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
+    {
+    path: '/auth/google/callback',
+    name: 'GoogleCallback',
+    component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
+    meta: { requiresAuth: false } 
+    },
 
 
 ];
@@ -324,8 +339,6 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
-
-    // Ép kiểu boolean để đảm bảo isLoggedIn là true/false
     const isLoggedIn = !!authStore.token;
     const userRole = authStore.role;
 
@@ -358,7 +371,9 @@ router.beforeEach((to, from, next) => {
                     timerProgressBar: true
                 });
 
-
+                if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
+                    return next(false); 
+                }
                 return next('/');
             }
         }
