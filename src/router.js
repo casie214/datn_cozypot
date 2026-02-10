@@ -99,6 +99,14 @@ const routes = [{
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
+    {
+        path: "/admin/statistics",
+        name: "statisticsManager",
+        component: () =>
+            import ("@/pages/admin/statistics/screens/statisticsManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
+
 
     // Thực đơn
 
