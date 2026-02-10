@@ -53,9 +53,11 @@ public class SecurityConfig {
                   ).permitAll()
                   .requestMatchers("/api/guest/**").permitAll()
                   .requestMatchers("/api/khach-hang/**").permitAll()
+                  .requestMatchers("/api/thong-ke/**").permitAll()
+                  .requestMatchers("/api/mon-an-di-kem/**").permitAll()
+                  .requestMatchers("/api/set-lau/**").permitAll()
                   .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
-
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
             .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
