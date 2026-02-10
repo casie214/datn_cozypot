@@ -21,43 +21,48 @@ import java.util.List;
 @RequestMapping("/api/guest")
 @RestController
 public class GuestController {
-    private final  MonAnService monAnService;
-
-    @GetMapping("/hotpot/top/{metric}")
-    public ResponseEntity<List<SetLauResponse>> getSetLauTheoTop(@PathVariable int metric){
-        return ResponseEntity.status(HttpStatus.OK).body(monAnService.findSetLauTop(metric));
-    }
+    private final MonAnService monAnService;
 
     @GetMapping("/category/active")
     public ResponseEntity<List<DanhMucResponse>> getDanhMucActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findDanhMucActive());
+
     }
 
     @GetMapping("/category-detail/active")
     public ResponseEntity<List<DanhMucChiTietResponse>> getDanhMucChiTietActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findDanhMucChiTietActive());
+
     }
 
     @GetMapping("/hotpot/active")
     public ResponseEntity<List<SetLauResponse>> getSetLauActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findSetLauActive());
+
     }
 
     @GetMapping("/hotpot-type/active")
     public ResponseEntity<List<LoaiLauResponse>> getLoaiSetLauActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findLoaiSetLauActive());
-    }
 
-    @GetMapping("/food/active")
-    public ResponseEntity<List<MonAnResponse>> getMonAnActive(){
-        return ResponseEntity.status(HttpStatus.OK).body(monAnService.findMonAnActive());
     }
 
     @GetMapping("/food-detail/active")
     public ResponseEntity<List<MonAnChiTietResponse>> getChiTietMonAnActive(){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findChiTietMonAnActive());
+
     }
 
-//    @GetMapping("/search/active/{name}")
-//    public ResponseEntity
+    @GetMapping("/food/active")
+    public ResponseEntity<List<MonAnResponse>> getMonAnActive(){
+        return ResponseEntity.status(HttpStatus.OK).body(monAnService.findMonAnActive());
+
+    }
+
+    @GetMapping("/hotpot/top/{metric}")
+    public ResponseEntity<List<SetLauResponse>> getSetLauTheoTop(@PathVariable int metric){
+        return ResponseEntity.status(HttpStatus.OK).body(monAnService.findSetLauTop(metric));
+
+    }
+
 }
