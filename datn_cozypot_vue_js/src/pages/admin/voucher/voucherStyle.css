@@ -100,7 +100,6 @@
     padding: 20px;
     min-height: 100vh;
 }
-
 /* Bảng khách hàng đã chọn */
 .customer-selected-card .table-responsive {
     max-height: 240px; /* 6 dòng */
