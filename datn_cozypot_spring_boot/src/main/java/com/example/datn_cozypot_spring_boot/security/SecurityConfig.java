@@ -50,6 +50,9 @@ public class SecurityConfig {
                   ).permitAll()
                   .requestMatchers("/api/guest/**").permitAll()
                   .requestMatchers("/api/khach-hang/**").permitAll()
+                  .requestMatchers("/api/thong-ke/**").permitAll()
+                  .requestMatchers("/api/mon-an-di-kem/**").permitAll()
+                  .requestMatchers("/api/set-lau/**").permitAll()
 
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
