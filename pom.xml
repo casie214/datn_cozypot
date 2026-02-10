@@ -87,22 +87,43 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
+<<<<<<< HEAD
             <version>0.12.5</version>
+=======
+            <version>0.11.5</version>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
+<<<<<<< HEAD
             <version>0.12.5</version>
+=======
+            <version>0.11.5</version>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
+<<<<<<< HEAD
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.5</version>
+=======
+            <artifactId>jjwt-jackson</artifactId> <version>0.11.5</version>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             <scope>runtime</scope>
         </dependency>
 
         <dependency>
+<<<<<<< HEAD
+=======
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
+        </dependency>
+
+        <dependency>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.8.5</version>
