@@ -27,7 +27,11 @@
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
+<<<<<<< HEAD
                 <h2 class="title-page">Quản lý đợt khuyến mãi</h2>
+=======
+                <h2 class="title-page">Quản lý khuyến mãi thực đơn</h2>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             </div>
 
 
@@ -112,7 +116,11 @@
                     <i class="fas fa-file-excel me-2"></i> Xuất Excel
                 </button>
                 <button class="btn-red-dark " @click="openFormAdd">
+<<<<<<< HEAD
                     <i class="fas fa-plus me-2"></i> Thêm đợt khuyến mãi
+=======
+                    <i class="fas fa-plus me-2"></i> Thêm khuyến mãi thực đơn
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 </button>
             </div>
 
@@ -155,13 +163,25 @@
                                         <span class="tooltip-text">Xem chi tiết</span>
                                     </div>
                                     <div class="icon-tooltip">
+<<<<<<< HEAD
                                         <i class="fas fa-pen edit-icon" @click="openFormEdit(km.id)"></i>
+=======
+                                        <i class="fas fa-pen edit-icon"
+                                            :class="{ 'text-muted disabled-icon': isExpired(km.ngayKetThuc) }"
+                                            @click="!isExpired(km.ngayKetThuc) && openFormEdit(km.id)"></i>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <span class="tooltip-text">Chỉnh sửa</span>
                                     </div>
                                     <div class="icon-tooltip d-inline-block">
                                         <div class="form-check form-switch mb-0">
+<<<<<<< HEAD
                                             <input class="form-check-input custom-red-checkbox custom-red-switch" type="checkbox"
                                                 :checked="km.trangThai === 1" :disabled="isExpired(km.ngayKetThuc)"
+=======
+                                            <input class="form-check-input custom-red-checkbox custom-red-switch"
+                                                type="checkbox" :checked="km.trangThai === 1"
+                                                :disabled="isExpired(km.ngayKetThuc)"
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                                 @click.prevent="!isExpired(km.ngayKetThuc) && handleToggleStatus(km)">
                                         </div>
 
@@ -237,7 +257,11 @@
 
                     <div class="total-info text-muted">
                         Hiển thị {{ listKhuyenMai.length }} /
+<<<<<<< HEAD
                         {{ pagination.totalElements }} đợt khuyến mãi
+=======
+                        {{ pagination.totalElements }} khuyến mãi thực đơn
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                     </div>
 
                 </div>
@@ -259,11 +283,19 @@
                     <div class="row g-0">
                         <div class="col-md-7 p-4 border-end">
                             <h5 class="mb-4 text-primary-red d-flex align-items-center">
+<<<<<<< HEAD
                                 <i class="fas fa-info-circle me-2"></i> Thông tin đợt khuyến mãi
                             </h5>
 
                             <div class="mb-3">
                                 <label class="form-label fw-bold small ">Tên đợt khuyến mãi <span
+=======
+                                <i class="fas fa-info-circle me-2"></i> Thông tin khuyến mãi thực đơn
+                            </h5>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small ">Tên khuyến mãi thực đơn <span
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         class="text-danger">*</span></label>
                                 <input v-model="formData.tenDotKhuyenMai" type="text"
                                     class="form-control custom-input shadow-none"
@@ -324,13 +356,32 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="fw-bold small text-secondary">Hàng hóa / Set lẩu</label>
                                     <div v-if="!isReadOnly" class="form-check small">
+<<<<<<< HEAD
                                         <input class="form-check-input custom-red-checkbox" type="checkbox" id="selectAll"
                                             :checked="isAllSelected" @change="toggleSelectAll">
+=======
+                                        <input class="form-check-input custom-red-checkbox" type="checkbox"
+                                            id="selectAll" :checked="isAllSelected" @change="toggleSelectAll">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <label class="form-check-label custom-red-checkbox" for="selectAll"
                                             style="cursor:pointer">Chọn
                                             tất cả</label>
                                     </div>
                                 </div>
+<<<<<<< HEAD
+=======
+                                <div class="d-flex gap-2 mb-2">
+
+                                    <select v-model="filterGia" class="form-select form-select-sm">
+                                        <option value="">Giá</option>
+                                        <option value="1">Dưới 50k</option>
+                                        <option value="2">50k - 100k</option>
+                                        <option value="3">Trên 100k</option>
+                                    </select>
+
+                                </div>
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 <div class="input-group input-group-sm mb-2 shadow-sm">
                                     <span class="input-group-text bg-white border-end-0"><i
                                             class="fas fa-search text-muted"></i></span>
@@ -341,6 +392,7 @@
                                 <div class="selector-box custom-scrollbar border rounded-3 bg-white"
                                     style="height: 150px; overflow-y: auto;">
                                     <div v-for="set in filteredSetLau" :key="set.id"
+<<<<<<< HEAD
                                         class="item-row px-3 py-2 border-bottom">
                                         <div class="form-check">
                                             <input class="form-check-input custom-red-checkbox me-2" type="checkbox" :id="'set-' + set.id"
@@ -353,6 +405,30 @@
                                             </label>
                                         </div>
                                     </div>
+=======
+                                        class="item-row px-3 py-2 border-bottom d-flex align-items-center gap-2">
+
+                                        <!-- Ảnh -->
+                                        <!-- <img :src="getImageUrl(set.hinhAnh)" class="product-thumb" /> -->
+
+                                        <div class="flex-grow-1">
+                                            <div class="form-check">
+                                                <input class="form-check-input custom-red-checkbox me-2" type="checkbox"
+                                                    :id="'set-' + set.id" :value="set.id"
+                                                    v-model="formData.idSetLauChiTiet" :disabled="isReadOnly" />
+
+                                                <label :for="'set-' + set.id"
+                                                    class="form-check-label d-flex justify-content-between w-100">
+                                                    <span>{{ set.tenSetLau }}</span>
+                                                    <span class="text-danger fw-bold">
+                                                        {{ formatPrice(set.giaBan) }}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 </div>
                             </div>
 
@@ -360,8 +436,14 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="fw-bold small text-secondary">MÓN ĂN LẺ ĐI KÈM</label>
                                     <div v-if="!isReadOnly" class="form-check small">
+<<<<<<< HEAD
                                         <input class="form-check-input custom-red-checkbox" type="checkbox" id="selectAllMonAn"
                                             :checked="isAllMonAnSelected" @change="toggleSelectAllMonAn">
+=======
+                                        <input class="form-check-input custom-red-checkbox" type="checkbox"
+                                            id="selectAllMonAn" :checked="isAllMonAnSelected"
+                                            @change="toggleSelectAllMonAn">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <label class="form-check-label custom-red-checkbox" for="selectAllMonAn"
                                             style="cursor:pointer">Chọn tất cả</label>
                                     </div>
@@ -376,6 +458,7 @@
                                 <div class="selector-box custom-scrollbar border rounded-3 bg-white"
                                     style="height: 150px; overflow-y: auto;">
                                     <div v-for="mon in filteredMonAn" :key="mon.id"
+<<<<<<< HEAD
                                         class="item-row px-3 py-2 border-bottom">
                                         <div class="form-check">
                                             <input class="form-check-input custom-red-checkbox me-2" type="checkbox" :id="'mon-' + mon.id"
@@ -388,6 +471,30 @@
                                             </label>
                                         </div>
                                     </div>
+=======
+                                        class="item-row px-3 py-2 border-bottom d-flex align-items-center gap-2">
+
+                                        <!-- Ảnh -->
+                                        <!-- <img :src="getImageUrl(mon.hinhAnh)" class="product-thumb" /> -->
+
+                                        <div class="flex-grow-1">
+                                            <div class="form-check">
+                                                <input class="form-check-input custom-red-checkbox me-2" type="checkbox"
+                                                    :id="'mon-' + mon.id" :value="mon.id"
+                                                    v-model="formData.idMonAnChiTiet" :disabled="isReadOnly" />
+
+                                                <label :for="'mon-' + mon.id"
+                                                    class="form-check-label d-flex justify-content-between w-100">
+                                                    <span>{{ mon.tenMonAn }}</span>
+                                                    <span class="text-danger fw-bold">
+                                                        {{ formatPrice(mon.giaBan) }}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 </div>
                             </div>
                         </div>
@@ -410,15 +517,30 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>#</th>
+<<<<<<< HEAD
                                         <th>Tên</th>
                                         <th>Loại</th>
                                         <th class="text-end">Giá</th>
+=======
+                                        <th>Ảnh</th> <!-- ✅ THÊM -->
+                                        <th>Tên</th>
+                                        <th>Loại</th>
+                                        <th class="text-end">Giá sau KM</th>
+                                        <th class="text-end ">Giá sau KM</th>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <th v-if="!isReadOnly" class="text-center">Xóa</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="(item, index) in selectedProducts" :key="item.type + item.id">
                                         <td>{{ index + 1 }}</td>
+<<<<<<< HEAD
+=======
+                                        <img :src="getImageUrl(item.hinhAnh)"
+                                            style="width:50px;height:50px;object-fit:cover;border-radius:6px" />
+
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <td class="fw-semibold">{{ item.ten }}</td>
                                         <td>
                                             <span :class="item.type === 'SET'
@@ -427,9 +549,22 @@
                                                 {{ item.type }}
                                             </span>
                                         </td>
+<<<<<<< HEAD
                                         <td class="text-end text-danger fw-bold">
                                             {{ formatPrice(item.gia) }}
                                         </td>
+=======
+                                        <!-- Giá gốc -->
+                                        <td class="text-end text-muted text-decoration-line-through">
+                                            {{ formatPrice(item.gia) }}
+                                        </td>
+
+                                        <!-- Giá sau KM -->
+                                        <td class="text-end text-success fw-bold">
+                                            {{ formatPrice(getDiscountedPrice(item.gia)) }}
+                                        </td>
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                         <td v-if="!isReadOnly" class="text-center">
                                             <button class="btn btn-sm btn-light" @click="removeSelectedItem(item)">
                                                 ❌
@@ -443,8 +578,13 @@
 
 
                     <div class="card-footer bg-white border-top p-4 d-flex justify-content-end gap-3">
+<<<<<<< HEAD
                         <div
                             class="card-footer under-nav bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
+=======
+                        <div class="card-footer under-nav bg-white border-top p-4 d-flex gap-3"
+                            style="align-items: end;">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                             <button type="button"
                                 class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
                                 style="height: 42px; color: white;background-color: #800000;" @click="closeForm">
@@ -452,8 +592,12 @@
                             </button>
 
                             <button v-if="!isReadOnly" type="submit"
+<<<<<<< HEAD
                                 class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
                                 >
+=======
+                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
                             </button>
                         </div>
@@ -537,6 +681,12 @@ const filteredKhuyenMai = ref([]); // ✅ THÊM DÒNG NÀY
 const selectedId = ref(null);
 const listSetLau = ref([]);
 const searchSetLau = ref('');
+<<<<<<< HEAD
+=======
+const filterLoai = ref('');
+const filterGia = ref('');
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const toasts = ref([]);
 const confirmModal = reactive({
     show: false,
@@ -555,6 +705,34 @@ const formatDateForApi = (dateStr) => {
     // đảm bảo YYYY-MM-DD
     return new Date(dateStr).toISOString().slice(0, 10);
 };
+<<<<<<< HEAD
+=======
+const getMaxDiscount = (productId) => {
+    const today = new Date();
+
+    const validPromos = listKhuyenMai.value.filter(km => {
+        const start = new Date(km.ngayBatDau);
+        const end = new Date(km.ngayKetThuc);
+
+        if (today < start || today > end) return false;
+
+        return (
+            km.setLauIds?.includes(productId) ||
+            km.monAnIds?.includes(productId)
+        );
+    });
+
+    if (!validPromos.length) return 0;
+
+    return Math.max(...validPromos.map(km => km.phanTramGiam));
+};
+
+const getDiscountedPrice = (price, productId) => {
+    const percent = getMaxDiscount(productId);
+    return Math.round(price * (100 - percent) / 100);
+};
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const executeConfirm = async () => {
     if (typeof confirmModal.onConfirm === 'function') {
@@ -601,8 +779,13 @@ const handlePercentChange = () => {
 
 // --- COMPUTED ---
 const formTitle = computed(() => {
+<<<<<<< HEAD
     if (isReadOnly.value) return 'Chi tiết đợt khuyến mãi';
     return selectedId.value ? 'Chỉnh sửa đợt khuyến mãi' : 'Thêm mới đợt khuyến mãi';
+=======
+    if (isReadOnly.value) return 'Chi tiết khuyến mãi thực đơn';
+    return selectedId.value ? 'Chỉnh sửa khuyến mãi thực đơn' : 'Thêm mới khuyến mãi thực đơn';
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 });
 
 // const filteredMonAn = computed(() => {
@@ -613,10 +796,43 @@ const formTitle = computed(() => {
 // });
 
 const filteredSetLau = computed(() => {
+<<<<<<< HEAD
     if (!searchSetLau.value) return listSetLau.value;
     return listSetLau.value.filter(s => s.tenSetLau.toLowerCase().includes(searchSetLau.value.toLowerCase()));
 });
 
+=======
+    let result = listSetLau.value;
+
+    // Tìm tên
+    if (searchSetLau.value) {
+        result = result.filter(s =>
+            s.tenSetLau
+                .toLowerCase()
+                .includes(searchSetLau.value.toLowerCase())
+        );
+    }
+
+    // Lọc giá
+    if (filterGia.value === '1') {
+        result = result.filter(s => s.giaBan < 50000);
+    }
+
+    if (filterGia.value === '2') {
+        result = result.filter(s =>
+            s.giaBan >= 50000 && s.giaBan <= 100000
+        );
+    }
+
+    if (filterGia.value === '3') {
+        result = result.filter(s => s.giaBan > 100000);
+    }
+
+    return result;
+});
+
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const isAllSelected = computed(() => {
     if (filteredSetLau.value.length === 0) return false;
     return filteredSetLau.value.every(s => formData.idSetLauChiTiet.includes(s.id));
@@ -658,6 +874,15 @@ const toggleSelectAll = (e) => {
         formData.idSetLauChiTiet = formData.idSetLauChiTiet.filter(id => !currentIds.includes(id));
     }
 };
+<<<<<<< HEAD
+=======
+const isDateOverlap = (start1, end1, start2, end2) => {
+    return (
+        new Date(start1) <= new Date(end2) &&
+        new Date(end1) >= new Date(start2)
+    );
+};
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const isExpired = (ngayKetThuc) => {
     const today = new Date();
@@ -666,6 +891,22 @@ const isExpired = (ngayKetThuc) => {
     end.setHours(0, 0, 0, 0);
     return end < today;
 };
+<<<<<<< HEAD
+=======
+const getImageUrl = (img) => {
+    if (!img) return '/no-image.png';
+
+    // Nếu là base64 → trả thẳng
+    if (img.startsWith('data:image')) {
+        return img;
+    }
+
+    // Nếu là file → ghép link
+    return `http://localhost:8080/uploads/${img}`;
+};
+
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const validateForm = () => {
     let isValid = true;
@@ -757,6 +998,45 @@ const sliderTrackStyle = computed(() => {
 
 const submitForm = async () => {
     if (!validateForm()) return;
+<<<<<<< HEAD
+=======
+    // 🔥 CHECK TRÙNG KHUYẾN MÃI
+    const conflict = filteredKhuyenMai.value.find(km => {
+
+        // bỏ qua chính nó khi edit
+        if (selectedId.value && km.id === selectedId.value) return false;
+
+        // check trùng thời gian
+        const overlap = isDateOverlap(
+            formData.ngayBatDau,
+            formData.ngayKetThuc,
+            km.ngayBatDau,
+            km.ngayKetThuc
+        );
+
+        if (!overlap) return false;
+
+        // check trùng sản phẩm
+        const setConflict = km.setLauIds?.some(id =>
+            formData.idSetLauChiTiet.includes(id)
+        );
+
+        const monConflict = km.monAnIds?.some(id =>
+            formData.idMonAnChiTiet.includes(id)
+        );
+
+        return setConflict || monConflict;
+    });
+
+    if (conflict) {
+        showToast(
+            "Trùng khuyến mãi",
+            `Sản phẩm đã có khuyến mãi "${conflict.tenDotKhuyenMai}" trong thời gian này!`,
+            "error"
+        );
+        return;
+    }
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
     openConfirm(
         'Xác nhận lưu?',
@@ -773,8 +1053,20 @@ const submitForm = async () => {
                 closeForm();
                 handleSearch();
             } catch (e) {
+<<<<<<< HEAD
                 showToast("Lỗi máy chủ", "Không thể thực hiện thao tác này.", "error");
             }
+=======
+                const msg =
+                    e?.response?.data?.message ||
+                    e?.response?.data ||
+                    e?.message ||
+                    "Có lỗi xảy ra!";
+
+                showToast("Lỗi", msg, "error");
+            }
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
     );
 };
@@ -788,7 +1080,11 @@ const handleToggleStatus = async (km) => {
         `Xác nhận ${originalStatus === 1 ? 'ngừng' : 'kích hoạt'} đợt khuyến mãi này?`,
         async () => {
             try {
+<<<<<<< HEAD
                 await promotionService.toggleStatus(km.id, originalStatus);
+=======
+                await promotionService.toggleStatus(km.id);
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 showToast("Thành công", "Trạng thái đã được cập nhật.");
                 handleSearch();
             } catch (e) {
@@ -843,6 +1139,7 @@ const loadDataToForm = async (id) => {
     }
 };
 const filteredMonAn = computed(() => {
+<<<<<<< HEAD
     if (!Array.isArray(listMonAnDiKem.value)) return [];
 
     let result = listMonAnDiKem.value.filter(m => m.trangThai === 1);
@@ -856,6 +1153,38 @@ const filteredMonAn = computed(() => {
     return result;
 });
 
+=======
+    let result = listMonAnDiKem.value.filter(m => m.trangThai === 1);
+
+    // Tìm tên
+    if (searchMonAn.value) {
+        result = result.filter(m =>
+            m.tenMonAn
+                ?.toLowerCase()
+                .includes(searchMonAn.value.toLowerCase())
+        );
+    }
+
+    // Lọc giá
+    if (filterGia.value === '1') {
+        result = result.filter(m => m.giaBan < 50000);
+    }
+
+    if (filterGia.value === '2') {
+        result = result.filter(m =>
+            m.giaBan >= 50000 && m.giaBan <= 100000
+        );
+    }
+
+    if (filterGia.value === '3') {
+        result = result.filter(m => m.giaBan > 100000);
+    }
+
+    return result;
+});
+
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const openFormAdd = () => {
     isReadOnly.value = false;
     selectedId.value = null;
@@ -898,7 +1227,12 @@ const selectedProducts = computed(() => {
             id: s.id,
             ten: s.tenSetLau,
             gia: s.giaBan,
+<<<<<<< HEAD
             type: 'SET'
+=======
+            type: 'SET',
+            hinhAnh: s.hinhAnh   // ✅ SỬA Ở ĐÂY
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }));
 
     const mons = listMonAnDiKem.value
@@ -907,11 +1241,20 @@ const selectedProducts = computed(() => {
             id: m.id,
             ten: m.tenMonAn,
             gia: m.giaBan,
+<<<<<<< HEAD
             type: 'MÓN'
+=======
+            type: 'MÓN',
+            hinhAnh: m.hinhAnh   // ✅ SỬA Ở ĐÂY
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }));
 
     return [...sets, ...mons];
 });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const removeSelectedItem = (item) => {
     if (item.type === 'SET') {
         formData.idSetLauChiTiet =
@@ -983,6 +1326,17 @@ watch(
     }
 );
 
+<<<<<<< HEAD
+=======
+const getErrorMessage = (e) => {
+    return (
+        e?.response?.data?.message ||
+        e?.response?.data ||
+        e?.message ||
+        "Lỗi không xác định"
+    );
+};
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 </script>
 
@@ -994,7 +1348,11 @@ watch(
 
 
 .form-switch .form-check-input:checked {
+<<<<<<< HEAD
     background-color: #c0392b !important; 
+=======
+    background-color: #c0392b !important;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     border-color: #c0392b !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
 }
@@ -1005,13 +1363,23 @@ watch(
 }
 
 .custom-red-checkbox:checked {
+<<<<<<< HEAD
     background-color: #7d161a !important; /* Màu đỏ của bạn */
+=======
+    background-color: #7d161a !important;
+    /* Màu đỏ của bạn */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     border-color: #7d161a !important;
 }
 
 /* Màu viền khi click vào (Focus) để mất viền xanh mặc định */
 .custom-red-checkbox:focus {
     border-color: #7d161a;
+<<<<<<< HEAD
     box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25); /* Hiệu ứng tỏa sáng đỏ nhạt */
+=======
+    box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25);
+    /* Hiệu ứng tỏa sáng đỏ nhạt */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
 </style>

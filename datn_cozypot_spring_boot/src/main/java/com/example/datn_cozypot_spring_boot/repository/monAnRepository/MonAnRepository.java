@@ -1,5 +1,9 @@
 package com.example.datn_cozypot_spring_boot.repository.monAnRepository;
 
+<<<<<<< HEAD
+=======
+import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 import com.example.datn_cozypot_spring_boot.entity.MonAnDiKem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +23,8 @@ public interface MonAnRepository extends JpaRepository<MonAnDiKem, Integer> {
 
     List<MonAnDiKem> findAllByTrangThai(Integer trangThai);
 
+<<<<<<< HEAD
+=======
+    List<MonAnDiKem> findByTrangThaiKinhDoanh(int i);
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }

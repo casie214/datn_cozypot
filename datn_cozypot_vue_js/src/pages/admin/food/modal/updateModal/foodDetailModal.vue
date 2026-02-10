@@ -1,7 +1,11 @@
 <script setup>
 import { useFoodDetailUpdate } from '../../../../../services/foodFunction';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
+<<<<<<< HEAD
 import { useRouter } from 'vue-router';
+=======
+import { useRoute, useRouter } from 'vue-router';
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const router = useRouter();
 const {
@@ -12,6 +16,11 @@ const {
     errors
 } = useFoodDetailUpdate();
 
+<<<<<<< HEAD
+=======
+const route = useRoute();
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const getImg = (url) => {
     return (url && (url.startsWith('http') || url.startsWith('data:')))
         ? url : 'https://placehold.co/100x100?text=No+Img';
@@ -24,6 +33,11 @@ const goToParentFood = () => {
         router.push({ name: 'viewFood', params: { id: parentId } });
     }
 };
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 </script>
 
 <template>
@@ -53,7 +67,11 @@ const goToParentFood = () => {
                             <span class="code-badge">#{{ originalInfo.maChiTietMonAn }}</span>
                         </h2>
                         <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
+<<<<<<< HEAD
                             {{ originalInfo.trangThaiKinhDoanh === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+=======
+                            {{ originalInfo.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                         </span>
                     </div>
                     <div class="hero-meta-grid">

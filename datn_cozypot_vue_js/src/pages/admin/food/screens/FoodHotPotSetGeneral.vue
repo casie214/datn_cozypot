@@ -146,6 +146,7 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
+<<<<<<< HEAD
                 <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
                   @click="goToDetailTable(item.id)"></i>
 
@@ -158,6 +159,17 @@ const getImg = (url) => {
                 <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa tài khoản"
                   @click="handleToggleStatus(item)"></i>
                 <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản" @click="handleToggleStatus(item)"></i>
+=======
+                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
+                  @click="handleViewDetail(item)"></i>
+
+                <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa set lẩu"
+                  @click="handleEdit(item)"></i>
+
+                <i v-if="item.trangThai === 1" class="fas  fa-unlock-alt unlock-icon" title="Khóa set lẩu"
+                  @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Mở khóa set lẩu" @click="handleToggleStatus(item)"></i>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
               </div>
             </td>
           </tr>
