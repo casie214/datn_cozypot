@@ -1,7 +1,7 @@
 <script setup>
 import { useFoodDetailUpdate } from '../../../../../services/foodFunction';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
 const {
@@ -11,6 +11,8 @@ const {
     isViewMode, getPriceRange,
     errors
 } = useFoodDetailUpdate();
+
+const route = useRoute();
 
 const getImg = (url) => {
     return (url && (url.startsWith('http') || url.startsWith('data:')))
@@ -24,6 +26,8 @@ const goToParentFood = () => {
         router.push({ name: 'viewFood', params: { id: parentId } });
     }
 };
+
+
 </script>
 
 <template>
@@ -53,7 +57,7 @@ const goToParentFood = () => {
                             <span class="code-badge">#{{ originalInfo.maChiTietMonAn }}</span>
                         </h2>
                         <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
-                            {{ originalInfo.trangThaiKinhDoanh === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+                            {{ originalInfo.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
                         </span>
                     </div>
                     <div class="hero-meta-grid">

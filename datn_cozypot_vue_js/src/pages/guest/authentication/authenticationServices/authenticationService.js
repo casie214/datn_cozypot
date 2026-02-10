@@ -16,26 +16,27 @@ export const useAuthStore = defineStore('auth', {
                 const endpoint = isClient ? '/auth/client/login' : '/auth/admin/login';
 
                 const payload = {
-                    username: username, 
+                    username: username,
                     password: password
                 };
 
                 const response = await axiosClient.post(endpoint, payload);
 
-                const { accessToken, role, ...userInfo } = response.data;
+                const { accessToken, refreshToken, role, ...userInfo } = response.data;
 
                 this.token = accessToken;
                 this.role = role;
                 this.user = userInfo;
 
                 localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
                 localStorage.setItem('role', role);
                 localStorage.setItem('user', JSON.stringify(userInfo));
 
-                return true; 
+                return true;
             } catch (error) {
                 console.error("Login Error:", error);
-                throw error; 
+                throw error;
             }
         },
 
@@ -45,16 +46,16 @@ export const useAuthStore = defineStore('auth', {
                 return true;
             } catch (error) {
                 console.error("Register Error:", error);
-                throw error; 
+                throw error;
             }
         },
-        
+
         logout() {
             this.token = null;
             this.role = null;
             this.user = null;
             localStorage.clear();
-            window.location.href = '/login'; 
+            window.location.href = '/login';
         }
     }
 });

@@ -14,7 +14,7 @@ const isLoggedIn = computed(() => !!authStore.token);
 
 const isAdmin = computed(() => {
     const role = authStore.role;
-    return role === 'ADMIN' || role === 'Quản lý';
+    return role === 'ADMIN' || role === 'Quản lý' || role === 'EMPLOYEE';
 });
 
 const userAvatar = computed(() => {
