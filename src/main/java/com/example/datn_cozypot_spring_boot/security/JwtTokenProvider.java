@@ -39,7 +39,7 @@ public class JwtTokenProvider {
         try {
             Jwts.parserBuilder()
                     .setSigningKey(getSignInKey())
-                    .build() // Lúc này mới có hàm build()
+                    .build()
                     .parseClaimsJws(token);
             return true;
         } catch (Exception e) {
