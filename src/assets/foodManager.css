@@ -8,7 +8,7 @@
 
 .flex-row {
     display: flex;
-    flex-direction: row;
+    flex-direction: row !important;
     justify-content: space-between;
 }
 
@@ -232,6 +232,21 @@ tr:hover {
     border-radius: 4px;
     font-weight: bold;
     cursor: pointer;
+}
+
+.btn-show-table {
+    background-color: #8B0000;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+.btn-show-table:hover {
+    transform: scale(1.05);
 }
 
 
