@@ -26,6 +26,8 @@ const {
   handlePrintOrder,
   historyEvents,
   paymentHistory,
+  invoiceDate,
+  formatDate,
 } = useOrderManager();
 
 onMounted(async () => {
@@ -241,6 +243,15 @@ const handleCloseSetModal = () => {
                     <span v-else class="text-muted small">---</span>
                   </td>
                 </tr>
+
+                <tr v-if="!orderDetails || orderDetails.length === 0">
+                  <td colspan="7" class="text-center py-5 text-muted">
+                    <div class="d-flex flex-column align-items-center">
+                      <i class="fa-solid fa-utensils fs-3 mb-2 opacity-25"></i>
+                      <span>Chưa có món ăn nào được gọi</span>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -430,6 +441,7 @@ const handleCloseSetModal = () => {
           <button
             class="btn btn-print px-4 py-2 fw-medium text-white"
             @click="handlePrintOrder(selectedOrder?.id)"
+            :disabled="selectedOrder?.trangThai === 'Đã hủy'"
           >
             In hóa đơn
           </button>
@@ -676,8 +688,13 @@ const handleCloseSetModal = () => {
               <div class="border-bottom border-dark fw-bold mb-2 pb-1 text-end">
                 Chi tiết:
               </div>
-              <p class="mb-1 text-end">
-                Ngày tạo: {{ selectedOrder?.ngayTao }}
+              <p class="mb-1 text-end">Ngày in: {{ invoiceDate }}</p>
+
+              <p
+                v-if="selectedOrder?.tienCocRaw > 0"
+                class="mb-1 text-end text-muted fst-italic small"
+              >
+                (Ngày đặt: {{ formatDate(selectedOrder?.thoiGianDat) }})
               </p>
               <p class="mb-0 text-end">Bàn: {{ selectedOrder?.ban }}</p>
             </div>
@@ -724,6 +741,10 @@ const handleCloseSetModal = () => {
             <h6 class="fw-bold mb-2 text-uppercase">Chi phí khác & Tổng kết</h6>
             <table class="table table-bordered border-dark invoice-table">
               <tbody>
+                <tr>
+                  <td class="fw-medium" style="width: 70%">Tổng tiền hàng:</td>
+                  <td class="text-end fw-bold">{{ formatMoney(subTotal) }}</td>
+                </tr>
                 <tr>
                   <td class="fw-medium" style="width: 70%">
                     Thuế VAT ({{ appliedVAT }}%):
