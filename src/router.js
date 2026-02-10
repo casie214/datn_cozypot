@@ -11,33 +11,13 @@ import CardTable from "./pages/admin/table/modal/cardTable.vue";
 import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
 
-
-    const routes = [
-  {
-    path: "/admin/client",
-    component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-    meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
-    children: [
-        {
-            path: "", 
-            name: "clientList",
-            component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
-            meta: { index: 1 } // Cấp độ 1: Danh sách
-        },
-        {
-            path: "view/:id",
-            name: "clientView",
-            component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
-        },
-        {
-            path: "form/:id?", 
-            name: "clientForm",
-            component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
-        }
-    ]
-},
+const routes = [{
+        path: "/admin/client",
+        name: "clientManager",
+        component: () =>
+            import ("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
     {
         path: "/login",
         name: "login",
@@ -112,27 +92,12 @@ import Swal from 'sweetalert2';
     //NvKh
 
     {
-    path: "/admin/staff",
-    // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
-    component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
-    children: [
-        {
-            path: "",
-            name: "staffManager",
-            component: () => import("@/pages/admin/staff/modal/staffListContent.vue"),
-        },
-        {
-            path: "form/:id?",
-            name: "staffForm",
-            component: () => import("@/pages/admin/staff/modal/staffFormPage.vue"),
-        },
-        {
-            path: "view/:id",
-            name: "staffView",
-            component: () => import("@/pages/admin/staff/modal/staffDetailPage.vue"),
-        }
-    ]
-},
+        path: "/admin/staff",
+        name: "staffManager",
+        component: () =>
+            import ("@/pages/admin/staff/screens/staffManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
 
     {
         path: "/admin/statistics",
@@ -422,6 +387,7 @@ router.beforeEach((to, from, next) => {
                     timer: 3000,
                     timerProgressBar: true
                 });
+
                 if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
                     return next(false);
                 }

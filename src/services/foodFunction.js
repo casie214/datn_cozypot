@@ -136,7 +136,6 @@ export function useFoodDetailManager() {
     const searchQuery = ref('');
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
-
     const sortOption = ref('id_desc');
     const statusFilter = ref('all');
 
@@ -1614,7 +1613,6 @@ export function useHotpotManager() {
     const oldStatus = item.trangThai;
     const newStatus = oldStatus === 1 ? 0 : 1;
     
-
     item.trangThai = newStatus;
 
     try {
@@ -1623,7 +1621,6 @@ export function useHotpotManager() {
             maSetLau: item.maSetLau,
             tenSetLau: item.tenSetLau,
             giaBan: item.giaBan,
-
             idLoaiSet: item.idLoaiSet,
             moTaChiTiet: item.moTaChiTiet,
             hinhAnh: item.hinhAnh,
@@ -1724,7 +1721,6 @@ export function useHotpotUpdate() {
         giaBan: 0,
         hinhAnh: '',
         moTa: '',
-
         moTaChiTiet: '',
         trangThai: 1
     });
@@ -1735,7 +1731,6 @@ export function useHotpotUpdate() {
         idLoaiSet: '',
         giaBan: '',
         hinhAnh: '',
-
         moTaChiTiet: '',
         selectedIngredients: '' 
     });
@@ -1815,7 +1810,6 @@ export function useHotpotUpdate() {
                 idLoaiSet: data.loaiSet ? data.loaiSet.id : data.idLoaiSet,
                 giaBan: data.giaBan,
                 hinhAnh: data.hinhAnh,
-
                 moTaChiTiet: data.moTaChiTiet || '',
                 moTa: data.moTa || '',
                 trangThai: Number(data.trangThai) === 1 ? 1 : 0
@@ -1830,7 +1824,6 @@ export function useHotpotUpdate() {
                         donVi: item.chiTietMonAn.donVi,
                         giaBan: item.chiTietMonAn.giaBan,
                         hinhAnh: item.chiTietMonAn.hinhAnh,
-
                         moTaChiTiet: item.chiTietMonAn.moTaChiTiet,
                         soLuong: item.soLuong
                     };
@@ -1915,7 +1908,6 @@ export function useHotpotUpdate() {
     // --- VALIDATE & UPDATE ---
     const validateForm = () => {
         let isValid = true;
-
         errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '', moTaChiTiet: '' };
 
         const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
@@ -1926,7 +1918,6 @@ export function useHotpotUpdate() {
         } else if (isSetNameDuplicate(setName)) {
             errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
-
 
         const moTa = formData.value.moTaChiTiet ? String(formData.value.moTaChiTiet).trim() : '';
         if (!moTa) { 
@@ -1973,7 +1964,6 @@ export function useHotpotUpdate() {
                         ...formData.value,
                         tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
-
                         moTaChiTiet: formData.value.moTaChiTiet ? formData.value.moTaChiTiet.trim() : '',
                         trangThai: Number(formData.value.trangThai),
                         listChiTietSetLau: selectedIngredients.value.map(item => ({
@@ -2891,7 +2881,6 @@ export function useHotpotAdd() {
     const formData = ref({
         tenSetLau: '',
         idLoaiSet: '',
-
         moTaChiTiet: '',
         giaBan: 0,
         hinhAnh: '',
@@ -2903,7 +2892,6 @@ export function useHotpotAdd() {
     const errors = ref({
         tenSetLau: '',
         idLoaiSet: '',
-
         moTaChiTiet: '',
         giaBan: '',
         hinhAnh: '',
@@ -3035,7 +3023,6 @@ export function useHotpotAdd() {
     // --- 7. VALIDATE & SAVE ---
     const validateForm = () => {
         let isValid = true;
-
         errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '', moTaChiTiet: '' };
 
         const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
@@ -3046,7 +3033,6 @@ export function useHotpotAdd() {
         } else if (isSetNameDuplicate(setName)) {
             errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
-
 
         if (!formData.value.moTaChiTiet) {
             errors.value.moTaChiTiet = 'Vui lòng nhập định lượng.'; isValid = false;
@@ -3089,7 +3075,6 @@ export function useHotpotAdd() {
                 try {
                     const payload = {
                         ...formData.value,
-
                         moTaChiTiet: formData.value.moTaChiTiet.trim(),
                         tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
