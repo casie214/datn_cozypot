@@ -43,6 +43,7 @@ const staffService = {
     return axiosClient.patch(`/nhan-vien/${id}/toggle-status`);
   },
   // staffService.js
+<<<<<<< HEAD
   checkDuplicate(type, value, excludeId = null) {
   return axiosClient.get("/nhan-vien/check-duplicate", {
     params: {
@@ -56,6 +57,12 @@ const staffService = {
 
 
 
+=======
+  checkDuplicate: (params) => {
+    // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
+    return axiosClient.get('/nhan-vien/check-duplicate', { params });
+  },
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
   exportStaffExcel(filters) {
     return axiosClient.get('/nhan-vien/export', { // Bỏ /api nếu axiosClient đã có baseURL

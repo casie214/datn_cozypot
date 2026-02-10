@@ -170,18 +170,30 @@ const getImg = (url) => {
                     </td>
                     <td class="actions">
                         <div class="action-group">
+<<<<<<< HEAD
                             <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
                                 @click="goToDetailTable(item.id)"></i>
+=======
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
                             <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                                 @click="handleViewDetails(item)"></i>
 
+<<<<<<< HEAD
                             <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
                                 @click="handleEditFood(item)"></i>
 
                             <i v-if="item.trangThaiKinhDoanh === 1" class="fas  fa-unlock-alt unlock-icon"
                                 title="Khóa tài khoản" @click="handleToggleStatus(item)"></i>
                             <i v-else class="fas fa-lock lock-icon" title="Mở khóa tài khoản"
+=======
+                            <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa món ăn"
+                                @click="handleEditFood(item)"></i>
+
+                            <i v-if="item.trangThaiKinhDoanh === 1" class="fas  fa-unlock-alt unlock-icon"
+                                title="Khóa món ăn" @click="handleToggleStatus(item)"></i>
+                            <i v-else class="fas fa-lock lock-icon" title="Mở khóa món ăn"
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 @click="handleToggleStatus(item)"></i>
                         </div>
                     </td>

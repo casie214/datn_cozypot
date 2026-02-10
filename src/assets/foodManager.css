@@ -8,7 +8,11 @@
 
 .flex-row {
     display: flex;
+<<<<<<< HEAD
     flex-direction: row;
+=======
+    flex-direction: row !important;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     justify-content: space-between;
 }
 
@@ -234,6 +238,24 @@ tr:hover {
     cursor: pointer;
 }
 
+<<<<<<< HEAD
+=======
+.btn-show-table {
+    background-color: #8B0000;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+.btn-show-table:hover {
+    transform: scale(1.05);
+}
+
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 /* Table */
 
