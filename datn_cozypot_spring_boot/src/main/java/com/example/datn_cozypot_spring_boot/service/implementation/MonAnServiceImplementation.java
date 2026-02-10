@@ -282,6 +282,7 @@ public class MonAnServiceImplementation implements MonAnService {
         setLau.setMoTa(request.getMoTa());
         setLau.setTrangThai(request.getTrangThai());
         setLau.setNgayTao(Instant.now());
+        setLau.setMoTaChiTiet(request.getMoTaChiTiet());
         String code = generateNextCode(request.getTenSetLau(), "SET_LAU");
         setLau.setMaSetLau(code);
 
@@ -385,6 +386,7 @@ public class MonAnServiceImplementation implements MonAnService {
         existingSet.setHinhAnh(request.getHinhAnh());
         existingSet.setMoTa(request.getMoTa());
         existingSet.setTrangThai(request.getTrangThai());
+        existingSet.setMoTaChiTiet(request.getMoTaChiTiet());
 
         if (request.getIdLoaiSet() != null) {
             LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
@@ -495,6 +497,7 @@ public class MonAnServiceImplementation implements MonAnService {
         response.setTenSetLau(setLau.getTenSetLau());
         response.setGiaBan(setLau.getGiaBan());
         response.setHinhAnh(setLau.getHinhAnh());
+        response.setMoTaChiTiet(setLau.getMoTaChiTiet());
         response.setMoTa(setLau.getMoTa());
         response.setTrangThai(setLau.getTrangThai());
 
