@@ -1,4 +1,4 @@
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import Swal from "sweetalert2";
@@ -47,6 +47,18 @@ export function useOrderManager() {
       toast.addEventListener("mouseenter", Swal.stopTimer);
       toast.addEventListener("mouseleave", Swal.resumeTimer);
     },
+  });
+
+const invoiceDate = computed(() => {
+    if (
+      selectedOrder.value?.trangThai === "Hoàn thành" &&
+      paymentHistory.value &&
+      paymentHistory.value.length > 0
+    ) {
+      const lastPayment = paymentHistory.value[paymentHistory.value.length - 1];
+      return dayjs(lastPayment.ngayThanhToan).format("HH:mm - DD/MM/YYYY");
+    }
+    return dayjs().format("HH:mm - DD/MM/YYYY");
   });
 
   const cancelModalState = ref({
@@ -606,6 +618,8 @@ export function useOrderManager() {
     isHistoryModalOpen,
     selectedHistoryOrder,
     historyEvents,
+    invoiceDate,
+    formatDate,
     handleViewDetail,
     handleViewHistory,
     closeHistoryModal: () => {
