@@ -2,6 +2,38 @@
 import { useRouter } from 'vue-router';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useHotpotUpdate } from '../../../../../services/foodFunction';
+<<<<<<< HEAD
+
+const router = useRouter();
+const {
+    formData, listLoaiSet, selectedIngredients, totalComponentsPrice,
+    searchQuery, sortOption, filteredFoodList, addIngredient, removeIngredient,
+    hotpotInfo, handleUpdate, categoryName, goBack, isLoading, isViewMode, handleFileUpload,
+    errors // Lấy biến errors
+} = useHotpotUpdate();
+
+const getImg = (url) => {
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
+        return url;
+    }
+    return 'https://placehold.co/100x100?text=No+Img';
+}
+
+const goToDetailTable = () => {
+    const currentSetId = formData.value.id || hotpotInfo.value?.id;
+
+    if (currentSetId) {
+        router.push({ 
+            name: 'foodManager',
+            query: { 
+                tab: 'chitietTD',
+                preHotpot: currentSetId
+            } 
+        });
+    } else {
+        alert("Không tìm thấy ID Set Lẩu");
+    }
+=======
 import { ref } from 'vue';
 
 const router = useRouter();
@@ -72,14 +104,27 @@ const showTooltip = (event, item) => {
 
 const hideTooltip = () => {
   hoveredItem.value = null;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 };
 </script>
 
 <template>
   <div class="main-content">
+<<<<<<< HEAD
+    <GlobalDialogue 
+            :show="dialogVisible"
+            :type="dialogConfig?.type"
+            :variant="dialogConfig?.variant"
+            :title="dialogConfig?.title"
+            :message="dialogConfig?.message"
+            @close="handleDialogClose"
+            @confirm="handleDialogConfirm"
+        />
+=======
     <GlobalDialogue :show="dialogVisible" :type="dialogConfig?.type" :variant="dialogConfig?.variant"
       :title="dialogConfig?.title" :message="dialogConfig?.message" @close="handleDialogClose"
       @confirm="handleDialogConfirm" />
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     <div class="page-header">
       <div class="header-title">
         <h1>{{ isViewMode ? 'Chi tiết set lẩu' : 'Cập nhật set lẩu' }}</h1>
@@ -92,11 +137,19 @@ const hideTooltip = () => {
       <div class="hero-image">
         <img :src="getImg(hotpotInfo.hinhAnh)" alt="Ảnh Set Lẩu">
       </div>
+<<<<<<< HEAD
+      
+      <div class="hero-details">
+        <div class="hero-header">
+          <h2 class="hero-title">
+            {{ hotpotInfo.tenSetLau }} 
+=======
 
       <div class="hero-details">
         <div class="hero-header">
           <h2 class="hero-title">
             {{ hotpotInfo.tenSetLau }}
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             <span class="code-badge">#{{ hotpotInfo.maSetLau }}</span>
           </h2>
           <span :class="['status-badge', hotpotInfo.trangThai === 1 ? 'active' : 'inactive']">
@@ -133,23 +186,39 @@ const hideTooltip = () => {
     <div v-if="isLoading" class="loading-state">Đang tải dữ liệu...</div>
 
     <div v-else class="page-content" :class="{ 'view-mode': isViewMode }">
+<<<<<<< HEAD
+      
+=======
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
       <div class="section-left">
         <div class="card">
           <h3>Thông tin chung</h3>
           <div class="form-container">
+<<<<<<< HEAD
+            
+            <div class="form-group">
+              <label>Tên Set Lẩu <span class="required" v-if="!isViewMode">*</span></label>
+              <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text"
+                  :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
+=======
 
             <div class="form-group">
               <label>Tên Set Lẩu <span class="required" v-if="!isViewMode">*</span></label>
               <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text"
                 :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
               <span class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</span>
             </div>
 
             <div class="form-group">
               <label>Loại Set</label>
               <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control"
+<<<<<<< HEAD
+                  :class="{ 'invalid-border': errors.idLoaiSet }" @change="errors.idLoaiSet = ''">
+=======
                 :class="{ 'invalid-border': errors.idLoaiSet }" @change="errors.idLoaiSet = ''">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 <option v-for="cat in listLoaiSet" :key="cat.id" :value="cat.id">{{ cat.tenLoaiSet }}</option>
               </select>
               <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
@@ -158,11 +227,19 @@ const hideTooltip = () => {
             <div class="form-group">
               <label>Giá bán</label>
               <input :disabled="isViewMode" v-model="formData.giaBan" type="number"
+<<<<<<< HEAD
+                  :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+              <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
+              <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
+            </div>
+            
+=======
                 :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
               <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
               <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
             </div>
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             <div class="form-group">
               <label>Hình ảnh</label>
               <div class="upload-container" v-if="!isViewMode" :class="{ 'invalid-border': errors.hinhAnh }">
@@ -179,6 +256,10 @@ const hideTooltip = () => {
             </div>
 
             <div class="form-group">
+<<<<<<< HEAD
+              <label>Trạng thái</label>
+              <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }" @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
+=======
               <label>Định lượng <span class="required" v-if="!isViewMode">*</span></label>
               <input :disabled="isViewMode" v-model="formData.moTaChiTiet" type="text"
                 :class="{ 'invalid-border': errors.moTaChiTiet }" @input="errors.moTaChiTiet = ''">
@@ -196,6 +277,7 @@ const hideTooltip = () => {
               <label>Trạng thái</label>
               <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
                 @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
                   <div class="toggle-knob"></div>
                 </div>
@@ -207,11 +289,26 @@ const hideTooltip = () => {
       </div>
 
       <div class="section-right">
+<<<<<<< HEAD
+        
+=======
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         <div class="card ingredient-selector" style="margin-bottom: 1.4em;" v-if="!isViewMode">
           <h3>Thêm món vào Set</h3>
           <div class="filter-tools">
             <input v-model="searchQuery" type="text" class="search-input" placeholder="Tìm món...">
+<<<<<<< HEAD
+            </div>
+          <div class="scroll-list-container">
+            <div v-for="item in filteredFoodList" :key="item.id" class="food-item-card" @click="addIngredient(item)">
+               <img :src="getImg(item.hinhAnh)" class="food-thumb">
+               <div class="food-info">
+                  <div class="food-name">{{ item.tenChiTietMonAn || item.tenDanhMucChiTiet }}</div>
+                  <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
+               </div>
+               <button class="btn-add-mini">+</button>
+=======
           </div>
           <div class="scroll-list-container">
             <div v-for="item in filteredFoodList" :key="item.id" class="food-item-card" @click="addIngredient(item)">
@@ -221,6 +318,7 @@ const hideTooltip = () => {
                 <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
               </div>
               <button class="btn-add-mini">+</button>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             </div>
           </div>
         </div>
@@ -228,6 +326,18 @@ const hideTooltip = () => {
         <div class="card selected-list-card">
           <h3>Thành phần ({{ selectedIngredients.length }})</h3>
           <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
+<<<<<<< HEAD
+                 Xem bảng
+              </button>
+          <div class="selected-items-container">
+            <div v-for="(item, index) in selectedIngredients" :key="item.id" class="selected-item-row">
+              <img :src="getImg(item.hinhAnh)" class="selected-thumb">
+              <div class="selected-info">
+                <div class="selected-name">{{ item.ten }}</div>
+                <div class="selected-unit">{{ item.donVi }}</div>
+                <div class="selected-price-mini" v-if="isViewMode">
+                   {{ item.giaBan?.toLocaleString() }}đ x {{ item.soLuong }}
+=======
             Xem bảng
           </button>
           <div class="selected-items-container">
@@ -239,6 +349,7 @@ const hideTooltip = () => {
                 <div class="selected-unit">{{ item.donVi }}</div>
                 <div class="selected-price-mini" v-if="isViewMode">
                   {{ item.giaBan?.toLocaleString() }}đ x {{ item.soLuong }}
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 </div>
               </div>
               <div class="qty-control">
@@ -248,10 +359,17 @@ const hideTooltip = () => {
               <button class="btn-remove-icon" @click="removeIngredient(index)" v-if="!isViewMode">✕</button>
             </div>
           </div>
+<<<<<<< HEAD
+          
+          <div class="total-summary" v-if="isViewMode">
+             <span>Tổng giá trị thực:</span>
+             <span class="highlight">{{ totalComponentsPrice.toLocaleString() }} đ</span>
+=======
 
           <div class="total-summary" v-if="isViewMode">
             <span>Tổng giá trị thực:</span>
             <span class="highlight">{{ totalComponentsPrice.toLocaleString() }} đ</span>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
           </div>
         </div>
       </div>
@@ -264,6 +382,8 @@ const hideTooltip = () => {
       <button class="btn-large btn-save" @click="handleUpdate" v-if="!isViewMode">Cập nhật</button>
     </div>
   </div>
+<<<<<<< HEAD
+=======
 
 
   <Teleport to="body">
@@ -296,6 +416,7 @@ const hideTooltip = () => {
       </div>
     </div>
   </Teleport>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 </template>
 
 <style scoped>
@@ -315,6 +436,16 @@ const hideTooltip = () => {
   border: 1px solid #ddd;
 }
 
+<<<<<<< HEAD
+.view-mode .toggle-wrapper.disabled { opacity: 0.6; pointer-events: none; }
+.qty-text { font-weight: bold; color: #d32f2f; font-size: 1.1rem; }
+.selected-price-mini { font-size: 0.8rem; color: #666; }
+.total-summary {
+    margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ddd;
+    display: flex; justify-content: space-between; font-size: 1.1rem;
+}
+.highlight { color: #d32f2f; font-weight: bold; }
+=======
 .view-mode .toggle-wrapper.disabled {
   opacity: 0.6;
   pointer-events: none;
@@ -463,4 +594,5 @@ const hideTooltip = () => {
   color: #666;
   font-style: italic;
 }
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 </style>

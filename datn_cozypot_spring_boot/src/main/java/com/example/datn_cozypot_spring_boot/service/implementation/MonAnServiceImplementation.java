@@ -282,7 +282,10 @@ public class MonAnServiceImplementation implements MonAnService {
         setLau.setMoTa(request.getMoTa());
         setLau.setTrangThai(request.getTrangThai());
         setLau.setNgayTao(Instant.now());
+<<<<<<< HEAD
+=======
         setLau.setMoTaChiTiet(request.getMoTaChiTiet());
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         String code = generateNextCode(request.getTenSetLau(), "SET_LAU");
         setLau.setMaSetLau(code);
 
@@ -386,7 +389,10 @@ public class MonAnServiceImplementation implements MonAnService {
         existingSet.setHinhAnh(request.getHinhAnh());
         existingSet.setMoTa(request.getMoTa());
         existingSet.setTrangThai(request.getTrangThai());
+<<<<<<< HEAD
+=======
         existingSet.setMoTaChiTiet(request.getMoTaChiTiet());
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
         if (request.getIdLoaiSet() != null) {
             LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
@@ -497,7 +503,10 @@ public class MonAnServiceImplementation implements MonAnService {
         response.setTenSetLau(setLau.getTenSetLau());
         response.setGiaBan(setLau.getGiaBan());
         response.setHinhAnh(setLau.getHinhAnh());
+<<<<<<< HEAD
+=======
         response.setMoTaChiTiet(setLau.getMoTaChiTiet());
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         response.setMoTa(setLau.getMoTa());
         response.setTrangThai(setLau.getTrangThai());
 
@@ -582,6 +591,8 @@ public class MonAnServiceImplementation implements MonAnService {
                 .collect(Collectors.toList());
     }
 
+<<<<<<< HEAD
+=======
     @Override
     public List<MonAnResponse> findMonAnActive() {
         return monAnRepository.findByTrangThaiKinhDoanh(1).stream().map(monAnDiKem -> modelMapper.map(monAnDiKem, MonAnResponse.class)).collect(Collectors.toList());
@@ -637,6 +648,7 @@ public class MonAnServiceImplementation implements MonAnService {
                 .toList();
     }
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     public MonAnResponse convertToResponse(MonAnDiKem entity) {
         MonAnResponse dto = new MonAnResponse();
         // ... map các trường khác ...

@@ -136,7 +136,11 @@ export function useFoodDetailManager() {
     const searchQuery = ref('');
     const currentPage = ref(1);
     const itemsPerPage = ref(5);
+<<<<<<< HEAD
+    const sortOption = ref('id_asc');
+=======
     const sortOption = ref('id_desc');
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     const statusFilter = ref('all');
 
     // Filter states
@@ -1613,14 +1617,36 @@ export function useHotpotManager() {
     const oldStatus = item.trangThai;
     const newStatus = oldStatus === 1 ? 0 : 1;
     
+<<<<<<< HEAD
+    // Cập nhật giao diện trước cho mượt (Optimistic UI)
     item.trangThai = newStatus;
 
     try {
+        // --- SỬA LẠI ĐOẠN NÀY ---
+        // Thay vì gửi {...item}, hãy tạo object mới chỉ chứa thông tin cần thiết.
+        // Tùy vào Backend của bạn yêu cầu gì (PUT thường cần đủ trường, PATCH chỉ cần trường thay đổi).
+        // Đây là cách an toàn nhất: Copy các trường cơ bản, bỏ qua các object lồng nhau.
+        
+=======
+    item.trangThai = newStatus;
+
+    try {
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         const payload = {
             id: item.id,
             maSetLau: item.maSetLau,
             tenSetLau: item.tenSetLau,
             giaBan: item.giaBan,
+<<<<<<< HEAD
+            idLoaiSet: item.idLoaiSet, // Gửi ID thay vì cả object loaiSet
+            hinhAnh: item.hinhAnh,
+            mota: item.mota,
+            trangThai: newStatus // Quan trọng nhất
+        };
+
+        // Nếu Backend hỗ trợ PATCH (cập nhật 1 phần), bạn chỉ cần gửi:
+        // const payload = { id: item.id, trangThai: newStatus };
+=======
             idLoaiSet: item.idLoaiSet,
             moTaChiTiet: item.moTaChiTiet,
             hinhAnh: item.hinhAnh,
@@ -1628,6 +1654,7 @@ export function useHotpotManager() {
             trangThai: newStatus 
         };
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
         await putNewHotpot(item.id, payload);
         console.log("Cập nhật trạng thái thành công");
@@ -1721,7 +1748,10 @@ export function useHotpotUpdate() {
         giaBan: 0,
         hinhAnh: '',
         moTa: '',
+<<<<<<< HEAD
+=======
         moTaChiTiet: '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         trangThai: 1
     });
 
@@ -1731,7 +1761,10 @@ export function useHotpotUpdate() {
         idLoaiSet: '',
         giaBan: '',
         hinhAnh: '',
+<<<<<<< HEAD
+=======
         moTaChiTiet: '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         selectedIngredients: '' 
     });
 
@@ -1810,7 +1843,10 @@ export function useHotpotUpdate() {
                 idLoaiSet: data.loaiSet ? data.loaiSet.id : data.idLoaiSet,
                 giaBan: data.giaBan,
                 hinhAnh: data.hinhAnh,
+<<<<<<< HEAD
+=======
                 moTaChiTiet: data.moTaChiTiet || '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 moTa: data.moTa || '',
                 trangThai: Number(data.trangThai) === 1 ? 1 : 0
             };
@@ -1824,7 +1860,10 @@ export function useHotpotUpdate() {
                         donVi: item.chiTietMonAn.donVi,
                         giaBan: item.chiTietMonAn.giaBan,
                         hinhAnh: item.chiTietMonAn.hinhAnh,
+<<<<<<< HEAD
+=======
                         moTaChiTiet: item.chiTietMonAn.moTaChiTiet,
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                         soLuong: item.soLuong
                     };
                 }).filter(i => i !== null);
@@ -1908,7 +1947,11 @@ export function useHotpotUpdate() {
     // --- VALIDATE & UPDATE ---
     const validateForm = () => {
         let isValid = true;
+<<<<<<< HEAD
+        errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '' };
+=======
         errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '', moTaChiTiet: '' };
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
         const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
         if (!setName) {
@@ -1919,12 +1962,15 @@ export function useHotpotUpdate() {
             errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
 
+<<<<<<< HEAD
+=======
         const moTa = formData.value.moTaChiTiet ? String(formData.value.moTaChiTiet).trim() : '';
         if (!moTa) { 
             errors.value.moTaChiTiet = 'Vui lòng nhập định lượng.'; 
             isValid = false; 
         }
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         if (!formData.value.idLoaiSet) { errors.value.idLoaiSet = 'Vui lòng chọn Loại Set.'; isValid = false; }
         
         if (formData.value.giaBan === "" || formData.value.giaBan < 0) { 
@@ -1964,7 +2010,10 @@ export function useHotpotUpdate() {
                         ...formData.value,
                         tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
+<<<<<<< HEAD
+=======
                         moTaChiTiet: formData.value.moTaChiTiet ? formData.value.moTaChiTiet.trim() : '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                         trangThai: Number(formData.value.trangThai),
                         listChiTietSetLau: selectedIngredients.value.map(item => ({
                             idChiTietMonAn: item.id,
@@ -2881,7 +2930,10 @@ export function useHotpotAdd() {
     const formData = ref({
         tenSetLau: '',
         idLoaiSet: '',
+<<<<<<< HEAD
+=======
         moTaChiTiet: '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         giaBan: 0,
         hinhAnh: '',
         moTa: '',
@@ -2892,7 +2944,10 @@ export function useHotpotAdd() {
     const errors = ref({
         tenSetLau: '',
         idLoaiSet: '',
+<<<<<<< HEAD
+=======
         moTaChiTiet: '',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         giaBan: '',
         hinhAnh: '',
         selectedIngredients: '' // Lỗi cho danh sách thành phần
@@ -3023,7 +3078,11 @@ export function useHotpotAdd() {
     // --- 7. VALIDATE & SAVE ---
     const validateForm = () => {
         let isValid = true;
+<<<<<<< HEAD
+        errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '' };
+=======
         errors.value = { tenSetLau: '', idLoaiSet: '', giaBan: '', hinhAnh: '', selectedIngredients: '', moTaChiTiet: '' };
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
         const setName = formData.value.tenSetLau ? formData.value.tenSetLau.trim() : '';
         if (!setName) {
@@ -3034,10 +3093,13 @@ export function useHotpotAdd() {
             errors.value.tenSetLau = 'Tên Set Lẩu này đã tồn tại!'; isValid = false;
         }
 
+<<<<<<< HEAD
+=======
         if (!formData.value.moTaChiTiet) {
             errors.value.moTaChiTiet = 'Vui lòng nhập định lượng.'; isValid = false;
         }
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         if (!formData.value.idLoaiSet) { errors.value.idLoaiSet = 'Vui lòng chọn Loại Set.'; isValid = false; }
         
         if (!formData.value.giaBan || formData.value.giaBan < 0) { 
@@ -3075,7 +3137,10 @@ export function useHotpotAdd() {
                 try {
                     const payload = {
                         ...formData.value,
+<<<<<<< HEAD
+=======
                         moTaChiTiet: formData.value.moTaChiTiet.trim(),
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                         tenSetLau: formData.value.tenSetLau.trim(),
                         moTa: formData.value.moTa ? formData.value.moTa.trim() : '',
                         listChiTietSetLau: selectedIngredients.value.map(item => ({

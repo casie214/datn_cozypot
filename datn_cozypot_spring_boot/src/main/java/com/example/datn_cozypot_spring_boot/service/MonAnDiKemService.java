@@ -28,8 +28,11 @@ public class MonAnDiKemService {
         dto.setTenMonAn(entity.getTenMonAn());
         dto.setGiaBan(entity.getGiaBan());
         dto.setTrangThai(entity.getTrangThai());
+<<<<<<< HEAD
+=======
         dto.setHinhAnh(entity.getHinhAnh());
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         return dto;
     }
 }

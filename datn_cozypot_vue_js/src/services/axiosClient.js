@@ -1,12 +1,24 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
+<<<<<<< HEAD
+    baseURL: 'http://localhost:8080/api', 
+=======
     baseURL: 'http://localhost:8080/api',
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
+<<<<<<< HEAD
+axiosClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('accessToken');
+        
+        if (token) {
+            console.log("🟢 Gửi request với Token:", token.substring(0, 10) + "..."); // Log 10 ký tự đầu
+=======
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -27,11 +39,16 @@ axiosClient.interceptors.request.use(
 
         if (token) {
             console.log("🟢 Gửi request với Token:", token.substring(0, 10) + "...");
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             config.headers.Authorization = `Bearer ${token}`;
         } else {
             console.warn("🔴 Không tìm thấy Token trong localStorage");
         }
+<<<<<<< HEAD
+        
+=======
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         return config;
     },
     (error) => Promise.reject(error)
@@ -39,6 +56,13 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
     (response) => response,
+<<<<<<< HEAD
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            console.error("⛔ Token hết hạn hoặc không hợp lệ -> Logout");
+            localStorage.removeItem('accessToken');
+        }
+=======
     async(error) => {
         const originalRequest = error.config;
         if (!error.response) {
@@ -102,6 +126,7 @@ axiosClient.interceptors.response.use(
             }
         }
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         return Promise.reject(error);
     }
 );

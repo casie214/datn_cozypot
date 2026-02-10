@@ -1531,11 +1531,17 @@ textarea {
 
 .page-content {
     display: grid;
+<<<<<<< HEAD
+    grid-template-columns: 2fr 1.2fr; /* Cột trái to hơn */
+    gap: 20px;
+    padding-bottom: 80px; /* Chừa chỗ cho footer */
+=======
     grid-template-columns: 2fr 1.2fr;
     /* Cột trái to hơn */
     gap: 20px;
     padding-bottom: 80px;
     /* Chừa chỗ cho footer */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
 
 .form-row-2 {
@@ -1544,9 +1550,13 @@ textarea {
     gap: 15px;
 }
 
+<<<<<<< HEAD
+/* Variant List Styling */
+=======
 
 /* Variant List Styling */
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 .variants-list {
     margin-top: 15px;
     max-height: 400px;
@@ -1555,7 +1565,11 @@ textarea {
 
 .variant-item {
     display: grid;
+<<<<<<< HEAD
+    grid-template-columns: 60px 1fr 120px 40px; 
+=======
     grid-template-columns: 60px 1fr 120px 40px;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     gap: 55px;
     align-items: center;
     padding: 12px;
@@ -1565,8 +1579,12 @@ textarea {
 }
 
 .v-thumb {
+<<<<<<< HEAD
+    width: 100%; /* Chiếm hết ô grid 60px */
+=======
     width: 100%;
     /* Chiếm hết ô grid 60px */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     height: 60px;
     border-radius: 6px;
     overflow: hidden;
@@ -1578,6 +1596,13 @@ textarea {
     height: 100%;
     object-fit: cover;
 }
+<<<<<<< HEAD
+.variant-item:hover { background: #f9f9f9; }
+
+.v-name { font-weight: bold; color: #333; }
+.v-meta { font-size: 0.85rem; color: #777; margin-top: 2px; }
+.v-price { font-weight: bold; color: #d32f2f; }
+=======
 
 .variant-item:hover {
     background: #f9f9f9;
@@ -1598,11 +1623,16 @@ textarea {
     font-weight: bold;
     color: #d32f2f;
 }
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 .card-header-row {
     display: flex;
     justify-content: space-between;
+<<<<<<< HEAD
+    align-items: center;
+=======
     align-items: start;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     margin-bottom: 10px;
 }
 
@@ -1618,8 +1648,12 @@ textarea {
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+<<<<<<< HEAD
+    justify-self: end; /* Căn sang phải cùng */
+=======
     justify-self: end;
     /* Căn sang phải cùng */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
 
 .btn-icon-delete:hover {
@@ -1639,9 +1673,13 @@ textarea {
     background-color: #e0e0e0;
 }
 
+<<<<<<< HEAD
+/* Nút Xóa (Viền đỏ, nền trắng, chữ đỏ) */
+=======
 
 /* Nút Xóa (Viền đỏ, nền trắng, chữ đỏ) */
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 .btn-remove {
     background-color: #fff;
     border: 1px solid #dc3545;
@@ -1653,6 +1691,13 @@ textarea {
     color: white;
 }
 
+<<<<<<< HEAD
+/* Khung hiển thị ảnh (Dashed Border) */
+.image-preview-container {
+    width: 100%;
+    min-height: 200px;
+    border: 2px dashed #e0e0e0; /* Viền nét đứt màu xám nhạt */
+=======
 
 /* Khung hiển thị ảnh (Dashed Border) */
 
@@ -1661,6 +1706,7 @@ textarea {
     min-height: 200px;
     border: 2px dashed #e0e0e0;
     /* Viền nét đứt màu xám nhạt */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -1670,6 +1716,12 @@ textarea {
     position: relative;
 }
 
+<<<<<<< HEAD
+/* Khi có ảnh thì bỏ padding để ảnh full */
+.image-preview-container.has-image {
+    background-color: white;
+    border: 1px solid #eee; /* Đổi sang viền liền nhẹ khi có ảnh */
+=======
 
 /* Khi có ảnh thì bỏ padding để ảnh full */
 
@@ -1677,12 +1729,17 @@ textarea {
     background-color: white;
     border: 1px solid #eee;
     /* Đổi sang viền liền nhẹ khi có ảnh */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
 
 .image-preview-container img {
     max-width: 100%;
+<<<<<<< HEAD
+    max-height: 300px; /* Giới hạn chiều cao để không vỡ layout */
+=======
     max-height: 300px;
     /* Giới hạn chiều cao để không vỡ layout */
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     object-fit: contain;
     display: block;
 }
@@ -1693,6 +1750,33 @@ textarea {
 }
 
 .btn-save-large {
+<<<<<<< HEAD
+
+    padding: 12px 24px;
+
+    background: #8B0000;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 6px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    box-shadow: 0 2px 5px rgba(211, 47, 47, 0.3);
+
+}
+
+
+
+.btn-save-large:hover {
+
+    background: #b71c1c;
+
+=======
     padding: 12px 24px;
     background: #8B0000;
     color: white;
@@ -1705,9 +1789,14 @@ textarea {
 
 .btn-save-large:hover {
     background: #b71c1c;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
 
 .empty-placeholder i {
     font-size: 40px;
     margin-bottom: 10px;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77

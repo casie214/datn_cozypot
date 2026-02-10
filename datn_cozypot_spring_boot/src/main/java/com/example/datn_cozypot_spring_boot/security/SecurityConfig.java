@@ -28,8 +28,11 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+<<<<<<< HEAD
+=======
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,21 +46,31 @@ public class SecurityConfig {
           .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+<<<<<<< HEAD
+
+          .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/**").permitAll()
+=======
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(unauthorizedHandler))
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
                   .requestMatchers("/api/auth/refresh-token").permitAll()
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                   .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                   .requestMatchers(
                           "/api/dot-khuyen-mai/export-excel"
                   ).permitAll()
                   .requestMatchers("/api/guest/**").permitAll()
                   .requestMatchers("/api/khach-hang/**").permitAll()
+<<<<<<< HEAD
+
+=======
                   .requestMatchers("/api/thong-ke/**").permitAll()
                   .requestMatchers("/api/mon-an-di-kem/**").permitAll()
                   .requestMatchers("/api/set-lau/**").permitAll()
                   .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
             .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")

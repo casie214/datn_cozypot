@@ -1,3 +1,88 @@
+<<<<<<< HEAD
+/* kế thừa các biến root từ file chung */
+.customer-portal-wrapper {
+  background-color: #ffffff !important;
+}
+
+.title-page-cozy {
+  color: #7B121C;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Badge tích điểm cho khách hàng */
+.badge-points {
+  background: #fff5f6;
+  color: #7B121C;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  border: 1px solid #f8d7da;
+}
+
+/* Hiệu ứng dòng bị khóa */
+.row-locked {
+  background-color: #fcfcfc !important;
+  opacity: 0.7;
+}
+
+.row-locked td {
+  color: #adb5bd !important;
+}
+
+/* Tinh chỉnh Icon hành động */
+.action-icons i {
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #95a5a6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-icons i:hover {
+  transform: translateY(-2px) scale(1.15);
+}
+
+.action-icons i.fa-eye:hover { color: #2c3e50; }
+.action-icons i.fa-pen:hover { color: #0d6efd; }
+.action-icons i.fa-lock:hover, .action-icons i.fa-unlock:hover { color: #7B121C; }
+
+.disabled-icon {
+  cursor: not-allowed !important;
+  opacity: 0.3;
+}
+
+/* Tinh chỉnh bảng */
+.table-container-premium {
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.custom-table thead th {
+  background-color: #7B121C !important;
+  color: white !important;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 15px;
+}
+
+/* Ô nhập số trang kiểu mới */
+.input-page-wrapper {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  padding: 5px 12px;
+  border-radius: 10px;
+}
+
+.input-go-to {
+  width: 45px;
+  border: 1.5px solid #7B121C;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 700;
+  color: #7B121C;
+  outline: none;
+=======
 :root {
   --primary-red: #7B121C; /* Đỏ đô chuẩn */
   --dark-red: #600000;
@@ -267,4 +352,5 @@ font-weight: bold;
 .btn-page:disabled {
   color: #ccc;
   cursor: not-allowed;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }

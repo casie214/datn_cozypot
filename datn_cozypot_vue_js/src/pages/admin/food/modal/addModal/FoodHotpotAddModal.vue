@@ -77,6 +77,8 @@ const getImg = (url) => {
                         </div>
 
                         <div class="form-group">
+<<<<<<< HEAD
+=======
                             <label>Định mức <span class="required">*</span></label>
                             <input v-model="formData.moTaChiTiet" type="text" placeholder="VD: Phù hợp cho nhóm 4-5 người"
                                 :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
@@ -89,6 +91,7 @@ const getImg = (url) => {
                         </div>
 
                         <div class="form-group">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                             <label>Trạng thái</label>
                             <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">

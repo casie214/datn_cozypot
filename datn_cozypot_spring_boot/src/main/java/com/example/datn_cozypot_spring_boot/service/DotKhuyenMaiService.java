@@ -67,6 +67,14 @@ public class DotKhuyenMaiService {
         return convertToDto(entity);
     }
 
+<<<<<<< HEAD
+    @Transactional // Quan trọng: Đảm bảo lưu cả 2 bảng hoặc không lưu gì nếu lỗi
+    public DotKhuyenMaiDTO create(DotKhuyenMaiDTO dto) {
+        DotKhuyenMai entity = new DotKhuyenMai();
+        mapDtoToEntity(dto, entity);
+
+        // Xử lý gán Set Lẩu vào Đợt Khuyến Mãi
+=======
     @Transactional
     public DotKhuyenMaiDTO create(DotKhuyenMaiDTO dto) {
         if (dto.getNgayBatDau() == null || dto.getNgayKetThuc() == null) {
@@ -124,25 +132,40 @@ public class DotKhuyenMaiService {
         DotKhuyenMai entity = new DotKhuyenMai();
         mapDtoToEntity(dto, entity);
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         if (dto.getIdSetLauChiTiet() != null && !dto.getIdSetLauChiTiet().isEmpty()) {
             List<SetLau> selectedSets = setLauRepo.findAllById(dto.getIdSetLauChiTiet());
             entity.setSetLaus(new HashSet<>(selectedSets));
         }
 
+<<<<<<< HEAD
+        // 2. Xử lý gán Món Ăn Đi Kèm (MỚI)
+        if (dto.getIdMonAnChiTiet() != null) {
+            List<MonAnDiKem> selectedMons = monAnRepo.findAllById(dto.getIdMonAnChiTiet());
+            entity.setMonAnDiKems(new HashSet<>(selectedMons)); // Giả định Entity DotKhuyenMai đã có field monAnDiKems
+=======
         if (dto.getIdMonAnChiTiet() != null) {
             List<MonAnDiKem> selectedMons =
                     monAnRepo.findAllById(dto.getIdMonAnChiTiet());
 
             entity.setMonAnDiKems(new HashSet<>(selectedMons));
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
 
         entity.setNgayTao(Instant.now());
         entity.setNguoiTao("Admin");
 
+<<<<<<< HEAD
+        DotKhuyenMai saved = dotKhuyenMaiRepo.save(entity);
+        return convertToDto(saved);
+    }
+
+=======
         return convertToDto(dotKhuyenMaiRepo.save(entity));
     }
 
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     public void exportExcel(OutputStream outputStream) {
         try (Workbook workbook = new XSSFWorkbook()) {
 
@@ -224,6 +247,16 @@ public class DotKhuyenMaiService {
 
     @Transactional
     public DotKhuyenMaiDTO update(Integer id, DotKhuyenMaiDTO dto) {
+<<<<<<< HEAD
+        DotKhuyenMai entity = dotKhuyenMaiRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đợt khuyến mãi"));
+
+        mapDtoToEntity(dto, entity);
+
+        // Cập nhật lại danh sách Set Lẩu (Xóa cũ, thêm mới)
+        if (dto.getIdSetLauChiTiet() != null) {
+            List<SetLau> selectedSets = setLauRepo.findAllById(dto.getIdSetLauChiTiet());
+=======
 
         DotKhuyenMai entity = dotKhuyenMaiRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đợt khuyến mãi"));
@@ -292,15 +325,23 @@ public class DotKhuyenMaiService {
             List<SetLau> selectedSets =
                     setLauRepo.findAllById(dto.getIdSetLauChiTiet());
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             entity.getSetLaus().clear();
             entity.getSetLaus().addAll(selectedSets);
         }
 
+<<<<<<< HEAD
+        // 2. Xử lý gán Món Ăn Đi Kèm (MỚI)
+        if (dto.getIdMonAnChiTiet() != null) {
+            List<MonAnDiKem> selectedMons = monAnRepo.findAllById(dto.getIdMonAnChiTiet());
+            entity.setMonAnDiKems(new HashSet<>(selectedMons)); // Giả định Entity DotKhuyenMai đã có field monAnDiKems
+=======
         if (dto.getIdMonAnChiTiet() != null) {
             List<MonAnDiKem> selectedMons =
                     monAnRepo.findAllById(dto.getIdMonAnChiTiet());
 
             entity.setMonAnDiKems(new HashSet<>(selectedMons));
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
 
         entity.setNgaySua(Instant.now());
@@ -309,7 +350,10 @@ public class DotKhuyenMaiService {
         return convertToDto(dotKhuyenMaiRepo.save(entity));
     }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     // Trong DotKhuyenMaiService.java
     public DotKhuyenMaiDTO convertToDto(DotKhuyenMai entity) {
         if (entity == null) return null;
@@ -363,9 +407,13 @@ public class DotKhuyenMaiService {
 
         // 4. Trạng thái
         // Nếu status từ giao diện gửi về null, mặc định để là 1 (Đang hoạt động)
+<<<<<<< HEAD
+        entity.setTrangThai(dto.getTrangThai() != null ? dto.getTrangThai() : 1);
+=======
         if (dto.getTrangThai() != null) {
             entity.setTrangThai(dto.getTrangThai());
         }
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     }
 
     // Trong DotKhuyenMaiService.java
@@ -383,6 +431,8 @@ public class DotKhuyenMaiService {
         return dotKhuyenMaiRepo.findDotDangHoatDong();
     }
 
+<<<<<<< HEAD
+=======
     @Transactional
     public void toggleStatus(Integer id) {
 
@@ -400,4 +450,5 @@ public class DotKhuyenMaiService {
         dotKhuyenMaiRepo.save(km);
     }
 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }

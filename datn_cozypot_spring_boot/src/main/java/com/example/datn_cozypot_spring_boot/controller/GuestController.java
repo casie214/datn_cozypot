@@ -1,10 +1,13 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
+<<<<<<< HEAD
+=======
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,8 @@ public class GuestController {
     public ResponseEntity<List<SetLauResponse>> getSetLauTheoTop(@PathVariable int metric){
         return ResponseEntity.status(HttpStatus.OK).body(monAnService.findSetLauTop(metric));
     }
+<<<<<<< HEAD
+=======
 
     @GetMapping("/category/active")
     public ResponseEntity<List<DanhMucResponse>> getDanhMucActive(){
@@ -60,4 +65,5 @@ public class GuestController {
 
 //    @GetMapping("/search/active/{name}")
 //    public ResponseEntity
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }

@@ -2,7 +2,10 @@
 import { useRouter } from 'vue-router';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useFoodUpdate } from '../../../../../services/foodFunction';
+<<<<<<< HEAD
+=======
 import { ref } from 'vue';
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const {
   isViewMode, isLoading, formData, foodInfo, variants, categoryName,
@@ -21,6 +24,8 @@ const getImg = (url) => {
   return 'https://placehold.co/100x100?text=No+Img';
 }
 
+<<<<<<< HEAD
+=======
 const goToVariantDetail = (variant) => {
   router.push({
     name: 'viewFoodDetail',
@@ -71,6 +76,7 @@ const showTooltip = (event, variant) => {
 const hideTooltip = () => {
   hoveredVariant.value = null;
 };
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 </script>
 
@@ -108,6 +114,29 @@ const hideTooltip = () => {
             </span>
           </div>
           <div class="hero-meta-grid">
+<<<<<<< HEAD
+    <div class="meta-item">
+        <span class="label">Danh mục:</span>
+        <span style="width: 60%; cursor: pointer;" class="value clickable-link" 
+              @click="goToFoodListFilter('root')" 
+              title="Lọc món ăn theo danh mục này">
+            {{ selectedCategoryName }} <i class="fas fa-filter small-icon"></i>
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="label">Danh mục chi tiết:</span>
+        <span style="width: 60%; cursor: pointer;" class="value clickable-link" 
+              @click="goToFoodListFilter('sub')"
+              title="Lọc món ăn theo chi tiết này">
+            {{ selectedSubCategoryName }} <i class="fas fa-filter small-icon"></i>
+        </span>
+    </div>
+    <div class="meta-item">
+        <span class="label">Số lượng chi tiết món:</span>
+        <span class="value">{{ variants.length }}</span>
+    </div>
+</div>
+=======
             <div class="meta-item">
               <span class="label">Danh mục:</span>
               <span style="width: 60%; cursor: pointer;" class="value clickable-link"
@@ -127,6 +156,7 @@ const hideTooltip = () => {
               <span class="value">{{ variants.length }}</span>
             </div>
           </div>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         </div>
       </div>
 
@@ -226,17 +256,28 @@ const hideTooltip = () => {
           <div class="card">
             <div class="card-header-row">
               <h3>Các chi tiết món ({{ variants.length }})</h3>
+<<<<<<< HEAD
+              <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
+                 Xem bảng
+              </button>
+              <button v-if="!isViewMode" class="btn-add" @click="goToAddDetail">
+=======
               <button class="btn-show-table" @click="goToDetailTable" title="Xem danh sách chi tiết">
                 Xem bảng
               </button>
               <button v-if="!isViewMode" class="btn-show-table" @click="goToAddDetail">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 + Thêm loại
               </button>
             </div>
 
             <div class="variants-list">
+<<<<<<< HEAD
+              <div v-for="v in variants" :key="v.id" class="variant-item">
+=======
               <div v-for="v in variants" :key="v.id" class="variant-item" @mouseenter="showTooltip($event, v)"
                 @mouseleave="hideTooltip">
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 <div class="v-thumb">
                   <img :src="getImg(v.hinhAnh)" alt="Ảnh" class="img-fit">
                 </div>
@@ -252,10 +293,23 @@ const hideTooltip = () => {
                   {{ v.giaBan?.toLocaleString() }} đ
                 </div>
 
+<<<<<<< HEAD
+                <div class="action-col">
+                  <div v-if="!isViewMode" class="toggle-switch small" :class="{ 'on': v.trangThai === 1 }"
+                    @click.stop="handleToggleDetailStatus(v)" title="Bật/Tắt kinh doanh biến thể này">
+                    <div class="toggle-knob"></div>
+                  </div>
+
+                  <span v-else class="status-dot" :class="v.trangThai === 1 ? 'green' : 'red'">
+                    ●
+                  </span>
+                </div>
+=======
                  <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa chi tiết món"
                   @click="goToEditDetail(v)"></i>
 
                 
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
               </div>
 
               <div v-if="variants.length === 0" class="empty-text">Chưa có chi tiết món nào.</div>
@@ -273,6 +327,8 @@ const hideTooltip = () => {
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+=======
 
   <Teleport to="body">
     <div v-if="hoveredVariant" class="fixed-tooltip" :class="tooltipPlacement" :style="tooltipStyle">
@@ -298,6 +354,7 @@ const hideTooltip = () => {
       </div>
     </div>
   </Teleport>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 </template>
 
 <style scoped>
@@ -433,6 +490,8 @@ const hideTooltip = () => {
   margin-top: 4px;
   display: block;
 }
+<<<<<<< HEAD
+=======
 
 .fixed-tooltip {
   position: fixed;
@@ -551,4 +610,5 @@ const hideTooltip = () => {
   color: #666;
   font-style: italic;
 }
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 </style>

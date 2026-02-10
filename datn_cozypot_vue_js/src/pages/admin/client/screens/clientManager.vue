@@ -1,4 +1,12 @@
 <template>
+<<<<<<< HEAD
+  <div class="client-layout-container">
+    <router-view v-slot="{ Component }">
+      <transition name="fade-transform" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+=======
   <div class="flex-grow-1 client-manager-wrapper" style="padding: 25px;">
     <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="title-page">Quản lý khách hàng</h2>
@@ -130,10 +138,39 @@
 
     <CustomerModal v-if="isModalOpen" :client-id="selectedId" @close="closeModal" @refresh="handleSearch" />
     <CustomerDetailModal v-if="isDetailModalOpen" :client-id="selectedId" @close="closeDetailModal" />
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
   </div>
 </template>
 
 <script setup>
+<<<<<<< HEAD
+// File này đóng vai trò là cửa ngõ cho các route con của Khách hàng
+</script>
+
+<style scoped>
+/* Hiệu ứng chuyển trang nhẹ nhàng cho chuyên nghiệp */
+.fade-transform-enter-active,
+.fade-transform-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-transform-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.fade-transform-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.client-layout-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff; /* Đảm bảo nền luôn trắng sạch sẽ như bên nhân viên */
+}
+</style>
+=======
 import Swal from 'sweetalert2';
 import { ref, onMounted, reactive, watch } from 'vue'; // Thêm watch
 import { useClientLogic } from './clientFunction.js'; 
@@ -318,3 +355,4 @@ const warnLocked = () => alert("Vui lòng mở khóa trước khi chỉnh sửa!
 
 onMounted(handleSearch);
 </script>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77

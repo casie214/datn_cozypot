@@ -3,7 +3,10 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import CommonNav from '@/components/commonNav.vue';
+<<<<<<< HEAD
+=======
 import GoogleLoginCallback from './googleLoginCallback.vue';
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -79,6 +82,12 @@ const switchTab = (isClient) => {
     password.value = '';
 }
 
+<<<<<<< HEAD
+</script>
+
+<template>
+    <CommonNav></CommonNav>
+=======
 const loginWithGoogle = () => {
     const clientId = "20518372642-a98sqlousqg989t519jf8fbse68q5iqk.apps.googleusercontent.com";
     const redirectUri = "http://localhost:5173/auth/google/callback";
@@ -93,6 +102,7 @@ const loginWithGoogle = () => {
 </script>
 
 <template>
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     <div class="main-content">
         
         <div class="etched-container">
@@ -210,7 +220,11 @@ const loginWithGoogle = () => {
                                         </div>
                                         <div class="col-12 col-lg-5 d-flex align-items-center">
                                             <div class="d-flex gap-3 flex-column w-100 ">
+<<<<<<< HEAD
+                                                <a href="#!"
+=======
                                                 <a @click="loginWithGoogle"
+>>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                                     class="btn bsb-btn-2xl btn-outline-dark rounded-0 d-flex align-items-center">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                                         fill="currentColor" class="bi bi-google text-danger"
