@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useFoodUpdate } from '../../../../../services/foodFunction';
+import { ref } from 'vue';
 
 const {
   isViewMode, isLoading, formData, foodInfo, variants, categoryName,
@@ -22,11 +23,53 @@ const getImg = (url) => {
 
 const goToVariantDetail = (variant) => {
   router.push({
-    name: 'viewFoodDetail', 
+    name: 'viewFoodDetail',
+    params: {
+      id: variant.id
+    },
+  });
+};
+
+const goToEditDetail = (variant) => {
+  console.log("Chuyển sang chế độ sửa:", variant);
+  
+  router.push({
+    name: 'updateFoodDetail',
     params: { 
       id: variant.id 
     }
   });
+};
+
+const hoveredVariant = ref(null);
+const tooltipStyle = ref({ top: '0px', left: '0px' });
+const tooltipPlacement = ref('top'); // 'top' hoặc 'bottom' để xoay mũi tên
+
+const showTooltip = (event, variant) => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  hoveredVariant.value = variant;
+
+  const safeZoneTop = 220;
+
+  const leftPos = rect.left + (rect.width / 2);
+
+  if (rect.top < safeZoneTop) {
+    tooltipPlacement.value = 'bottom';
+    tooltipStyle.value = {
+      top: `${rect.bottom + 12}px`, 
+      left: `${leftPos}px`
+    };
+  } else {
+    tooltipPlacement.value = 'top';
+    tooltipStyle.value = {
+      top: `${rect.top - 12}px`,
+      left: `${leftPos}px`
+    };
+  }
+};
+
+const hideTooltip = () => {
+  hoveredVariant.value = null;
 };
 
 </script>
@@ -65,27 +108,25 @@ const goToVariantDetail = (variant) => {
             </span>
           </div>
           <div class="hero-meta-grid">
-    <div class="meta-item">
-        <span class="label">Danh mục:</span>
-        <span style="width: 60%; cursor: pointer;" class="value clickable-link" 
-              @click="goToFoodListFilter('root')" 
-              title="Lọc món ăn theo danh mục này">
-            {{ selectedCategoryName }} <i class="fas fa-filter small-icon"></i>
-        </span>
-    </div>
-    <div class="meta-item">
-        <span class="label">Danh mục chi tiết:</span>
-        <span style="width: 60%; cursor: pointer;" class="value clickable-link" 
-              @click="goToFoodListFilter('sub')"
-              title="Lọc món ăn theo chi tiết này">
-            {{ selectedSubCategoryName }} <i class="fas fa-filter small-icon"></i>
-        </span>
-    </div>
-    <div class="meta-item">
-        <span class="label">Số lượng chi tiết món:</span>
-        <span class="value">{{ variants.length }}</span>
-    </div>
-</div>
+            <div class="meta-item">
+              <span class="label">Danh mục:</span>
+              <span style="width: 60%; cursor: pointer;" class="value clickable-link"
+                @click="goToFoodListFilter('root')" title="Lọc món ăn theo danh mục này">
+                {{ selectedCategoryName }} <i class="fas fa-filter small-icon"></i>
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Danh mục chi tiết:</span>
+              <span style="width: 60%; cursor: pointer;" class="value clickable-link" @click="goToFoodListFilter('sub')"
+                title="Lọc món ăn theo chi tiết này">
+                {{ selectedSubCategoryName }} <i class="fas fa-filter small-icon"></i>
+              </span>
+            </div>
+            <div class="meta-item">
+              <span class="label">Số lượng chi tiết món:</span>
+              <span class="value">{{ variants.length }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -185,16 +226,17 @@ const goToVariantDetail = (variant) => {
           <div class="card">
             <div class="card-header-row">
               <h3>Các chi tiết món ({{ variants.length }})</h3>
-              <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
-                 Xem bảng
+              <button class="btn-show-table" @click="goToDetailTable" title="Xem danh sách chi tiết">
+                Xem bảng
               </button>
-              <button v-if="!isViewMode" class="btn-add" @click="goToAddDetail">
+              <button v-if="!isViewMode" class="btn-show-table" @click="goToAddDetail">
                 + Thêm loại
               </button>
             </div>
 
             <div class="variants-list">
-              <div v-for="v in variants" :key="v.id" class="variant-item">
+              <div v-for="v in variants" :key="v.id" class="variant-item" @mouseenter="showTooltip($event, v)"
+                @mouseleave="hideTooltip">
                 <div class="v-thumb">
                   <img :src="getImg(v.hinhAnh)" alt="Ảnh" class="img-fit">
                 </div>
@@ -210,16 +252,10 @@ const goToVariantDetail = (variant) => {
                   {{ v.giaBan?.toLocaleString() }} đ
                 </div>
 
-                <div class="action-col">
-                  <div v-if="!isViewMode" class="toggle-switch small" :class="{ 'on': v.trangThai === 1 }"
-                    @click.stop="handleToggleDetailStatus(v)" title="Bật/Tắt kinh doanh biến thể này">
-                    <div class="toggle-knob"></div>
-                  </div>
+                 <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa chi tiết món"
+                  @click="goToEditDetail(v)"></i>
 
-                  <span v-else class="status-dot" :class="v.trangThai === 1 ? 'green' : 'red'">
-                    ●
-                  </span>
-                </div>
+                
               </div>
 
               <div v-if="variants.length === 0" class="empty-text">Chưa có chi tiết món nào.</div>
@@ -237,6 +273,31 @@ const goToVariantDetail = (variant) => {
       </div>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div v-if="hoveredVariant" class="fixed-tooltip" :class="tooltipPlacement" :style="tooltipStyle">
+
+      <div class="tooltip-header">
+        <strong>{{ hoveredVariant.tenChiTietMonAn }}</strong>
+        <span class="tooltip-badge">{{ hoveredVariant.trangThai === 1 ? 'Đang bán' : 'Ngưng bán' }}</span>
+      </div>
+
+      <div class="tooltip-body">
+        <div class="tooltip-row">
+          <span>Mã:</span> <strong>{{ hoveredVariant.maChiTietMonAn || '---' }}</strong>
+        </div>
+        <div class="tooltip-row">
+          <span>Kích cỡ:</span> <strong>{{ hoveredVariant.kichCo || 'Tiêu chuẩn' }}</strong>
+        </div>
+        <div class="tooltip-row">
+          <span>Đơn vị:</span> <strong>{{ hoveredVariant.donVi }}</strong>
+        </div>
+        <div class="tooltip-row">
+          <span>Giá bán:</span> <strong class="price-text">{{ hoveredVariant.giaBan?.toLocaleString() }} đ</strong>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -371,5 +432,123 @@ const goToVariantDetail = (variant) => {
   font-size: 0.85em;
   margin-top: 4px;
   display: block;
+}
+
+.fixed-tooltip {
+  position: fixed;
+  /* Cố định theo màn hình */
+  width: 280px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.25);
+  /* Bóng đổ đậm hơn để nổi bật */
+  border: 1px solid #ddd;
+  z-index: 99999;
+  /* Luôn nằm trên cùng (trên cả Modal/Header) */
+  pointer-events: none;
+  /* Chuột xuyên qua */
+
+  /* Hiệu ứng xuất hiện */
+  animation: fadeInTooltip 0.15s ease-out;
+}
+
+/* Định vị mũi tên chung */
+.fixed-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+}
+
+/* --- TRƯỜNG HỢP 1: HIỆN Ở TRÊN (PLACEMENT = TOP) --- */
+.fixed-tooltip.top {
+  transform: translate(-50%, -100%);
+  /* Đẩy lên trên */
+}
+
+/* Mũi tên chĩa xuống */
+.fixed-tooltip.top::after {
+  top: 100%;
+  border-color: white transparent transparent transparent;
+}
+
+/* --- TRƯỜNG HỢP 2: HIỆN Ở DƯỚI (PLACEMENT = BOTTOM) --- */
+.fixed-tooltip.bottom {
+  transform: translate(-50%, 0);
+  /* Giữ nguyên vị trí tính toán */
+}
+
+/* Mũi tên chĩa lên */
+.fixed-tooltip.bottom::after {
+  bottom: 100%;
+  border-color: transparent transparent white transparent;
+}
+
+@keyframes fadeInTooltip {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+  }
+
+  /* Transform đích được set bởi class .top/.bottom */
+}
+
+/* --- STYLES NỘI DUNG (Giữ nguyên cho đẹp) --- */
+.tooltip-header {
+  background-color: #8B0000;
+  color: white;
+  padding: 10px 15px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.tooltip-badge {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.tooltip-body {
+  padding: 12px 15px;
+  font-size: 13px;
+  color: #333;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed #f0f0f0;
+  padding-bottom: 6px;
+}
+
+.tooltip-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.price-text {
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.desc-text {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #666;
+  font-style: italic;
 }
 </style>

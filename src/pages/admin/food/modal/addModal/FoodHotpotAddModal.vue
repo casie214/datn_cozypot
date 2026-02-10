@@ -77,6 +77,18 @@ const getImg = (url) => {
                         </div>
 
                         <div class="form-group">
+                            <label>Định mức <span class="required">*</span></label>
+                            <input v-model="formData.moTaChiTiet" type="text" placeholder="VD: Phù hợp cho nhóm 4-5 người"
+                                :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
+                            <span class="error-message" v-if="errors.moTaChiTiet">{{ errors.moTaChiTiet }}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Mô tả</label>
+                            <input v-model="formData.moTa" type="text" placeholder="VD: Combo Lẩu Thái">
+                        </div>
+
+                        <div class="form-group">
                             <label>Trạng thái</label>
                             <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
