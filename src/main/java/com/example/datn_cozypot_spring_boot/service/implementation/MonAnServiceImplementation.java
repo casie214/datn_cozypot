@@ -282,6 +282,7 @@ public class MonAnServiceImplementation implements MonAnService {
         setLau.setMoTa(request.getMoTa());
         setLau.setTrangThai(request.getTrangThai());
         setLau.setNgayTao(Instant.now());
+        setLau.setMoTaChiTiet(request.getMoTaChiTiet());
         String code = generateNextCode(request.getTenSetLau(), "SET_LAU");
         setLau.setMaSetLau(code);
 
@@ -385,6 +386,7 @@ public class MonAnServiceImplementation implements MonAnService {
         existingSet.setHinhAnh(request.getHinhAnh());
         existingSet.setMoTa(request.getMoTa());
         existingSet.setTrangThai(request.getTrangThai());
+        existingSet.setMoTaChiTiet(request.getMoTaChiTiet());
 
         if (request.getIdLoaiSet() != null) {
             LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
@@ -495,6 +497,7 @@ public class MonAnServiceImplementation implements MonAnService {
         response.setTenSetLau(setLau.getTenSetLau());
         response.setGiaBan(setLau.getGiaBan());
         response.setHinhAnh(setLau.getHinhAnh());
+        response.setMoTaChiTiet(setLau.getMoTaChiTiet());
         response.setMoTa(setLau.getMoTa());
         response.setTrangThai(setLau.getTrangThai());
 
@@ -577,6 +580,61 @@ public class MonAnServiceImplementation implements MonAnService {
                     return response;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MonAnResponse> findMonAnActive() {
+        return monAnRepository.findByTrangThaiKinhDoanh(1).stream().map(monAnDiKem -> modelMapper.map(monAnDiKem, MonAnResponse.class)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DanhMucResponse> findDanhMucActive() {
+        return danhMucRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        danhMuc -> modelMapper.map(danhMuc, DanhMucResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<SetLauResponse> findSetLauActive() {
+        return setLauRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        setLau -> modelMapper.map(setLau, SetLauResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<DanhMucChiTietResponse> findDanhMucChiTietActive() {
+        return danhMucChiTietRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        danhMucChiTiet -> modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<LoaiLauResponse> findLoaiSetLauActive() {
+        return loaiLauRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        loaiLau -> modelMapper.map(loaiLau, LoaiLauResponse.class)
+                )
+                .toList();
+    }
+
+    @Override
+    public List<MonAnChiTietResponse> findChiTietMonAnActive() {
+        return monAnChiTietRepository.findByTrangThai(1)
+                .stream()
+                .map(
+                        monAnChiTiet -> modelMapper.map(monAnChiTiet, MonAnChiTietResponse.class)
+                )
+                .toList();
     }
 
     public MonAnResponse convertToResponse(MonAnDiKem entity) {
