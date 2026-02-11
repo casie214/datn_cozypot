@@ -100,8 +100,7 @@
     padding: 20px;
     min-height: 100vh;
 }
-<<<<<<< HEAD
-=======
+
 /* Bảng khách hàng đã chọn */
 .customer-selected-card .table-responsive {
     max-height: 240px; /* 6 dòng */
@@ -115,7 +114,6 @@
     background: #fff;
     z-index: 2;
 }
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 .selector-box:hover {
     border-color: #ccc !important;
