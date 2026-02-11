@@ -502,11 +502,8 @@
                                         </thead>
 
                                         <tbody v-if="formData.doiTuong === 1">
-<<<<<<< HEAD
-                                            <tr v-for="kh in filteredCustomers" :key="kh.id">
-=======
+
                                             <tr v-for="kh in pagedCustomers" :key="kh.id">
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                                 <td class="text-center">
                                                     <input type="checkbox" :value="kh.id"
                                                         v-model="formData.listIdKhachHang" class="form-check-input"
@@ -547,8 +544,7 @@
                                             </td>
                                         </tr>
                                     </table>
-<<<<<<< HEAD
-=======
+
                                     <!-- Pagination Khách Hàng -->
                                     <div class="d-flex justify-content-center mt-3 gap-2">
 
@@ -571,7 +567,6 @@
 
                                     </div>
 
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                                 </div>
                                 <div class="customer-selected-card mt-4 customer-table-wrapper">
 
@@ -621,22 +616,7 @@
                     </div>
                 </div>
                 <div class="mt-4 d-flex justify-content-end gap-2">
-<<<<<<< HEAD
-                    <div
-                            class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
-                            <button type="button"
-                                class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
-                                style="height: 42px; background-color: #800000;" @click="closeForm">
-                                HỦY BỎ
-                            </button>
 
-                            <button v-if="!isReadOnly" type="submit"
-                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
-                                >
-                                <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
-                            </button>
-                        </div>
-=======
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
                             class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
@@ -649,7 +629,6 @@
                             <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
                         </button>
                     </div>
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 </div>
             </form>
         </div>
@@ -708,15 +687,13 @@ const exportExcel = async () => {
         showToast('Lỗi', 'Xuất Excel thất bại!', 'error');
     }
 };
-<<<<<<< HEAD
-=======
+
 
 const customerPagination = reactive({
     currentPage: 1,
     pageSize: 6, // mỗi trang 6 KH
 });
 
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const cleanParams = (obj) => {
     const cleaned = {};
     Object.keys(obj).forEach(key => {
@@ -932,8 +909,7 @@ const filteredCustomers = computed(() => {
     return result;
 });
 
-<<<<<<< HEAD
-=======
+
 const pagedCustomers = computed(() => {
     const start =
         (customerPagination.currentPage - 1) *
@@ -953,7 +929,6 @@ const customerTotalPages = computed(() => {
 });
 
 
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 const isAllCustomersSelected = computed(() => {
     return filteredCustomers.value.length > 0 &&
         filteredCustomers.value.every(kh => formData.listIdKhachHang.includes(kh.id));
@@ -1346,13 +1321,11 @@ watch(customerMonth, async () => {
         await loadCustomers();
     }
 });
-<<<<<<< HEAD
-=======
+
 watch(sortConfig, () => {
     customerPagination.currentPage = 1;
 }, { deep: true });
 
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const visiblePages = computed(() => {
     const total = pagination.totalPages;
