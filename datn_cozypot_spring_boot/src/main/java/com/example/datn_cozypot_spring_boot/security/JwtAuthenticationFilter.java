@@ -31,11 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-<<<<<<< HEAD
                 String username = tokenProvider.getUsername(jwt);
-=======
-                String username = tokenProvider.getUsernameFromToken(jwt);
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
                 String role = tokenProvider.getRole(jwt);
                 boolean isValid = tokenProvider.validateToken(jwt);
                 System.out.println("🔥 [DEBUG] Token hợp lệ? " + isValid);

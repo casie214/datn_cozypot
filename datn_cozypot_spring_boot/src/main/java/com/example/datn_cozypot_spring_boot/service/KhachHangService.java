@@ -149,19 +149,16 @@ public class KhachHangService {
     }
 
     public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
-<<<<<<< HEAD
+
 
         // Lấy toàn bộ khách hàng
         List<KhachHang> list = repo.findAll();
-=======
-        // Sử dụng trực tiếp tuNgay (LocalDate) để thống nhất với hàm getAll phía trên
-        List<KhachHang> list = repo.searchKhachHang(keyword, trangThai, tuNgay, Pageable.unpaged()).getContent();
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
+
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-<<<<<<< HEAD
+
             Sheet sheet = workbook.createSheet("Khách hàng");
 
             // ===== HEADER =====
@@ -219,22 +216,12 @@ public class KhachHangService {
             for (int i = 0; i <= 12; i++) {
                 sheet.autoSizeColumn(i);
             }
-=======
-            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
-
-            // --- Đoạn xử lý Excel (Row, Cell) của bạn viết tiếp ở đây ---
-            // Ví dụ: Row header = sheet.createRow(0); header.createCell(0).setCellValue("Tên khách hàng");
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
             workbook.write(out);
             return out.toByteArray();
 
         } catch (IOException e) {
-<<<<<<< HEAD
             throw new RuntimeException("Lỗi export Excel: " + e.getMessage());
-=======
-            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
     }
 
