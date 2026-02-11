@@ -67,105 +67,30 @@ public class DotKhuyenMaiService {
         return convertToDto(entity);
     }
 
-<<<<<<< HEAD
     @Transactional // Quan trọng: Đảm bảo lưu cả 2 bảng hoặc không lưu gì nếu lỗi
     public DotKhuyenMaiDTO create(DotKhuyenMaiDTO dto) {
         DotKhuyenMai entity = new DotKhuyenMai();
         mapDtoToEntity(dto, entity);
 
         // Xử lý gán Set Lẩu vào Đợt Khuyến Mãi
-=======
-    @Transactional
-    public DotKhuyenMaiDTO create(DotKhuyenMaiDTO dto) {
-        if (dto.getNgayBatDau() == null || dto.getNgayKetThuc() == null) {
-            throw new RuntimeException("Phải nhập ngày bắt đầu và kết thúc");
-        }
-
-        if (dto.getNgayBatDau().isAfter(dto.getNgayKetThuc())) {
-            throw new RuntimeException("Ngày bắt đầu không được sau ngày kết thúc");
-        }
-
-        // ===== CHECK TRÙNG TRƯỚC =====
-        // CHECK MÓN ĂN
-        if (dto.getIdMonAnChiTiet() != null && !dto.getIdMonAnChiTiet().isEmpty()) {
-
-            for (Integer idMon : dto.getIdMonAnChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapByMonAn(
-                                idMon,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Món ăn đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-        // CHECK SET LẨU
-        if (dto.getIdSetLauChiTiet() != null && !dto.getIdSetLauChiTiet().isEmpty()) {
-
-            for (Integer idSet : dto.getIdSetLauChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapBySet(
-                                idSet,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Set lẩu đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-
-
-        // ===== TẠO MỚI =====
-        DotKhuyenMai entity = new DotKhuyenMai();
-        mapDtoToEntity(dto, entity);
-
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         if (dto.getIdSetLauChiTiet() != null && !dto.getIdSetLauChiTiet().isEmpty()) {
             List<SetLau> selectedSets = setLauRepo.findAllById(dto.getIdSetLauChiTiet());
             entity.setSetLaus(new HashSet<>(selectedSets));
         }
 
-<<<<<<< HEAD
         // 2. Xử lý gán Món Ăn Đi Kèm (MỚI)
         if (dto.getIdMonAnChiTiet() != null) {
             List<MonAnDiKem> selectedMons = monAnRepo.findAllById(dto.getIdMonAnChiTiet());
             entity.setMonAnDiKems(new HashSet<>(selectedMons)); // Giả định Entity DotKhuyenMai đã có field monAnDiKems
-=======
-        if (dto.getIdMonAnChiTiet() != null) {
-            List<MonAnDiKem> selectedMons =
-                    monAnRepo.findAllById(dto.getIdMonAnChiTiet());
-
-            entity.setMonAnDiKems(new HashSet<>(selectedMons));
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
 
         entity.setNgayTao(Instant.now());
         entity.setNguoiTao("Admin");
 
-<<<<<<< HEAD
         DotKhuyenMai saved = dotKhuyenMaiRepo.save(entity);
         return convertToDto(saved);
     }
 
-=======
-        return convertToDto(dotKhuyenMaiRepo.save(entity));
-    }
-
-
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     public void exportExcel(OutputStream outputStream) {
         try (Workbook workbook = new XSSFWorkbook()) {
 
@@ -247,7 +172,6 @@ public class DotKhuyenMaiService {
 
     @Transactional
     public DotKhuyenMaiDTO update(Integer id, DotKhuyenMaiDTO dto) {
-<<<<<<< HEAD
         DotKhuyenMai entity = dotKhuyenMaiRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đợt khuyến mãi"));
 
@@ -256,92 +180,14 @@ public class DotKhuyenMaiService {
         // Cập nhật lại danh sách Set Lẩu (Xóa cũ, thêm mới)
         if (dto.getIdSetLauChiTiet() != null) {
             List<SetLau> selectedSets = setLauRepo.findAllById(dto.getIdSetLauChiTiet());
-=======
-
-        DotKhuyenMai entity = dotKhuyenMaiRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đợt khuyến mãi"));
-
-        // Nếu FE không gửi ngày → giữ nguyên
-        if (dto.getNgayBatDau() == null) {
-            dto.setNgayBatDau(entity.getNgayBatDau());
-        }
-
-        if (dto.getNgayKetThuc() == null) {
-            dto.setNgayKetThuc(entity.getNgayKetThuc());
-        }
-
-        if (dto.getNgayBatDau().isAfter(dto.getNgayKetThuc())) {
-            throw new RuntimeException("Ngày bắt đầu không được sau ngày kết thúc");
-        }
-
-        // CHECK MÓN ĂN
-        if (dto.getIdMonAnChiTiet() != null && !dto.getIdMonAnChiTiet().isEmpty()) {
-
-            for (Integer idMon : dto.getIdMonAnChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapByMonAn(
-                                idMon,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-                overlaps.removeIf(km -> km.getId().equals(id));
-
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Món ăn đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-
-        // CHECK SET LẨU
-        if (dto.getIdSetLauChiTiet() != null && !dto.getIdSetLauChiTiet().isEmpty()) {
-
-            for (Integer idSet : dto.getIdSetLauChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapBySet(
-                                idSet,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Set lẩu đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-
-        // ===== UPDATE DATA =====
-        mapDtoToEntity(dto, entity);
-
-        if (dto.getIdSetLauChiTiet() != null) {
-            List<SetLau> selectedSets =
-                    setLauRepo.findAllById(dto.getIdSetLauChiTiet());
-
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
             entity.getSetLaus().clear();
             entity.getSetLaus().addAll(selectedSets);
         }
 
-<<<<<<< HEAD
         // 2. Xử lý gán Món Ăn Đi Kèm (MỚI)
         if (dto.getIdMonAnChiTiet() != null) {
             List<MonAnDiKem> selectedMons = monAnRepo.findAllById(dto.getIdMonAnChiTiet());
             entity.setMonAnDiKems(new HashSet<>(selectedMons)); // Giả định Entity DotKhuyenMai đã có field monAnDiKems
-=======
-        if (dto.getIdMonAnChiTiet() != null) {
-            List<MonAnDiKem> selectedMons =
-                    monAnRepo.findAllById(dto.getIdMonAnChiTiet());
-
-            entity.setMonAnDiKems(new HashSet<>(selectedMons));
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
         }
 
         entity.setNgaySua(Instant.now());
@@ -350,10 +196,6 @@ public class DotKhuyenMaiService {
         return convertToDto(dotKhuyenMaiRepo.save(entity));
     }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     // Trong DotKhuyenMaiService.java
     public DotKhuyenMaiDTO convertToDto(DotKhuyenMai entity) {
         if (entity == null) return null;
@@ -407,13 +249,7 @@ public class DotKhuyenMaiService {
 
         // 4. Trạng thái
         // Nếu status từ giao diện gửi về null, mặc định để là 1 (Đang hoạt động)
-<<<<<<< HEAD
         entity.setTrangThai(dto.getTrangThai() != null ? dto.getTrangThai() : 1);
-=======
-        if (dto.getTrangThai() != null) {
-            entity.setTrangThai(dto.getTrangThai());
-        }
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     }
 
     // Trong DotKhuyenMaiService.java
@@ -431,24 +267,4 @@ public class DotKhuyenMaiService {
         return dotKhuyenMaiRepo.findDotDangHoatDong();
     }
 
-<<<<<<< HEAD
-=======
-    @Transactional
-    public void toggleStatus(Integer id) {
-
-        DotKhuyenMai km = dotKhuyenMaiRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khuyến mãi"));
-
-        // Nếu hết hạn → không cho bật
-        if (km.getNgayKetThuc().isBefore(LocalDate.now())) {
-            throw new RuntimeException("Khuyến mãi đã hết hạn");
-        }
-
-        // Đảo trạng thái
-        km.setTrangThai(km.getTrangThai() == 1 ? 0 : 1);
-
-        dotKhuyenMaiRepo.save(km);
-    }
-
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }

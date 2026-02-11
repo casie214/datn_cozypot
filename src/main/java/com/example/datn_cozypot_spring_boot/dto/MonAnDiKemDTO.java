@@ -12,9 +12,7 @@ public class MonAnDiKemDTO {
     private String tenMonAn;
     private BigDecimal giaBan;
     private Integer trangThai;
-<<<<<<< HEAD
-=======
+
     private String hinhAnh;
 
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 }
