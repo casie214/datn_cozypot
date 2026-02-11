@@ -14,7 +14,6 @@ const props = defineProps({
 });
 
 const initSelectedItems = () => {
-    // Reset trước khi init
     selectedItems.value = {};
 
     if (props.initialItems && props.initialItems.length > 0) {
@@ -97,13 +96,33 @@ const fetchAllData = async () => {
             getAllCategoryDetailActive()
         ]);
 
-        const foods = (resFood.data || []).map(item => ({
-            ...item,
-            type: 'FOOD',
-            uniqueId: `food_${item.id}`,
-            catId: item.danhMuc?.id || item.idDanhMuc,
-            subCatId: item.danhMucChiTiet?.id || item.idDanhMucChiTiet
-        }));
+        categories.value = resCat.data || [];
+        subCategories.value = resSubCat.data || [];
+        
+        const subToCatMap = {};
+        subCategories.value.forEach(sub => {
+            const parentId = sub.idDanhMuc || (sub.danhMuc ? sub.danhMuc.id : null);
+            if (sub.id && parentId) {
+                subToCatMap[sub.id] = parentId;
+            }
+        });
+
+        const foods = (resFood.data || []).map(item => {
+            const subId = item.danhMucChiTiet?.id || item.idDanhMucChiTiet;
+            
+            let catId = item.danhMuc?.id || item.idDanhMuc;
+            if (!catId && subId) {
+                catId = subToCatMap[subId];
+            }
+
+            return {
+                ...item,
+                type: 'FOOD',
+                uniqueId: `food_${item.id}`,
+                catId: catId,    
+                subCatId: subId   
+            };
+        });
 
         const sets = (resSet.data || []).map(item => ({
             ...item,
@@ -111,13 +130,10 @@ const fetchAllData = async () => {
             type: 'SET',
             uniqueId: `set_${item.id}`,
             catId: item.loaiSet?.id || item.idLoaiSet,
-            subCatId: null
+            subCatId: null 
         }));
 
         fullMenuList.value = [...sets, ...foods];
-
-        categories.value = resCat.data || [];
-        subCategories.value = resSubCat.data || [];
 
     } catch (e) {
         console.error("Lỗi tải dữ liệu:", e);
