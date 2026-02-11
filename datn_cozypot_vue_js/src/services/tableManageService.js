@@ -121,3 +121,19 @@ export const updateTTPhieuDatBan = async (id, trangThai) => {
         throw new Error("Cập nhật trạng thái thất bại");
     }
 };
+
+export function getAllFoodGeneralActive() {
+    return axiosClient.get('/guest/food/active');
+}
+
+export function getAllHotpotGeneralActive() {
+    return axiosClient.get('/guest/hotpot/active');
+}
+
+export function getAllCategoryGeneralActive() {
+    return axiosClient.get('/guest/category/active');
+}
+
+export function getAllCategoryDetailActive() {
+    return axiosClient.get('/guest/category-detail/active');
+}

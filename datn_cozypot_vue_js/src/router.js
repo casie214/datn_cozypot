@@ -62,7 +62,7 @@ import Swal from 'sweetalert2';
     //Table
 
     {
-        path: "/admin/tables", 
+        path: "/admin/tables",
         name: "tableManager",
         component: () =>
             import ("@/pages/admin/table/screen/tableReserveManager.vue"),
@@ -363,11 +363,20 @@ import Swal from 'sweetalert2';
     },
 
     {
-    path: '/auth/google/callback',
-    name: 'GoogleCallback',
-    component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
-    meta: { requiresAuth: false } 
+        path: '/auth/google/callback',
+        name: 'GoogleCallback',
+        component: () =>
+            import ('@/pages/guest/authentication/googleLoginCallback.vue'),
+        meta: { requiresAuth: false }
     },
+    {
+        path: "/admin/checkin/food",
+        name: "foodCheckIn",
+        component: () =>
+            import ("@/pages/admin/table/modal/innerComponents/foodList.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    }
+
 
 
 ];
@@ -414,7 +423,7 @@ router.beforeEach((to, from, next) => {
                     timerProgressBar: true
                 });
                 if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
-                    return next(false); 
+                    return next(false);
                 }
                 return next('/');
             }
