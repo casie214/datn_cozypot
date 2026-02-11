@@ -20,5 +20,6 @@ public interface MonAnRepository extends JpaRepository<MonAnDiKem, Integer> {
 
     List<MonAnDiKem> findAllByTrangThai(Integer trangThai);
 
+
     List<MonAnDiKem> findByTrangThaiKinhDoanh(int i);
 }

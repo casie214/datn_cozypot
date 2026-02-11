@@ -30,6 +30,7 @@ public class SetLauRequest {
 
     private String hinhAnh;
 
+
     @NotNull(message = "Định mức không được để trống")
     private String moTaChiTiet;
 

@@ -146,6 +146,7 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
+
                 <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                   @click="handleViewDetail(item)"></i>
 

@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useHotpotUpdate } from '../../../../../services/foodFunction';
+
 import { ref } from 'vue';
 
 const router = useRouter();
@@ -93,6 +94,7 @@ const hideTooltip = () => {
         <img :src="getImg(hotpotInfo.hinhAnh)" alt="Ảnh Set Lẩu">
       </div>
 
+
       <div class="hero-details">
         <div class="hero-header">
           <h2 class="hero-title">
@@ -133,34 +135,35 @@ const hideTooltip = () => {
     <div v-if="isLoading" class="loading-state">Đang tải dữ liệu...</div>
 
     <div v-else class="page-content" :class="{ 'view-mode': isViewMode }">
+        <div class="section-left">
+          <div class="card">
+            <h3>Thông tin chung</h3>
+            <div class="form-container">
+              
 
-      <div class="section-left">
-        <div class="card">
-          <h3>Thông tin chung</h3>
-          <div class="form-container">
+                <div class="form-group">
+                  <label>Tên Set Lẩu <span class="required" v-if="!isViewMode">*</span></label>
+                  <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text"
+                    :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
+                  <span class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</span>
+                </div>
 
-            <div class="form-group">
-              <label>Tên Set Lẩu <span class="required" v-if="!isViewMode">*</span></label>
-              <input :disabled="isViewMode" v-model="formData.tenSetLau" type="text"
-                :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
-              <span class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</span>
-            </div>
+                <div class="form-group">
+                  <label>Loại Set</label>
+                  <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control" 
+                    :class="{ 'invalid-border': errors.idLoaiSet }" @change="errors.idLoaiSet = ''">
 
-            <div class="form-group">
-              <label>Loại Set</label>
-              <select :disabled="isViewMode" v-model="formData.idLoaiSet" class="form-control"
-                :class="{ 'invalid-border': errors.idLoaiSet }" @change="errors.idLoaiSet = ''">
-                <option v-for="cat in listLoaiSet" :key="cat.id" :value="cat.id">{{ cat.tenLoaiSet }}</option>
-              </select>
-              <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
-            </div>
+                    <option v-for="cat in listLoaiSet" :key="cat.id" :value="cat.id">{{ cat.tenLoaiSet }}</option>
+                  </select>
+                  <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
+                </div>
 
-            <div class="form-group">
-              <label>Giá bán</label>
-              <input :disabled="isViewMode" v-model="formData.giaBan" type="number"
+                <div class="form-group">
+                  <label>Giá bán</label>
+                  <input :disabled="isViewMode" v-model="formData.giaBan" type="number" 
                 :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
-              <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
-              <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
+                <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
+                <div class="price-hint">Giá thành phần: {{ totalComponentsPrice.toLocaleString() }} đ</div>
             </div>
 
             <div class="form-group">
@@ -179,123 +182,127 @@ const hideTooltip = () => {
             </div>
 
             <div class="form-group">
-              <label>Định lượng <span class="required" v-if="!isViewMode">*</span></label>
-              <input :disabled="isViewMode" v-model="formData.moTaChiTiet" type="text"
-                :class="{ 'invalid-border': errors.moTaChiTiet }" @input="errors.moTaChiTiet = ''">
-              <span class="error-message" v-if="errors.moTaChiTiet">
-                {{ errors.moTaChiTiet }}
-              </span>
-            </div>
-
-            <div class="form-group">
-              <label>Mô tả</label>
-              <input :disabled="isViewMode" v-model="formData.moTa" type="text">
-            </div>
-
-            <div class="form-group">
-              <label>Trạng thái</label>
-              <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
-                @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
-                <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
-                  <div class="toggle-knob"></div>
+              
+                  <label>Định lượng <span class="required" v-if="!isViewMode">*</span></label>
+                  <input :disabled="isViewMode" v-model="formData.moTaChiTiet" type="text"
+                    :class="{ 'invalid-border': errors.moTaChiTiet }" @input="errors.moTaChiTiet = ''">
+                  <span class="error-message" v-if="errors.moTaChiTiet">
+                    {{ errors.moTaChiTiet }}
+                  </span>
                 </div>
-                <span>{{ formData.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="section-right">
-
-        <div class="card ingredient-selector" style="margin-bottom: 1.4em;" v-if="!isViewMode">
-          <h3>Thêm món vào Set</h3>
-          <div class="filter-tools">
-            <input v-model="searchQuery" type="text" class="search-input" placeholder="Tìm món...">
-          </div>
-          <div class="scroll-list-container">
-            <div v-for="item in filteredFoodList" :key="item.id" class="food-item-card" @click="addIngredient(item)">
-              <img :src="getImg(item.hinhAnh)" class="food-thumb">
-              <div class="food-info">
-                <div class="food-name">{{ item.tenChiTietMonAn || item.tenDanhMucChiTiet }}</div>
-                <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
-              </div>
-              <button class="btn-add-mini">+</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card selected-list-card">
-          <h3>Thành phần ({{ selectedIngredients.length }})</h3>
-          <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
-            Xem bảng
-          </button>
-          <div class="selected-items-container">
-            <div v-for="(item, index) in selectedIngredients" :key="item.id" class="selected-item-row"
-              @mouseenter="showTooltip($event, item)" @mouseleave="hideTooltip">
-              <img :src="getImg(item.hinhAnh)" class="selected-thumb">
-              <div class="selected-info">
-                <div class="selected-name clickable-name" @click="goToVariantDetail(item)">{{ item.ten }}</div>
-                <div class="selected-unit">{{ item.donVi }}</div>
-                <div class="selected-price-mini" v-if="isViewMode">
-                  {{ item.giaBan?.toLocaleString() }}đ x {{ item.soLuong }}
+                <div class="form-group">
+                  <label>Mô tả</label>
+                  <input :disabled="isViewMode" v-model="formData.moTa" type="text">
                 </div>
-              </div>
-              <div class="qty-control">
-                <span v-if="isViewMode" class="qty-text">x{{ item.soLuong }}</span>
-                <input v-else type="number" v-model="item.soLuong" min="1" class="qty-input-small">
-              </div>
-              <button class="btn-remove-icon" @click="removeIngredient(index)" v-if="!isViewMode">✕</button>
+
+                <div class="form-group">
+                  <label>Trạng thái</label>
+                  <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
+                    @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
+                    <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
+                      <div class="toggle-knob"></div>
+                    </div>
+                    <span>{{ formData.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng' }}</span>
+                  </div>
+                </div>
             </div>
           </div>
+        </div>
 
-          <div class="total-summary" v-if="isViewMode">
-            <span>Tổng giá trị thực:</span>
-            <span class="highlight">{{ totalComponentsPrice.toLocaleString() }} đ</span>
+        <div class="section-right">
+          
+            <div class="card ingredient-selector" style="margin-bottom: 1.4em;" v-if="!isViewMode">
+              <h3>Thêm món vào Set</h3>
+              <div class="filter-tools">
+                <input v-model="searchQuery" type="text" class="search-input" placeholder="Tìm món...">
+                
+                    </div>
+                    <div class="scroll-list-container">
+                      <div v-for="item in filteredFoodList" :key="item.id" class="food-item-card"
+                        @click="addIngredient(item)">
+                        <img :src="getImg(item.hinhAnh)" class="food-thumb">
+                        <div class="food-info">
+                          <div class="food-name">{{ item.tenChiTietMonAn || item.tenDanhMucChiTiet }}</div>
+                          <span class="food-price">{{ item.giaBan?.toLocaleString() }}đ</span>
+                        </div>
+                        <button class="btn-add-mini">+</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card selected-list-card">
+                    <h3>Thành phần ({{ selectedIngredients.length }})</h3>
+                    <button class="btn-add" @click="goToDetailTable" title="Xem danh sách chi tiết">
+                                Xem bảng
+                    </button>
+                    <div class="selected-items-container">
+                      <div v-for="(item, index) in selectedIngredients" :key="item.id" class="selected-item-row"
+                        @mouseenter="showTooltip($event, item)" @mouseleave="hideTooltip">
+                        <img :src="getImg(item.hinhAnh)" class="selected-thumb">
+                        <div class="selected-info">
+                          <div class="selected-name clickable-name" @click="goToVariantDetail(item)">{{ item.ten }}
+                          </div>
+                          <div class="selected-unit">{{ item.donVi }}</div>
+                          <div class="selected-price-mini" v-if="isViewMode">
+                            {{ item.giaBan?.toLocaleString() }}đ x {{ item.soLuong }}
+                          </div>
+                        </div>
+                        <div class="qty-control">
+                          <span v-if="isViewMode" class="qty-text">x{{ item.soLuong }}</span>
+                          <input v-else type="number" v-model="item.soLuong" min="1" class="qty-input-small">
+                        </div>
+                        <button class="btn-remove-icon" @click="removeIngredient(index)" v-if="!isViewMode">✕</button>
+                      </div>
+                    </div>
+                    
+
+                      <div class="total-summary" v-if="isViewMode">
+                        <span>Tổng giá trị thực:</span>
+                        <span class="highlight">{{ totalComponentsPrice.toLocaleString() }} đ</span>
+                      </div>
+                  </div>
+              </div>
+            </div>
+
+            <div class="page-footer">
+              <button class="btn-large btn-cancel" @click="goBack">
+                {{ isViewMode ? 'Quay lại danh sách' : 'Hủy bỏ' }}
+              </button>
+              <button class="btn-large btn-save" @click="handleUpdate" v-if="!isViewMode">Cập nhật</button>
+            </div>
+        </div>
+        <Teleport to="body">
+          <div v-if="hoveredItem" class="fixed-tooltip" :class="tooltipPlacement" :style="tooltipStyle">
+
+            <div class="tooltip-header">
+              <strong>{{ hoveredItem.ten }}</strong>
+              <span class="tooltip-badge">Thành phần</span>
+            </div>
+
+            <div class="tooltip-body">
+              <div class="tooltip-row">
+                <span>Đơn vị tính:</span> <strong>{{ hoveredItem.donVi }}</strong>
+              </div>
+              <div class="tooltip-row">
+                <span>Giá thành phần:</span>
+                <strong class="price-text">{{ hoveredItem.giaBan?.toLocaleString() }} đ</strong>
+              </div>
+              <div class="tooltip-row">
+                <span>Số lượng trong set:</span>
+                <strong>{{ hoveredItem.soLuong }}</strong>
+              </div>
+              <div class="tooltip-row total-row">
+                <span>Tạm tính:</span>
+                <strong class="price-text-lg">{{ (hoveredItem.giaBan * hoveredItem.soLuong)?.toLocaleString() }}
+                  đ</strong>
+              </div>
+              <div class="tooltip-row" v-if="hoveredItem.moTaChiTiet">
+                <span>Mô tả:</span> <span class="desc-text">{{ hoveredItem.moTaChiTiet }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="page-footer">
-      <button class="btn-large btn-cancel" @click="goBack">
-        {{ isViewMode ? 'Quay lại danh sách' : 'Hủy bỏ' }}
-      </button>
-      <button class="btn-large btn-save" @click="handleUpdate" v-if="!isViewMode">Cập nhật</button>
-    </div>
-  </div>
-
-
-  <Teleport to="body">
-    <div v-if="hoveredItem" class="fixed-tooltip" :class="tooltipPlacement" :style="tooltipStyle">
-
-      <div class="tooltip-header">
-        <strong>{{ hoveredItem.ten }}</strong>
-        <span class="tooltip-badge">Thành phần</span>
-      </div>
-
-      <div class="tooltip-body">
-        <div class="tooltip-row">
-          <span>Đơn vị tính:</span> <strong>{{ hoveredItem.donVi }}</strong>
-        </div>
-        <div class="tooltip-row">
-          <span>Giá thành phần:</span>
-          <strong class="price-text">{{ hoveredItem.giaBan?.toLocaleString() }} đ</strong>
-        </div>
-        <div class="tooltip-row">
-          <span>Số lượng trong set:</span>
-          <strong>{{ hoveredItem.soLuong }}</strong>
-        </div>
-        <div class="tooltip-row total-row">
-          <span>Tạm tính:</span>
-          <strong class="price-text-lg">{{ (hoveredItem.giaBan * hoveredItem.soLuong)?.toLocaleString() }} đ</strong>
-        </div>
-        <div class="tooltip-row" v-if="hoveredItem.moTaChiTiet">
-          <span>Mô tả:</span> <span class="desc-text">{{ hoveredItem.moTaChiTiet }}</span>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+          </Teleport>
 </template>
 
 <style scoped>

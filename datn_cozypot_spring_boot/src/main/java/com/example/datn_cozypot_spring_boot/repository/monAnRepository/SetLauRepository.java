@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Collection;
 import java.util.List;
 
 public interface SetLauRepository extends JpaRepository<SetLau, Integer> {
@@ -13,6 +12,4 @@ public interface SetLauRepository extends JpaRepository<SetLau, Integer> {
     String findMaxCodeByPrefix(@Param("prefix") String prefix);
 
     List<SetLau> findAllByTrangThai(Integer trangThai);
-
-    List<SetLau> findByTrangThai(int i);
 }

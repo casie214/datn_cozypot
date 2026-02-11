@@ -43,6 +43,7 @@ const staffService = {
     return axiosClient.patch(`/nhan-vien/${id}/toggle-status`);
   },
   // staffService.js
+
   checkDuplicate: (params) => {
     // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
     return axiosClient.get('/nhan-vien/check-duplicate', { params });

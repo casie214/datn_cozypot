@@ -1,6 +1,7 @@
 <script setup>
 import { useFoodDetailUpdate } from '../../../../../services/foodFunction';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
+
 import { useRoute, useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -11,6 +12,7 @@ const {
     isViewMode, getPriceRange,
     errors
 } = useFoodDetailUpdate();
+
 
 const route = useRoute();
 
@@ -26,6 +28,7 @@ const goToParentFood = () => {
         router.push({ name: 'viewFood', params: { id: parentId } });
     }
 };
+
 
 
 </script>
@@ -57,6 +60,7 @@ const goToParentFood = () => {
                             <span class="code-badge">#{{ originalInfo.maChiTietMonAn }}</span>
                         </h2>
                         <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
+
                             {{ originalInfo.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
                         </span>
                     </div>

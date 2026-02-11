@@ -149,22 +149,79 @@ public class KhachHangService {
     }
 
     public byte[] exportExcel(String keyword, Integer trangThai, LocalDate tuNgay) {
-        // Sử dụng trực tiếp tuNgay (LocalDate) để thống nhất với hàm getAll phía trên
-        List<KhachHang> list = repo.searchKhachHang(keyword, trangThai, tuNgay, Pageable.unpaged()).getContent();
+
+
+        // Lấy toàn bộ khách hàng
+        List<KhachHang> list = repo.findAll();
+
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            Sheet sheet = workbook.createSheet("Danh sách khách hàng");
 
-            // --- Đoạn xử lý Excel (Row, Cell) của bạn viết tiếp ở đây ---
-            // Ví dụ: Row header = sheet.createRow(0); header.createCell(0).setCellValue("Tên khách hàng");
+            Sheet sheet = workbook.createSheet("Khách hàng");
+
+            // ===== HEADER =====
+            Row header = sheet.createRow(0);
+
+            header.createCell(0).setCellValue("ID");
+            header.createCell(1).setCellValue("Mã KH");
+            header.createCell(2).setCellValue("Tên khách hàng");
+            header.createCell(3).setCellValue("SĐT");
+            header.createCell(4).setCellValue("Email");
+            header.createCell(5).setCellValue("Ngày sinh");
+            header.createCell(6).setCellValue("Điểm tích lũy");
+            header.createCell(7).setCellValue("Ngày tạo tài khoản");
+            header.createCell(8).setCellValue("Giới tính");
+            header.createCell(9).setCellValue("Tên đăng nhập");
+            header.createCell(10).setCellValue("Mật khẩu");
+            header.createCell(11).setCellValue("Trạng thái");
+            header.createCell(12).setCellValue("Địa chỉ");
+
+            // ===== DATA =====
+            int rowIndex = 1;
+
+            for (KhachHang kh : list) {
+                Row row = sheet.createRow(rowIndex++);
+
+                row.createCell(0).setCellValue(kh.getId());
+                row.createCell(1).setCellValue(kh.getMaKhachHang());
+                row.createCell(2).setCellValue(kh.getTenKhachHang());
+                row.createCell(3).setCellValue(kh.getSoDienThoai());
+                row.createCell(4).setCellValue(kh.getEmail());
+
+                row.createCell(5).setCellValue(
+                        kh.getNgaySinh() != null ? kh.getNgaySinh().toString() : ""
+                );
+
+                row.createCell(6).setCellValue(
+                        kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0
+                );
+
+                row.createCell(7).setCellValue(
+                        kh.getNgayTaoTaiKhoan() != null ? kh.getNgayTaoTaiKhoan().toString() : ""
+                );
+
+                row.createCell(8).setCellValue(
+                        kh.getGioiTinh() != null && kh.getGioiTinh() ? "Nam" : "Nữ"
+                );
+
+                row.createCell(9).setCellValue(kh.getTenDangNhap());
+                row.createCell(10).setCellValue(kh.getMatKhauDangNhap());
+                row.createCell(11).setCellValue(kh.getTrangThai());
+                row.createCell(12).setCellValue(kh.getDiaChi());
+            }
+
+            // auto size cho đẹp
+            for (int i = 0; i <= 12; i++) {
+                sheet.autoSizeColumn(i);
+            }
 
             workbook.write(out);
             return out.toByteArray();
 
         } catch (IOException e) {
-            throw new RuntimeException("Lỗi khi tạo file Excel: " + e.getMessage());
+            throw new RuntimeException("Lỗi export Excel: " + e.getMessage());
         }
     }
 
