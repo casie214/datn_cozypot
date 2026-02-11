@@ -27,6 +27,7 @@
 }.text-primary-red {
     color: #8b0000;
 }
+
 .product-img {
     width: 55px;
     height: 55px;
@@ -38,6 +39,7 @@
 .smallest {
     font-size: 11px;
 }
+
 .table-responsive {
     max-height: 320px; /* ~ 8 dòng */
     overflow-y: auto;  /* Bật scroll dọc */

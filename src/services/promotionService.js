@@ -35,6 +35,7 @@ const promotionService = {
     // Lưu ý: Thường nên tạo 1 API riêng ở Backend: @PatchMapping("/{id}/status")
     // Nếu chưa có, ta dùng tạm update nhưng phải gửi kèm dữ liệu cũ để tránh mất data
 
+
     // 5. Toggle status (API riêng)
     toggleStatus: (id) => {
         return axiosClient.put(`${API_URL}/${id}/toggle-status`);

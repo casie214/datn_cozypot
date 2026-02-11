@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import { useFoodUpdate } from '../../../../../services/foodFunction';
+
 import { ref } from 'vue';
 
 const {
@@ -20,6 +21,7 @@ const getImg = (url) => {
   }
   return 'https://placehold.co/100x100?text=No+Img';
 }
+
 
 const goToVariantDetail = (variant) => {
   router.push({
@@ -108,6 +110,7 @@ const hideTooltip = () => {
             </span>
           </div>
           <div class="hero-meta-grid">
+
             <div class="meta-item">
               <span class="label">Danh mục:</span>
               <span style="width: 60%; cursor: pointer;" class="value clickable-link"
@@ -226,6 +229,7 @@ const hideTooltip = () => {
           <div class="card">
             <div class="card-header-row">
               <h3>Các chi tiết món ({{ variants.length }})</h3>
+
               <button class="btn-show-table" @click="goToDetailTable" title="Xem danh sách chi tiết">
                 Xem bảng
               </button>
@@ -235,6 +239,7 @@ const hideTooltip = () => {
             </div>
 
             <div class="variants-list">
+
               <div v-for="v in variants" :key="v.id" class="variant-item" @mouseenter="showTooltip($event, v)"
                 @mouseleave="hideTooltip">
                 <div class="v-thumb">
@@ -252,10 +257,10 @@ const hideTooltip = () => {
                   {{ v.giaBan?.toLocaleString() }} đ
                 </div>
 
+
                  <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa chi tiết món"
                   @click="goToEditDetail(v)"></i>
 
-                
               </div>
 
               <div v-if="variants.length === 0" class="empty-text">Chưa có chi tiết món nào.</div>
@@ -273,6 +278,7 @@ const hideTooltip = () => {
       </div>
     </div>
   </div>
+
 
   <Teleport to="body">
     <div v-if="hoveredVariant" class="fixed-tooltip" :class="tooltipPlacement" :style="tooltipStyle">
@@ -433,6 +439,7 @@ const hideTooltip = () => {
   margin-top: 4px;
   display: block;
 }
+
 
 .fixed-tooltip {
   position: fixed;

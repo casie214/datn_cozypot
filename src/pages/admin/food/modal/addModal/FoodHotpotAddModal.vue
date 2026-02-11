@@ -77,6 +77,7 @@ const getImg = (url) => {
                         </div>
 
                         <div class="form-group">
+
                             <label>Định mức <span class="required">*</span></label>
                             <input v-model="formData.moTaChiTiet" type="text" placeholder="VD: Phù hợp cho nhóm 4-5 người"
                                 :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
