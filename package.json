@@ -24,13 +24,9 @@
     "axios": "^1.13.4",
     "boostrap": "^2.0.0",
     "bootstrap": "^5.3.8",
-<<<<<<< HEAD
-    "dayjs": "^1.11.19",
-=======
     "chart.js": "^4.5.1",
     "dayjs": "^1.11.19",
     "file-saver": "^2.0.5",
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     "flatpickr": "^4.6.13",
     "html5-qrcode": "^2.3.8",
     "pinia": "^3.0.4",
