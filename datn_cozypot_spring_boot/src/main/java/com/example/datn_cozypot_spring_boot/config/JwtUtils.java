@@ -6,9 +6,9 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component; // 👈 BẮT BUỘC PHẢI CÓ CÁI NÀY
+import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
@@ -24,44 +24,45 @@ public class JwtUtils {
     @Value("${app.jwtRefreshExpirationMs}")
     private int jwtRefreshExpirationMs;
 
-    public String generateTokenFromUsername(String username) {
-        return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
-                .compact();
-    }
-
-    private Key getSignInKey() {
+    // Chuyển chuỗi Secret thành SecretKey chuẩn
+    private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    public String generateTokenFromUsername(String username) {
+        return Jwts.builder()
+                .subject(username) // 0.12.5: dùng subject() thay vì setSubject()
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(getSignInKey()) // Tự động chọn thuật toán dựa trên Key
+                .compact();
+    }
+
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey()) // Dùng Key object, không dùng String
-                .build()                       // 👇 QUAN TRỌNG: Phải có .build()
-                .parseClaimsJws(token)
-                .getBody()
+        return Jwts.parser()
+                .verifyWith(getSignInKey()) // 0.12.5: dùng verifyWith() thay vì setSigningKey()
+                .build()
+                .parseSignedClaims(token)   // dùng parseSignedClaims thay vì parseClaimsJws
+                .getPayload()               // dùng getPayload() thay vì getBody()
                 .getSubject();
     }
 
     public String generateRefreshToken(String username) {
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtRefreshExpirationMs))
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtRefreshExpirationMs))
+                .signWith(getSignInKey())
                 .compact();
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSignInKey())
-                    .build()                       // 👇 QUAN TRỌNG
-                    .parseClaimsJws(authToken);
+            Jwts.parser()
+                    .verifyWith(getSignInKey())
+                    .build()
+                    .parseSignedClaims(authToken);
             return true;
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());

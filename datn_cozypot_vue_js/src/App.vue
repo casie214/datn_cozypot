@@ -3,10 +3,8 @@ import Sidebar from './components/sidebar.vue';
 import Header from './components/adminHeader.vue'; // 1. Import Header
 import { useRoute } from 'vue-router';
 import { computed } from 'vue';
-<<<<<<< HEAD
-=======
+
 import CommonNav from './components/commonNav.vue';
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 const route = useRoute();
 
@@ -22,10 +20,8 @@ const isAdminRoute = computed(() =>{
 
     <div class="main-layout">
       <Header v-if="isAdminRoute"/>
-<<<<<<< HEAD
-=======
+
       <CommonNav v-else/>
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
       <div class="app-content">
         <router-view />
