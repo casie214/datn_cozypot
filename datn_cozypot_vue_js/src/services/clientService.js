@@ -18,10 +18,7 @@ const clientService = {
     return axiosClient.get(`/khach-hang/${id}`);
   },
 
-<<<<<<< HEAD
-  // SỬA: Thêm config headers để axios hiểu là gửi Form Data có kèm file
-=======
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
+
   create: (formData) => {
     return axiosClient.post('/khach-hang/add', formData, {
       headers: {
@@ -30,10 +27,7 @@ const clientService = {
     });
   },
 
-<<<<<<< HEAD
-  // SỬA: Tương tự cho update
-=======
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
+
   update: (id, formData) => {
     return axiosClient.put(`/khach-hang/update/${id}`, formData, {
       headers: {

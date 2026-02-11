@@ -27,8 +27,7 @@
 }.text-primary-red {
     color: #8b0000;
 }
-<<<<<<< HEAD
-=======
+
 .product-img {
     width: 55px;
     height: 55px;
@@ -36,13 +35,11 @@
     border-radius: 8px;
     border: 1px solid #ddd;
 }
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 .smallest {
     font-size: 11px;
 }
-<<<<<<< HEAD
-=======
+
 .table-responsive {
     max-height: 320px; /* ~ 8 dòng */
     overflow-y: auto;  /* Bật scroll dọc */
@@ -79,7 +76,6 @@
     border-radius: 6px;
     border: 1px solid #ddd;
 }
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
 
 /* Hộp chứa danh sách sản phẩm */
 .selector-box {

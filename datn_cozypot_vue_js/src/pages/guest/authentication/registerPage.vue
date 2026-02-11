@@ -137,10 +137,7 @@ const navigateToLogin = () => {
 </script>
 
 <template>
-<<<<<<< HEAD
     <CommonNav></CommonNav>
-=======
->>>>>>> 82e4d9f4f6100e25990e1110b92ec0111379fb77
     <div class="main-content">
         <div class="etched-container">
             <section class="py-3 py-md-5 py-xl-8 etched-container-2">
