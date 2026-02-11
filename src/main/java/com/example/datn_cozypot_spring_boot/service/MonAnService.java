@@ -66,15 +66,15 @@ public interface MonAnService {
 
     List<SetLauResponse> findSetLauTop(int metric);
 
-    List<MonAnResponse> findMonAnActive();
-
-    List<DanhMucResponse> findDanhMucActive();
-
-    List<SetLauResponse> findSetLauActive();
-
-    List<DanhMucChiTietResponse> findDanhMucChiTietActive();
-
-    List<LoaiLauResponse> findLoaiSetLauActive();
-
-    List<MonAnChiTietResponse> findChiTietMonAnActive();
+//    List<MonAnResponse> findMonAnActive();
+//
+//    List<DanhMucResponse> findDanhMucActive();
+//
+//    List<SetLauResponse> findSetLauActive();
+//
+//    List<DanhMucChiTietResponse> findDanhMucChiTietActive();
+//
+//    List<LoaiLauResponse> findLoaiSetLauActive();
+//
+//    List<MonAnChiTietResponse> findChiTietMonAnActive();
 }

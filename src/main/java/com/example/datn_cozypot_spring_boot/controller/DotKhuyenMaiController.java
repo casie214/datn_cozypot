@@ -129,10 +129,5 @@ public class DotKhuyenMaiController {
                 pageable
         );
     }
-    @PutMapping("/{id}/toggle-status")
-    public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
-        dotKhuyenMaiService.toggleStatus(id);
-        return ResponseEntity.ok("OK");
-    }
 
 }

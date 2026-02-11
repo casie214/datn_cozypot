@@ -12,6 +12,7 @@ public class MonAnDiKemDTO {
     private String tenMonAn;
     private BigDecimal giaBan;
     private Integer trangThai;
+
     private String hinhAnh;
 
 }
