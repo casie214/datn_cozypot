@@ -28,6 +28,7 @@
     "dayjs": "^1.11.19",
     "file-saver": "^2.0.5",
     "flatpickr": "^4.6.13",
+    "html2pdf.js": "^0.14.0",
     "html5-qrcode": "^2.3.8",
     "pinia": "^3.0.4",
     "router": "^2.2.0",
