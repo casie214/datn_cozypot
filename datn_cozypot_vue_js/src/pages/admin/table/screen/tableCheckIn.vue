@@ -3,27 +3,28 @@ import {
   fetchAllBanAn,
   fetchAllCheckIn,
   updateTrangThaiBan,
+  createOrder,
+  fetchActiveBillByBan,
 } from "../../../../services/tableManageService";
-import { computed, onMounted, ref, onUnmounted } from "vue";
+import { computed, onMounted, ref, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
 import router from "@/App";
 import { useRoute, useRouter } from "vue-router";
 import FoodList from "../modal/innerComponents/foodList.vue";
+import Swal from "sweetalert2";
+import { BeGetChiTietHoaDon } from "../../order/screens/orderService";
 
-// --- QUẢN LÝ BÀN ---
 const activeFloor = ref(1);
 const danhSachBan = ref([]);
+const selectedItems = ref({});
+
 
 const fetchAllBan = async () => {
   try {
     const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
-      // 3 bàn mỗi hàng trên lưới 12 cột:
-      // Bàn 0 -> cột 1, Bàn 1 -> cột 5, Bàn 2 -> cột 9
       const defaultCol = (index % 3) * 4 + 1;
-
-      // Hàng: cứ sau 3 bàn thì xuống hàng mới (mỗi hàng cao 2 ô lưới)
       const defaultRow = Math.floor(index / 3) * 2 + 1;
 
       return {
@@ -53,24 +54,20 @@ const thongKeTang = computed(() => {
   return { total, free };
 });
 
-// --- QUẢN LÝ KHÁCH CHỜ ---
 const searchQuery = ref("");
-const filterDate = ref(null); // yyyy-MM-dd từ <input type="date">
+const filterDate = ref(null);
 const danhSachCho = ref([]);
 
 const handleFetchAllCheckIn = async () => {
   try {
-    // API này trả về danh sách có trangThai = 1 từ DatBanService.getAllByTrangThai
     danhSachCho.value = await fetchAllCheckIn();
   } catch (error) {
     console.error("Lỗi fetch khách chờ:", error);
   }
 };
 
-// Logic lọc: Tìm kiếm + Chỉ hiện khách chưa tới giờ (Hiện tại <= Thời gian đặt)
 const danhSachLoc = computed(() => {
   return danhSachCho.value.filter((khach) => {
-    //  Chưa xếp bàn
     if (!khach.maBan && !khach.idBanAn) return false;
 
     const thoiGianDat = dayjs(khach.thoiGianDat);
@@ -101,6 +98,8 @@ const danhSachLoc = computed(() => {
 const currentTime = ref(new Date());
 let timer;
 
+const currentStaffName = ref("");
+
 onMounted(() => {
   fetchAllBan();
   handleFetchAllCheckIn();
@@ -108,6 +107,9 @@ onMounted(() => {
   timer = setInterval(() => {
     currentTime.value = new Date();
   }, 1000);
+
+  const user = JSON.parse(localStorage.getItem("user"));
+    if (user) currentStaffName.value = user.hoTen || user.username;
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -156,26 +158,58 @@ const isShowModal = ref(false);
 const selectedBan = ref(null);
 const selectedPhieu = ref(null);
 const draftOrders = ref({});
+const activeHoaDonId = ref(null);
 
-const openManageModal = (ban) => {
-  const khachCuaBan = danhSachCho.value.find((k) => k.maBan === ban.maBan);
-
-  selectedPhieu.value = khachCuaBan || null;
-
-  selectedBan.value = {
-    ...JSON.parse(JSON.stringify(ban)),
-    trangThai: Number(ban.trangThai) === 2 ? 0 : Number(ban.trangThai),
-  };
-
-  const banId = ban.id;
-  
-  if (draftOrders.value[banId]) {
-      listMonDaChon.value = [...draftOrders.value[banId]];
-  } else {
-      listMonDaChon.value = [];
-  }
-
+const openManageModal = async (ban) => {
+  selectedBan.value = { ...ban };
   modalView.value = 'info';
+  activeHoaDonId.value = null;
+  listMonDaChon.value = []; 
+  selectedPhieu.value = null;
+
+   
+    try {
+      const resHd = await fetchActiveBillByBan(ban.id);
+      
+      if (resHd) {
+        activeHoaDonId.value = resHd.id;
+        console.log("🔥 Đã tìm thấy hóa đơn ID:", resHd.id);
+
+        selectedPhieu.value = {
+          maDatBan: resHd.maHoaDon || 'N/A',
+          tenKhachHang: resHd.tenKhachHang || 'Khách lẻ',
+          idKhachHang: resHd.idKhachHang, 
+          thoiGianDat: resHd.thoiGianTao
+        };
+
+        const items = await BeGetChiTietHoaDon(resHd.id);
+        console.log("🍱 Danh sách chi tiết món từ DB:", items);
+
+        if (items && items.length > 0) {
+          listMonDaChon.value = items.map(dbItem => {
+            // LƯU Ý QUAN TRỌNG: Kiểm tra tên trường từ log Console để sửa dbItem.xxxx cho đúng
+            const isFood = dbItem.idChiTietMonAn !== null;
+            return {
+              uniqueId: isFood ? `food_${dbItem.idChiTietMonAn}` : `set_${dbItem.idSetLau}`,
+              originalId: isFood ? dbItem.idChiTietMonAn : dbItem.idSetLau,
+              dbDetailId: dbItem.id, // ID này dùng để Backend biết dòng nào cần hủy/sửa
+              type: isFood ? 'FOOD' : 'SET',
+              name: dbItem.tenMonAn || dbItem.tenSetLau || dbItem.tenMon || "Không tên",
+              price: dbItem.donGia,
+              quantity: dbItem.soLuong,
+              note: dbItem.ghiChu || ''
+            };
+          });
+          console.log("✅ Đã map thành công vào listMonDaChon:", listMonDaChon.value);
+        }
+      }
+    } catch (e) {
+      console.error("❌ Lỗi khi lấy thông tin món ăn:", e);
+    }
+  
+    // Bàn trống thì lấy từ nháp
+    listMonDaChon.value = draftOrders.value[ban.id] || [];
+  
 
   isShowModal.value = true;
 };
@@ -189,12 +223,10 @@ const closeModal = () => {
 const updateStatus = async () => {
   if (!selectedBan.value) return;
 
-  // Cấu trúc Payload theo yêu cầu của Backend bạn đã nêu
   const payload = {
-    id: selectedPhieu.value?.id || null, // ID Phiếu (có thể null nếu đổi trạng thái thủ công)
+    id: selectedPhieu.value?.id || null,
     idBanAn: selectedBan.value.id, // ID Bàn
     trangThai: Number(selectedBan.value.trangThai),
-    // Gửi trạng thái mới ("0" hoặc "1")
   };
   console.log(selectedBan.value);
 
@@ -202,13 +234,13 @@ const updateStatus = async () => {
   try {
     await updateTrangThaiBan(payload);
 
-    alert(`Cập nhật bàn ${selectedBan.value.maBan} thành công!`);
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: `Cập nhật bàn ${selectedBan.value.maBan} thành công!`, timer: 1500, showConfirmButton: false });
     closeModal();
-    await fetchAllBan(); // Load lại sơ đồ bàn
-    await handleFetchAllCheckIn(); // Load lại danh sách khách chờ
+    await fetchAllBan();
+    await handleFetchAllCheckIn();
   } catch (err) {
     console.error(err);
-    alert("Lỗi: " + err.message);
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Cập nhật thất bại!' + err.message });
   }
 };
 
@@ -236,33 +268,104 @@ const totalTempPrice = computed(() => {
 });
 
 const handleSaveFood = async (itemsArray) => {
-  // còn thông tin gì thì thêm luôn vào đây nhé
-  console.log("Dữ liệu nhận được:", itemsArray);
   listMonDaChon.value = itemsArray;
-
+  
   if (selectedBan.value) {
-      const banId = selectedBan.value.id; // Hoặc selectedBan.value.idBanAn
-      draftOrders.value[banId] = itemsArray;
+    draftOrders.value[selectedBan.value.id] = itemsArray;
   }
 
-  modalView.value = 'info';
+  if (itemsArray.length === 0) {
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn ít nhất 1 món' });
+    return;
+  }
 
-  /*
   try {
-      const payload = {
-          idBanAn: selectedBan.value.id,
-          ... thông tin thì ghi vào payload này để insert nhé
-          }))
-      };
+    const userStorage = localStorage.getItem("user");
+    let currentStaffId = 1;
+    if (userStorage) {
+      const user = JSON.parse(userStorage);
+      if (user.id) currentStaffId = user.id;
+    }
 
-      await themMonVaoBan(payload); nhớ export thêm hàm để insert nhé
+    let customerId = null;
+    let phieuDatId = null;
+    if (selectedPhieu.value) {
+      const sp = selectedPhieu.value;
+      customerId = sp.idKhachHang?.id || sp.idKhachHang || (sp.khachHang ? sp.khachHang.id : null);
+      phieuDatId = sp.idDatBan || sp.id;
+    }
 
-      modalView.value = 'info'; 
+    const payload = {
+      idBanAn: selectedBan.value.id,
+      idNhanVien: currentStaffId,
+      idKhachHang: customerId,
+      idPhieuDatBan: phieuDatId,
+
+      chiTietHoaDon: itemsArray.map(item => ({
+        // 👈 Gửi ID cũ lên. Nếu ID này có mà SL thay đổi, Backend sẽ hủy dòng cũ và tạo dòng mới
+        idChiTietHoaDonCu: item.dbDetailId || null, 
+        idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
+        idSetLau: item.type === 'SET' ? item.originalId : null,
+        soLuong: item.quantity,
+        donGia: item.price,
+        thanhTien: item.price * item.quantity,
+        ghiChu: item.note || ''
+      })),
+
+      tongTien: totalTempPrice.value
+    };
+
+    // Gọi API lưu
+    await createOrder(payload);
+
+    // Xóa nháp sau khi lưu thành công
+    delete draftOrders.value[selectedBan.value.id];
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Thành công!',
+      text: "Đã cập nhật thực đơn thành công!",
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    await fetchAllBan();
+    modalView.value = 'info';
+
   } catch (e) {
-      alert("Lỗi thêm món: " + e.message);
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi',
+      text: "Lỗi khi lưu hóa đơn: " + (e.response?.data?.message || e.message)
+    });
   }
-  */
 };
+
+const props = defineProps({
+    initialItems: {
+        type: Array,
+        default: () => []
+    }
+});
+
+const initSelectedItems = () => {
+    selectedItems.value = {};
+    if (props.initialItems && props.initialItems.length > 0) {
+        props.initialItems.forEach(item => {
+            const key = item.uniqueId;
+            if (key) {
+                selectedItems.value[key] = { ...item };
+            }
+        });
+    }
+};
+
+
+watch(() => props.initialItems, (newItems) => {
+    console.log("🔄 FoodList nhận dữ liệu mới từ cha:", newItems);
+    initSelectedItems();
+}, { deep: true, immediate: true });
 </script>
 
 <template>
@@ -497,7 +600,7 @@ const handleSaveFood = async (itemsArray) => {
       </div>
     </div>
   </div>
-  
+
   <div v-if="isShowModal" class="modal-overlay">
     <div class="modal-box" :class="{ 'modal-fullscreen': modalView === 'addFood' }">
       <div class="modal-header-custom">
@@ -510,6 +613,22 @@ const handleSaveFood = async (itemsArray) => {
       <div class="modal-body-custom">
 
         <div v-if="modalView === 'info'">
+          <div v-if="selectedPhieu || Number(selectedBan?.trangThai) === 1"
+            class="alert alert-danger p-3 mb-3 border-0 shadow-sm"
+            style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{
+                  selectedPhieu?.maDatBan || 'N/A' }}</div>
+                <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{
+                  selectedPhieu?.tenKhachHang || 'Khách lẻ' }}</div>
+                <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{
+                  formatDate(selectedPhieu?.thoiGianDat) || '---' }}</div>
+              </div>
+              <span class="badge bg-danger p-2">ĐANG PHỤC VỤ</span>
+            </div>
+          </div>
+
           <h6 class="section-title">Thông tin bàn</h6>
           <div class="info-row">
             <span>Mã bàn:</span>
@@ -529,7 +648,7 @@ const handleSaveFood = async (itemsArray) => {
           </div>
           <div class="info-row">
             <span>Nhân viên:</span>
-            <strong>???</strong>
+            <strong>{{ currentStaffName || 'Chưa xác định' }}</strong>
           </div>
 
           <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3">
@@ -539,7 +658,7 @@ const handleSaveFood = async (itemsArray) => {
             </div>
             <ul class="summary-list">
               <li v-for="item in listMonDaChon" :key="item.id">
-                {{ item.name }} <span class="text-muted">x{{ item.quantity }}</span>
+                {{ item.name }} <span class="text-muted">x{{ item.quantity }}<span class="text-muted">: <strong>{{ item.price }} VNĐ</strong></span></span>
               </li>
             </ul>
           </div>
@@ -1074,7 +1193,7 @@ hr {
 
 .modal-box {
   width: 100%;
-  max-width: 420px;
+  max-width: 620px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
@@ -1089,7 +1208,7 @@ hr {
   height: 90vh !important;
   max-width: none !important;
   max-height: none !important;
-  
+
   border-radius: 0 !important;
   margin: 0 !important;
 }
@@ -1140,15 +1259,13 @@ hr {
   margin: 5px 0 0 0;
   padding-left: 20px;
   color: #555;
-  max-height: 60px;
+  max-height: 180px;
   overflow-y: auto;
 }
 
-/* --- Button Has Items Style --- */
 .btn-action.has-items {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #2e7d32;
+  background: #5c0a16;
+  color: white;
 }
 
 .close-btn {
@@ -1267,5 +1384,10 @@ hr {
 .close-btn {
   border: none;
   background-color: white;
+}
+
+:global(.swal2-container) {
+  z-index: 20000 !important;
+  /* Cao hơn 9999 của .modal-overlay */
 }
 </style>

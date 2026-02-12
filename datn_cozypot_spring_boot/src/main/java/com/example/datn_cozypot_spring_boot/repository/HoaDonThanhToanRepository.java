@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan, Integer> {
@@ -83,4 +85,14 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
+
+    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1")
+    Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
+
+    @Query("""
+    SELECT h FROM HoaDonThanhToan h 
+    WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1 
+    ORDER BY h.thoiGianTao DESC
+""")
+    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") int idBanAn);
 }

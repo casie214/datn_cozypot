@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class DatBanListResponse {
     private Integer idDatBan;
     private String maDatBan;
+    private Integer idKhachHang;
     private String tenKhachHang;
     private String soDienThoai;
     private String tenBan;
@@ -37,6 +38,7 @@ public class DatBanListResponse {
         this.idDatBan = phieuDatBan.getId();
         this.maDatBan = phieuDatBan.getMaDatBan();
         this.tenKhachHang = phieuDatBan.getIdKhachHang().getTenKhachHang();
+        this.idKhachHang = phieuDatBan.getIdKhachHang().getId();
         this.soDienThoai = phieuDatBan.getIdKhachHang().getSoDienThoai();
         this.tenBan = phieuDatBan.getIdBanAn() != null
                 ? phieuDatBan.getIdBanAn().getTenBan()
