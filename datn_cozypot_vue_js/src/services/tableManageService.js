@@ -145,3 +145,22 @@ export function getAllCategoryGeneralActive() {
 export function getAllCategoryDetailActive() {
     return axiosClient.get('/guest/category-detail/active');
 }
+
+export const createOrder = (payload) => {
+    return axiosClient.post('/hoa-don-thanh-toan/tao-don', payload);
+};
+
+export const fetchActiveBillByBan = async (idBanAn) => {
+    try {
+        const response = await axiosClient.get(`hoa-don-thanh-toan/active-by-ban/${idBanAn}`);
+        return response.data;
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            console.warn(`Bàn ${idBanAn} hiện không có hóa đơn hoạt động.`);
+            return null;
+        }
+        console.error("Lỗi khi lấy hóa đơn hoạt động:", error);
+        throw error;
+    }
+};
+

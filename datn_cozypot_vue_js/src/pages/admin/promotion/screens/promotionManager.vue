@@ -27,7 +27,7 @@
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="title-page">Quản lý khuyến mãi thực đơn</h2>
+                <h2 class="title-page">Quản lý giảm giá thực đơn</h2>
             </div>
 
 
@@ -112,7 +112,7 @@
                     <i class="fas fa-file-excel me-2"></i> Xuất Excel
                 </button>
                 <button class="btn-red-dark " @click="openFormAdd">
-                    <i class="fas fa-plus me-2"></i> Thêm khuyến mãi thực đơn
+                    <i class="fas fa-plus me-2"></i> Thêm giảm giá thực đơn
                 </button>
             </div>
 
@@ -170,8 +170,8 @@
 
                                         <span class="tooltip-text">
                                             {{ isExpired(km.ngayKetThuc)
-                                                ? 'Khuyến mãi đã hết hạn'
-                                                : 'Bật / Tắt khuyến mãi' }}
+                                                ? 'Giảm giá đã hết hạn'
+                                                : 'Bật / Tắt giảm giá' }}
                                         </span>
                                     </div>
                                 </div>
@@ -240,7 +240,7 @@
 
                     <div class="total-info text-muted">
                         Hiển thị {{ listKhuyenMai.length }} /
-                        {{ pagination.totalElements }} khuyến mãi thực đơn
+                        {{ pagination.totalElements }} giảm giá thực đơn
                     </div>
 
                 </div>
