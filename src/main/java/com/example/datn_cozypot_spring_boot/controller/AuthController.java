@@ -51,7 +51,13 @@ public class AuthController {
         String accessToken = tokenProvider.generateToken(nv.getTenDangNhap(), role);
         String refreshToken = jwtUtils.generateRefreshToken(nv.getTenDangNhap());
 
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken, role));
+        return ResponseEntity.ok(new AuthResponse(
+                accessToken,
+                refreshToken,
+                role,
+                nv.getId(),
+                nv.getTenDangNhap(),
+                nv.getHoTenNhanVien()));
     }
 
     //login cho khách hàng
@@ -67,7 +73,12 @@ public class AuthController {
         String accessToken = tokenProvider.generateToken(kh.getEmail(), "USER");
         String refreshToken = jwtUtils.generateRefreshToken(kh.getTenDangNhap());
 
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken, "USER"));
+        return ResponseEntity.ok(new AuthResponse(accessToken,
+                refreshToken,
+                "USER",
+                kh.getId(),
+                kh.getEmail(),
+                kh.getTenKhachHang()));
     }
 
     @PostMapping("/register")

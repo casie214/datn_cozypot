@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ChiTietHoaDonService {
@@ -19,8 +20,32 @@ public class ChiTietHoaDonService {
     @Autowired
     SetLauChiTietRepository setLauChiTietRepository;
 
-    public List<ChiTietHoaDonResponse> getAllChiTietHoaDon(Integer idHoaDon){
-        return chiTietHoaDonRepository.findChiTietByHoaDonId(idHoaDon);
+    public List<ChiTietHoaDonResponse> getAllChiTietHoaDon(Integer idHoaDon) {
+        List<ChiTietHoaDon> list = chiTietHoaDonRepository.findByIdHoaDon(idHoaDon);
+
+        return list.stream().map(item -> {
+            ChiTietHoaDonResponse dto = new ChiTietHoaDonResponse();
+            dto.setId(item.getId());
+            dto.setSoLuong(item.getSoLuong());
+            dto.setDonGia(item.getDonGiaTaiThoiDiemBan());
+            dto.setThanhTien(item.getThanhTien());
+            dto.setGhiChu(item.getGhiChuMon());
+
+            if (item.getIdChiTietMonAn() != null) {
+                dto.setTenMon(item.getIdChiTietMonAn().getTenChiTietMonAn());
+                dto.setIdSetLau(null);
+            }
+            else if (item.getIdSetLau() != null) {
+                dto.setTenMon(item.getIdSetLau().getTenSetLau());
+                dto.setIdSetLau(item.getIdSetLau().getId());
+            }
+            else {
+                dto.setTenMon("Món không xác định");
+            }
+
+            dto.setTrangThaiCode(item.getTrangThaiMon());
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     public List<ChiTietSetLauResponse> getChiTietSetLau(Integer idSetLau){
