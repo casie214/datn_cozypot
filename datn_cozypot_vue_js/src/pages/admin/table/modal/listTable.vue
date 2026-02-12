@@ -1,10 +1,14 @@
 <script setup>
-import { fetchAllBanAn, fetchAllKhuVuc, fetchBanAnById, updateBanAn } from "@/services/tableManageService";
-import { onMounted, onUnmounted, ref } from "vue";
-
+import {
+  fetchAllBanAn,
+  fetchAllKhuVuc,
+  fetchBanAnById,
+  updateBanAn,
+} from "@/services/tableManageService";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import dayjs from "dayjs";
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
-
 
 /* 2. CÁC HÀM TIỆN ÍCH (Sửa lỗi "is not a function") */
 const getStatusText = (trangThai) => {
@@ -34,7 +38,7 @@ const fetchAllBan = async () => {
   }
 };
 
-const listKhuVuc = ref([])
+const listKhuVuc = ref([]);
 
 const handleFetchAllKhuVuc = async () => {
   try {
@@ -44,28 +48,35 @@ const handleFetchAllKhuVuc = async () => {
   }
 };
 
+const initialTang = ref(null);
 const fetchDetailBanAn = async (id) => {
   const data = await fetchBanAnById(id);
- console.log('===== DATA TỪ API =====');
+  console.log("===== DATA TỪ API =====");
   console.log(data);
-  console.log('JSON:', JSON.stringify(data, null, 2));
-  console.log('=======================');
+  console.log("JSON:", JSON.stringify(data, null, 2));
+  console.log("=======================");
   form.value = {
     id: data.id,
     maBan: data.maBan,
     soNguoiToiDa: data.soCho,
     idKhuVuc: data.idKhuVuc,
+    tang: data.soTang,
     trangThai: data.trangThai,
     loaiDatBan: data.loaiDatBan,
-    ngayTao: data.ngayTao,
-    nguoiTao: data.nguoiTao,
   };
-  
+  initialTang.value = data.soTang;
   // Debug
-  console.log('ID Khu vực:', form.value.idKhuVuc, typeof form.value.idKhuVuc);
-  console.log('List khu vực IDs:', listKhuVuc.value.map(k => ({id: k.id, type: typeof k.id})));
+  console.log("ID Khu vực:", form.value.idKhuVuc, typeof form.value.idKhuVuc);
+  console.log(
+    "List khu vực IDs:",
+    listKhuVuc.value.map((k) => ({ id: k.id, type: typeof k.id })),
+  );
 };
 
+const khuVucTheoTang = computed(() => {
+  if (!form.value.tang) return [];
+  return listKhuVuc.value.filter((kv) => kv.tang === Number(form.value.tang));
+});
 
 const currentTime = ref("");
 
@@ -82,12 +93,11 @@ const openUpdateModal = async (id) => {
   try {
     await handleFetchAllKhuVuc();
     await fetchDetailBanAn(id); //  load chi tiết bàn
-    showUpdateModal.value = true;  //  mở modal SAU khi có data
+    showUpdateModal.value = true; //  mở modal SAU khi có data
   } catch (error) {
     console.error("Lỗi lấy chi tiết bàn:", error);
   }
 };
-
 
 const closeAddModal = () => {
   showUpdateModal.value = false;
@@ -98,10 +108,9 @@ const form = ref({
   maBan: "",
   soNguoiToiDa: null,
   idKhuVuc: null,
-  trangThai:0,
+  trangThai: 0,
   loaiDatBan: 0,
-  ngayTao:"",
-  nguoiTao: "",
+  tang: "",
 });
 
 const submitUpdateBan = async () => {
@@ -114,6 +123,22 @@ const submitUpdateBan = async () => {
     console.error("Lỗi sửa bàn", e);
   }
 };
+
+const formatDate = (time) => {
+  if (!time) return "";
+  return dayjs(time).format("DD/MM/YYYY HH:mm");
+}; 
+
+watch(
+  () => form.value.tang,
+  (newTang) => {
+    // ❗ chỉ reset khi người dùng đổi tầng
+    if (newTang !== initialTang.value) {
+      form.value.idKhuVuc = "";
+    }
+  },
+);
+
 
 onMounted(() => {
   updateTime();
@@ -135,20 +160,28 @@ onMounted(() => {
       <table class="table">
         <thead>
           <tr class="table-dark">
+            <th>STT</th>
             <th>Bàn</th>
             <th>Số ghế</th>
-            <th>Trạng thái</th>
+            <th>Tầng</th>
+            <th>Khu vực</th>
+            <!-- <th>Trạng thái</th> -->
+            <th>Ngày tạo</th>
+            <th>Người tạo</th>
             <th>Đặt online</th>
             <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="ban in danhSachBan" :key="ban.id">
+          <tr v-for="(ban, index) in danhSachBan" :key="ban.id">
+            <td>{{ index + 1 }}</td>
             <td>
               <strong>{{ ban.maBan }}</strong>
             </td>
             <td>{{ ban.soCho }} chỗ</td>
-            <td>
+            <td>{{ ban.soTang }}</td>
+            <td>{{ ban.tenKhuVuc }}</td>
+            <!-- <td>
               <span
                 :class="[
                   'badge',
@@ -161,10 +194,13 @@ onMounted(() => {
               >
                 {{ getStatusText(ban.trangThai) }}
               </span>
-            </td>
+            </td> -->
+            <td>{{ formatDate(ban.ngayTao) }}</td>
+            <td>{{ ban.nguoiTao }}</td>
             <td>
               {{ ban.loaiDatBan == 0 ? "Không cho phép" : "Cho phép" }}
             </td>
+
             <td>
               <button
                 class="action-list"
@@ -173,14 +209,13 @@ onMounted(() => {
               >
                 <i class="fa-regular fa-pen-to-square action-icon"></i>
               </button>
-              
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
-  <!-- POPUP THÊM BÀN -->
+  <!-- POPUP SỬA BÀN -->
   <div v-if="showUpdateModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
@@ -190,21 +225,21 @@ onMounted(() => {
 
       <div class="modal-body">
         <div class="form-group">
-          <label>Mã bàn</label><br>
+          <label>Mã bàn</label><br />
           <input type="text" v-model="form.maBan" />
         </div>
 
         <div class="form-group">
-          <label>Số người tối đa</label><br>
+          <label>Số người tối đa</label><br />
           <input type="number" v-model="form.soNguoiToiDa" />
         </div>
 
-        <div class="form-group">
-          <label>Trạng thái</label><br>
+        <!-- <div class="form-group">
+          <label>Trạng thái</label><br />
           <input type="number" v-model="form.trangThai" />
-        </div>
-<br>
-        <select class="form-select" v-model.number="form.idKhuVuc">
+        </div> -->
+        <br />
+        <!-- <select class="form-select" v-model.number="form.idKhuVuc">
           <option value="null" disabled>-- Chọn khu vực --</option>
           <option
             v-for="khuVuc in listKhuVuc"
@@ -213,8 +248,39 @@ onMounted(() => {
           >
             {{ khuVuc.tenKhuVuc }}
           </option>
-        </select>
+        </select> -->
 
+        <div class="form-group">
+          <label>Tầng</label>
+          <select class="form-select" v-model="form.tang">
+            <option value="" disabled>-- Chọn tầng --</option>
+            <option
+              v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]"
+              :key="tang"
+              :value="tang"
+            >
+              Tầng {{ tang }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Khu vực</label>
+          <select
+            class="form-select"
+            v-model="form.idKhuVuc"
+            :disabled="!form.tang"
+          >
+            <option value="" disabled>-- Chọn khu vực --</option>
+            <option
+              v-for="khuVuc in khuVucTheoTang"
+              :key="khuVuc.id"
+              :value="khuVuc.id"
+            >
+              {{ khuVuc.tenKhuVuc }}
+            </option>
+          </select>
+        </div>
         <div class="form-check">
           <input
             class="form-check-input"
@@ -229,7 +295,7 @@ onMounted(() => {
           </label>
         </div>
 
-        <div class="form-group">
+        <!-- <div class="form-group">
           <label>Ngày tạo</label><br>
           <input type="text" v-model="form.ngayTao" />
         </div>
@@ -237,7 +303,7 @@ onMounted(() => {
         <div class="form-group">
           <label>Người tạo</label><br>
           <input type="text" v-model="form.nguoiTao" />
-        </div>
+        </div> -->
       </div>
 
       <div class="modal-footer">
@@ -249,7 +315,6 @@ onMounted(() => {
 </template>
 
 <style src="@/pages/admin/table/tableManagementStyle.css"></style>
-
 
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
@@ -328,9 +393,8 @@ onMounted(() => {
   padding: 8px 10px;
   font-size: 14px;
   transition: 0.2s;
-  
 }
-.form-group input{
+.form-group input {
   width: 100%;
 }
 
@@ -347,7 +411,6 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-top: 4px;
-  
 }
 
 .form-check-input {

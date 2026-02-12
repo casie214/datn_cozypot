@@ -61,9 +61,9 @@ public class BanAn {
     @Column(name = "loai_dat_ban")
     private Integer loaiDatBan;
 
-    @ColumnDefault("getdate()")
-    @Column(name = "ngay_tao")
+    @Column(name = "ngay_tao", insertable = false, updatable = false)
     private LocalDateTime ngayTao;
+
 
     @Column(name = "ngay_sua")
     private LocalDateTime ngaySua;

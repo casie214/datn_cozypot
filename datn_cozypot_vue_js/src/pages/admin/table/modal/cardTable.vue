@@ -1,10 +1,23 @@
 <script setup>
-import { fetchAllBanAn } from "@/services/tableManageService";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import {
+  fetchAllBanAn,
+  fetchTableStatusByDate,
+} from "@/services/tableManageService";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { inject } from 'vue';
 
+
+const danhSachBanFromParent = inject('danhSachBan', ref([]));
+// const tableStatusMapFromParent = inject('tableStatusMap', ref({}));
+// const selectedDateFromParent = inject('selectedDate', ref(''));
+
+// ✅ Sử dụng data từ parent thay vì fetch riêng
+const danhSachBan = danhSachBanFromParent;
+// const tableStatusMap = tableStatusMapFromParent;
+// const selectedDate = selectedDateFromParent;
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const activeFloor = ref(1);
-const danhSachBan = ref([]);
+// const danhSachBan = ref([]);
 const isEditing = ref(false);
 const draggingTable = ref(null);
 
@@ -23,27 +36,26 @@ const getStatusClass = (trangThai) => {
   return "status-booked";
 };
 
-
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
-const fetchAllBan = async () => {
-  try {
-    const data = await fetchAllBanAn();
+// const fetchAllBan = async () => {
+//   try {
+//     const data = await fetchAllBanAn();
 
-    danhSachBan.value = data.map((ban, index) => {
-      // 3 bàn mỗi hàng trên lưới 12 cột nếu chưa có tọa độ
-      const defaultCol = (index % 3) * 4 + 1;
-      const defaultRow = Math.floor(index / 3) * 2 + 1;
+//     danhSachBan.value = data.map((ban, index) => {
+//       // 3 bàn mỗi hàng trên lưới 12 cột nếu chưa có tọa độ
+//       const defaultCol = (index % 3) * 4 + 1;
+//       const defaultRow = Math.floor(index / 3) * 2 + 1;
 
-      return {
-        ...ban,
-        column: ban.column || defaultCol,
-        row: ban.row || defaultRow,
-      };
-    });
-  } catch (e) {
-    console.error("Lỗi load danh sách bàn", e);
-  }
-};
+//       return {
+//         ...ban,
+//         column: ban.column || defaultCol,
+//         row: ban.row || defaultRow,
+//       };
+//     });
+//   } catch (e) {
+//     console.error("Lỗi load danh sách bàn", e);
+//   }
+// };
 
 /* 4. LOGIC TÍNH TOÁN (COMPUTED) */
 // Lọc danh sách bàn theo tầng đang chọn
@@ -55,15 +67,24 @@ const banTheoTang = computed(() => {
 });
 
 // Thống kê số lượng bàn trống của tầng hiện tại
+// const thongKeTang = computed(() => {
+//   const total = banTheoTang.value.length;
+//   const free = banTheoTang.value.filter((ban) => {
+//     const stt = String(ban.trangThai).toLowerCase().trim();
+//     return stt === "trống" || stt === "trong" || stt === "0";
+//   }).length;
+//   return { total, free };
+// });
+// Thống kê số lượng bàn trống theo ngày đã chọn
 const thongKeTang = computed(() => {
   const total = banTheoTang.value.length;
   const free = banTheoTang.value.filter((ban) => {
-    const stt = String(ban.trangThai).toLowerCase().trim();
-    return stt === "trống" || stt === "trong" || stt === "0";
+    const trangThai = getTrangThaiTheoNgay(ban.idBanAn);
+    return Number(trangThai) === 0;
+ // 0 = Trống
   }).length;
   return { total, free };
 });
-
 /* 5. LOGIC KÉO THẢ */
 const onDragStart = (ban) => {
   if (isEditing.value) draggingTable.value = ban;
@@ -106,6 +127,52 @@ const updateTime = () => {
   currentTime.value = now.toLocaleTimeString("vi-VN");
 };
 
+const selectedDate = ref(
+  new Date().toISOString().slice(0, 10), // yyyy-MM-dd
+);
+
+/**
+ * Map trạng thái bàn theo ngày
+ * key: idBan
+ * value: status
+ */
+const tableStatusMap = ref({});
+
+// Thêm vào script setup
+const getTrangThaiTheoNgay = (banId) => {
+  return Number(tableStatusMap.value[banId] ?? 0);
+};
+
+
+const fetchTableStatus = async () => {
+  try {
+    const data = await fetchTableStatusByDate(selectedDate.value);
+
+    const newMap = {};
+    data.forEach(item => {
+      newMap[item.banId] = item.trangThai;
+    });
+
+    tableStatusMap.value = newMap;
+  } catch (error) {
+    tableStatusMap.value = {};
+  }
+};
+
+
+watch(
+  selectedDate,
+  async () => {
+    await fetchTableStatus();
+  },
+  { immediate: true }
+);
+watch(tableStatusMap, (val) => {
+  console.log("Table status map updated:", val);
+}, { deep: true });
+
+
+
 onMounted(() => {
   updateTime();
   timer = setInterval(updateTime, 1000);
@@ -115,34 +182,44 @@ onUnmounted(() => {
   clearInterval(timer);
 });
 
-onMounted(() => {
-  fetchAllBan();
-});
+// onMounted(() => {
+//     fetchAllBan();
+//    fetchTableStatus();
+// });
 </script>
 <template>
-  <div class=" search-form">
-    <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
-    <div class="mb-3">
-      <button
-        class="btn me-2"
-        :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'"
-        @click="activeFloor = 1"
-      >
-        Tầng 1
-      </button>
-      <button
-        class="btn"
-        :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'"
-        @click="activeFloor = 2"
-      >
-        Tầng 2
-      </button>
+  <div class="search-form">
+    <div>
+      <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
+      <div class="mb-3">
+        <button
+          class="btn me-2"
+          :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'"
+          @click="activeFloor = 1"
+        >
+          Tầng 1
+        </button>
+        <button
+          class="btn"
+          :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'"
+          @click="activeFloor = 2"
+        >
+          Tầng 2
+        </button>
 
-      <div class="floor-info mt-2">
-        Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{
-          thongKeTang.total
-        }}
-        bàn
+        <div class="floor-info mt-2">
+          Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{
+            thongKeTang.total
+          }}
+          bàn
+        </div>
+      </div>
+    </div>
+    <div>
+      <!-- //Trạng thái bàn theo ngày ở đây -->
+      <div class="filter-date px-3">
+        <label>📅 Lọc theo ngày</label>
+        <input type="date" v-model="selectedDate" class="form-control" />
       </div>
     </div>
   </div>
@@ -224,7 +301,7 @@ onMounted(() => {
         <div class="floor-plan-section">
           <div class="floor-header">
             <div class="current-time">
-              Thời gian hiện tại: {{ currentTime }}
+              Thời gian hiện tại: <strong>{{ currentTime }}</strong>
             </div>
             <button
               class="edit-pos-btn"
@@ -250,10 +327,10 @@ onMounted(() => {
             >
               <div
                 v-for="ban in banTheoTang"
-                :key="ban.idBanAn"
+                :key="ban.id"
                 class="table-card"
                 :class="{
-                  'highlight-red': String(ban.trangThai) === '0',
+                  'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
                   'draggable-item': isEditing,
                 }"
                 :draggable="isEditing"
@@ -265,19 +342,29 @@ onMounted(() => {
                   gridRowEnd: 'span 2',
                 }"
               >
-               <!-- ICON WIFI -->
-  <i
-    v-if="ban.loaiDatBan"
-    class="fa-solid fa-wifi wifi-icon"
-    title="Có thể đặt online"
-  ></i>
+                <!-- ICON WIFI -->
+                <i
+                  v-if="ban.loaiDatBan"
+                  class="fa-solid fa-wifi wifi-icon"
+                  title="Có thể đặt online"
+                ></i>
                 <div class="table-content">
                   <strong>{{ ban.maBan }}</strong>
                   <div class="small">({{ ban.soCho }} chỗ)</div>
                   <div class="small">Khu vực: {{ ban.tenKhuVuc }}</div>
-                  <div :class="['status-tag', getStatusClass(ban.trangThai)]">
-                    {{ getStatusText(ban.trangThai) }}
+                  <div
+                    :class="[
+                      'status-tag',
+                      getStatusClass(getTrangThaiTheoNgay(ban.id)),
+                    ]"
+                  >
+                    {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                   </div>
+                  <div class="small">
+  ID: {{ ban.id }} | Status: {{ getTrangThaiTheoNgay(ban.id) }}
+</div>
+
+
                 </div>
               </div>
             </div>
@@ -291,6 +378,11 @@ onMounted(() => {
 <style src="@/pages/admin/table/tableManagementStyle.css"></style>
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
+.search-form {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .wifi-icon {
   position: absolute;
   top: 8px;
@@ -333,5 +425,4 @@ onMounted(() => {
 .table-card {
   position: relative;
 }
-
 </style>
