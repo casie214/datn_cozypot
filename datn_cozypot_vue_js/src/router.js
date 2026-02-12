@@ -42,7 +42,7 @@ const routes = [{
     //Table
 
     {
-        path: "/admin/tables", 
+        path: "/admin/tables",
         name: "tableManager",
         component: () =>
             import ("@/pages/admin/table/screen/tableReserveManager.vue"),
@@ -96,6 +96,14 @@ const routes = [{
         name: "staffManager",
         component: () =>
             import ("@/pages/admin/staff/screens/staffManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
+
+    {
+        path: "/admin/statistics",
+        name: "statisticsManager",
+        component: () =>
+            import ("@/pages/admin/statistics/screens/statisticsManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -256,7 +264,16 @@ const routes = [{
             requiresAuth: false
         }
     },
-    //Đơn hàng
+
+    {
+        path: "/menu",
+        name: "menu",
+        component: () =>
+            import ("./pages/guest/viewPages/food-menu.vue"),
+        meta: {
+            requiresAuth: false
+        }
+    },
 
     {
         path: "/admin/orders",
@@ -310,6 +327,21 @@ const routes = [{
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
+    {
+        path: '/auth/google/callback',
+        name: 'GoogleCallback',
+        component: () =>
+            import ('@/pages/guest/authentication/googleLoginCallback.vue'),
+        meta: { requiresAuth: false }
+    },
+    {
+        path: "/admin/checkin/food",
+        name: "foodCheckIn",
+        component: () =>
+            import ("@/pages/admin/table/modal/innerComponents/foodList.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    }
+
 
 
 ];
@@ -324,8 +356,6 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
-
-    // Ép kiểu boolean để đảm bảo isLoggedIn là true/false
     const isLoggedIn = !!authStore.token;
     const userRole = authStore.role;
 
@@ -358,7 +388,9 @@ router.beforeEach((to, from, next) => {
                     timerProgressBar: true
                 });
 
-
+                if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
+                    return next(false);
+                }
                 return next('/');
             }
         }
