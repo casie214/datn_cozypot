@@ -122,6 +122,14 @@ export const updateTTPhieuDatBan = async (id, trangThai) => {
     }
 };
 
+export const fetchTableStatusByDate = async (date) => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${date}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
 export function getAllFoodGeneralActive() {
     return axiosClient.get('/guest/food/active');
 }
