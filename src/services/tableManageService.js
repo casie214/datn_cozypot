@@ -130,3 +130,18 @@ export const fetchTableStatusByDate = async (date) => {
         throw error;
     }
 }
+export function getAllFoodGeneralActive() {
+    return axiosClient.get('/guest/food/active');
+}
+
+export function getAllHotpotGeneralActive() {
+    return axiosClient.get('/guest/hotpot/active');
+}
+
+export function getAllCategoryGeneralActive() {
+    return axiosClient.get('/guest/category/active');
+}
+
+export function getAllCategoryDetailActive() {
+    return axiosClient.get('/guest/category-detail/active');
+}

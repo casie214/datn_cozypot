@@ -51,7 +51,6 @@ const goToLogin = () => {
 
 <template>
   <div class="guest-home">
-    <CommonNav></CommonNav>
 
     <header id="home" class="hero">
       <div class="hero-overlay"></div>

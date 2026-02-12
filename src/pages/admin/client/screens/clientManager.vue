@@ -141,6 +141,11 @@ import CustomerModal from '../modal/clientModal.vue';
 import CustomerDetailModal from '../modal/clientDetailModal.vue';
 import '../clientStyle.css'; 
 import clientService from '@/services/clientService';
+import { useAuthStore } from '@/pages/guest/authentication/authenticationServices/authenticationService.js';
+
+const authStore = useAuthStore();
+
+const userRole = authStore.role;
 
 const { getStatusDisplay, fetchData } = useClientLogic();
 const swalConfig = {
@@ -243,6 +248,9 @@ const handleToggleStatus = async (kh) => {
 const exportLoading = ref(false); // Biến trạng thái khi đang tải file
 
 const handleExportExcel = async () => {
+  if(userRole !== 'ADMIN'){
+    return;
+  }
   const confirmExport = await Swal.fire({
     ...swalConfig,
     title: 'Xuất file Excel?',
@@ -288,9 +296,21 @@ const handleExportExcel = async () => {
   }
 };
 
-// Các hàm modal giữ nguyên
-const openModalAdd = () => { selectedId.value = null; isModalOpen.value = true; };
-const openModalEdit = (id) => { selectedId.value = id; isModalOpen.value = true; };
+
+const openModalAdd = () => { 
+  if(userRole !== 'ADMIN'){
+    Swal.fire({ ...swalConfig, icon: 'error', title: 'Thất bại', text: 'Bạn không có quyền hạn' });
+    return;
+  }
+  selectedId.value = null; isModalOpen.value = true; 
+};
+const openModalEdit = (id) => {
+  if(userRole !== 'ADMIN'){
+    Swal.fire({ ...swalConfig, icon: 'error', title: 'Thất bại', text: 'Bạn không có quyền hạn' });
+    return;
+  }
+  selectedId.value = id; isModalOpen.value = true; 
+};
 const openModalView = (id) => { selectedId.value = id; isDetailModalOpen.value = true; };
 const closeModal = () => isModalOpen.value = false;
 const closeDetailModal = () => isDetailModalOpen.value = false;

@@ -5,6 +5,7 @@ import { getAllCategory } from '../services/foodFunction';
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/tables' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
     { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
@@ -32,20 +33,19 @@ const menuItems = ref([
             { name: 'Loại set lẩu', tab: 'loaiset' }
         ]
     },
-    
+
     {
         name: 'Khuyến mãi',
         icon: "fa-solid fa-tags",
         isOpen: false,
         children: [
-            { name: 'Đợt khuyến mãi', path: '/admin/promotion' },
+            { name: 'Khuyến mãi thực đơn', path: '/admin/promotion' },
             { name: 'Phiếu giảm giá', path: '/admin/voucher' },
         ]
     },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' }
 
-    
+
 ]);
 
 const router = useRouter();
@@ -77,7 +77,7 @@ const isActive = (item) => {
     if (item.path) {
         return route.path === item.path;
     }
-    
+
     if (item.children) {
         return item.children.some(child => isSubActive(item, child));
     }
@@ -97,9 +97,9 @@ const isSubActive = (parent, child) => {
         }
 
         if (route.query.tab === child.tab) {
-             if (!route.query.preRoot && !child.query) return true;
-             if (route.query.preRoot) return false;
-             return true;
+            if (!route.query.preRoot && !child.query) return true;
+            if (route.query.preRoot) return false;
+            return true;
         }
 
         if (!route.query.tab && !route.meta?.activeTab && route.name === parent.routeName) {
@@ -113,7 +113,7 @@ const checkAndOpenMenu = () => {
     menuItems.value.forEach(item => {
         if (item.children && isActive(item)) {
             item.isOpen = true;
-            
+
             item.children.forEach(subItem => {
                 if (subItem.isGroup && subItem.children) {
                     const hasActiveChild = subItem.children.some(grandChild => isSubActive(item, grandChild));
@@ -156,16 +156,16 @@ const fetchCategoriesAndBuildMenu = async () => {
         const categories = res.data || [];
 
         const foodMenu = menuItems.value.find(m => m.name === 'Thực đơn');
-        
+
         if (foodMenu) {
             const dynamicChildren = [
                 {
-                    name: '• Danh sách món', 
+                    name: '• Danh sách món',
                     isGroup: true,
-                    isOpen: false, 
+                    isOpen: false,
                     children: [
                         { name: 'Tất cả món', tab: 'thucdon' },
-                        
+
                         ...categories.map(cat => ({
                             name: `${cat.tenDanhMuc}`,
                             tab: 'thucdon',
@@ -179,8 +179,8 @@ const fetchCategoriesAndBuildMenu = async () => {
             ];
 
             foodMenu.children = dynamicChildren;
-            
-            checkAndOpenMenu(); 
+
+            checkAndOpenMenu();
         }
     } catch (error) {
         console.error("Lỗi build menu:", error);
@@ -201,42 +201,41 @@ const fetchCategoriesAndBuildMenu = async () => {
             <div v-for="(item, index) in menuItems" :key="index">
 
                 <div class="menu-item" :class="{ 'active': isActive(item) }" @click="handleItemClick(item)">
-        <i :class="item.icon" class="icon"></i>
-        <span class="label">{{ item.name }}</span>
-        
-        <span v-if="item.children" class="arrow-dropdown">
-            <i :class="item.isOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
-        </span>
-    </div>
+                    <i :class="item.icon" class="icon"></i>
+                    <span class="label">{{ item.name }}</span>
 
-    <div v-if="item.children && item.isOpen" class="submenu">
-        <div v-for="(child, cIndex) in item.children" :key="cIndex">
-            
-            <div v-if="child.isGroup">
-                <div class="submenu-item group-title" @click="handleSubClick(item, child)">
-                    <span style="flex: 1; font-weight: 600;">{{ child.name }}</span>
-                    <i :class="child.isOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" style="font-size: 12px;"></i>
+                    <span v-if="item.children" class="arrow-dropdown">
+                        <i :class="item.isOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
+                    </span>
                 </div>
 
-                <div v-if="child.isOpen" class="submenu-level-3">
-                    <div v-for="(grandChild, gIndex) in child.children" :key="gIndex"
-                         class="submenu-item level-3-item"
-                         :class="{ 'sub-active': isSubActive(item, grandChild) }"
-                         @click="handleSubClick(item, grandChild)">
-                         {{ grandChild.name }}
+                <div v-if="item.children && item.isOpen" class="submenu">
+                    <div v-for="(child, cIndex) in item.children" :key="cIndex">
+
+                        <div v-if="child.isGroup">
+                            <div class="submenu-item group-title" @click="handleSubClick(item, child)">
+                                <span style="flex: 1; font-weight: 600;">{{ child.name }}</span>
+                                <i :class="child.isOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'"
+                                    style="font-size: 12px;"></i>
+                            </div>
+
+                            <div v-if="child.isOpen" class="submenu-level-3">
+                                <div v-for="(grandChild, gIndex) in child.children" :key="gIndex"
+                                    class="submenu-item level-3-item"
+                                    :class="{ 'sub-active': isSubActive(item, grandChild) }"
+                                    @click="handleSubClick(item, grandChild)">
+                                    {{ grandChild.name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="submenu-item" :class="{ 'sub-active': isSubActive(item, child) }"
+                            @click="handleSubClick(item, child)">
+                            • {{ child.name }}
+                        </div>
+
                     </div>
                 </div>
-            </div>
-
-            <div v-else 
-                 class="submenu-item"
-                 :class="{ 'sub-active': isSubActive(item, child) }" 
-                 @click="handleSubClick(item, child)">
-                • {{ child.name }}
-            </div>
-
-        </div>
-    </div>
 
             </div>
         </nav>
@@ -276,11 +275,11 @@ const fetchCategoriesAndBuildMenu = async () => {
 }
 
 .logo-circle {
-  width: 7em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+    width: 7em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .logo {
@@ -405,39 +404,41 @@ const fetchCategoriesAndBuildMenu = async () => {
 
 .submenu-item:hover {
     color: #7B121C;
-    background-color: transparent; 
+    background-color: transparent;
 }
 
 .submenu-item.sub-active {
     color: #7B121C;
     font-weight: bold;
     background-color: #fff5f5;
-    border-radius: 0 20px 20px 0; 
+    border-radius: 0 20px 20px 0;
     margin-right: 10px;
-    border-left: 4px solid #7B121C; 
-    padding-left: 46px; 
+    border-left: 4px solid #7B121C;
+    padding-left: 46px;
 }
 
 .group-title {
     color: #888;
     letter-spacing: 0.5px;
-    padding: 10px 15px 5px 50px; 
+    padding: 10px 15px 5px 50px;
     pointer-events: auto;
 }
+
 .group-title:hover {
     color: #333;
 }
 
 .submenu-level-3 {
-    margin-left: 60px; 
+    margin-left: 60px;
     border-left: 2px solid #eee;
     margin-bottom: 10px;
-    padding-left: 5px; 
+    padding-left: 5px;
     animation: slideDown 0.3s ease-out;
 }
 
 .level-3-item {
-    padding: 8px 10px 8px 20px !important; /* Padding gọn hơn */
+    padding: 8px 10px 8px 20px !important;
+    /* Padding gọn hơn */
     font-size: 13.5px;
     color: #777;
     border-radius: 6px;
@@ -460,20 +461,28 @@ const fetchCategoriesAndBuildMenu = async () => {
 .level-3-item:hover {
     color: #7B121C;
     background-color: #fff;
-    padding-left: 25px !important; 
+    padding-left: 25px !important;
 }
 
 .level-3-item.sub-active {
     color: #7B121C;
     font-weight: 700;
-    background-color: #ffebeb; 
+    background-color: #ffebeb;
 }
+
 .level-3-item.sub-active::before {
-    background-color: #7B121C; 
+    background-color: #7B121C;
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
