@@ -1,12 +1,12 @@
 <template>
-    <div class="container">
+    <div class="main-content" style="padding: 25px;">
 
         <div v-if="loading" class="skeleton-box"></div>
 
         <div v-else>
 
             <!-- Title -->
-            <h2>Báo cáo thống kê</h2>
+            <h4 style="color: rgb(125, 22, 26);font-weight: bold;">Báo cáo thống kê</h4>
             <p class="sub">Xem báo cáo doanh thu và bán hàng</p>
 
             <!-- Lọc nhanh -->
@@ -246,9 +246,13 @@ const loadData = async () => {
             thongKeNgay(from.value, to.value)
         ]);
 
+        console.log("yo: ", r3)
+
         tong.value = r1.data;
         thanhToan.value = r2.data;
-        theoNgay.value = r3.data;
+
+        theoNgay.value = r3.data || [];
+
 
         online.value = 0;
         offline.value = 0;

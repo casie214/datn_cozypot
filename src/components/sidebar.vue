@@ -35,11 +35,11 @@ const menuItems = ref([
     },
 
     {
-        name: 'Khuyến mãi',
+        name: 'Giảm giá',
         icon: "fa-solid fa-tags",
         isOpen: false,
         children: [
-            { name: 'Khuyến mãi thực đơn', path: '/admin/promotion' },
+            { name: 'Giảm giá thực đơn', path: '/admin/promotion' },
             { name: 'Phiếu giảm giá', path: '/admin/voucher' },
         ]
     },
