@@ -202,6 +202,19 @@ import dayjs from 'dayjs';
 import '../staffStyle.css';
 import Swal from 'sweetalert2';
 import staffService from '@/services/staffService.js';
+import { useAuthStore } from '@/pages/guest/authentication/authenticationServices/authenticationService.js';
+
+const authStore = useAuthStore();
+const userRole = authStore.role;
+
+const swalConfig = {
+  confirmButtonColor: '#800000',
+  cancelButtonColor: '#6c757d',
+  didOpen: () => {
+    const container = document.querySelector('.swal2-container');
+    if (container) container.style.zIndex = '100000';
+  }
+};
 
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
 
@@ -288,11 +301,19 @@ const onToggleStatus = async (nv) => {
 // --- LOGIC MODAL ---
 
 const openModalAdd = () => {
+  if(userRole !== 'ADMIN'){
+    Swal.fire({ ...swalConfig, icon: 'error', title: 'Thất bại', text: 'Bạn không có quyền hạn' });
+    return;
+  }
   selectedStaffId.value = null;
   isModalOpen.value = true;
 };
 
 const openModalEdit = (id) => {
+  if(userRole !== 'ADMIN'){
+    Swal.fire({ ...swalConfig, icon: 'error', title: 'Thất bại', text: 'Bạn không có quyền hạn' });
+    return;
+  }
   selectedStaffId.value = id;
   isModalOpen.value = true;
 };

@@ -1,0 +1,197 @@
+/* ================= ROOT ================= */
+:root {
+  --main-red: #8b0000;
+  --main-red-light: #b91c1c;
+  --bg-light: #f9fafb;
+  --text-dark: #1f2937;
+}
+
+/* ================= CONTAINER ================= */
+.container {
+  padding: 30px;
+  background: var(--bg-light);
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  color: var(--text-dark);
+}
+
+h2 {
+  color: var(--main-red);
+  font-weight: 700;
+}
+
+.sub {
+  color: #6b7280;
+  margin-bottom: 25px;
+}
+
+/* ================= QUICK FILTER ================= */
+.quick-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.quick-filter button {
+  border: 1px solid var(--main-red);
+  padding: 7px 16px;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  color: var(--main-red);
+  font-weight: 500;
+  transition: all 0.25s;
+}
+
+.quick-filter button:hover {
+  background: var(--main-red-light);
+  color: white;
+}
+
+.quick-filter .active {
+  background: var(--main-red);
+  color: white;
+}
+
+/* ================= FILTER ================= */
+.filter-box {
+  display: flex;
+  gap: 20px;
+  background: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  align-items: flex-end;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.filter-box label {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.filter-box input {
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-width: 150px;
+}
+
+.filter-box input:focus {
+  outline: none;
+  border-color: var(--main-red);
+}
+
+/* ================= BUTTON ================= */
+.btn-primary {
+  background: var(--main-red);
+  color: white;
+  border: none;
+  padding: 9px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s;
+}
+
+.btn-primary:hover {
+  background: var(--main-red-light);
+  transform: translateY(-1px);
+}
+
+/* ================= SUMMARY ================= */
+.summary {
+  margin: 30px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+/* ================= CARD ================= */
+.card {
+  padding: 18px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+  border-top: 4px solid var(--main-red);
+  transition: all 0.25s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.card p {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.card h3 {
+  margin-top: 6px;
+  color: var(--main-red);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Bỏ màu cũ */
+.blue,
+.purple,
+.green,
+.orange,
+.teal,
+.red {
+  background: white !important;
+}
+
+/* ================= TABLE ================= */
+.mt {
+  margin: 25px 0 12px;
+  color: var(--main-red);
+}
+
+table {
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border-collapse: collapse;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+th, td {
+  padding: 12px 10px;
+  text-align: center;
+}
+
+th {
+  background: var(--main-red);
+  color: white;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+tbody tr:hover {
+  background: #fee2e2;
+}
+
+/* ================= MONEY ================= */
+.money {
+  color: var(--main-red);
+  font-weight: 600;
+}
+
+/* ================= LINK ================= */
+td a {
+  color: var(--main-red);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+td a:hover {
+  text-decoration: underline;
+}

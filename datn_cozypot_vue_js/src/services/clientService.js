@@ -18,7 +18,6 @@ const clientService = {
     return axiosClient.get(`/khach-hang/${id}`);
   },
 
-  // SỬA: Thêm config headers để axios hiểu là gửi Form Data có kèm file
   create: (formData) => {
     return axiosClient.post('/khach-hang/add', formData, {
       headers: {
@@ -27,7 +26,6 @@ const clientService = {
     });
   },
 
-  // SỬA: Tương tự cho update
   update: (id, formData) => {
     return axiosClient.put(`/khach-hang/update/${id}`, formData, {
       headers: {
