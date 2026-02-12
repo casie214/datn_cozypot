@@ -121,3 +121,12 @@ export const updateTTPhieuDatBan = async (id, trangThai) => {
         throw new Error("Cập nhật trạng thái thất bại");
     }
 };
+
+export const fetchTableStatusByDate = async (date) => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${date}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
