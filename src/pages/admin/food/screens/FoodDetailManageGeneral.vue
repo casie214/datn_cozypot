@@ -101,7 +101,6 @@ const handleSelectHotpot = (val) => {
         <div class="filter-item">
           <label>Sắp xếp theo</label>
           <select v-model="sortOption" class="form-control">
-
             <option value="id_desc">Mới thêm gần đây</option>
             <option value="id_asc">Số thứ tự tăng dần</option>
             <option value="price_asc">Giá thấp -> Cao</option>

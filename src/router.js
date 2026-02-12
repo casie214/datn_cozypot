@@ -11,33 +11,32 @@ import CardTable from "./pages/admin/table/modal/cardTable.vue";
 import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
 
-
-    const routes = [
-  {
-    path: "/admin/client",
-    component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-    meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
-    children: [
-        {
-            path: "", 
-            name: "clientList",
-            component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
-            meta: { index: 1 } // Cấp độ 1: Danh sách
-        },
-        {
-            path: "view/:id",
-            name: "clientView",
-            component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
-        },
-        {
-            path: "form/:id?", 
-            name: "clientForm",
-            component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
-        }
-    ]
-},
+const routes = [
+    {
+        path: "/admin/client",
+        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
+        children: [
+            {
+                path: "", 
+                name: "clientList",
+                component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
+                meta: { index: 1 } // Cấp độ 1: Danh sách
+            },
+            {
+                path: "view/:id",
+                name: "clientView",
+                component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
+                meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
+            },
+            {
+                path: "form/:id?", 
+                name: "clientForm",
+                component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
+                meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
+            }
+        ]
+    },
     {
         path: "/login",
         name: "login",
@@ -62,7 +61,7 @@ import Swal from 'sweetalert2';
     //Table
 
     {
-        path: "/admin/tables", 
+        path: "/admin/tables",
         name: "tableManager",
         component: () =>
             import ("@/pages/admin/table/screen/tableReserveManager.vue"),
@@ -112,27 +111,27 @@ import Swal from 'sweetalert2';
     //NvKh
 
     {
-    path: "/admin/staff",
-    // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
-    component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
-    children: [
-        {
-            path: "",
-            name: "staffManager",
-            component: () => import("@/pages/admin/staff/modal/staffListContent.vue"),
-        },
-        {
-            path: "form/:id?",
-            name: "staffForm",
-            component: () => import("@/pages/admin/staff/modal/staffFormPage.vue"),
-        },
-        {
-            path: "view/:id",
-            name: "staffView",
-            component: () => import("@/pages/admin/staff/modal/staffDetailPage.vue"),
-        }
-    ]
-},
+        path: "/admin/staff",
+        // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
+        component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
+        children: [
+            {
+                path: "",
+                name: "staffManager",
+                component: () => import("@/pages/admin/staff/modal/staffListContent.vue"),
+            },
+            {
+                path: "form/:id?",
+                name: "staffForm",
+                component: () => import("@/pages/admin/staff/modal/staffFormPage.vue"),
+            },
+            {
+                path: "view/:id",
+                name: "staffView",
+                component: () => import("@/pages/admin/staff/modal/staffDetailPage.vue"),
+            }
+        ]
+    },
 
     {
         path: "/admin/statistics",
@@ -363,11 +362,20 @@ import Swal from 'sweetalert2';
     },
 
     {
-    path: '/auth/google/callback',
-    name: 'GoogleCallback',
-    component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
-    meta: { requiresAuth: false } 
+        path: '/auth/google/callback',
+        name: 'GoogleCallback',
+        component: () =>
+            import ('@/pages/guest/authentication/googleLoginCallback.vue'),
+        meta: { requiresAuth: false }
     },
+    {
+        path: "/admin/checkin/food",
+        name: "foodCheckIn",
+        component: () =>
+            import ("@/pages/admin/table/modal/innerComponents/foodList.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    }
+
 
 
 ];
@@ -413,8 +421,9 @@ router.beforeEach((to, from, next) => {
                     timer: 3000,
                     timerProgressBar: true
                 });
+
                 if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
-                    return next(false); 
+                    return next(false);
                 }
                 return next('/');
             }

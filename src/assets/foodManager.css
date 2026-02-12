@@ -8,7 +8,6 @@
 
 .flex-row {
     display: flex;
-
     flex-direction: row !important;
     justify-content: space-between;
 }
@@ -234,7 +233,6 @@ tr:hover {
     font-weight: bold;
     cursor: pointer;
 }
-
 
 .btn-show-table {
     background-color: #8B0000;

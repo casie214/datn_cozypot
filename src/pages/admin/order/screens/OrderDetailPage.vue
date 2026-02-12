@@ -6,6 +6,7 @@ import { BeGetChiTietSetLau } from "./orderService";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import relativeTime from "dayjs/plugin/relativeTime";
+import logoUrl from "@/assets/images/logo_upscaled.jpg";
 dayjs.locale("vi");
 dayjs.extend(relativeTime);
 const route = useRoute();
@@ -15,6 +16,8 @@ const {
   selectedOrder,
   orderDetails,
   currentVAT,
+  configHoldTime,
+  configCancelLimit,
   handleViewDetail,
   openCancelModal,
   confirmCancelOrder,
@@ -23,6 +26,8 @@ const {
   handlePrintOrder,
   historyEvents,
   paymentHistory,
+  invoiceDate,
+  formatDate,
 } = useOrderManager();
 
 onMounted(async () => {
@@ -160,7 +165,9 @@ const handleCloseSetModal = () => {
               </p>
             </div>
             <div class="col-md">
-              <label class="d-block text-muted small mb-1">Trạng thái hoàn tiền</label>
+              <label class="d-block text-muted small mb-1"
+                >Trạng thái hoàn tiền</label
+              >
               <p class="mb-0 fw-bold">
                 {{ selectedOrder?.trangThaiHoanTien }}
               </p>
@@ -182,34 +189,13 @@ const handleCloseSetModal = () => {
             <table class="table align-middle mb-0">
               <thead class="bg-light">
                 <tr>
-                  <th
-                    class="text-center py-3 text-custom-red border-bottom-red"
-                    width="50"
-                  >
-                    STT
-                  </th>
-                  <th class="py-3 text-custom-red border-bottom-red">
-                    TÊN MÓN ĂN
-                  </th>
-                  <th
-                    class="text-center py-3 text-custom-red border-bottom-red"
-                  >
-                    SỐ LƯỢNG
-                  </th>
-                  <th class="text-end py-3 text-custom-red border-bottom-red">
-                    ĐƠN GIÁ
-                  </th>
-                  <th class="text-end py-3 text-custom-red border-bottom-red">
-                    THÀNH TIỀN
-                  </th>
-                  <th class="text-end py-3 text-custom-red border-bottom-red">
-                    TRẠNG THÁI
-                  </th>
-                  <th
-                    class="text-center py-3 text-custom-red border-bottom-red"
-                  >
-                    CHI TIẾT MÓN
-                  </th>
+                  <th class="text-center py-3" width="50">STT</th>
+                  <th class="py-3">TÊN MÓN ĂN</th>
+                  <th class="text-center py-3">SỐ LƯỢNG</th>
+                  <th class="text-end py-3">ĐƠN GIÁ</th>
+                  <th class="text-end py-3">THÀNH TIỀN</th>
+                  <th class="text-end py-3">TRẠNG THÁI</th>
+                  <th class="text-center py-3">CHI TIẾT MÓN</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,6 +241,15 @@ const handleCloseSetModal = () => {
                       👁️
                     </button>
                     <span v-else class="text-muted small">---</span>
+                  </td>
+                </tr>
+
+                <tr v-if="!orderDetails || orderDetails.length === 0">
+                  <td colspan="7" class="text-center py-5 text-muted">
+                    <div class="d-flex flex-column align-items-center">
+                      <i class="fa-solid fa-utensils fs-3 mb-2 opacity-25"></i>
+                      <span>Chưa có món ăn nào được gọi</span>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -446,6 +441,7 @@ const handleCloseSetModal = () => {
           <button
             class="btn btn-print px-4 py-2 fw-medium text-white"
             @click="handlePrintOrder(selectedOrder?.id)"
+            :disabled="selectedOrder?.trangThai === 'Đã hủy'"
           >
             In hóa đơn
           </button>
@@ -533,6 +529,18 @@ const handleCloseSetModal = () => {
             </div>
 
             <div class="modal-body">
+              <div
+                v-if="cancelModalState.isDeposit"
+                class="alert alert-brand d-flex align-items-center mb-3 py-2"
+              >
+                <i class="fas fa-info-circle me-2 fs-5"></i>
+                <div class="small">
+                  <strong>Quy định hiện tại:</strong><br />
+                  - Thời gian giữ bàn: <b>{{ configHoldTime }} phút</b>.<br />
+                  - Hủy trước <b>{{ configCancelLimit }} giờ</b>: Được hoàn 100%
+                  cọc.
+                </div>
+              </div>
               <div
                 v-if="cancelModalState.isWarning"
                 class="alert alert-warning d-flex align-items-start border-warning mb-3"
@@ -626,6 +634,170 @@ const handleCloseSetModal = () => {
       </div>
     </main>
   </div>
+
+  <div style="position: absolute; left: -9999px; top: -9999px">
+    <div id="invoice-template" class="invoice-wrapper">
+      <div class="main-frame">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+          <div
+            class="d-flex flex-column align-items-center"
+            style="width: 150px"
+          >
+            <img :src="logoUrl" alt="Logo" class="invoice-logo mb-2" />
+            <span class="fw-bold text-custom-red text-uppercase small"
+              >CozyPot</span
+            >
+          </div>
+
+          <div class="text-center flex-grow-1 pt-2">
+            <h1
+              class="fw-bold text-uppercase mb-1"
+              style="font-size: 26px; letter-spacing: 2px"
+            >
+              HÓA ĐƠN
+            </h1>
+            <p class="mb-0 small fst-italic">Mã HĐ: #{{ selectedOrder?.id }}</p>
+          </div>
+
+          <div class="text-end" style="width: 150px">
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=CozyPot-Invoice"
+              alt="QR"
+              style="
+                width: 80px;
+                height: 80px;
+                border: 1px solid #000;
+                padding: 2px;
+              "
+            />
+          </div>
+        </div>
+
+        <div class="info-section mb-4">
+          <div class="row g-0">
+            <div class="col-6 pe-3">
+              <div class="border-bottom border-dark fw-bold mb-2 pb-1">
+                Hóa đơn cho:
+              </div>
+              <p class="mb-1 fw-bold">
+                {{ selectedOrder?.khachHang || "Khách lẻ" }}
+              </p>
+              <p class="mb-0">SĐT: {{ selectedOrder?.sdt || "---" }}</p>
+            </div>
+            <div class="col-6 ps-3">
+              <div class="border-bottom border-dark fw-bold mb-2 pb-1 text-end">
+                Chi tiết:
+              </div>
+              <p class="mb-1 text-end">Ngày in: {{ invoiceDate }}</p>
+
+              <p
+                v-if="selectedOrder?.tienCocRaw > 0"
+                class="mb-1 text-end text-muted fst-italic small"
+              >
+                (Ngày đặt: {{ formatDate(selectedOrder?.thoiGianDat) }})
+              </p>
+              <p class="mb-0 text-end">Bàn: {{ selectedOrder?.ban }}</p>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-2 text-uppercase">Thông tin chi tiết</h6>
+
+        <table class="table table-bordered border-dark invoice-table mb-4">
+          <thead>
+            <tr class="bg-light">
+              <th class="text-center" style="width: 50px">STT</th>
+              <th class="text-start">Tên dịch vụ / Món ăn</th>
+              <th class="text-center" style="width: 70px">SL</th>
+              <th class="text-end" style="width: 120px">Đơn giá</th>
+              <th class="text-end" style="width: 130px">Tổng tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in orderDetails" :key="index">
+              <td class="text-center fw-bold">{{ index + 1 }}</td>
+              <td>
+                <span class="fw-medium">{{ item.tenMon }}</span>
+                <div v-if="item.idSetLau" class="small text-muted fst-italic">
+                  (Set lẩu)
+                </div>
+              </td>
+              <td class="text-center fw-bold">{{ item.soLuong }}</td>
+              <td class="text-end">
+                {{ formatMoney(item.donGia).replace(" ₫", "") }}
+              </td>
+              <td class="text-end fw-bold">
+                {{ formatMoney(item.thanhTien).replace(" ₫", "") }}
+              </td>
+            </tr>
+            <tr v-if="orderDetails.length < 5">
+              <td colspan="5" style="height: 30px"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="row">
+          <div class="col-12">
+            <h6 class="fw-bold mb-2 text-uppercase">Chi phí khác & Tổng kết</h6>
+            <table class="table table-bordered border-dark invoice-table">
+              <tbody>
+                <tr>
+                  <td class="fw-medium" style="width: 70%">Tổng tiền hàng:</td>
+                  <td class="text-end fw-bold">{{ formatMoney(subTotal) }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-medium" style="width: 70%">
+                    Thuế VAT ({{ appliedVAT }}%):
+                  </td>
+                  <td class="text-end fw-bold">{{ formatMoney(taxAmount) }}</td>
+                </tr>
+                <tr v-if="discount > 0">
+                  <td class="fw-medium">Giảm giá / Voucher:</td>
+                  <td class="text-end fw-bold text-danger">
+                    - {{ formatMoney(discount) }}
+                  </td>
+                </tr>
+                <tr v-if="deposit > 0">
+                  <td class="fw-medium">Đã đặt cọc:</td>
+                  <td class="text-end fw-bold text-success">
+                    - {{ formatMoney(deposit) }}
+                  </td>
+                </tr>
+
+                <tr style="background-color: #f8f9fa">
+                  <td class="align-middle">
+                    <span class="fw-bold fs-6 text-uppercase"
+                      >Tổng thanh toán:</span
+                    >
+                    <div class="small fst-italic text-muted mt-1">
+                      (Đã bao gồm VAT và các khoản giảm trừ)
+                    </div>
+                  </td>
+                  <td class="text-end align-middle">
+                    <span class="fw-bold fs-4 text-custom-red">{{
+                      formatMoney(finalTotal)
+                    }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="text-center mt-5 pt-4">
+          <p class="mb-1 fw-bold fst-italic">
+            Cảm ơn quý khách và hẹn gặp lại!
+          </p>
+          <div class="small text-muted">
+            <p class="mb-0">COZYPOT RESTAURANT | 123 Đường FPT, Hà Nội</p>
+            <p class="mb-0">
+              Hotline: 1900 888 888 | Email: contact@cozypot.vn
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -646,7 +818,6 @@ const handleCloseSetModal = () => {
   font-size: 24px;
   font-weight: bold;
 }
-
 
 .btn-custom {
   background-color: #8b0000;
@@ -677,13 +848,103 @@ const handleCloseSetModal = () => {
   background-color: #b84747;
 }
 
-.bg-success-subtle { background-color: #d4edda !important; }
-.bg-warning-subtle { background-color: #fff3cd !important; }
-.text-warning { color: #856404 !important; }
-.cursor-pointer { cursor: pointer; }
-.border-dashed { border-style: dashed !important; }
-.last-no-border:last-child { border-bottom: none !important; padding-bottom: 0 !important; margin-bottom: 0 !important; }
-.border-bottom-dashed { border-bottom: 1px dashed #eee; }
-.modal { background-color: rgba(0, 0, 0, 0.5); }
-.btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
+.bg-success-subtle {
+  background-color: #d4edda !important;
+}
+.bg-warning-subtle {
+  background-color: #fff3cd !important;
+}
+.text-warning {
+  color: #856404 !important;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.border-dashed {
+  border-style: dashed !important;
+}
+.last-no-border:last-child {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+.border-bottom-dashed {
+  border-bottom: 1px dashed #eee;
+}
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+/* Container chính giống tờ giấy có viền */
+/* Container dùng Pixel (px) để tránh lỗi tính toán của html2pdf */
+.invoice-wrapper {
+  width: 760px; /* Khổ rộng chuẩn để vừa A4 khi scale */
+  background: white;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Khung viền chính bo tròn - Giống mẫu */
+.main-frame {
+  border: 2px solid #000; /* Viền đen đậm */
+  border-radius: 15px; /* Bo góc */
+  padding: 30px;
+  min-height: 900px;
+  position: relative;
+  font-family: "Times New Roman", serif;
+  color: #000;
+}
+
+/* Logo */
+.invoice-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* Table Style - Kẻ bảng full viền đen */
+.invoice-table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.invoice-table thead th {
+  background-color: #f0f0f0;
+  border-top: 2px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.invoice-table tbody td {
+  border: 1px solid #000; /* Viền bao quanh từng ô */
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+/* Ghi đè bootstrap để hiện viền rõ hơn */
+.table-bordered > :not(caption) > * {
+  border-width: 1px;
+}
+
+.text-custom-red {
+  color: #8b0000 !important;
+}
+
+.alert-brand {
+  background-color: rgba(139, 0, 0, 0.1); /* Màu đỏ #8b0000 nhưng mờ 10% */
+  border: 1px solid rgba(139, 0, 0, 0.3); /* Viền đỏ mờ 30% */
+  color: #8b0000; /* Chữ màu đỏ chủ đạo */
+}
+
+.alert-brand i {
+  color: #8b0000 !important; /* Icon cũng đỏ luôn cho đồng bộ */
+}
 </style>
