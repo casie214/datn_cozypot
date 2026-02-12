@@ -27,9 +27,52 @@
 }.text-primary-red {
     color: #8b0000;
 }
+.product-img {
+    width: 55px;
+    height: 55px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
 
 .smallest {
     font-size: 11px;
+}
+.table-responsive {
+    max-height: 320px; /* ~ 8 dòng */
+    overflow-y: auto;  /* Bật scroll dọc */
+}
+
+/* Làm header cố định khi cuộn (đẹp hơn) */
+.table-responsive thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 2;
+}
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c0392b;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #eee;
+}
+.disabled-icon {
+    pointer-events: none;
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.product-thumb {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ddd;
 }
 
 /* Hộp chứa danh sách sản phẩm */

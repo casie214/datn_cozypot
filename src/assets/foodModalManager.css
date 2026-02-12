@@ -1531,9 +1531,11 @@ textarea {
 
 .page-content {
     display: grid;
-    grid-template-columns: 2fr 1.2fr; /* Cột trái to hơn */
+    grid-template-columns: 2fr 1.2fr;
+    /* Cột trái to hơn */
     gap: 20px;
-    padding-bottom: 80px; /* Chừa chỗ cho footer */
+    padding-bottom: 80px;
+    /* Chừa chỗ cho footer */
 }
 
 .form-row-2 {
@@ -1542,7 +1544,9 @@ textarea {
     gap: 15px;
 }
 
+
 /* Variant List Styling */
+
 .variants-list {
     margin-top: 15px;
     max-height: 400px;
@@ -1551,7 +1555,7 @@ textarea {
 
 .variant-item {
     display: grid;
-    grid-template-columns: 60px 1fr 120px 40px; 
+    grid-template-columns: 60px 1fr 120px 40px;
     gap: 55px;
     align-items: center;
     padding: 12px;
@@ -1561,7 +1565,8 @@ textarea {
 }
 
 .v-thumb {
-    width: 100%; /* Chiếm hết ô grid 60px */
+    width: 100%;
+    /* Chiếm hết ô grid 60px */
     height: 60px;
     border-radius: 6px;
     overflow: hidden;
@@ -1573,16 +1578,31 @@ textarea {
     height: 100%;
     object-fit: cover;
 }
-.variant-item:hover { background: #f9f9f9; }
 
-.v-name { font-weight: bold; color: #333; }
-.v-meta { font-size: 0.85rem; color: #777; margin-top: 2px; }
-.v-price { font-weight: bold; color: #d32f2f; }
+.variant-item:hover {
+    background: #f9f9f9;
+}
+
+.v-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.v-meta {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 2px;
+}
+
+.v-price {
+    font-weight: bold;
+    color: #d32f2f;
+}
 
 .card-header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: start;
     margin-bottom: 10px;
 }
 
@@ -1598,7 +1618,8 @@ textarea {
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    justify-self: end; /* Căn sang phải cùng */
+    justify-self: end;
+    /* Căn sang phải cùng */
 }
 
 .btn-icon-delete:hover {
@@ -1618,7 +1639,9 @@ textarea {
     background-color: #e0e0e0;
 }
 
+
 /* Nút Xóa (Viền đỏ, nền trắng, chữ đỏ) */
+
 .btn-remove {
     background-color: #fff;
     border: 1px solid #dc3545;
@@ -1630,11 +1653,14 @@ textarea {
     color: white;
 }
 
+
 /* Khung hiển thị ảnh (Dashed Border) */
+
 .image-preview-container {
     width: 100%;
     min-height: 200px;
-    border: 2px dashed #e0e0e0; /* Viền nét đứt màu xám nhạt */
+    border: 2px dashed #e0e0e0;
+    /* Viền nét đứt màu xám nhạt */
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -1644,15 +1670,19 @@ textarea {
     position: relative;
 }
 
+
 /* Khi có ảnh thì bỏ padding để ảnh full */
+
 .image-preview-container.has-image {
     background-color: white;
-    border: 1px solid #eee; /* Đổi sang viền liền nhẹ khi có ảnh */
+    border: 1px solid #eee;
+    /* Đổi sang viền liền nhẹ khi có ảnh */
 }
 
 .image-preview-container img {
     max-width: 100%;
-    max-height: 300px; /* Giới hạn chiều cao để không vỡ layout */
+    max-height: 300px;
+    /* Giới hạn chiều cao để không vỡ layout */
     object-fit: contain;
     display: block;
 }
@@ -1663,31 +1693,18 @@ textarea {
 }
 
 .btn-save-large {
-
     padding: 12px 24px;
-
     background: #8B0000;
-
     color: white;
-
     border: none;
-
     border-radius: 6px;
-
     font-weight: bold;
-
     cursor: pointer;
-
     box-shadow: 0 2px 5px rgba(211, 47, 47, 0.3);
-
 }
 
-
-
 .btn-save-large:hover {
-
     background: #b71c1c;
-
 }
 
 .empty-placeholder i {

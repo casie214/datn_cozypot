@@ -34,15 +34,12 @@ const promotionService = {
     // 5. Đổi trạng thái (Toggle)
     // Lưu ý: Thường nên tạo 1 API riêng ở Backend: @PatchMapping("/{id}/status")
     // Nếu chưa có, ta dùng tạm update nhưng phải gửi kèm dữ liệu cũ để tránh mất data
-    toggleStatus: async (id, currentStatus) => {
-        const newStatus = currentStatus === 1 ? 0 : 1;
 
-        // Cách tốt nhất: Lấy data cũ về rồi mới update trạng thái mới
-        const currentData = await axiosClient.get(`${API_URL}/${id}`).then(res => res.data);
-        currentData.trangThai = newStatus;
-
-        return axiosClient.put(`${API_URL}/update/${id}`, currentData);
+    // 5. Toggle status (API riêng)
+    toggleStatus: (id) => {
+        return axiosClient.put(`${API_URL}/${id}/toggle-status`);
     }
+
 };
 
 export default promotionService;

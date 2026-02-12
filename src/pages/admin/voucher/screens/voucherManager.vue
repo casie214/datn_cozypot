@@ -502,7 +502,7 @@
                                         </thead>
 
                                         <tbody v-if="formData.doiTuong === 1">
-                                            <tr v-for="kh in filteredCustomers" :key="kh.id">
+                                            <tr v-for="kh in pagedCustomers" :key="kh.id">
                                                 <td class="text-center">
                                                     <input type="checkbox" :value="kh.id"
                                                         v-model="formData.listIdKhachHang" class="form-check-input"
@@ -543,6 +543,28 @@
                                             </td>
                                         </tr>
                                     </table>
+                                    <!-- Pagination Khách Hàng -->
+                                    <div class="d-flex justify-content-center mt-3 gap-2">
+
+                                        <button class="btn btn-sm btn-light"
+                                            :disabled="customerPagination.currentPage === 1"
+                                            @click="customerPagination.currentPage--">
+                                            «
+                                        </button>
+
+                                        <span class="fw-bold">
+                                            {{ customerPagination.currentPage }} /
+                                            {{ customerTotalPages }}
+                                        </span>
+
+                                        <button class="btn btn-sm btn-light"
+                                            :disabled="customerPagination.currentPage === customerTotalPages"
+                                            @click="customerPagination.currentPage++">
+                                            »
+                                        </button>
+
+                                    </div>
+
                                 </div>
                                 <div class="customer-selected-card mt-4 customer-table-wrapper">
 
@@ -592,20 +614,18 @@
                     </div>
                 </div>
                 <div class="mt-4 d-flex justify-content-end gap-2">
-                    <div
-                            class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
-                            <button type="button"
-                                class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
-                                style="height: 42px; background-color: #800000;" @click="closeForm">
-                                HỦY BỎ
-                            </button>
+                    <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
+                        <button type="button"
+                            class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
+                            style="height: 42px; background-color: #800000;" @click="closeForm">
+                            HỦY BỎ
+                        </button>
 
-                            <button v-if="!isReadOnly" type="submit"
-                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
-                                >
-                                <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
-                            </button>
-                        </div>
+                        <button v-if="!isReadOnly" type="submit"
+                            class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center">
+                            <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -664,6 +684,12 @@ const exportExcel = async () => {
         showToast('Lỗi', 'Xuất Excel thất bại!', 'error');
     }
 };
+
+const customerPagination = reactive({
+    currentPage: 1,
+    pageSize: 6, // mỗi trang 6 KH
+});
+
 const cleanParams = (obj) => {
     const cleaned = {};
     Object.keys(obj).forEach(key => {
@@ -878,6 +904,25 @@ const filteredCustomers = computed(() => {
 
     return result;
 });
+
+const pagedCustomers = computed(() => {
+    const start =
+        (customerPagination.currentPage - 1) *
+        customerPagination.pageSize;
+
+    return filteredCustomers.value.slice(
+        start,
+        start + customerPagination.pageSize
+    );
+});
+
+const customerTotalPages = computed(() => {
+    return Math.ceil(
+        filteredCustomers.value.length /
+        customerPagination.pageSize
+    );
+});
+
 
 const isAllCustomersSelected = computed(() => {
     return filteredCustomers.value.length > 0 &&
@@ -1271,6 +1316,10 @@ watch(customerMonth, async () => {
         await loadCustomers();
     }
 });
+watch(sortConfig, () => {
+    customerPagination.currentPage = 1;
+}, { deep: true });
+
 
 const visiblePages = computed(() => {
     const total = pagination.totalPages;
