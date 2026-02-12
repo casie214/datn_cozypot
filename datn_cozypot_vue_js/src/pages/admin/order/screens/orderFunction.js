@@ -1,7 +1,8 @@
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import Swal from "sweetalert2";
+import html2pdf from "html2pdf.js";
 dayjs.locale("vi");
 
 import {
@@ -20,13 +21,15 @@ import {
 export function useOrderManager() {
   const currentPage = ref(0);
   const totalPages = ref(0);
-  const pageSize = ref(5); 
+  const pageSize = ref(5);
   const totalElements = ref(0);
 
   const selectedOrder = ref(null);
   const orderList = ref([]);
   const orderDetails = ref([]);
-  const currentVAT = ref(0);
+  const currentVAT = ref(10);
+  const configHoldTime = ref(15);
+  const configCancelLimit = ref(2);
 
   const isHistoryModalOpen = ref(false);
   const selectedHistoryOrder = ref(null);
@@ -46,6 +49,18 @@ export function useOrderManager() {
     },
   });
 
+const invoiceDate = computed(() => {
+    if (
+      selectedOrder.value?.trangThai === "Hoàn thành" &&
+      paymentHistory.value &&
+      paymentHistory.value.length > 0
+    ) {
+      const lastPayment = paymentHistory.value[paymentHistory.value.length - 1];
+      return dayjs(lastPayment.ngayThanhToan).format("HH:mm - DD/MM/YYYY");
+    }
+    return dayjs().format("HH:mm - DD/MM/YYYY");
+  });
+
   const cancelModalState = ref({
     isOpen: false,
     orderData: null,
@@ -53,7 +68,7 @@ export function useOrderManager() {
     isWarning: false,
     warningMessage: "",
     reason: "",
-    isSafe: false
+    isSafe: false,
   });
 
   const filters = ref({
@@ -71,7 +86,7 @@ export function useOrderManager() {
     return date.format("HH:mm DD/MM/YYYY");
   };
 
-    const formatDate = (dateString) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "---";
     const date = dayjs(dateString);
     if (!date.isValid()) return "Ngày lỗi";
@@ -113,6 +128,42 @@ export function useOrderManager() {
     return statuses[statusInt] || "Không xác định";
   };
 
+  const handlePrintOrder = async (orderId) => {
+    // 1. Lấy phần tử DOM chứa mẫu hóa đơn (chúng ta sẽ tạo ở Bước 3)
+    const element = document.getElementById("invoice-template");
+
+    if (!element) {
+      Swal.fire("Lỗi", "Không tìm thấy mẫu hóa đơn để in!", "error");
+      return;
+    }
+
+    // 2. Cấu hình cho file PDF
+    const opt = {
+      margin: 5, // Căn lề (mm)
+      filename: `HoaDon_${orderId}_${dayjs().format("DDMMYYYY")}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    // 3. Thực hiện xuất PDF
+    // Hiển thị loading nhẹ hoặc thông báo
+    const Toast = Swal.mixin({
+      toast: true,
+      position: "top-end",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+    Toast.fire({ icon: "info", title: "Đang tạo file PDF..." });
+
+    try {
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error("Lỗi xuất PDF:", err);
+      Swal.fire("Lỗi", "Không thể xuất file PDF", "error");
+    }
+  };
+
   const processOrderData = (data) => {
     if (!data) return [];
     return data.map((item) => {
@@ -143,9 +194,16 @@ export function useOrderManager() {
   const fetchConfig = async () => {
     try {
       const config = await BeGetThamSoHeThong();
-      currentVAT.value = Number(config.VAT || 10);
+      if (config) {
+        currentVAT.value = Number(config.VAT || 10);
+        configHoldTime.value = Number(config.MAX_HOLD_TIME || 15);
+        configCancelLimit.value = Number(config.CANCEL_LIMIT_HOURS || 2);
+      }
     } catch (error) {
+      console.error("Lỗi lấy tham số hệ thống, dùng mặc định", error);
       currentVAT.value = 10;
+      configHoldTime.value = 15;
+      configCancelLimit.value = 2;
     }
   };
 
@@ -165,7 +223,7 @@ export function useOrderManager() {
   const performSearch = async (isNewSearch = false) => {
     try {
       if (isNewSearch) {
-        currentPage.value = 0; 
+        currentPage.value = 0;
       }
 
       const statusMap = {
@@ -206,7 +264,7 @@ export function useOrderManager() {
         tuNgayISO,
         denNgayISO,
         currentPage.value,
-        pageSize.value
+        pageSize.value,
       );
 
       orderList.value = processOrderData(response.content);
@@ -364,21 +422,21 @@ export function useOrderManager() {
     }
   };
 
-    //Hủy hóa đơn
-const openCancelModal = async (order) => {
+  //Hủy hóa đơn
+  const openCancelModal = async (order) => {
     if (!order) return;
 
     if (!order.tienCocRaw || order.tienCocRaw === 0) {
       // Hiện Popup hỏi xác nhận
       Swal.fire({
-        title: 'Xác nhận hủy đơn?',
+        title: "Xác nhận hủy đơn?",
         text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
-        icon: 'warning',
+        icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: '#8b0000', 
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Đồng ý hủy',
-        cancelButtonText: 'Thoát'
+        confirmButtonColor: "#8b0000",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Đồng ý hủy",
+        cancelButtonText: "Thoát",
       }).then(async (result) => {
         if (result.isConfirmed) {
           const payload = {
@@ -387,18 +445,18 @@ const openCancelModal = async (order) => {
             hanhDong: "Hủy hóa đơn",
             lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
             isLoiDoQuan: false,
-            trangThaiLichSuTruocDo: 1, 
+            trangThaiLichSuTruocDo: 1,
             thoiGianThucHien: new Date().toISOString(),
           };
 
           try {
             await BeHuyHoaDon(payload);
-            
+
             // Hiện thông báo thành công (Góc phải)
             Toast.fire({
-              icon: 'success',
-              title: 'Thành công',
-              text: 'Hủy hóa đơn thành công!'
+              icon: "success",
+              title: "Thành công",
+              text: "Hủy hóa đơn thành công!",
             });
 
             if (filters.value.search || filters.value.status !== "Tất cả") {
@@ -406,21 +464,24 @@ const openCancelModal = async (order) => {
             } else {
               fetchOrders();
             }
-            if (selectedOrder.value && selectedOrder.value.dbId === order.dbId) {
+            if (
+              selectedOrder.value &&
+              selectedOrder.value.dbId === order.dbId
+            ) {
               await handleViewDetail(order.dbId);
             }
           } catch (error) {
             console.error(error);
             // Hiện thông báo lỗi (Góc phải)
             Toast.fire({
-              icon: 'error',
-              title: 'Lỗi',
-              text: error.response?.data?.message || error.message
+              icon: "error",
+              title: "Lỗi",
+              text: error.response?.data?.message || error.message,
             });
           }
         }
       });
-      return; 
+      return;
     }
 
     const hasDeposit = true;
@@ -433,16 +494,20 @@ const openCancelModal = async (order) => {
     let isWarning = false;
     let message = "";
 
+    const holdTimeHours = configHoldTime.value / 60; 
+    const cancelLimitHours = configCancelLimit.value;
+
     // LOGIC CẢNH BÁO
     if (diffHours < 0) {
-      if (Math.abs(diffHours) <= 0.25) {
+      if (Math.abs(diffHours) <= holdTimeHours) {
         isWarning = true;
         const minutesLate = Math.round(Math.abs(diffMinutes));
-        message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong 15p giữ bàn). Khách hủy => MẤT CỌC.`;
+        message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong ${configHoldTime.value}p giữ bàn). Khách hủy => MẤT CỌC.`;
       } else {
-        message = `Đã quá thời gian giữ bàn (15p). Đơn lẽ ra đã bị hủy tự động.`;
+        isWarning = true;
+        message = `Đã quá thời gian giữ bàn (${configHoldTime.value}p). Đơn lẽ ra đã bị hủy tự động.`;
       }
-    } else if (diffHours < 2) {
+    } else if (diffHours < cancelLimitHours) {
       isWarning = true;
       let timeDisplay = "";
       if (diffHours < 1) {
@@ -451,10 +516,10 @@ const openCancelModal = async (order) => {
       } else {
         timeDisplay = `${diffHours.toFixed(1)} giờ`;
       }
-      message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước 2h). Khách hủy lúc này sẽ MẤT CỌC.`;
+      message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước ${configCancelLimit.value}h). Khách hủy lúc này sẽ MẤT CỌC.`;
     }
 
-    if(diffHours > 24) isWarning = false;
+    if (diffHours > 24) isWarning = false;
 
     const isSafe = !isWarning;
 
@@ -469,56 +534,60 @@ const openCancelModal = async (order) => {
     };
   };
 
-const confirmCancelOrder = async (loiDoAi) => {
+  const confirmCancelOrder = async (loiDoAi) => {
     // Validate lý do
     if (!cancelModalState.value.reason.trim()) {
-        Toast.fire({
-            icon: 'warning',
-            title: 'Thiếu thông tin',
-            text: 'Vui lòng nhập lý do hủy đơn!'
-        });
-        return;
+      Toast.fire({
+        icon: "warning",
+        title: "Thiếu thông tin",
+        text: "Vui lòng nhập lý do hủy đơn!",
+      });
+      return;
     }
 
-    const isLoiDoQuan = loiDoAi === 'quan';
+    const isLoiDoQuan = loiDoAi === "quan";
     const payload = {
-        idHoaDon: cancelModalState.value.orderData.dbId,
-        idNhanVien: 1, 
-        hanhDong: "Hủy hóa đơn",
-        lyDoThucHien: cancelModalState.value.reason,
-        isLoiDoQuan: isLoiDoQuan,
-        thoiGianThucHien: new Date().toISOString(),
+      idHoaDon: cancelModalState.value.orderData.dbId,
+      idNhanVien: 1,
+      hanhDong: "Hủy hóa đơn",
+      lyDoThucHien: cancelModalState.value.reason,
+      isLoiDoQuan: isLoiDoQuan,
+      thoiGianThucHien: new Date().toISOString(),
     };
 
     try {
-        await BeHuyHoaDon(payload);
-        
-        // Đóng Modal Vue
-        closeCancelModal();
-        
-        // Hiện Toast thông báo thành công
-        Toast.fire({
-            icon: 'success',
-            title: 'Thành công',
-            text: isLoiDoQuan ? 'Đã hủy & Hoàn tiền cọc!' : 'Đã hủy & Giữ tiền cọc!'
-        });
+      await BeHuyHoaDon(payload);
 
-        if (filters.value.search || filters.value.status !== "Tất cả") {
-             performSearch(false);
-        } else {
-             fetchOrders();
-        }
-        if (selectedOrder.value && selectedOrder.value.dbId === payload.idHoaDon) {
-            await handleViewDetail(payload.idHoaDon);
-        }
+      // Đóng Modal Vue
+      closeCancelModal();
 
+      // Hiện Toast thông báo thành công
+      Toast.fire({
+        icon: "success",
+        title: "Thành công",
+        text: isLoiDoQuan
+          ? "Đã hủy & Hoàn tiền cọc!"
+          : "Đã hủy & Giữ tiền cọc!",
+      });
+
+      if (filters.value.search || filters.value.status !== "Tất cả") {
+        performSearch(false);
+      } else {
+        fetchOrders();
+      }
+      if (
+        selectedOrder.value &&
+        selectedOrder.value.dbId === payload.idHoaDon
+      ) {
+        await handleViewDetail(payload.idHoaDon);
+      }
     } catch (error) {
-        console.error(error);
-        Toast.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: error.response?.data?.message || 'Không thể hủy hóa đơn'
-        });
+      console.error(error);
+      Toast.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error.response?.data?.message || "Không thể hủy hóa đơn",
+      });
     }
   };
 
@@ -536,7 +605,7 @@ const confirmCancelOrder = async (loiDoAi) => {
   return {
     currentPage,
     totalPages,
-    pageSize,       
+    pageSize,
     totalElements,
     filters,
     orderList,
@@ -544,9 +613,13 @@ const confirmCancelOrder = async (loiDoAi) => {
     selectedOrder,
     orderDetails,
     currentVAT,
+    configHoldTime,   
+    configCancelLimit,
     isHistoryModalOpen,
     selectedHistoryOrder,
     historyEvents,
+    invoiceDate,
+    formatDate,
     handleViewDetail,
     handleViewHistory,
     closeHistoryModal: () => {
@@ -555,7 +628,7 @@ const confirmCancelOrder = async (loiDoAi) => {
     handleSearch,
     handleReset,
     handlePageChange,
-    handlePrintOrder: (id) => console.log("In:", id),
+    handlePrintOrder,
     handleUpdateMonDaLen,
     handleUpdateTatCaDaLen,
     cancelModalState,

@@ -1,11 +1,16 @@
 <script setup>
-import { addBanAn, fetchAllBanAn, fetchAllKhuVuc } from "@/services/tableManageService";
-import { onMounted, onUnmounted, ref } from "vue";
+import {
+  addBanAn,
+  fetchAllBanAn,
+  fetchAllKhuVuc,
+  fetchTableStatusByDate,
+} from "@/services/tableManageService";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { provide } from "vue";
 
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
 const listKhuVuc = ref([]);
-
 
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
 const fetchAllBan = async () => {
@@ -36,7 +41,6 @@ const handleFetchAllKhuVuc = async () => {
   }
 };
 
-
 const currentTime = ref("");
 
 let timer = null;
@@ -62,18 +66,60 @@ const form = ref({
   soNguoiToiDa: null,
   idKhuVuc: "",
   loaiDatBan: 0,
+  tang: "",
 });
+
+// watch(
+//   () => form.value.idKhuVuc,
+//   (id) => {
+//     console.log('ID chọn:', id, typeof id);
+//     console.log('Danh sách KV:', listKhuVuc.value);
+
+//     const khuVuc = listKhuVuc.value.find(kv => kv.id === Number(id));
+//     console.log('KV tìm được:', khuVuc);
+
+//     form.value.tang = khuVuc ? khuVuc.tang : 0;
+//   }
+// );
+
+const khuVucTheoTang = computed(() => {
+  if (!form.value.tang) return [];
+  return listKhuVuc.value.filter((kv) => kv.tang === Number(form.value.tang));
+});
+
+watch(
+  () => form.value.tang,
+  () => {
+    form.value.idKhuVuc = "";
+  },
+);
 
 const submitAddBan = async () => {
   try {
     await addBanAn(form.value);
     closeAddModal();
-    await fetchAllBan();
-    alert("Thêm thành công!")
+
+    await refreshData();
+    // await fetchAllBan();
+    alert("Thêm thành công!");
   } catch (e) {
     console.error("Lỗi thêm bàn", e);
   }
 };
+
+const refreshData = async () => {
+  await Promise.all([
+    fetchAllBan(),
+    // fetchTableStatus()
+  ]);
+};
+
+// ✅ Provide hàm refresh và data cho component con
+provide('refreshTableData', refreshData);
+provide('danhSachBan', danhSachBan);
+// provide('tableStatusMap', tableStatusMap);
+// provide('selectedDate', selectedDate);
+
 
 onMounted(() => {
   updateTime();
@@ -97,6 +143,9 @@ onUnmounted(() => {
             Quản lý bàn
           </h3>
         </div>
+
+        
+
         <div>
           <button class="btn" @click="openAddModal">Thêm bàn</button>
         </div>
@@ -130,7 +179,10 @@ onUnmounted(() => {
       <hr />
 
       <div class="contain-frame mt-3">
-        <router-view />
+        <router-view
+          :selectedDate="selectedDate"
+          :tableStatusMap="tableStatusMap"
+        />
       </div>
     </div>
   </div>
@@ -149,16 +201,42 @@ onUnmounted(() => {
           <input type="number" v-model="form.soNguoiToiDa" />
         </div>
 
-        <select class="form-select" v-model="form.idKhuVuc">
-          <option value="" disabled>-- Chọn khu vực --</option>
-          <option
-            v-for="khuVuc in listKhuVuc"
-            :key="khuVuc.id"
-            :value="khuVuc.id"
+        <div class="form-group">
+          <label>Tầng</label>
+          <select class="form-select" v-model="form.tang">
+            <option value="" disabled>-- Chọn tầng --</option>
+            <option
+              v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]"
+              :key="tang"
+              :value="tang"
+            >
+              Tầng {{ tang }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Khu vực</label>
+          <select
+            class="form-select"
+            v-model="form.idKhuVuc"
+            :disabled="!form.tang"
           >
-            {{ khuVuc.tenKhuVuc }}
-          </option>
-        </select>
+            <option value="" disabled>-- Chọn khu vực --</option>
+            <option
+              v-for="khuVuc in khuVucTheoTang"
+              :key="khuVuc.id"
+              :value="khuVuc.id"
+            >
+              {{ khuVuc.tenKhuVuc }}
+            </option>
+          </select>
+        </div>
+
+        <!-- <div class="form-group">
+          <label>Tầng</label>
+          <input type="number" v-model="form.tang" readonly/>
+        </div> -->
 
         <div class="form-check">
           <input

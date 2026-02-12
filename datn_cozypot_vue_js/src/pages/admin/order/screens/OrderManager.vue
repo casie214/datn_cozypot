@@ -205,13 +205,13 @@ const visiblePages = computed(() => {
                         👁️
                       </button>
 
-                      <button
+                      <!-- <button
                         class="btn btn-icon"
                         title="In hóa đơn"
                         @click="handlePrintOrder(order.id)"
                       >
                         🖨️
-                      </button>
+                      </button> -->
                     </div>
                   </td>
                 </tr>

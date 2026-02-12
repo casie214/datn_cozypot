@@ -10,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -54,7 +55,7 @@ public class ChiTietHoaDon {
     private Integer trangThaiMon;
 
     @Column(name = "ngay_gio_tao")
-    private Instant ngayGioTao;
+    private LocalDateTime ngayGioTao;
 
     @Column(name = "ngay_gio_sua")
     private Instant ngayGioSua;
