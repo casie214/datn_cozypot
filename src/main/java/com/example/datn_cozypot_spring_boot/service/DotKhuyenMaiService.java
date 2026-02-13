@@ -1,19 +1,18 @@
 package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.DotKhuyenMaiDTO;
+import com.example.datn_cozypot_spring_boot.entity.DanhMucChiTiet;
 import com.example.datn_cozypot_spring_boot.entity.DotKhuyenMai;
-import com.example.datn_cozypot_spring_boot.entity.MonAnDiKem;
 import com.example.datn_cozypot_spring_boot.entity.SetLau;
 import com.example.datn_cozypot_spring_boot.repository.DotKhuyenMaiRepository;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.MonAnRepository;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.SetLauRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
 import java.io.OutputStream;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,13 +32,11 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 // Java IO
-import java.io.OutputStream;
 
 // Java Time
-import java.time.LocalDate;
 
 // Java Util
-import java.util.List;
+
 
 @Service
 public class DotKhuyenMaiService {
@@ -50,7 +47,7 @@ public class DotKhuyenMaiService {
     private SetLauRepository setLauRepo; // Inject thêm repository này
 
     @Autowired
-    private MonAnRepository monAnRepo;
+    private DanhMucChiTietRepository monAnRepo;
 
     // Bổ sung phương thức này nếu chưa có hoặc đang sai tên
     public List<DotKhuyenMaiDTO> getAll() {
@@ -130,7 +127,7 @@ public class DotKhuyenMaiService {
         }
 
         if (dto.getIdMonAnChiTiet() != null) {
-            List<MonAnDiKem> selectedMons =
+            List<DanhMucChiTiet> selectedMons =
                     monAnRepo.findAllById(dto.getIdMonAnChiTiet());
 
             entity.setMonAnDiKems(new HashSet<>(selectedMons));
@@ -297,7 +294,7 @@ public class DotKhuyenMaiService {
         }
 
         if (dto.getIdMonAnChiTiet() != null) {
-            List<MonAnDiKem> selectedMons =
+            List<DanhMucChiTiet> selectedMons =
                     monAnRepo.findAllById(dto.getIdMonAnChiTiet());
 
             entity.setMonAnDiKems(new HashSet<>(selectedMons));
@@ -340,7 +337,7 @@ public class DotKhuyenMaiService {
         // Xử lý danh sách ID Món Ăn Đi Kèm
         if (entity.getMonAnDiKems() != null) {
             dto.setIdMonAnChiTiet(entity.getMonAnDiKems().stream()
-                    .map(MonAnDiKem::getId)
+                    .map(DanhMucChiTiet::getId)
                     .collect(Collectors.toList()));
         } else {
             dto.setIdMonAnChiTiet(new ArrayList<>()); // Trả về mảng rỗng [] thay vì null

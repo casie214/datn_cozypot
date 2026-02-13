@@ -4,7 +4,7 @@ import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonRe
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
 import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.SetLauChiTietRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauChiTietRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class ChiTietHoaDonService {
             dto.setGhiChu(item.getGhiChuMon());
 
             if (item.getIdChiTietMonAn() != null) {
-                dto.setTenMon(item.getIdChiTietMonAn().getTenChiTietMonAn());
+                dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
                 dto.setIdSetLau(null);
             }
             else if (item.getIdSetLau() != null) {

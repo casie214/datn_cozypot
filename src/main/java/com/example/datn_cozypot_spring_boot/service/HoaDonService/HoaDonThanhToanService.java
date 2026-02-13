@@ -6,8 +6,8 @@ import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhTo
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.MonAnChiTietRepository;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.SetLauRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class HoaDonThanhToanService {
@@ -38,7 +37,7 @@ public class HoaDonThanhToanService {
     BanAnRepository banAnRepo;
 
     @Autowired
-    MonAnChiTietRepository chiTietMonAnRepository;
+    DanhMucChiTietRepository chiTietDanhMucChiTietRepository;
     @Autowired
     private SetLauRepository setLauRepository;
     @Autowired
@@ -205,7 +204,7 @@ public class HoaDonThanhToanService {
             BigDecimal donGiaGoc = BigDecimal.ZERO;
 
             if (item.getIdChiTietMonAn() != null) {
-                ChiTietMonAn monAn = chiTietMonAnRepository.findById(item.getIdChiTietMonAn())
+                DanhMucChiTiet monAn = chiTietDanhMucChiTietRepository.findById(item.getIdChiTietMonAn())
                         .orElseThrow(() -> new RuntimeException("Món ăn không tồn tại ID: " + item.getIdChiTietMonAn()));
 
                 chiTiet.setIdChiTietMonAn(monAn);
