@@ -1,5 +1,5 @@
 <script setup>
-import { useFoodDetailManager } from '../../../../services/foodFunction'; // Sửa lại đường dẫn
+import { useFoodManager } from '../../../../services/foodFunction';
 import { useRouter } from 'vue-router';
 // --- IMPORT THƯ VIỆN ---
 import Slider from '@vueform/slider';
@@ -7,85 +7,48 @@ import "@vueform/slider/themes/default.css";
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 import CommonPagination from '@/components/commonPagination.vue';
+import Swal from 'sweetalert2';
 
 const {
-  paginatedData, searchQuery, currentPage, totalPages, visiblePages, itemsPerPage, changePage,
-  getAllFoodDetails, handleToggleStatus, sortOption, statusFilter,
-  selectedPriceRange, globalMinPrice, globalMaxPrice, clearFilters,
-  handleMinChange, handleMaxChange,
+  mockData, paginatedData, currentPage, itemsPerPage, totalPages, totalElements,
+  searchQuery, sortOption, statusFilter, categoryFilter, listCategories, isCategoryLocked,
+  globalMinPrice, globalMaxPrice, selectedPriceRange, getAllFoods,
+  handleToggleStatus, exportToExcel, goToAdd, goToEdit, handleViewDetails, clearFilters
+} = useFoodManager();
 
-  // Các biến mới
-  categoryFilter,
-  foodFilter,
-  listCategories,
-  availableFoods, totalElements,
-  hotpotFilter, availableHotpots, exportToExcel
-} = useFoodDetailManager();
+const handleRefreshListBtn = () => {
+  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+  emit('refresh');
+  setTimeout(() => emit('close'), 1000);
+  getAllFoods();
+}
+
 
 const router = useRouter();
-const goToAddScreen = () => router.push({ name: 'addFoodDetail' });
 
-const handleView = (item) => {
-  router.push({ name: 'viewFoodDetail', params: { id: item.id } });
-};
-
-const handleEdit = (item) => {
-  router.push({ name: 'updateFoodDetail', params: { id: item.id } });
-};
-
-const handleSelectFood = (val) => {
-  if (val) {
-    hotpotFilter.value = null;
-  }
-};
-
-const handleSelectHotpot = (val) => {
-  if (val) {
-    foodFilter.value = null;
-  }
-};
 </script>
 
 <template>
-  <div class="flex-row">
-    <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
-    <div class="action-row">
-      <button class="btn-add" @click="goToAddScreen">+ Thêm chi tiết món</button>
-      <button class="btn-excel" @click="exportToExcel" title="Xuất Excel">
-         <i class="fas fa-file-excel"></i> Xuất Excel
-      </button>
-    </div>
-  </div>
 
   <div class="tab-content">
     <div class="filter-box">
-      <div class="filter-row">
+      <div class="filter-row" style="align-items: flex-end;">
+
         <div class="filter-item search">
           <label>Tìm kiếm</label>
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
-              placeholder="Tìm chi tiết (mã, tên)" />
+              placeholder="Nhập mã, tên món ăn" />
             <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
-
-
         <div class="filter-item">
-          <label>Món ăn gốc</label>
+          <label>Danh mục gốc</label>
           <div class="multiselect-wrapper">
-            <Multiselect v-model="foodFilter" :options="availableFoods" valueProp="id" label="tenMonAn"
-              placeholder="-- Tất cả --" :searchable="true" :canClear="true" @change="handleSelectFood"
-              noOptionsText="Không có món ăn nào" noResultsText="Không tìm thấy món" />
-          </div>
-        </div>
-
-        <div class="filter-item">
-          <label>Set Lẩu</label>
-          <div class="multiselect-wrapper">
-            <Multiselect v-model="hotpotFilter" :options="availableHotpots" valueProp="id" label="tenSetLau"
-              placeholder="-- Tất cả --" :searchable="true" :canClear="true" @change="handleSelectHotpot"
-              noOptionsText="Không có set lẩu nào" noResultsText="Không tìm thấy" />
+            <Multiselect v-model="categoryFilter" :options="listCategories" valueProp="id" label="tenDanhMuc"
+              placeholder="-- Tất cả danh mục --" :searchable="true" :canClear="!isCategoryLocked"
+              :disabled="isCategoryLocked" noOptionsText="Không có danh mục nào" noResultsText="Không tìm thấy" />
           </div>
         </div>
 
@@ -93,40 +56,48 @@ const handleSelectHotpot = (val) => {
           <label>Trạng thái</label>
           <select v-model="statusFilter" class="form-control">
             <option value="all">Tất cả</option>
-            <option value="1">Đang hoạt động</option>
-            <option value="0">Ngưng hoạt động</option>
+            <option value="1">Đang kinh doanh</option>
+            <option value="0">Ngưng kinh doanh</option>
           </select>
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp theo</label>
           <select v-model="sortOption" class="form-control">
-            <option value="id_desc">Mới thêm gần đây</option>
-            <option value="id_asc">Số thứ tự tăng dần</option>
-            <option value="price_asc">Giá thấp -> Cao</option>
-            <option value="price_desc">Giá cao -> Thấp</option>
+            <option value="newest">Mới nhất</option>
+            <option value="name_asc">Tên (A-Z)</option>
+            <option value="price_asc">Giá (Thấp -> Cao)</option>
+            <option value="price_desc">Giá (Cao -> Thấp)</option>
           </select>
         </div>
 
-        <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
-
-        <div class="filter-item price-filter-item">
-          <div style="display: flex; flex-direction: row; justify-content: space-between;">
-            <label>Khoảng giá: <span class="price-range-text">{{ selectedPriceRange[0].toLocaleString() }} - {{
-              selectedPriceRange[1].toLocaleString() }}</span></label>
-            <div class="slider-wrapper" v-if="globalMaxPrice > 0">
-              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="5000"
-                :tooltips="false" />
-            </div>
+        <div class="filter-item price-filter-item" style="width: 250px;">
+          <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 5px;">
+            <label>Khoảng giá (VNĐ):</label>
+            <span class="price-range-text">
+              {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+            </span>
           </div>
-          <div class="price-inputs">
-            <input type="number" v-model="selectedPriceRange[0]" @change="handleMinChange" class="price-input-small"
-              placeholder="Từ">
-            <span class="separator">-</span>
-            <input type="number" v-model="selectedPriceRange[1]" @change="handleMaxChange" class="price-input-small"
-              placeholder="Đến">
+          <div class="slider-wrapper" v-if="globalMaxPrice > 0">
+            <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="5000"
+              :tooltips="false" />
           </div>
         </div>
+
+        <button class="btn-clear" style="margin-bottom: 5px;" @click="clearFilters">Xóa bộ lọc</button>
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <div class="action-row" style="margin-left: auto;">
+        <button class="btn-action-icon btn-add-only" @click="goToAdd">
+          <i class="fas fa-plus"></i>
+        </button>
+        <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
+          <i class="fas fa-file-excel"></i>
+        </button>
+        <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i
+            class="fas fa-sync-alt"></i></button>
       </div>
     </div>
 
@@ -135,43 +106,61 @@ const handleSelectHotpot = (val) => {
         <thead>
           <tr>
             <th>STT</th>
-            <th>MÃ CHI TIẾT</th>
-            <th>TÊN CHI TIẾT</th>
-            <th>MÓN ĂN GỐC</th>
-            <th>GIÁ BÁN</th>
-            <th>KÍCH CỠ</th>
+            <th>MÃ DANH MỤC</th>
+            <th>MÃ DMCT</th>
+            <th>TÊN DMCT</th>
+            <th>ĐỊNH LƯỢNG</th>
             <th>ĐƠN VỊ</th>
+            <th>GIÁ</th>
             <th>TRẠNG THÁI</th>
-            <th>CHỨC NĂNG</th>
+            <th style="width: 120px;">HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="paginatedData.length === 0">
-            <td colspan="10" class="empty-state-cell">
-              <div class="empty-state-content">
-                <div class="empty-icon">🍜</div>
-                <h3>Không tìm thấy món nào!</h3>
-                <button class="btn-reset-empty" @click="clearFilters">Xóa bộ lọc</button>
+            <td colspan="9" class="empty-state-cell">
+              <div class="empty-state-content" style="padding: 30px; text-align: center;">
+                <div class="empty-icon" style="font-size: 3rem; color: #ccc;">🍲</div>
+                <h3 style="color: #666; margin: 10px 0;">Không tìm thấy món ăn nào!</h3>
+                <button class="btn btn-outline-danger" @click="clearFilters">Xóa bộ lọc</button>
               </div>
             </td>
           </tr>
+
           <tr v-for="(item, index) in paginatedData" :key="item.id">
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-            <td>{{ item.maChiTietMonAn }}</td>
-            <td>{{ item.tenChiTietMonAn }}</td>
-            <td>{{ item.monAnDiKem ? item.monAnDiKem.tenMonAn : (item.tenMonAnDiKem || '---') }}</td>
-            <td >{{ item.giaBan?.toLocaleString() }}</td>
-            <td>{{ item.kichCo }}</td>
-            <td>{{ item.donVi }}</td>
-            <td :class="item.trangThai ? '' : ''">
-              {{ item.trangThai ? 'Đang hoạt động' : 'Ngưng bán' }}
+
+            <td>{{ item.maDanhMuc || 'DM001' }}</td>
+            <td>{{ item.maMon }}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span>{{ item.tenMon }}</span>
+              </div>
             </td>
-            <td class="actions">
-              <div class="action-group">
-                <i class="fas fa-eye view-icon" @click="handleView(item)"></i>
-                <i class="fas fa-pen edit-icon" @click="handleEdit(item)"></i>
-                <i :class="item.trangThai === 1 ? 'fas fa-unlock-alt' : 'fas fa-lock'"
+
+
+
+            <td>
+              <span class="badge bg-secondary">{{ item.giaTriDinhLuong || '---' }}</span>
+            </td>
+
+            <td>{{ item.kichCo || '---' }}</td>
+
+            <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
+
+            <td>
+              <span :class="['status-badge', item.trangThai === 1 ? 'active' : 'inactive']">
+                {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
+              </span>
+            </td>
+
+            <td class="">
+              <div class="action-group d-flex justify-content-center">
+                <i class="fas fa-pen edit-icon" title="Cập nhật" @click="goToEdit(item)"></i>
+
+                <i v-if="item.trangThai === 1" class="fas fa-unlock-alt unlock-icon" title="Tạm ngưng bán"
                   @click="handleToggleStatus(item)"></i>
+                <i v-else class="fas fa-lock lock-icon" title="Kích hoạt bán" @click="handleToggleStatus(item)"></i>
               </div>
             </td>
           </tr>
@@ -179,14 +168,8 @@ const handleSelectHotpot = (val) => {
       </table>
 
       <div style="padding-bottom: 30px;" class="pagination">
-        <CommonPagination
-            v-model:currentPage="currentPage"
-            v-model:pageSize="itemsPerPage"
-            :total-pages="totalPages"
-            :total-elements="totalElements"
-            :current-count="paginatedData.length"
-            @change="() => {}" 
-        />
+        <CommonPagination v-model:currentPage="currentPage" v-model:pageSize="itemsPerPage" :total-pages="totalPages"
+          :total-elements="totalElements" :current-count="paginatedData.length" @change="() => { }" />
       </div>
     </div>
   </div>
@@ -198,7 +181,7 @@ const handleSelectHotpot = (val) => {
 <style scoped>
 /* CSS cho Multiselect */
 .multiselect-wrapper {
-  width: 200px;
+  width: 230px;
 }
 
 :deep(.multiselect) {
@@ -211,11 +194,11 @@ const handleSelectHotpot = (val) => {
   --ms-option-bg-selected-pointed: #b71c1c;
 }
 
-/* CSS Slider & Actions (Giữ nguyên của bạn) */
+/* CSS Slider & Actions */
 .slider-wrapper {
-  width: 200px;
-  padding: 0 10px;
-  margin-top: 5px;
+  width: 100%;
+  padding: 0 5px;
+  margin-top: 10px;
 }
 
 :deep(.slider-connect) {
@@ -232,27 +215,14 @@ const handleSelectHotpot = (val) => {
   border: 2px solid white;
 }
 
-.price-filter-item {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-right: 20px;
-}
-
 .price-range-text {
   font-weight: bold;
   color: #d32f2f;
-  margin-left: 5px;
-}
-
-.actions {
-  height: 100%;
-  display: table-cell;
+  font-size: 0.9rem;
 }
 
 .action-group {
-  display: flex;
-  gap: 15px;
+  gap: 12px;
 }
 
 .action-group i {
@@ -263,9 +233,54 @@ const handleSelectHotpot = (val) => {
 
 .action-group i:hover {
   transform: scale(1.2);
+  opacity: 0.8;
 }
 
-.form-control {
-  min-width: 140px;
+/* Badge Trạng thái */
+.status-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: white;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.status-badge.inactive {
+  background-color: whitesmoke;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.price-filter-item {
+  min-height: 65px;
+  /* Rộng hơn một chút để thanh trượt thoải mái */
+  margin-right: 15px;
+  /* Đẩy nút Xóa bộ lọc ra xa */
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-add-only {
+  background-color: #8B0000 !important;
+  color: white !important;
+  border: none !important;
+}
+
+
+.btn-action-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #eee !important;
+  color: var(--primary-red);
+  transition: all 0.2s ease;
 }
 </style>

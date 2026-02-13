@@ -2,28 +2,23 @@
 import { onMounted, ref, watch, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
 
-import FoodHotPotSetGeneral from './FoodHotPotSetGeneral.vue';
-import FoodDetailManageGeneral from './FoodDetailManageGeneral.vue';
+import UnitManager from './UnitManager.vue';
 
 const route = useRoute();
 
 const tabConfig = {
-    'thucdon': { 
-        title: 'Quản lý món ăn', 
-        component: FoodDetailManageGeneral
+    'dinhluong': { 
+        title: 'Quản lý định lượng', 
+        component: UnitManager
     },
-    'setlau': { 
-        title: 'Quản lý set lẩu', 
-        component: FoodHotPotSetGeneral 
-    }
 };
 
-const currentComponent = shallowRef(FoodDetailManageGeneral);
+const currentComponent = shallowRef(UnitManager);
 const pageTitle = ref('Quản lý món ăn');
 
 const syncTabWithRoute = () => {
-    const tabName = route.query.tab || 'thucdon';
-    const activeConfig = tabConfig[tabName] || tabConfig['thucdon'];
+    const tabName = route.query.tab || 'dinhluong';
+    const activeConfig = tabConfig[tabName] || tabConfig['dinhluong'];
     
     currentComponent.value = activeConfig.component;
     pageTitle.value = activeConfig.title;

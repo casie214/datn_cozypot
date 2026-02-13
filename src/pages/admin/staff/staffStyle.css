@@ -103,12 +103,6 @@
   transition: all 0.2s ease;
 }
 
-.btn-add-only {
-  background-color: var(--primary-red) !important;
-  color: white !important;
-  border: none !important;
-}
-
 .btn-action-icon:hover {
   transform: translateY(-3px);
   border-color: var(--primary-red) !important;

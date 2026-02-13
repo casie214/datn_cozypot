@@ -37,18 +37,8 @@
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
 }
 
-.price-filter-item {
-    min-width: 250px;
-    /* Rộng hơn một chút để thanh trượt thoải mái */
-    margin-right: 15px;
-    /* Đẩy nút Xóa bộ lọc ra xa */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
 
 
 /* 3. Style chữ hiển thị khoảng giá */
@@ -68,14 +58,6 @@
     flex-wrap: wrap;
 }
 
-.price-filter-item {
-    min-width: 220px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    /* Thêm margin để chắc chắn không bị dính */
-    margin-right: 20px;
-}
 
 .filter-item {
     display: flex;
@@ -124,12 +106,7 @@
     text-align: center;
 }
 
-.action-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 0px;
-    margin-bottom: 15px;
-}
+
 
 .btn-add {
     background-color: #8B0000;
@@ -144,12 +121,7 @@
 
 /* Table */
 
-.table-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
+
 
 table {
     width: 100%;
