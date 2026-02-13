@@ -11,8 +11,8 @@ import {
   BeGetThamSoHeThong,
   BeSearchHoaDon,
   BeGetLichSuHoaDon,
-  BeUpdateMonDaLen,
-  BeUpdateTatCaDaLen,
+  //BeUpdateMonDaLen,
+  //BeUpdateTatCaDaLen,
   BeHuyHoaDon,
   BeGetHoaDonById,
   BeGetLichSuThanhToan,
@@ -400,27 +400,27 @@ const invoiceDate = computed(() => {
   };
 
   //2 cái này để chuyển trạng thái món đã lên(tích vô ô là đã lên)
-  const handleUpdateMonDaLen = async (idChiTietHD) => {
-    try {
-      await BeUpdateMonDaLen(idChiTietHD);
-      if (selectedOrder.value) {
-        orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-      }
-    } catch (error) {
-      alert("Lỗi cập nhật món!");
-    }
-  };
+  // const handleUpdateMonDaLen = async (idChiTietHD) => {
+  //   try {
+  //     await BeUpdateMonDaLen(idChiTietHD);
+  //     if (selectedOrder.value) {
+  //       orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
+  //     }
+  //   } catch (error) {
+  //     alert("Lỗi cập nhật món!");
+  //   }
+  // };
 
-  const handleUpdateTatCaDaLen = async () => {
-    if (!selectedOrder.value) return;
-    try {
-      await BeUpdateTatCaDaLen(selectedOrder.value.dbId);
-      orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-      alert("Đã xác nhận tất cả món!");
-    } catch (error) {
-      alert("Cập nhật thất bại!");
-    }
-  };
+  // const handleUpdateTatCaDaLen = async () => {
+  //   if (!selectedOrder.value) return;
+  //   try {
+  //     await BeUpdateTatCaDaLen(selectedOrder.value.dbId);
+  //     orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
+  //     alert("Đã xác nhận tất cả món!");
+  //   } catch (error) {
+  //     alert("Cập nhật thất bại!");
+  //   }
+  // };
 
   //Hủy hóa đơn
   const openCancelModal = async (order) => {
@@ -629,8 +629,8 @@ const invoiceDate = computed(() => {
     handleReset,
     handlePageChange,
     handlePrintOrder,
-    handleUpdateMonDaLen,
-    handleUpdateTatCaDaLen,
+    // handleUpdateMonDaLen,
+    // handleUpdateTatCaDaLen,
     cancelModalState,
     openCancelModal,
     confirmCancelOrder,
