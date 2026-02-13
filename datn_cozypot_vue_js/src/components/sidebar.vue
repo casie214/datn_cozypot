@@ -33,16 +33,7 @@ const menuItems = ref([
             { name: 'Loại set lẩu', tab: 'loaiset' }
         ]
     },
-
-    {
-        name: 'Giảm giá',
-        icon: "fa-solid fa-tags",
-        isOpen: false,
-        children: [
-            { name: 'Giảm giá thực đơn', path: '/admin/promotion' },
-            { name: 'Phiếu giảm giá', path: '/admin/voucher' },
-        ]
-    },
+    { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
 
 
