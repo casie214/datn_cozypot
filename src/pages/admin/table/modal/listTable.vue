@@ -24,15 +24,27 @@ const fetchAllBan = async () => {
     const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
-      // 3 bàn mỗi hàng trên lưới 12 cột nếu chưa có tọa độ
-      const defaultCol = (index % 3) * 4 + 1;
-      const defaultRow = Math.floor(index / 3) * 2 + 1;
-      return {
-        ...ban,
-        column: ban.column || defaultCol,
-        row: ban.row || defaultRow,
-      };
-    });
+
+  // ✅ Chuẩn hóa loaiDatBan về number 0 hoặc 1
+  let loaiDatBanNormalized = 0;
+
+  if (typeof ban.loaiDatBan === "object" && ban.loaiDatBan !== null) {
+    loaiDatBanNormalized = Number(ban.loaiDatBan.value ?? 0);
+  } else {
+    loaiDatBanNormalized = Number(ban.loaiDatBan ?? 0);
+  }
+
+  const defaultCol = (index % 3) * 4 + 1;
+  const defaultRow = Math.floor(index / 3) * 2 + 1;
+
+  return {
+    ...ban,
+    loaiDatBan: loaiDatBanNormalized, // 👈 thêm dòng này
+    column: ban.column || defaultCol,
+    row: ban.row || defaultRow,
+  };
+});
+
   } catch (e) {
     console.error("Lỗi load danh sách bàn", e);
   }
@@ -127,7 +139,28 @@ const submitUpdateBan = async () => {
 const formatDate = (time) => {
   if (!time) return "";
   return dayjs(time).format("DD/MM/YYYY HH:mm");
-}; 
+};
+
+/* ===== FILTER ===== */
+const filterTang = ref("");
+const filterLoaiDatBan = ref("");
+
+const danhSachBanFiltered = computed(() => {
+  return danhSachBan.value.filter((ban) => {
+    const matchTang =
+      !filterTang.value || ban.soTang == filterTang.value;
+
+    const matchLoaiDatBan =
+      filterLoaiDatBan.value === "" ||
+      ban.loaiDatBan === filterLoaiDatBan.value;
+console.log(typeof ban.loaiDatBan)
+console.log(typeof filterLoaiDatBan.value)
+
+    return matchTang && matchLoaiDatBan;
+  });
+});
+
+
 
 watch(
   () => form.value.tang,
@@ -155,7 +188,38 @@ onMounted(() => {
 });
 </script>
 <template>
-  <div>
+  <div class="container">
+    <div>
+      <div class="filter-box">
+  <!-- Lọc tầng -->
+  <select v-model="filterTang" class="form-select">
+    <option value="">-- Tất cả tầng --</option>
+    <option
+      v-for="tang in [...new Set(danhSachBan.map(b => b.soTang))]"
+      :key="tang"
+      :value="tang"
+    >
+      Tầng {{ tang }}
+    </option>
+  </select>
+
+  <!-- Lọc đặt online -->
+  <select v-model.number="filterLoaiDatBan" class="form-select">
+    <option value="">-- Tất cả --</option>
+    <option value="1">Cho phép đặt online</option>
+    <option value="0">Không cho phép</option>
+  </select>
+
+  <!-- Reset -->
+  <button class="btn btn-outline" @click="() => {
+    filterTang = '';
+    filterLoaiDatBan = '';
+  }">
+    Reset
+  </button>
+</div>
+
+    </div>
     <div class="list-card">
       <table class="table">
         <thead>
@@ -166,14 +230,14 @@ onMounted(() => {
             <th>Tầng</th>
             <th>Khu vực</th>
             <!-- <th>Trạng thái</th> -->
-            <th>Ngày tạo</th>
-            <th>Người tạo</th>
+            <!-- <th>Ngày tạo</th> -->
+            <!-- <th>Người tạo</th> -->
             <th>Đặt online</th>
             <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(ban, index) in danhSachBan" :key="ban.id">
+          <tr v-for="(ban, index) in danhSachBanFiltered" :key="ban.id">
             <td>{{ index + 1 }}</td>
             <td>
               <strong>{{ ban.maBan }}</strong>
@@ -195,8 +259,8 @@ onMounted(() => {
                 {{ getStatusText(ban.trangThai) }}
               </span>
             </td> -->
-            <td>{{ formatDate(ban.ngayTao) }}</td>
-            <td>{{ ban.nguoiTao }}</td>
+            <!-- <td>{{ formatDate(ban.ngayTao) }}</td> -->
+            <!-- <td>{{ ban.nguoiTao }}</td> -->
             <td>
               {{ ban.loaiDatBan == 0 ? "Không cho phép" : "Cho phép" }}
             </td>
@@ -404,6 +468,17 @@ onMounted(() => {
   border-color: #7d161a;
   box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
 }
+
+.filter-box {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-box select {
+  width: 200px;
+}
+
 
 /* ===== CHECKBOX ===== */
 .form-check {
