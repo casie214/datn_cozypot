@@ -44,6 +44,25 @@ public class ChiTietHoaDonService {
             }
 
             dto.setTrangThaiCode(item.getTrangThaiMon());
+
+            String textHienThi = "";
+            if (item.getTrangThaiMon() != null) {
+                switch (item.getTrangThaiMon()) {
+                    case 0:
+                        textHienThi = "Đã hủy";
+                        break;
+                    case 1:
+                        textHienThi = "Chưa lên"; // Hoặc "Đang chế biến"
+                        break;
+                    case 2:
+                        textHienThi = "Đã lên";   // Hoặc "Hoàn thành"
+                        break;
+                    default:
+                        textHienThi = "Khác";
+                }
+            }
+            dto.setTrangThaiText(textHienThi);
+
             return dto;
         }).collect(Collectors.toList());
     }
