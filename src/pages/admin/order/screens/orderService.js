@@ -64,14 +64,14 @@ export const BeGetChiTietHoaDon = async (idHoaDon) => {
     }
 };
 
-export const BeGetChiTietSetLau = async (idSetLau) => {
-    try {
-        const response = await axiosClient.get(`${PREFIX}/chi-tiet-hoa-don/chi-tiet-set-lau/${idSetLau}`);
-        return response.data;
-    } catch (error) {
-        throw error;
-    }
-};
+// export const BeGetChiTietSetLau = async (idSetLau) => {
+//     try {
+//         const response = await axiosClient.get(`${PREFIX}/chi-tiet-hoa-don/chi-tiet-set-lau/${idSetLau}`);
+//         return response.data;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
 
 export const BeXacNhanThanhToan = async (payload) => {
     try {
