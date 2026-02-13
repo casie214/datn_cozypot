@@ -17,22 +17,22 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +
             "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.tenSetLau " +
-            "     ELSE CONCAT(m.tenMonAn, ' - ', ctma.tenChiTietMonAn) END, " +
+            "     ELSE ctma.tenMon END, " + // Đã sửa: ctma.idMonAnDiKem.tenMon -> ctma.tenMon
             "cthd.soLuong, " +
             "cthd.donGiaTaiThoiDiemBan, " +
             "cthd.thanhTien, " +
             "cthd.ghiChuMon, " +
             "CASE WHEN cthd.trangThaiMon = 1 THEN 'Chưa lên' " +
             "     WHEN cthd.trangThaiMon = 2 THEN 'Đã lên' " +
-            "     WHEN cthd.trangThaiMon = 0 THEN 'Đã huy' " +
+            "     WHEN cthd.trangThaiMon = 0 THEN 'Đã hủy' " +
             "     ELSE 'Khác' END, " +
             "cthd.trangThaiMon, " +
             "s.id) " +
             "FROM ChiTietHoaDon cthd " +
             "LEFT JOIN cthd.idSetLau s " +
-            "LEFT JOIN cthd.idChiTietMonAn ctma " +
-            "LEFT JOIN ctma.idMonAnDiKem m " +
-            "WHERE cthd.idHoaDon.id = :idHoaDon AND (cthd.trangThaiMon <> 0 OR cthd.idHoaDon.trangThaiHoaDon = 0)")
+            "LEFT JOIN cthd.idChiTietMonAn ctma " + // ctma lúc này là DanhMucChiTiet
+            "WHERE cthd.idHoaDon.id = :idHoaDon " +
+            "AND (cthd.trangThaiMon <> 0 OR cthd.idHoaDon.trangThaiHoaDon = 0)")
     List<ChiTietHoaDonResponse> findChiTietByHoaDonId(@Param("idHoaDon") Integer idHoaDon);
 
     @Query("SELECT c FROM ChiTietHoaDon c WHERE c.idHoaDon.id = :idHoaDon")

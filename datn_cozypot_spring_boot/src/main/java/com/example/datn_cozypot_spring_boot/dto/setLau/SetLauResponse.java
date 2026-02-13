@@ -1,16 +1,15 @@
 package com.example.datn_cozypot_spring_boot.dto.setLau;
 
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnInSetResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietResponse;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+@Data
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,4 +35,6 @@ public class SetLauResponse {
     private Integer trangThai;
 
     private List<SetLauChiTietResponse> listChiTietSetLau;
+    private List<MonAnInSetResponse> danhSachMon;
 }
+

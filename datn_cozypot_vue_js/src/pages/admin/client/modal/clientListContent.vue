@@ -1,10 +1,12 @@
 <template>
   <div class="flex-grow-1 staff-manager-wrapper" style="padding: 25px; background: #ffffff; min-height: 100vh;">
     <div class="mb-3">
-      <h2 class="title-page-cozy">Quản lý khách hàng</h2>
+      <h2 class="title-page-cozy" style="    color: var(--primary-red);
+    font-weight: 700;
+    font-size: 24px;">Quản lý khách hàng</h2>
     </div>
 
-    <div class="filter-card-premium mb-4">
+    <div class="filter-card mb-4">
       <div class="filter-header-simple">
         <i class="fas fa-filter me-2"></i>Bộ lọc tìm kiếm
       </div>
@@ -27,7 +29,7 @@
           <input type="date" v-model="filters.tuNgay" class="form-control custom-input" @change="handleSearch">
         </div> -->
         <div class="col-md-2">
-          <button class="btn-red-dark w-100 py-2" @click="handleSearch">Tìm kiếm</button>
+          <button class="btn-red-dark w-100 py-2" style="color: white !important;" @click="handleSearch">Tìm kiếm</button>
         </div>
       </div>
     </div>
@@ -274,3 +276,174 @@ const warnLocked = () => Swal.fire({ icon: 'info', title: 'Thông báo', text: '
 
 onMounted(handleSearch);
 </script>
+
+<style scoped>
+.btn-add-only {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.filter-card {
+  background: var(--white);
+  border-radius: 15px;
+
+  margin-bottom: 30px;
+  /* Giữ viền xám nhẹ của bạn */
+  border: 1px solid #d0cece; 
+ 
+box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.custom-input {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  color: gray;
+}
+/* --- TÙY CHỈNH NÚT THÊM MỚI (Btn Red Dark) --- */
+.btn-red-dark {
+    color: var(--white) !important;
+    border-radius: 8px;
+    padding: 10px 24px;
+    border: 1px solid var(--dark-red);
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(123, 18, 28, 0.2);
+    background-color: #8b0000;
+}
+
+.btn-red-dark:hover {
+    background-color: #8b0000;
+    border-color: #8b0000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
+    color: white !important;
+}
+
+.btn-red-dark:active {
+    transform: translateY(0);
+}
+
+/* --- TÙY CHỈNH NÚT BỎ LỌC (Btn Reset/Refresh) --- */
+/* Class này áp dụng cho nút có icon xoay trong bộ lọc */
+.btn-reset-filter {
+    background-color: var(--white);
+    color: #6c757d; /* Màu xám trung tính */
+    border: 1px solid #d0cece;
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.3s ease;
+    width: 100%; /* Đảm bảo khớp với chiều cao input */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-reset-filter:hover {
+    background-color: #f8f9fa;
+    color: #8b0000;
+    border-color: #8b0000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-reset-filter i {
+    font-size: 16px;
+}
+
+/* Hiệu ứng xoay icon khi hover vào nút bỏ lọc */
+.btn-reset-filter:hover i {
+    transform: rotate(180deg);
+    transition: transform 0.5s ease;
+}
+
+.btn-red-dark:hover {
+  background-color: #8b0000;
+  
+font-weight: bold;
+}
+
+/* Nút bấm */
+.btn-red-btn-outline-secondary {
+  background-color: var(--dark-red);
+  color: white !important;
+  border-radius: 8px;
+  padding: 8px 20px;
+  border: none;
+  font-size: 14px;
+}
+/* Tùy chỉnh màu sắc cho Toggle Switch */
+.custom-switch {
+    width: 40px !important;
+    height: 20px !important;
+    cursor: pointer;
+    border-color: #ccc;
+    background-color: #ccc;
+}
+
+/* Khi công tắc ở trạng thái ON (Đang hoạt động) */
+.custom-switch:checked {
+    background-color: #8b0000!important; /* Màu đỏ đô của bạn */
+    border-color: #8b0000 !important;
+}
+
+/* Loại bỏ viền xanh mặc định của Bootstrap khi click */
+.custom-switch:focus {
+    box-shadow: none;
+    border-color: #ccc;
+}
+
+.custom-switch:checked:focus {
+    border-color: #8b0000;
+    box-shadow: 0 0 0 0.25rem rgba(123, 18, 28, 0.25);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: white;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.status-badge.inactive {
+  background-color: whitesmoke;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.btn-add-only {
+    background-color: #8B0000 !important;
+    color: white !important;
+    border: none !important;
+}
+
+
+.btn-action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #eee !important;
+    color: var(--primary-red);
+    transition: all 0.2s ease;
+}
+</style>

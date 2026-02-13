@@ -1,38 +1,45 @@
 <script setup>
-import { watch, onMounted } from 'vue';
+import { onMounted, ref, watch, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
-import { useTabManager } from '../../../../services/foodFunction';
 
+import FoodHotPotSetGeneral from './FoodHotPotSetGeneral.vue';
+import FoodDetailManageGeneral from './FoodDetailManageGeneral.vue';
 
 const route = useRoute();
-const { currentTabName, currentComponent, changeTab } = useTabManager();
 
-const syncTabWithRoute = () => {
-    const tabName = route.query.tab;
-    if (tabName) {
-        changeTab(tabName);
-    } else {
-        changeTab('thucdon');
+const tabConfig = {
+    'thucdon': { 
+        title: 'Quản lý món ăn', 
+        component: FoodDetailManageGeneral
+    },
+    'setlau': { 
+        title: 'Quản lý set lẩu', 
+        component: FoodHotPotSetGeneral 
     }
 };
-watch(() => route.query.tab, () => {
-    syncTabWithRoute();
-});
 
-onMounted(() => {
-    syncTabWithRoute();
-});
+const currentComponent = shallowRef(FoodDetailManageGeneral);
+const pageTitle = ref('Quản lý món ăn');
+
+const syncTabWithRoute = () => {
+    const tabName = route.query.tab || 'thucdon';
+    const activeConfig = tabConfig[tabName] || tabConfig['thucdon'];
+    
+    currentComponent.value = activeConfig.component;
+    pageTitle.value = activeConfig.title;
+};
+
+watch(() => route.query.tab, () => syncTabWithRoute());
+onMounted(() => syncTabWithRoute());
 </script>
 
 <template>
     <main class="main-content">
-
+      <h1 class="page-title">{{ pageTitle }}</h1>
       <div class="dynamic-content">
         <component :is="currentComponent" />
       </div>
-
     </main>
 </template>
 
-<style src="/src/assets/foodManager.css">
-</style>
+<style scoped src="/src/assets/foodManager.css"></style>

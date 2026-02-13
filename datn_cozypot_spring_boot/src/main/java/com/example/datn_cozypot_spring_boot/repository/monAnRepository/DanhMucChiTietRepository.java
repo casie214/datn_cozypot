@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.repository.monAnRepository;
+package com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository;
 
 import com.example.datn_cozypot_spring_boot.entity.DanhMucChiTiet;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +9,10 @@ import java.util.Collection;
 import java.util.List;
 
 public interface DanhMucChiTietRepository extends JpaRepository<DanhMucChiTiet, Integer> {
-    @Query("SELECT d.maDanhMucChiTiet FROM DanhMucChiTiet d WHERE d.maDanhMucChiTiet LIKE :prefix% ORDER BY d.maDanhMucChiTiet DESC LIMIT 1")
+    @Query("SELECT d.maMon FROM DanhMucChiTiet d WHERE d.maMon LIKE :prefix% ORDER BY d.maMon DESC LIMIT 1")
     String findMaxCodeByPrefix(@Param("prefix") String prefix);
 
     List<DanhMucChiTiet> findByTrangThai(int i);
+
+    List<DanhMucChiTiet> findAllByTrangThai(int i);
 }

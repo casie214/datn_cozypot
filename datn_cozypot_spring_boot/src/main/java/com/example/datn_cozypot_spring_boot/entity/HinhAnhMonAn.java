@@ -17,7 +17,7 @@ public class HinhAnhMonAn {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_mon_an_di_kem")
-    private MonAnDiKem idMonAnDiKem;
+    private DanhMucChiTiet idMonAnDiKem;
 
     @Nationalized
     @Lob
