@@ -103,6 +103,12 @@
   transition: all 0.2s ease;
 }
 
+.btn-add-only {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+  border: none !important;
+}
+
 .btn-action-icon:hover {
   transform: translateY(-3px);
   border-color: var(--primary-red) !important;
@@ -205,4 +211,3 @@
 /* Trạng thái chữ thuần */
 .text-status-active { color: #27ae60 !important; font-weight: 600; }
 .text-status-locked { color: #95a5a6 !important; }
-
