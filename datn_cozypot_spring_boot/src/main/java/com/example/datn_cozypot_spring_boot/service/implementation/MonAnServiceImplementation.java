@@ -1,670 +1,483 @@
 package com.example.datn_cozypot_spring_boot.service.implementation;
 
+import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongRequest;
+import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongResponse;
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnInSetResponse;
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnRequest;
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
-import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietRequest;
-import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
-import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
-import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
-import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest;
-import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
+import com.example.datn_cozypot_spring_boot.dto.request.*;
+import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
-import com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse;
-import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietRequest;
-import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietResponse;
 import com.example.datn_cozypot_spring_boot.entity.*;
-import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.*;
+import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MonAnServiceImplementation implements MonAnService {
-    private final MonAnRepository monAnRepository;
-    private final MonAnChiTietRepository monAnChiTietRepository;
-    private final SetLauRepository setLauRepository;
-    private final LoaiLauRepository loaiLauRepository;
-    private final SetLauChiTietRepository setLauChiTietRepository;
-    private final DanhMucRepository danhMucRepository;
-    private final DanhMucChiTietRepository danhMucChiTietRepository;
-    private final ModelMapper modelMapper;
-    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
 
+    // Repositories (Đã cập nhật theo ERD mới)
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucRepository danhMucRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DinhLuongRepository dinhLuongRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DinhLuongChiTietRepository dinhLuongChiTietRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository danhMucChiTietRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.LoaiLauRepository loaiSetLauRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.ChiTietSetLauRepository chiTietSetLauRepository;
+
+    // --- UTILS ---
     private String generatePrefixFromData(String name) {
         if (name == null || name.isEmpty()) return "XX";
-
-        // Chuyển về không dấu (ví dụ: "Bò Mỹ" -> "Bo My")
         String temp = Normalizer.normalize(name, Normalizer.Form.NFD);
         Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
         String unAccent = pattern.matcher(temp).replaceAll("").replaceAll("đ", "d").replaceAll("Đ", "D");
-
-        // Tách từ và lấy chữ cái đầu
         String[] words = unAccent.split("\\s+");
         StringBuilder prefix = new StringBuilder();
         for (String w : words) {
-            if (!w.isEmpty()) {
-                prefix.append(w.charAt(0));
-            }
+            if (!w.isEmpty()) prefix.append(w.charAt(0));
         }
-        return prefix.toString().toUpperCase(); // Ví dụ: "BM"
+        return prefix.toString().toUpperCase();
     }
 
     private String generateNextCode(String name, String entityType) {
         String prefix = generatePrefixFromData(name);
         String lastCode = null;
+
         switch (entityType) {
-            case "MON_AN":
-                lastCode = monAnRepository.findMaxCodeByPrefix(prefix);
-                break;
-            case "CHI_TIET_MON":
-                lastCode = monAnChiTietRepository.findMaxCodeByPrefix(prefix);
-                break;
-            case "SET_LAU":
-                lastCode = setLauRepository.findMaxCodeByPrefix(prefix);
-                break;
             case "DANH_MUC":
-                lastCode = danhMucRepository.findMaxCodeByPrefix(prefix);
-                break;
-            case "DANH_MUC_CHI_TIET":
-                lastCode = danhMucChiTietRepository.findMaxCodeByPrefix(prefix);
-                break;
+                lastCode = danhMucRepository.findMaxCodeByPrefix(prefix); break;
+            case "MON_AN":
+                lastCode = danhMucChiTietRepository.findMaxCodeByPrefix(prefix); break;
+            case "SET_LAU":
+                lastCode = setLauRepository.findMaxCodeByPrefix(prefix); break;
             case "LOAI_SET":
-                lastCode = loaiLauRepository.findMaxCodeByPrefix(prefix);
-                break;
-            default:
-                throw new IllegalArgumentException("Loại entity không hợp lệ: " + entityType);
+                lastCode = loaiSetLauRepository.findMaxCodeByPrefix(prefix); break;
+            default: return prefix + "01";
         }
 
-        if (lastCode == null) {
-            return prefix + "01";
-        }
-
-        // Tách phần số đuôi và tăng lên 1
-        String numberPart = lastCode.substring(prefix.length());
+        if (lastCode == null) return prefix + "01";
         try {
-            int number = Integer.parseInt(numberPart);
-            number++;
-            return prefix + String.format("%02d", number); // Format 01, 02...
-        } catch (NumberFormatException e) {
-            return prefix + "01"; // Fallback nếu lỗi
-        }
+            int number = Integer.parseInt(lastCode.substring(prefix.length())) + 1;
+            return prefix + String.format("%02d", number);
+        } catch (Exception e) { return prefix + "01"; }
+    }
+
+    // ========================================================================
+    // 1. DANH MỤC & ĐỊNH LƯỢNG
+    // ========================================================================
+
+    @Override
+    public List<DanhMucResponse> getAllDanhMuc() {
+        return danhMucRepository.findAll().stream().map(e -> {
+            DanhMucResponse res = new DanhMucResponse();
+            res.setId(e.getId());
+            res.setMaDanhMuc(e.getMaDanhMuc());
+            res.setTenDanhMuc(e.getTenDanhMuc());
+            res.setSoLuongMon(e.getSoLuongMon() != null ? e.getSoLuongMon() : 0);
+            res.setMoTa(e.getMoTa());
+            res.setTrangThai(e.getTrangThai());
+            return res;
+        }).collect(Collectors.toList());
     }
 
     @Override
-    public List<MonAnResponse> findAllMonAn() {
-        return monAnRepository.findAll().stream()
-                .map(entity -> {
-                    // 1. Map thông tin cơ bản (Code cũ)
-                    MonAnResponse response = modelMapper.map(entity, MonAnResponse.class);
+    public DanhMucResponse createDanhMuc(DanhMucRequest request) {
+        DanhMuc d = new DanhMuc();
+        d.setTenDanhMuc(request.getTenDanhMuc());
+        d.setMoTa(request.getMoTa());
+        d.setTrangThai(1);
+        d.setMaDanhMuc(generateNextCode(request.getTenDanhMuc(), "DANH_MUC"));
+        d.setNgayTao(Instant.now());
+        danhMucRepository.save(d);
 
-                    // 2. Map tên danh mục (Code cũ)
-                    if (entity.getIdDanhMucChiTiet() != null) {
-                        response.setTenDanhMucChiTiet(entity.getIdDanhMucChiTiet().getTenDanhMucChiTiet());
-                        if (entity.getIdDanhMucChiTiet().getIdDanhMuc() != null) {
-                            String tenDanhMuc = entity.getIdDanhMucChiTiet().getIdDanhMuc().getTenDanhMuc();
-                            response.setTenDanhMuc(tenDanhMuc);
-                        }
-                    }
-
-                    // --- 3. PHẦN MỚI: TÍNH KHOẢNG GIÁ (MIN - MAX) ---
-                    // Giả sử trong Entity MonAn bạn đã có quan hệ @OneToMany với ChiTietMonAn
-                    // và tên getter là getChiTietMonAns() hoặc getListChiTietMonAn()
-                    Set<ChiTietMonAn> chiTiets = entity.getChiTietMonAns();
-
-                    if (chiTiets != null && !chiTiets.isEmpty()) {
-                        // Tìm giá thấp nhất
-                        BigDecimal min = chiTiets.stream()
-                                .map(ChiTietMonAn::getGiaBan)
-                                .filter(Objects::nonNull) // Lọc bỏ giá trị null để tránh lỗi
-                                .min(BigDecimal::compareTo)
-                                .orElse(BigDecimal.ZERO);
-
-                        // Tìm giá cao nhất
-                        BigDecimal max = chiTiets.stream()
-                                .map(ChiTietMonAn::getGiaBan)
-                                .filter(Objects::nonNull)
-                                .max(BigDecimal::compareTo)
-                                .orElse(BigDecimal.ZERO);
-
-                        response.setGiaThapNhat(min);
-                        response.setGiaCaoNhat(max);
-                    } else {
-                        // Nếu món này chưa có chi tiết nào (Size/Topping)
-                        response.setGiaThapNhat(BigDecimal.ZERO);
-                        response.setGiaCaoNhat(BigDecimal.ZERO);
-                    }
-                    // ------------------------------------------------
-
-                    return response;
-                })
-                .toList();
+        DanhMucResponse res = new DanhMucResponse();
+        res.setId(d.getId());
+        res.setTenDanhMuc(d.getTenDanhMuc());
+        res.setMoTa(d.getMoTa());
+        return res;
     }
 
     @Override
-    public List<SetLauResponse> findAllSetLau() {
-        return setLauRepository
-                .findAll()
-                .stream()
-                .map(setLau -> {
-                    SetLauResponse response = modelMapper.map(setLau, SetLauResponse.class);
-                    return response;
-                })
-                .toList();
+    public DanhMucResponse updateDanhMuc(Integer id, DanhMucRequest request) {
+        DanhMuc d = danhMucRepository.findById(id).orElseThrow();
+        d.setTenDanhMuc(request.getTenDanhMuc());
+        d.setTrangThai(request.getTrangThai());
+        d.setMoTa(request.getMoTa());
+        danhMucRepository.save(d);
+        return new DanhMucResponse(); // Return proper mapping
     }
 
     @Override
-    public List<MonAnChiTietResponse> findAllChiTietMonAn() {
-        return monAnChiTietRepository
-                .findAll()
-                .stream()
-                .map(
-                        chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)
-                ).toList();
+    public void deleteDanhMuc(Integer id) {
+        DanhMuc d = danhMucRepository.findById(id).orElseThrow();
+        d.setTrangThai(0);
+        danhMucRepository.save(d);
     }
 
     @Override
-    public MonAnResponse findMonAnById(int id) {
-        return monAnRepository.findById(id).map(monAnDiKem -> modelMapper.map(monAnDiKem, MonAnResponse.class)).orElse(null);
+    public List<DinhLuongResponse> getAllDinhLuong() {
+        return dinhLuongRepository.findAll().stream().map(e -> {
+            DinhLuongResponse res = new DinhLuongResponse();
+            res.setId(e.getId());
+            res.setTenHienThi(e.getTenHienThi());
+            res.setKichCo(e.getKichCo());
+            res.setDinhLuong(e.getDinhLuong());
+            return res;
+        }).collect(Collectors.toList());
     }
 
     @Override
-    public List<MonAnChiTietResponse> findChiTietMonAnByMonAnId(int id) {
-        return monAnChiTietRepository.findByIdMonAnDiKem_Id(id).stream().map(chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)).toList();
+    public List<DinhLuongResponse> getDinhLuongByDanhMuc(Integer idDanhMuc) {
+        return dinhLuongChiTietRepository.findByDanhMucId(idDanhMuc).stream().map(link -> {
+            DinhLuong e = link.getDinhLuong();
+            DinhLuongResponse res = new DinhLuongResponse();
+            res.setId(e.getId());
+            res.setTenHienThi(e.getTenHienThi());
+            res.setDinhLuong(e.getDinhLuong());
+            res.setKichCo(e.getKichCo());
+            return res;
+        }).collect(Collectors.toList());
+    }
+
+    // ========================================================================
+    // 2. MÓN ĂN (DanhMucChiTiet)
+    // ========================================================================
+
+    @Override
+    public List<MonAnResponse> getAllMonAn() {
+        return danhMucChiTietRepository.findAll().stream().map(this::mapToMonAnResponse).collect(Collectors.toList());
     }
 
     @Override
-    public List<DanhMucResponse> findAllDanhMuc() {
-        return danhMucRepository
-                .findAll()
-                .stream()
-                .map(danhMuc -> modelMapper.map(danhMuc, DanhMucResponse.class))
-                .toList();
+    public MonAnResponse getMonAnById(Integer id) {
+        return mapToMonAnResponse(danhMucChiTietRepository.findById(id).orElseThrow());
     }
 
     @Override
-    public List<DanhMucChiTietResponse> findAllDanhMucChiTiet() {
-        return danhMucChiTietRepository.findAll().stream()
-                .map(entity -> {
-                    DanhMucChiTietResponse response = modelMapper.map(entity, DanhMucChiTietResponse.class);
-                    response.setTenDanhMucChiTiet(entity.getTenDanhMucChiTiet());
-                    if (entity.getIdDanhMuc() != null) {
-                        response.setTenDanhMuc(entity.getIdDanhMuc().getTenDanhMuc());
-                    } else {
-                        response.setTenDanhMuc("---");
-                    }
-                    return response;
-                })
-                .toList();
-    }
-
-    @Override
-    public List<LoaiLauResponse> findAllLoaiLau() {
-        return loaiLauRepository
-                .findAll()
-                .stream()
-                .map(loaiSetLau -> modelMapper.map(loaiSetLau, LoaiLauResponse.class))
-                .toList();
-    }
-
-    @Override
-    @Transactional // Quan trọng: Để nếu lưu chi tiết lỗi thì rollback cả món ăn
     public MonAnResponse createMonAn(MonAnRequest request) {
-        // 1. Map và Lưu Món Ăn Gốc (Parent)
-        MonAnDiKem monAn = modelMapper.map(request, MonAnDiKem.class);
-        monAn.setId(null); // Đảm bảo tạo mới
-        String generatedCode = generateNextCode(request.getTenMonAn(), "CHI_TIET_MON");
-        monAn.setMaMonAn(generatedCode);
+        DanhMucChiTiet mon = new DanhMucChiTiet();
+        mon.setTenMon(request.getTenMon());
+        mon.setGiaBan(request.getGiaBan());
+        mon.setGiaVon(request.getGiaVon());
+        mon.setMoTa(request.getMoTa());
+        mon.setHinhAnh(request.getHinhAnh());
+        mon.setTrangThai(1);
+        mon.setMaMon(generateNextCode(request.getTenMon(), "MON_AN"));
 
-        // Lưu xuống DB để sinh ra ID
-        MonAnDiKem savedMonAn = monAnRepository.save(monAn);
+        mon.setDanhMuc(danhMucRepository.findById(request.getIdDanhMuc()).orElseThrow());
+        mon.setDinhLuong(dinhLuongRepository.findById(request.getIdDinhLuong()).orElseThrow());
 
-        // 2. Xử lý lưu danh sách Chi Tiết (Children)
-        if (request.getListChiTiet() != null && !request.getListChiTiet().isEmpty()) {
-            List<ChiTietMonAn> listEntityChiTiet = new ArrayList<>();
+        return mapToMonAnResponse(danhMucChiTietRepository.save(mon));
+    }
 
-            for (MonAnChiTietRequest detailReq : request.getListChiTiet()) {
-                // Map từ DTO sang Entity
-                ChiTietMonAn detailEntity = modelMapper.map(detailReq, ChiTietMonAn.class);
+    @Override
+    public MonAnResponse updateMonAn(Integer id, MonAnRequest request) {
+        DanhMucChiTiet mon = danhMucChiTietRepository.findById(id).orElseThrow();
+        mon.setTenMon(request.getTenMon());
+        mon.setGiaBan(request.getGiaBan());
+        mon.setGiaVon(request.getGiaVon());
+        mon.setTrangThai(request.getTrangThai());
+        mon.setMoTa(request.getMoTa());
+        if(request.getHinhAnh() != null) mon.setHinhAnh(request.getHinhAnh());
 
-                // QUAN TRỌNG: Gán khóa ngoại (ID của món ăn vừa tạo) cho chi tiết
-                detailEntity.setIdMonAnDiKem(savedMonAn);
-                String generatedCodeCT = generateNextCode(detailReq.getTenChiTietMonAn(), "MON_AN");
-                detailEntity.setMaChiTietMonAn(generatedCodeCT);
+        if (!mon.getDanhMuc().getId().equals(request.getIdDanhMuc())) {
+            mon.setDanhMuc(danhMucRepository.findById(request.getIdDanhMuc()).orElseThrow());
+        }
+        if (!mon.getDinhLuong().getId().equals(request.getIdDinhLuong())) {
+            mon.setDinhLuong(dinhLuongRepository.findById(request.getIdDinhLuong()).orElseThrow());
+        }
+        return mapToMonAnResponse(danhMucChiTietRepository.save(mon));
+    }
 
-                listEntityChiTiet.add(detailEntity);
-            }
+    @Override
+    public void deleteMonAn(Integer id) {
+        DanhMucChiTiet mon = danhMucChiTietRepository.findById(id).orElseThrow();
+        mon.setTrangThai(0);
+        danhMucChiTietRepository.save(mon);
+    }
 
-            // Lưu tất cả chi tiết xuống DB
-            monAnChiTietRepository.saveAll(listEntityChiTiet);
+    private MonAnResponse mapToMonAnResponse(DanhMucChiTiet entity) {
+        MonAnResponse res = new MonAnResponse();
+        res.setId(entity.getId());
+        res.setMaMon(entity.getMaMon());
+        res.setTrangThai(entity.getTrangThai());
+        res.setTenMon(entity.getTenMon());
+        res.setGiaBan(entity.getGiaBan());
+        res.setHinhAnh(entity.getHinhAnh());
+        res.setMoTa(entity.getMoTa());
+
+        // Đổ dữ liệu từ Danh mục
+        if (entity.getDanhMuc() != null) {
+            res.setTenDanhMuc(entity.getDanhMuc().getTenDanhMuc());
+            res.setIdDanhMuc(entity.getDanhMuc().getId());
         }
 
-        // 3. Trả về Response
-        MonAnResponse monAnResponse = modelMapper.map(savedMonAn, MonAnResponse.class);
-
-        // Map thêm tên danh mục (như code cũ của bạn)
-        if (savedMonAn.getIdDanhMucChiTiet() != null) {
-            danhMucChiTietRepository.findById(savedMonAn.getIdDanhMucChiTiet().getId())
-                    .ifPresent(danhMuc -> {
-                        monAnResponse.setTenDanhMucChiTiet(danhMuc.getTenDanhMucChiTiet());
-                        monAnResponse.setTenDanhMuc(danhMuc.getTenDanhMucChiTiet());
-                    });
+        // Đổ dữ liệu từ Định lượng
+        if (entity.getDinhLuong() != null) {
+            res.setTenDinhLuong(entity.getDinhLuong().getTenHienThi());
+            res.setGiaTriDinhLuong(entity.getDinhLuong().getDinhLuong());
+            res.setKichCo(entity.getDinhLuong().getKichCo());
+            res.setIdDinhLuong(entity.getDinhLuong().getId());
         }
 
-        return monAnResponse;
+        // Tạo tên hiển thị (nếu DTO có trường này)
+        res.setTenDinhLuong(res.getTenMon() + " (" + res.getGiaTriDinhLuong() + ")");
+
+        return res;
+    }
+
+    // ========================================================================
+    // 3. SET LẨU (SetLau + ChiTietSetLau)
+    // ========================================================================
+
+    @Override
+    public List<LoaiLauResponse> getAllLoaiSetLau() {
+        return loaiSetLauRepository.findAll().stream().map(e -> {
+            LoaiLauResponse res = new LoaiLauResponse();
+            res.setId(e.getId());
+            res.setTenLoaiSet(e.getTenLoaiSet());
+            res.setMaLoaiSet(e.getMaLoaiSet());
+            res.setTrangThai(e.getTrangThai());
+            res.setMoTa(e.getMoTa());
+            return res;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public LoaiLauResponse createLoaiSetLau(LoaiLauRequest request) {
+        LoaiSetLau loai = new LoaiSetLau();
+        loai.setTenLoaiSet(request.getTenLoaiSet());
+        loai.setTrangThai(1);
+        loai.setMaLoaiSet(generateNextCode(request.getTenLoaiSet(), "LOAI_SET"));
+        loaiSetLauRepository.save(loai);
+        return new LoaiLauResponse();
+    }
+
+    @Override
+    public LoaiLauResponse updateLoaiSetLau(Integer id, LoaiLauRequest request) {
+        LoaiSetLau loai = loaiSetLauRepository.findById(id).orElseThrow();
+        loai.setTenLoaiSet(request.getTenLoaiSet());
+        loai.setMoTa(request.getMoTa());
+        loai.setTrangThai(request.getTrangThai());
+        loaiSetLauRepository.save(loai);
+        return new LoaiLauResponse();
+    }
+
+    @Override
+    @Transactional
+    public List<SetLauResponse> getAllSetLau() {
+        return setLauRepository.findAll().stream().map(this::mapToSetLauResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SetLauResponse getSetLauById(Integer id) {
+        return mapToSetLauResponse(setLauRepository.findById(id).orElseThrow());
     }
 
     @Override
     @Transactional
     public SetLauResponse createSetLau(SetLauRequest request) {
-        SetLau setLau = new SetLau();
-        setLau.setTenSetLau(request.getTenSetLau());
-        setLau.setGiaBan(request.getGiaBan());
-        setLau.setHinhAnh(request.getHinhAnh());
-        setLau.setMoTa(request.getMoTa());
-        setLau.setTrangThai(request.getTrangThai());
-        setLau.setNgayTao(Instant.now());
-        setLau.setMoTaChiTiet(request.getMoTaChiTiet());
-        String code = generateNextCode(request.getTenSetLau(), "SET_LAU");
-        setLau.setMaSetLau(code);
+        SetLau set = new SetLau();
+        set.setTenSetLau(request.getTenSetLau());
+        set.setGiaBan(request.getGiaBan());
+        set.setMoTa(request.getMoTa());
+        set.setHinhAnh(request.getHinhAnh());
+        set.setTrangThai(1);
+        set.setMaSetLau(generateNextCode(request.getTenSetLau(), "SET_LAU"));
 
         if (request.getIdLoaiSet() != null) {
-            LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy loại set!"));
-            setLau.setIdLoaiSet(loaiSet);
+            set.setIdLoaiSet(loaiSetLauRepository.findById(request.getIdLoaiSet()).orElseThrow());
         }
 
-        SetLau savedSetLau = setLauRepository.save(setLau);
+        SetLau savedSet = setLauRepository.save(set);
 
-        if (request.getListChiTietSetLau() != null && !request.getListChiTietSetLau().isEmpty()) {
-
-            List<ChiTietSetLau> listToSave = new ArrayList<>();
-
-            for (SetLauChiTietRequest itemRequest : request.getListChiTietSetLau()) {
-                ChiTietMonAn monAn = monAnChiTietRepository.findById(itemRequest.getIdChiTietMonAn())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn ID: " + itemRequest.getIdChiTietMonAn()));
-
+        // Lưu chi tiết Set
+        if (request.getChiTietMonAn() != null) {
+            List<ChiTietSetLau> details = new ArrayList<>();
+            // Sử dụng đúng Class con trong Request
+            for (SetLauRequest.ChiTietSetItemRequest itemReq : request.getChiTietMonAn()) {
                 ChiTietSetLau detail = new ChiTietSetLau();
-                detail.setSetLau(savedSetLau);
-                detail.setChiTietMonAn(monAn);
-                detail.setSoLuong(itemRequest.getSoLuong());
+                detail.setSetLau(savedSet);
+                detail.setSoLuong(itemReq.getSoLuong());
 
-                listToSave.add(detail);
+                // Tìm món ăn từ bảng DanhMucChiTiet
+                DanhMucChiTiet monAn = danhMucChiTietRepository.findById(itemReq.getIdMonAn())
+                        .orElseThrow(() -> new RuntimeException("Món ăn ID " + itemReq.getIdMonAn() + " không tồn tại"));
+                detail.setMonAn(monAn);
+
+                details.add(detail);
             }
-            setLauChiTietRepository.saveAll(listToSave);
+            chiTietSetLauRepository.saveAll(details);
+            savedSet.setListChiTietSetLau(details);
         }
 
-        return new SetLauResponse();
-    }
-
-    @Override
-    public MonAnChiTietResponse createMonAnChiTiet(MonAnChiTietRequest request) {
-        ChiTietMonAn chiTietMonAn = modelMapper.map(request, ChiTietMonAn.class);
-        chiTietMonAn.setId(null);
-        String code = generateNextCode(request.getTenChiTietMonAn(), "CHI_TIET_MON");
-        chiTietMonAn.setMaChiTietMonAn(code);
-        monAnChiTietRepository.save(chiTietMonAn);
-        MonAnChiTietResponse chiTietResponse = modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class);
-        return chiTietResponse;
-    }
-
-    @Override
-    public MonAnChiTietResponse putMonAnChiTiet(int id, MonAnChiTietRequest request) {
-        return monAnChiTietRepository.findById(id)
-                .map(chiTietMonAn -> {
-                    // 1. Update các trường cơ bản
-                    chiTietMonAn.setTenChiTietMonAn(request.getTenChiTietMonAn());
-                    chiTietMonAn.setGiaBan(request.getGiaBan());
-                    chiTietMonAn.setGiaVon(request.getGiaVon());
-                    chiTietMonAn.setKichCo(request.getKichCo());
-                    chiTietMonAn.setDonVi(request.getDonVi());
-                    chiTietMonAn.setTrangThai(request.getTrangThai());
-
-                    // 2. Xử lý Món Ăn Đi Kèm (An toàn hơn)
-                    // Tìm món cha, nếu không thấy thì báo lỗi (hoặc giữ nguyên cái cũ tùy logic)
-                    MonAnDiKem monAnCha = monAnRepository.findById(request.getIdMonAnDiKem())
-                            .orElseThrow(() -> new RuntimeException("Món ăn cha ID " + request.getIdMonAnDiKem() + " không tồn tại"));
-                    chiTietMonAn.setIdMonAnDiKem(monAnCha);
-
-                    // 3. Xử lý Hình ảnh (Logic thông minh)
-                    // Chỉ update nếu request có gửi ảnh lên.
-                    // Nếu frontend gửi null hoặc rỗng (do user xóa ảnh), ta cũng set rỗng theo.
-                    if (request.getHinhAnh() != null) {
-                        chiTietMonAn.setHinhAnh(request.getHinhAnh());
-                    }
-
-                    // 4. Lưu và Map
-                    ChiTietMonAn savedItem = monAnChiTietRepository.save(chiTietMonAn);
-                    return modelMapper.map(savedItem, MonAnChiTietResponse.class);
-                })
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Chi tiết món ID: " + id));
-    }
-
-    @Override
-    public MonAnResponse putMonAn(int id, MonAnRequest request) {
-        return monAnRepository.findById(id)
-                .map(monAnDiKem -> {
-                    monAnDiKem.setTenMonAn(request.getTenMonAn());
-                    monAnDiKem.setGiaBan(request.getGiaBan());
-                    monAnDiKem.setIdDanhMucChiTiet(danhMucChiTietRepository.findById(request.getIdDanhMucChiTiet()).get());
-                    monAnDiKem.setTrangThaiKinhDoanh(request.getTrangThaiKinhDoanh());
-                    monAnDiKem.setMoTa(request.getMoTa());
-                    monAnDiKem.setHinhAnh(request.getHinhAnh());
-
-                    monAnRepository.save(monAnDiKem);
-                    return modelMapper.map(monAnDiKem, MonAnResponse.class);
-                })
-                .orElse(null);
+        return mapToSetLauResponse(savedSet);
     }
 
     @Override
     @Transactional
-    public SetLauResponse putLau(int id, SetLauRequest request) {
-        SetLau existingSet = setLauRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID: " + id));
+    public SetLauResponse updateSetLau(Integer id, SetLauRequest request) {
+        SetLau set = setLauRepository.findById(id).orElseThrow();
 
-        existingSet.setTenSetLau(request.getTenSetLau());
-        existingSet.setGiaBan(request.getGiaBan());
-        existingSet.setHinhAnh(request.getHinhAnh());
-        existingSet.setMoTa(request.getMoTa());
-        existingSet.setTrangThai(request.getTrangThai());
-        existingSet.setMoTaChiTiet(request.getMoTaChiTiet());
+        set.setTenSetLau(request.getTenSetLau());
+        set.setGiaBan(request.getGiaBan());
+        set.setMoTa(request.getMoTa());
+
+        if(request.getHinhAnh() != null) set.setHinhAnh(request.getHinhAnh());
 
         if (request.getIdLoaiSet() != null) {
-            LoaiSetLau loaiSet = loaiLauRepository.findById(request.getIdLoaiSet())
-                    .orElseThrow(() -> new RuntimeException("Loại set không tồn tại"));
-            existingSet.setIdLoaiSet(loaiSet);
+            set.setIdLoaiSet(loaiSetLauRepository.findById(request.getIdLoaiSet()).orElseThrow());
         }
 
-        existingSet.getListChiTietSetLau().clear();
+        // --- SỬA LẠI LOGIC CẬP NHẬT CHI TIẾT TẠI ĐÂY ---
+        if (request.getChiTietMonAn() != null) {
 
-        if (request.getListChiTietSetLau() != null) {
-            for (SetLauChiTietRequest itemReq : request.getListChiTietSetLau()) {
-                ChiTietMonAn monAn = monAnChiTietRepository.findById(itemReq.getIdChiTietMonAn())
-                        .orElseThrow(() -> new RuntimeException("Món ăn ID " + itemReq.getIdChiTietMonAn() + " không tồn tại"));
-
-                ChiTietSetLau newDetail = new ChiTietSetLau();
-                newDetail.setSetLau(existingSet);
-                newDetail.setChiTietMonAn(monAn);
-                newDetail.setSoLuong(itemReq.getSoLuong());
-
-                existingSet.getListChiTietSetLau().add(newDetail);
+            // 1. Xóa sạch các phần tử trong rổ cũ.
+            // Lệnh clear() này sẽ "báo hiệu" cho Hibernate tự động chạy lệnh DELETE dưới DB (nhờ orphanRemoval=true)
+            if (set.getListChiTietSetLau() != null) {
+                set.getListChiTietSetLau().clear();
+            } else {
+                set.setListChiTietSetLau(new ArrayList<>());
             }
-        }
-        SetLau savedSet = setLauRepository.save(existingSet);
-        return modelMapper.map(savedSet, SetLauResponse.class);
-    }
 
-    @Override
-    public DanhMucResponse putDanhMuc(int id, DanhMucRequest request) {
-        return danhMucRepository.findById(id)
-                .map(danhMuc -> {
-                    danhMuc.setTenDanhMuc(request.getTenDanhMuc());
-                    danhMuc.setMoTa(request.getMoTa());
-                    danhMuc.setTrangThai(request.getTrangThai());
-                    danhMucRepository.save(danhMuc);
-                    return modelMapper.map(danhMuc, DanhMucResponse.class);
-                })
-                .orElse(null);
-    }
+            // 2. Tạo phần tử mới và nhét vào cái rổ (List) hiện tại
+            for (SetLauRequest.ChiTietSetItemRequest itemReq : request.getChiTietMonAn()) {
+                ChiTietSetLau detail = new ChiTietSetLau();
 
-    @Override
-    public DanhMucResponse addNewDanhMuc(DanhMucRequest request) {
-        DanhMuc danhMuc = modelMapper.map(request, DanhMuc.class);
-        danhMuc.setId(null);
-        danhMuc.setMaDanhMuc(null);
-        String code = generateNextCode(request.getTenDanhMuc(), "DANH_MUC");
-        danhMuc.setMaDanhMuc(code);
-        danhMucRepository.save(danhMuc);
-        return modelMapper.map(danhMuc, DanhMucResponse.class);
-    }
+                // Map dữ liệu
+                detail.setSetLau(set); // Rất quan trọng: Gắn Cha cho Con
+                detail.setSoLuong(itemReq.getSoLuong());
+                detail.setMonAn(danhMucChiTietRepository.findById(itemReq.getIdMonAn()).orElseThrow());
 
-    @Override
-    public LoaiLauResponse putLoaiLau(int id, LoaiLauRequest request) {
-        return loaiLauRepository.findById(id)
-                .map(loaiSetLau -> {
-                    loaiSetLau.setTenLoaiSet(request.getTenLoaiSet());
-                    loaiSetLau.setMoTa(request.getMoTa());
-                    loaiSetLau.setTrangThai(request.getTrangThai());
-                    loaiLauRepository.save(loaiSetLau);
-                    return modelMapper.map(loaiSetLau, LoaiLauResponse.class);
-                })
-                .orElse(null);
-    }
-
-    @Override
-    public LoaiLauResponse addNewLoaiLau(LoaiLauRequest request) {
-        LoaiSetLau loaiSetLau = modelMapper.map(request, LoaiSetLau.class);
-        loaiSetLau.setId(null);
-        String code = generateNextCode(request.getTenLoaiSet(), "LOAI_SET");
-        loaiSetLau.setMaLoaiSet(code);
-        loaiLauRepository.save(loaiSetLau);
-        return modelMapper.map(loaiSetLau, LoaiLauResponse.class);
-    }
-
-    @Override
-    public DanhMucChiTietResponse putDanhMucChiTiet(int id, DanhMucChiTietRequest request) {
-        return danhMucChiTietRepository.findById(id)
-                .map(danhMucChiTiet -> {
-                    danhMucChiTiet.setIdDanhMuc(danhMucRepository.findById(request.getIdDanhMuc()).get());
-                    danhMucChiTiet.setTenDanhMucChiTiet(request.getTenDanhMucChiTiet());
-                    danhMucChiTiet.setMoTa(request.getMoTa());
-                    danhMucChiTiet.setTrangThai(request.getTrangThai());
-                    danhMucChiTietRepository.save(danhMucChiTiet);
-                    return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
-                })
-                .orElse(null);
-    }
-
-    @Override
-    public DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request) {
-        DanhMucChiTiet danhMucChiTiet = modelMapper.map(request, DanhMucChiTiet.class);
-        danhMucChiTiet.setId(null);
-        String code = generateNextCode(request.getTenDanhMucChiTiet(), "DANH_MUC_CHI_TIET");
-        danhMucChiTiet.setMaDanhMucChiTiet(code);
-        danhMucChiTietRepository.save(danhMucChiTiet);
-        return modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class);
-    }
-
-    @Override
-    @Transactional // Quan trọng để tránh lỗi Lazy Loading
-    public SetLauResponse findSetLauById(int id) {
-        // 1. Tìm Entity SetLau
-        SetLau setLau = setLauRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID: " + id));
-
-        // 2. Map các trường cơ bản sang DTO
-        SetLauResponse response = new SetLauResponse();
-        response.setId(setLau.getId());
-        response.setTenSetLau(setLau.getTenSetLau());
-        response.setGiaBan(setLau.getGiaBan());
-        response.setHinhAnh(setLau.getHinhAnh());
-        response.setMoTaChiTiet(setLau.getMoTaChiTiet());
-        response.setMoTa(setLau.getMoTa());
-        response.setTrangThai(setLau.getTrangThai());
-
-        // Map Loại Set
-        if (setLau.getIdLoaiSet() != null) {
-            LoaiLauResponse loaiRes = new LoaiLauResponse();
-            loaiRes.setId(setLau.getIdLoaiSet().getId());
-            loaiRes.setTenLoaiSet(setLau.getIdLoaiSet().getTenLoaiSet());
-            response.setIdLoaiSet(loaiRes.getId());
-        }
-
-        List<SetLauChiTietResponse> listDetailResponse = new ArrayList<>();
-
-        if (setLau.getListChiTietSetLau() != null) {
-            for (ChiTietSetLau detailEntity : setLau.getListChiTietSetLau()) {
-                SetLauChiTietResponse detailDTO = new SetLauChiTietResponse();
-                detailDTO.setId(detailEntity.getId());
-                detailDTO.setSoLuong(detailEntity.getSoLuong());
-
-                ChiTietMonAn monAn = detailEntity.getChiTietMonAn();
-                if (monAn != null) {
-                    MonAnChiTietResponse monAnDTO = new MonAnChiTietResponse();
-                    monAnDTO.setId(monAn.getId());
-                    monAnDTO.setTenChiTietMonAn(monAn.getTenChiTietMonAn());
-                    monAnDTO.setGiaBan(monAn.getGiaBan());
-                    monAnDTO.setDonVi(monAn.getDonVi());
-                    monAnDTO.setHinhAnh(monAn.getHinhAnh());
-
-                    detailDTO.setChiTietMonAn(monAnDTO);
-                }
-
-                listDetailResponse.add(detailDTO);
+                // Add thẳng vào List đang được Hibernate theo dõi (Không tạo List mới)
+                set.getListChiTietSetLau().add(detail);
             }
         }
 
-        response.setListChiTietSetLau(listDetailResponse);
-
-        return response;
+        // 3. Bạn không cần gọi chiTietSetLauRepository.saveAll() nữa.
+        // Chỉ cần lưu thằng Cha (SetLau), Hibernate sẽ tự động lưu các thằng Con (ChiTietSetLau) nhờ CascadeType.ALL
+        return mapToSetLauResponse(setLauRepository.save(set));
     }
 
     @Override
-    public MonAnChiTietResponse findChiTietMonAnById(int id) {
-        return monAnChiTietRepository.findById(id)
-                .map(chiTietMonAn -> modelMapper.map(chiTietMonAn, MonAnChiTietResponse.class)).get();
+    public List<DanhMucResponse> findDanhMucActive() {
+        return danhMucRepository.findByTrangThai(1).stream()
+                .map(e -> {
+                    DanhMucResponse res = new DanhMucResponse();
+                    res.setId(e.getId());
+                    res.setMaDanhMuc(e.getMaDanhMuc());
+                    res.setTenDanhMuc(e.getTenDanhMuc());
+                    res.setMoTa(e.getMoTa());
+                    return res;
+                }).collect(Collectors.toList());
     }
 
     @Override
-    public void deleteFoodDetailById(int id) {
-        monAnChiTietRepository.deleteById(id);
+    public List<LoaiLauResponse> findLoaiSetLauActive() {
+        return loaiSetLauRepository.findByTrangThai(1).stream()
+                .map(e -> {
+                    LoaiLauResponse res = new LoaiLauResponse();
+                    res.setId(e.getId());
+                    res.setTenLoaiSet(e.getTenLoaiSet());
+                    return res;
+                }).collect(Collectors.toList());
     }
 
     @Override
-    public List<SetLauResponse> findSetLauTop(int metric) {
-        int limit = (metric > 0) ? metric : 3;
-        Pageable topPage = PageRequest.of(0, limit);
-
-        // 2. Gọi Repo lấy danh sách Top (Kiểu TopSetLauResponse)
-        List<TopSetLauResponse> topSellingList = chiTietHoaDonRepository.findTopSellingSetLau(topPage);
-
-        // 3. Chuyển đổi (Map) sang List<SetLauResponse>
-        return topSellingList.stream()
-                .map(item -> {
-                    // Lấy Entity SetLau từ kết quả
-                    SetLau entity = item.getSetLau();
-
-                    // Map sang DTO Response (Map thủ công hoặc dùng ModelMapper)
-                    SetLauResponse response = new SetLauResponse();
-                    response.setId(entity.getId());
-                    response.setMaSetLau(entity.getMaSetLau());
-                    response.setTenSetLau(entity.getTenSetLau());
-                    response.setGiaBan(entity.getGiaBan());
-                    response.setHinhAnh(entity.getHinhAnh());
-                    response.setMoTa(entity.getMoTa());
-                    response.setTrangThai(entity.getTrangThai());
-                    // ... map nốt các trường khác nếu cần ...
-
-                    // (Tùy chọn) Nếu SetLauResponse có trường 'soLuongDaBan' để hiển thị
-                    // response.setSoLuongDaBan(item.getTongSoLuongBan());
-
-                    return response;
-                })
+    @Transactional
+    public List<SetLauResponse> findSetLauActive() {
+        return setLauRepository.findByTrangThai(1).stream()
+                .map(this::mapToSetLauResponse) // Tái sử dụng hàm map đã viết ở turn trước
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<MonAnResponse> findMonAnActive() {
-        return monAnRepository.findByTrangThaiKinhDoanh(1).stream().map(monAnDiKem -> modelMapper.map(monAnDiKem, MonAnResponse.class)).collect(Collectors.toList());
+        // Lấy tất cả DanhMucChiTiet có trạng thái = 1
+        return danhMucChiTietRepository.findByTrangThai(1).stream()
+                .map(this::mapToMonAnResponse) // Tái sử dụng hàm map đã viết
+                .collect(Collectors.toList());
     }
 
     @Override
-    public List<DanhMucResponse> findDanhMucActive() {
-        return danhMucRepository.findByTrangThai(1)
-                .stream()
-                .map(
-                        danhMuc -> modelMapper.map(danhMuc, DanhMucResponse.class)
-                )
-                .toList();
+    public List<SetLauResponse> findSetLauTop(int metric) {
+        int limit = (metric > 0) ? metric : 5;
+        Pageable topPage = PageRequest.of(0, limit);
+
+        // Logic lấy top selling (cần custom query trong repo)
+        // Ví dụ: SELECT s FROM SetLau s ORDER BY s.soLuongDaBan DESC
+        // Ở đây tạm thời trả về Active sets nếu chưa có thống kê
+        return findSetLauActive().stream().limit(limit).collect(Collectors.toList());
     }
 
     @Override
-    public List<SetLauResponse> findSetLauActive() {
-        return setLauRepository.findByTrangThai(1)
-                .stream()
-                .map(
-                        setLau -> modelMapper.map(setLau, SetLauResponse.class)
-                )
-                .toList();
+    public DinhLuong createDinhLuong(DinhLuongRequest request) {
+        // 1. Tìm Danh mục
+        DanhMuc danhMuc = danhMucRepository.findById(request.getIdDanhMuc())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục!"));
+
+        // 2. Tạo Entity mới và set dữ liệu
+        DinhLuong newDinhLuong = new DinhLuong();
+        newDinhLuong.setKichCo(request.getKichCo());
+        newDinhLuong.setDinhLuong(request.getDinhLuong());
+        newDinhLuong.setTenHienThi(request.getTenHienThi());
+
+        return dinhLuongRepository.save(newDinhLuong);
     }
 
-    @Override
-    public List<DanhMucChiTietResponse> findDanhMucChiTietActive() {
-        return danhMucChiTietRepository.findByTrangThai(1)
-                .stream()
-                .map(
-                        danhMucChiTiet -> modelMapper.map(danhMucChiTiet, DanhMucChiTietResponse.class)
-                )
-                .toList();
-    }
+    private SetLauResponse mapToSetLauResponse(SetLau entity) {
+        SetLauResponse res = new SetLauResponse();
+        res.setId(entity.getId());
+        res.setMaSetLau(entity.getMaSetLau());
+        res.setTenSetLau(entity.getTenSetLau());
+        res.setGiaBan(entity.getGiaBan());
+        res.setHinhAnh(entity.getHinhAnh());
+        res.setMoTa(entity.getMoTa());
+        res.setMoTaChiTiet(entity.getMoTaChiTiet());
+        res.setTrangThai(entity.getTrangThai());
 
-    @Override
-    public List<LoaiLauResponse> findLoaiSetLauActive() {
-        return loaiLauRepository.findByTrangThai(1)
-                .stream()
-                .map(
-                        loaiLau -> modelMapper.map(loaiLau, LoaiLauResponse.class)
-                )
-                .toList();
-    }
 
-    @Override
-    public List<MonAnChiTietResponse> findChiTietMonAnActive() {
-        return monAnChiTietRepository.findByTrangThai(1)
-                .stream()
-                .map(
-                        monAnChiTiet -> modelMapper.map(monAnChiTiet, MonAnChiTietResponse.class)
-                )
-                .toList();
-    }
-
-    public MonAnResponse convertToResponse(MonAnDiKem entity) {
-        MonAnResponse dto = new MonAnResponse();
-        // ... map các trường khác ...
-
-        // LOGIC TÍNH KHOẢNG GIÁ
-        Set<ChiTietMonAn> chiTiets = entity.getChiTietMonAns(); // Giả sử quan hệ OneToMany đã map
-
-        if (chiTiets != null && !chiTiets.isEmpty()) {
-            // Tìm giá thấp nhất
-            BigDecimal min = chiTiets.stream()
-                    .map(ChiTietMonAn::getGiaBan)
-                    .min(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO);
-
-            // Tìm giá cao nhất
-            BigDecimal max = chiTiets.stream()
-                    .map(ChiTietMonAn::getGiaBan)
-                    .max(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO);
-
-            dto.setGiaThapNhat(min);
-            dto.setGiaCaoNhat(max);
-        } else {
-            // Nếu không có chi tiết nào
-            dto.setGiaThapNhat(BigDecimal.ZERO);
-            dto.setGiaCaoNhat(BigDecimal.ZERO);
+        if (entity.getIdLoaiSet() != null) {
+            res.setTenLoaiSet(entity.getIdLoaiSet().getTenLoaiSet());
+            res.setIdLoaiSet(entity.getIdLoaiSet().getId());
         }
 
-        return dto;
+        List<MonAnInSetResponse> monAns = new ArrayList<>();
+        if (entity.getListChiTietSetLau() != null) {
+            for (ChiTietSetLau ct : entity.getListChiTietSetLau()) {
+                MonAnInSetResponse item = new MonAnInSetResponse();
+                if (ct.getMonAn() != null) {
+                    item.setIdMon(ct.getMonAn().getId());
+                    item.setTenMon(ct.getMonAn().getTenMon());
+                    item.setHinhAnhMon(ct.getMonAn().getHinhAnh());
+                    item.setGiaBan(ct.getMonAn().getGiaBan());
+                    if (ct.getMonAn().getDinhLuong() != null) {
+                        item.setDinhLuong(ct.getMonAn().getDinhLuong().getTenHienThi());
+                    }
+                }
+                item.setSoLuong(ct.getSoLuong());
+                monAns.add(item);
+            }
+        }
+        res.setDanhSachMon(monAns);
+        return res;
     }
 }

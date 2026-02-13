@@ -274,3 +274,11 @@ const warnLocked = () => Swal.fire({ icon: 'info', title: 'Thông báo', text: '
 
 onMounted(handleSearch);
 </script>
+
+<style scoped>
+.btn-add-only {
+  background-color: var(--primary-red) !important;
+  color: white !important;
+  border: none !important;
+}
+</style>

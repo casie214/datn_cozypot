@@ -37,7 +37,7 @@ const {
             />
 
             <div class="modal-header">
-                <h2>Cập Nhật Danh Mục</h2>
+                <h2 style="color: white;">Cập Nhật Danh Mục</h2>
                 <button class="btn-close" @click="closeModal">✕</button>
             </div>
 

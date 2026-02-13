@@ -5,14 +5,17 @@ import CategoryHotpotAddModal from '../modal/addModal/CategoryHotpotAddModal.vue
 import CategoryHotpotPutModal from '../modal/updateModal/CategoryHotpotPutModal.vue';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 const { 
     hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllHotpotType,
-    paginatedData, searchQuery, statusFilter, sortOption, totalElements, 
+    paginatedData, searchQuery, statusFilter, sortOption, totalElements, exportToExcel,
     currentPage, totalPages, visiblePages, itemsPerPage, changePage
 } = useHotpotSetTypeManager();
 const router = useRouter();
 
-const handleRefreshList = () => {
+const handleRefreshListBtn = () => {
+  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    setTimeout(() => emit('close'), 1000);
     setTimeout(() => { getAllHotpotType(); }, 500);
 };
 
@@ -69,7 +72,13 @@ const goToHotpotList = (item) => {
     </div>
 
     <div class="action-row" style="margin-left: auto;">
-      <button class="btn-add" @click="isModalOpen = true">+ Thêm loại set</button>
+      <button class="btn-action-icon btn-add-only" @click="isModalOpen = true">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
+          <i class="fas fa-file-excel"></i>
+      </button>
+      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i class="fas fa-sync-alt"></i></button>
     </div>
 
     <div class="table-container" style="min-height: 278px;">
@@ -92,11 +101,11 @@ const goToHotpotList = (item) => {
           </tr>
 
           <tr v-for="(item, index) in paginatedData" :key="item.id">
-            <td align="center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+            <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             
             <td>{{ item.maLoaiSet }}</td>
-            <td>{{ item.tenLoaiSet }}</td>
-            <td>{{ item.moTa }}</td>
+            <td style="max-width: 200px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" :title="item.moTa">{{ item.tenLoaiSet }}</td>
+            <td style="max-width: 200px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;" :title="item.moTa">{{ item.moTa }}</td>
             
             <td :class="item.trangThai === 1 ? '' : ''">
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
@@ -104,8 +113,6 @@ const goToHotpotList = (item) => {
             
             <td class="actions">
               <div class="action-group">
-                <i style="cursor:pointer" class="fa-solid fa-list" title="Xem chi tiết"
-                  @click="goToHotpotList(item)"></i>
 
                 <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Xem chi tiết"
                   @click="openModal(item)"></i>
@@ -157,5 +164,43 @@ const goToHotpotList = (item) => {
 
 .action-group i:hover {
     transform: scale(1.2);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: white;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.status-badge.inactive {
+  background-color: whitesmoke;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.btn-add-only {
+    background-color: #8B0000 !important;
+    color: white !important;
+    border: none !important;
+}
+
+
+.btn-action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #eee !important;
+    color: var(--primary-red);
+    transition: all 0.2s ease;
 }
 </style>
