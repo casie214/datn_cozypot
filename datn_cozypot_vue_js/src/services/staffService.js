@@ -44,7 +44,6 @@ const staffService = {
   },
   // staffService.js
   checkDuplicate: (params) => {
-    // params gồm { type: 'email', value: 'abc@...', excludeId: 1 }
     return axiosClient.get('/nhan-vien/check-duplicate', { params });
   },
 

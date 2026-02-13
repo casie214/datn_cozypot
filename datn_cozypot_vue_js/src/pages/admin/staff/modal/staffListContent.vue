@@ -285,12 +285,3 @@ const exportToExcel = async () => {
 };
 onMounted(handleSearch);
 </script>
-
-<style scoped>
-.btn-add-only {
-  background-color: var(--primary-red) !important;
-  color: white !important;
-  border: none !important;
-}
-
-</style>
