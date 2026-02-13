@@ -29,7 +29,7 @@
           <input type="date" v-model="filters.tuNgay" class="form-control custom-input" @change="handleSearch">
         </div> -->
         <div class="col-md-2">
-          <button class="btn-red-dark w-100 py-2" @click="handleSearch">Tìm kiếm</button>
+          <button class="btn-red-dark w-100 py-2" style="color: white !important;" @click="handleSearch">Tìm kiếm</button>
         </div>
       </div>
     </div>
@@ -287,7 +287,7 @@ onMounted(handleSearch);
 .filter-card {
   background: var(--white);
   border-radius: 15px;
-  padding: 25px;
+
   margin-bottom: 30px;
   /* Giữ viền xám nhẹ của bạn */
   border: 1px solid #d0cece; 

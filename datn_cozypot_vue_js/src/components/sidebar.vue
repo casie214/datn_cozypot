@@ -2,7 +2,6 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from "vue-router";
 
-// --- CẤU TRÚC MENU MỚI ---
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
     { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
@@ -18,9 +17,9 @@ const menuItems = ref([
     // ==========================================
     {
         name: 'Định lượng',
-        icon: "fa-solid fa-scale-balanced", 
-        routeName: 'unitManager',       
-        query: { tab: 'dinhluong' },        
+        icon: "fa-solid fa-scale-balanced",
+        routeName: 'unitManager',
+        query: { tab: 'dinhluong' },
         isOpen: false
     },
 
@@ -30,16 +29,15 @@ const menuItems = ref([
     {
         name: 'Thực đơn',
         icon: 'fa-solid fa-bell-concierge',
+        routeName: 'foodManager',
         isOpen: false,
         children: [
             { name: 'Danh mục', routeName: 'categoryManager', tab: 'danhmuc' },
             { name: 'Món ăn', routeName: 'foodManager', tab: 'thucdon' }
         ]
     },
+    // -----------------------------------mm
 
-    // ==========================================
-    // 3. SET LẨU
-    // ==========================================
     {
         name: 'Set lẩu',
         icon: "fa-solid fa-fire-burner", // Icon nồi lẩu
@@ -49,24 +47,15 @@ const menuItems = ref([
             { name: 'Set lẩu', routeName: 'foodManager', tab: 'setlau' }
         ]
     },
-    
-    // ==========================================
-    {
-        name: 'Giảm giá',
-        icon: "fa-solid fa-tags",
-        isOpen: false,
-        children: [
-            { name: 'Giảm giá thực đơn', path: '/admin/promotion' },
-            { name: 'Phiếu giảm giá', path: '/admin/voucher' },
-        ]
-    },
+    { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+
+
 ]);
 
 const router = useRouter();
 const route = useRoute();
 
-// Xử lý click Menu cấp 1
 function handleItemClick(item) {
     if (item.children) {
         item.isOpen = !item.isOpen;
@@ -87,11 +76,11 @@ const handleSubClick = (parent, child) => {
     if (child.path) {
         router.push(child.path);
         return;
-    } 
-    
+    }
+
     // Ưu tiên routeName của child, nếu không có mới lấy của parent
     const targetRouteName = child.routeName || parent.routeName;
-    
+
     if (targetRouteName && child.tab) {
         const queryParams = { tab: child.tab };
         if (child.query) Object.assign(queryParams, child.query);
@@ -99,7 +88,6 @@ const handleSubClick = (parent, child) => {
     }
 };
 
-// Đánh dấu Active Menu cấp 1
 const isActive = (item) => {
     // 1. Khớp theo đường dẫn (path) - Cho phép các trang con cũng sáng menu cha
     if (item.path && (route.path === item.path || route.path.startsWith(item.path + '/'))) {
@@ -109,7 +97,7 @@ const isActive = (item) => {
     // 2. Khớp theo tên Route (Phải đảm bảo item CÓ khai báo routeName mới đem đi so sánh)
     if (!item.children && item.routeName) {
         const isMatchRoute = route.name === item.routeName || route.meta?.parentMenu === item.routeName;
-        
+
         if (isMatchRoute) {
             // Nếu menu item có trỏ đích danh một tab nào đó (VD: Định lượng)
             if (item.query && item.query.tab) {
@@ -119,40 +107,33 @@ const isActive = (item) => {
         }
     }
 
-    // 3. Khớp nếu có menu con bên trong đang được active
     if (item.children) {
         return item.children.some(child => isSubActive(item, child));
     }
-    
     return false;
 }
 
-// Đánh dấu Active Menu cấp 2
 const isSubActive = (parent, child) => {
-    // Nếu menu con dùng Path trực tiếp
     if (child.path) {
         return route.path === child.path || route.path.startsWith(child.path + '/');
     }
 
-    // Nếu menu con dùng Tab
     if (child.tab) {
         const targetRouteName = child.routeName || parent.routeName;
-        
+
         // Khớp route name hiện tại hoặc thẻ meta parentMenu (dùng cho các trang Add/Update)
         const isMatchRoute = route.name === targetRouteName || route.meta?.parentMenu === targetRouteName;
 
         if (isMatchRoute) {
             // Ưu tiên khớp tab trên URL trước
             if (route.query.tab === child.tab) return true;
-            
+
             // Nếu URL không có tab (như trang Add/Update), khớp fallback qua thẻ meta
             if (route.meta?.activeTab === child.tab) return true;
         }
     }
     return false;
 };
-
-// Tự động mở menu khi f5 hoặc thay đổi URL
 const checkAndOpenMenu = () => {
     menuItems.value.forEach(item => {
         if (item.children && isActive(item)) {
@@ -199,6 +180,7 @@ watch(() => route.query, () => {
                             @click="handleSubClick(item, child)">
                             • {{ child.name }}
                         </div>
+
                     </div>
                 </div>
 
@@ -206,7 +188,6 @@ watch(() => route.query, () => {
         </nav>
     </aside>
 </template>
-
 <style scoped>
 /* GIỮ NGUYÊN TOÀN BỘ CSS CŨ CỦA BẠN TẠI ĐÂY */
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
@@ -278,6 +259,7 @@ watch(() => route.query, () => {
 
 .menu-item.active {
     background-color: #7B121C;
+    /* Màu đỏ đô */
     color: white;
     border-radius: 10px;
 }
@@ -313,7 +295,6 @@ watch(() => route.query, () => {
     position: relative;
     display: flex;
     align-items: center;
-    border-radius: 8px;
 }
 
 .submenu-item:hover {
