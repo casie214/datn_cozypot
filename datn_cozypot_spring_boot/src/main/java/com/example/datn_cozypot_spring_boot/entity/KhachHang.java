@@ -6,13 +6,13 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,10 +74,7 @@ public class KhachHang {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @Size(max = 255)
-    @Nationalized
-    @Column(name = "dia_chi")
-    private String diaChi;
+
 
     @Enumerated(EnumType.STRING)
     private AuthProvider authProvider;
@@ -104,4 +101,8 @@ public class KhachHang {
         }
     }
 
+    // Sửa lại dòng khai báo trong KhachHang.java
+    @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<DiaChiKhachHang> danhSachDiaChi = new ArrayList<>(); // Thêm khởi tạo này
 }

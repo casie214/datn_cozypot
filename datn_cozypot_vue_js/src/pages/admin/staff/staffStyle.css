@@ -10,7 +10,30 @@
   --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
   --shadow-hover: 0 15px 45px rgba(0, 0, 0, 0.08);
 }
+/* Màu cho icon bút chì khi di chuột vào */
+.action-edit-v2:hover i {
+  color: #800000 !important; /* Đổi sang đỏ rượu khi hover */
+  transform: scale(1.2);
+}
 
+/* Biến nút gạt thành màu Đỏ Rượu khi ON */
+.cz-switch:checked {
+  background-color: #800000 !important;
+  border-color: #800000 !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+}
+
+/* Màu khi nút gạt đang OFF (Xám nhẹ) */
+.cz-switch {
+  background-color: #dee2e6;
+  border-color: #adb5bd;
+}
+
+/* Hiệu ứng khóa khi nhân viên ngừng việc */
+.is-locked {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+}
 /* 2. THIẾT LẬP NỀN TRANG CHỦ */
 .staff-manager-wrapper {
   background-color: var(--bg-white) !important;

@@ -15,19 +15,20 @@ import java.util.Optional;
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
-    @Query("SELECT kh FROM KhachHang kh WHERE " +
-            "(:keyword IS NULL OR kh.maKhachHang LIKE %:keyword% " +
+    @Query("SELECT DISTINCT kh FROM KhachHang kh " +
+            "LEFT JOIN kh.danhSachDiaChi dc " + // Join với bảng địa chỉ
+            "WHERE (:keyword IS NULL OR kh.maKhachHang LIKE %:keyword% " +
             "OR kh.tenKhachHang LIKE %:keyword% " +
             "OR kh.soDienThoai LIKE %:keyword% " +
-            "OR kh.email LIKE %:keyword%) AND " +
+            "OR kh.email LIKE %:keyword% " +
+            "OR dc.thongTinDiaChi LIKE %:keyword%) AND " + // Tìm kiếm cả trong địa chỉ
             "(:trangThai IS NULL OR kh.trangThai = :trangThai) AND " +
-            "(:tuNgay IS NULL OR CAST(kh.ngayTaoTaiKhoan AS date) >= :tuNgay)") // Sửa chỗ này
+            "(:tuNgay IS NULL OR CAST(kh.ngayTaoTaiKhoan AS date) >= :tuNgay)")
     Page<KhachHang> searchKhachHang(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
-            @Param("tuNgay") java.time.LocalDate tuNgay, // Đổi từ LocalDateTime sang LocalDate
+            @Param("tuNgay") java.time.LocalDate tuNgay,
             Pageable pageable);
-
     boolean existsBySoDienThoai(String soDienThoai);
     boolean existsByEmail(String email);
     boolean existsByTenDangNhap(String tenDangNhap);
