@@ -119,6 +119,7 @@ public class UserMailService {
                 "    </div>" +
                 "</div>";
     }
+
     // --- BỔ SUNG HÀM DÀNH CHO KHÁCH HÀNG ---
     public void sendClientNotificationMail(KhachHangRequest request, String type) {
         try {
@@ -142,7 +143,10 @@ public class UserMailService {
     private String buildClientHtmlTemplate(KhachHangRequest req, String type) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String title = type.equals("CREATE") ? "CHÀO MỪNG THÀNH VIÊN MỚI" : "CẬP NHẬT THÔNG TIN";
-        String gender = (req.getGioiTinh() != null && req.getGioiTinh()) ? "Nam" : "Nữ";
+
+        // An toàn hơn: Tránh NullPointerException hoặc hiển thị chữ "null"
+        String userName = (req.getTenDangNhap() != null) ? req.getTenDangNhap() : "Liên hệ Admin";
+        String password = (req.getMatKhauDangNhap() != null) ? req.getMatKhauDangNhap() : "Đã bảo mật";
 
         // --- LOGIC LẤY ĐỊA CHỈ ĐÃ CHỌN ---
         String diaChiChon = "Chưa cập nhật";
@@ -153,7 +157,6 @@ public class UserMailService {
                     .findFirst()
                     .orElse(req.getDanhSachDiaChi().get(0).getThongTinDiaChi());
         }
-        // --------------------------------
 
         return "<div style=\"background-color: #f4f4f4; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\">" +
                 "    <div style=\"max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);\">" +
@@ -167,29 +170,25 @@ public class UserMailService {
                 "            <div style=\"border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;\">" +
                 "                <div style=\"margin-bottom: 10px;\">" +
                 "                    <span style=\"color: #888; font-size: 13px;\">Tên đăng nhập:</span>" +
-                "                    <span style=\"color: #333; font-weight: bold; margin-left: 10px;\">" + req.getTenDangNhap() + "</span>" +
+                "                    <span style=\"color: #333; font-weight: bold; margin-left: 10px;\">" + userName + "</span>" +
                 "                </div>" +
                 (type.equals("CREATE") ?
-                        "                <div style=\"margin-bottom: 10px; background-color: #fff4f4; padding: 10px; border-radius: 4px;\">" +
-                                "                    <span style=\"color: #888; font-size: 13px;\">Mật khẩu:</span>" +
-                                "                    <span style=\"color: #800000; font-weight: bold; margin-left: 10px;\">" + req.getMatKhauDangNhap() + "</span>" +
+                        "                <div style=\"margin-bottom: 10px; background-color: #fff4f4; padding: 15px; border-radius: 4px; border-left: 4px solid #800000;\">" +
+                                "                    <span style=\"color: #888; font-size: 13px;\">Mật khẩu tạm thời:</span>" +
+                                "                    <span style=\"color: #800000; font-weight: bold; margin-left: 10px; font-size: 16px;\">" + password + "</span>" +
+                                "                    <p style=\"margin: 5px 0 0; font-size: 11px; color: #cc0000;\">* Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu.</p>" +
                                 "                </div>" : "") +
                 "                <div style=\"margin-bottom: 10px;\">" +
                 "                    <span style=\"color: #888; font-size: 13px;\">Số điện thoại:</span>" +
                 "                    <span style=\"color: #333; margin-left: 10px;\">" + req.getSoDienThoai() + "</span>" +
                 "                </div>" +
                 "                <div style=\"margin-bottom: 10px;\">" +
-                "                    <span style=\"color: #888; font-size: 13px;\">Email:</span>" +
-                "                    <span style=\"color: #333; margin-left: 10px;\">" + req.getEmail() + "</span>" +
-                "                </div>" +
-                "                <div style=\"margin-bottom: 10px;\">" + // THÊM DÒNG ĐỊA CHỈ VÀO ĐÂY
                 "                    <span style=\"color: #888; font-size: 13px;\">Địa chỉ mặc định:</span>" +
                 "                    <span style=\"color: #333; margin-left: 10px;\">" + diaChiChon + "</span>" +
                 "                </div>" +
                 "            </div>" +
                 "            <div style=\"margin-top: 30px; text-align: center;\">" +
-                "                <p style=\"font-size: 13px; color: #666;\">Hy vọng bạn sẽ có những trải nghiệm tuyệt vời cùng chúng tôi!</p>" +
-                "                <a href=\"#\" style=\"display: inline-block; background-color: #800000; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px;\">KHÁM PHÁ NGAY</a>" +
+                "                <a href=\"http://your-website.com/login\" style=\"display: inline-block; background-color: #800000; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px;\">ĐĂNG NHẬP NGAY</a>" +
                 "            </div>" +
                 "        </div>" +
                 "        <div style=\"background-color: #f9f9f9; padding: 15px; text-align: center; font-size: 11px; color: #999;\">" +
@@ -197,4 +196,5 @@ public class UserMailService {
                 "        </div>" +
                 "    </div>" +
                 "</div>";
-    }}
+    }
+}
