@@ -153,7 +153,8 @@
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
-                        <input type="text" class="form-control" v-model="formData.soCccd" :class="{'is-invalid': errors.soCccd}" placeholder="12 chữ số">
+                        <input type="text" class="form-control" v-model="formData.soCccd"
+                          :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
                     </div> -->
@@ -337,6 +338,8 @@ const formData = reactive({
   gioiTinh: true,
   trangThaiLamViec: 1
 });
+
+const originalData = ref({});
 
 const errors = reactive({
   idVaiTro: '', hoTenNhanVien: '', soCccd: '', ngayCapCccd: '',

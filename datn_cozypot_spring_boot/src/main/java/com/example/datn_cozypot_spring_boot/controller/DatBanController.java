@@ -2,9 +2,11 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
+import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
@@ -14,8 +16,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -33,6 +38,8 @@ public class DatBanController {
 
     @Autowired
     KhuVucRepository khuVucRepository;
+    @Autowired
+    private HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -112,6 +119,18 @@ public Page<DatBanListResponse> searchDatBan(
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/ban-an/trang-thai-theo-ngay/{date}")
+    public List<BanTrangThaiResponse> getTrangThaiBanTheoNgay(
+            @PathVariable("date")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate date
+    ) {
+        System.out.println("========================================");
+        System.out.println("ENDPOINT HIT! Date received: " + date);
+        System.out.println("========================================");
+
+        return datBanService.getTrangThaiBanTheoNgay(date);
+    }
 
 
 

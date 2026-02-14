@@ -18,7 +18,6 @@ const clientService = {
     return axiosClient.get(`/khach-hang/${id}`);
   },
 
-
   create: (formData) => {
     return axiosClient.post('/khach-hang/add', formData, {
       headers: {
@@ -26,7 +25,6 @@ const clientService = {
       },
     });
   },
-
 
   update: (id, formData) => {
     return axiosClient.put(`/khach-hang/update/${id}`, formData, {

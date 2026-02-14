@@ -4,9 +4,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Nationalized;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -17,47 +21,48 @@ import java.util.Set;
 public class DanhMucChiTiet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_danh_muc_chi_tiet", nullable = false)
+    @Column(name = "id_danh_muc_chi_tiet")
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_danh_muc")
-    private DanhMuc idDanhMuc;
+    @Column(name = "ma_danh_muc_chi_tiet")
+    private String maMon;
 
-    @Size(max = 50)
-    @Column(name = "ma_danh_muc_chi_tiet", length = 50)
-    private String maDanhMucChiTiet;
+    @Column(name = "ten_danh_muc_chi_tiet")
+    private String tenMon;
 
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "ten_danh_muc_chi_tiet", length = 100)
-    private String tenDanhMucChiTiet;
+    @Column(name = "gia_ban")
+    private BigDecimal giaBan;
 
-    @Size(max = 255)
-    @Nationalized
+    @Column(name = "gia_von")
+    private BigDecimal giaVon;
+
     @Column(name = "mo_ta")
     private String moTa;
 
-    @Column(name = "ngay_tao")
-    private Instant ngayTao;
-
-    @Column(name = "ngay_sua")
-    private Instant ngaySua;
-
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "nguoi_tao", length = 100)
-    private String nguoiTao;
-
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "nguoi_sua", length = 100)
-    private String nguoiSua;
+    @Column(name = "hinh_anh_single", columnDefinition = "NVARCHAR(MAX)")
+    private String hinhAnh;
 
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @OneToMany(mappedBy = "idDanhMucChiTiet")
-    private Set<MonAnDiKem> monAnDiKems = new LinkedHashSet<>();
+    // --- Relationships ---
+    @ManyToOne
+    @JoinColumn(name = "id_danh_muc")
+    private DanhMuc danhMuc;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_dinh_luong")
+    private DinhLuong dinhLuong;
+
+    // --- Audit Fields ---
+    @CreationTimestamp
+    @Column(name = "ngay_tao", updatable = false)
+    private LocalDateTime ngayTao;
+    @UpdateTimestamp
+    @Column(name = "ngay_sua")
+    private LocalDateTime ngaySua;
+    @Column(name = "nguoi_tao")
+    private String nguoiTao;
+    @Column(name = "nguoi_sua")
+    private String nguoiSua;
 }
