@@ -15,6 +15,7 @@
 
 .notice-contain {
   display: flex;
+  max-height: 200px;
   justify-content: baseline;
 }
 
@@ -51,6 +52,18 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
   align-content: center;
+}
+
+.notice-item {
+    width: 100%; 
+    padding-right: var(--bs-gutter-x, 0.75rem); /* Giữ padding giống bootstrap nếu muốn */
+    padding-left: var(--bs-gutter-x, 0.75rem);
+    margin-right: auto;
+    margin-left: auto;
+    
+    /* QUAN TRỌNG: Đảm bảo chiều cao không bị 100vh */
+    min-height: auto !important; 
+    height: auto !important;
 }
 
 .notice i {

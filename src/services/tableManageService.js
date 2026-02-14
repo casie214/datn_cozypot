@@ -121,3 +121,46 @@ export const updateTTPhieuDatBan = async (id, trangThai) => {
         throw new Error("Cập nhật trạng thái thất bại");
     }
 };
+
+export const fetchTableStatusByDate = async (date) => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${date}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+export function getAllFoodGeneralActive() {
+    return axiosClient.get('/guest/food/active');
+}
+
+export function getAllHotpotGeneralActive() {
+    return axiosClient.get('/guest/hotpot/active');
+}
+
+export function getAllCategoryGeneralActive() {
+    return axiosClient.get('/guest/category/active');
+}
+
+export function getAllCategoryDetailActive() {
+    return axiosClient.get('/guest/category-detail/active');
+}
+
+export const createOrder = (payload) => {
+    return axiosClient.post('/hoa-don-thanh-toan/tao-don', payload);
+};
+
+export const fetchActiveBillByBan = async (idBanAn) => {
+    try {
+        const response = await axiosClient.get(`hoa-don-thanh-toan/active-by-ban/${idBanAn}`);
+        return response.data;
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            console.warn(`Bàn ${idBanAn} hiện không có hóa đơn hoạt động.`);
+            return null;
+        }
+        console.error("Lỗi khi lấy hóa đơn hoạt động:", error);
+        throw error;
+    }
+};
+

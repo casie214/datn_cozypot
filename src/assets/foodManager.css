@@ -8,7 +8,6 @@
 
 .flex-row {
     display: flex;
-
     flex-direction: row !important;
     justify-content: space-between;
 }
@@ -47,11 +46,10 @@
 }
 
 
-/* Đảm bảo action-row căn chỉnh đẹp */
 
 .action-row {
     min-width: 30%;
-    gap: 1em;
+    gap: 0.3em;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -161,7 +159,6 @@ tr:hover {
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
 }
 
 .filter-row {
@@ -219,6 +216,7 @@ tr:hover {
 }
 
 .action-row {
+    gap: 0.3em;
     display: flex;
     justify-content: flex-end;
     margin-top: 15px;
@@ -234,7 +232,6 @@ tr:hover {
     font-weight: bold;
     cursor: pointer;
 }
-
 
 .btn-show-table {
     background-color: #8B0000;
@@ -254,12 +251,7 @@ tr:hover {
 
 /* Table */
 
-.table-container {
-    background: white;
-    border-radius: 0px 0px 10px 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
+
 
 table {
     width: 100%;
