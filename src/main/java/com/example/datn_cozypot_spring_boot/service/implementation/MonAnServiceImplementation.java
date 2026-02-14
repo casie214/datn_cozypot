@@ -207,6 +207,7 @@ public class MonAnServiceImplementation implements MonAnService {
                 dl.setGiaTri(valDto.getGiaTri());
                 dl.setTenHienThi(valDto.getGiaTri() + " " + req.getTenDonVi());
                 dl.setDonVi(donVi);
+                dl.setTrangThai(1);
                 donVi.getListDinhLuong().add(dl);
             }
         }
