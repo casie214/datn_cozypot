@@ -280,11 +280,7 @@ const openModalAdd = () => {
   router.push("/admin/staff/form");
 };
 
-const openModalEdit = (id) => {
-  console.log("ID nhận được:", id);
-  console.log("Dữ liệu dòng này:", listNhanVien.value.find(x => x.id === id || x.id === id));
-  router.push(`/admin/staff/form/${id}`);
-};
+
 
 const handleEdit = (nv) => {
   // Kiểm tra trạng thái: Nếu không phải 1 (Đang hoạt động) thì chặn
