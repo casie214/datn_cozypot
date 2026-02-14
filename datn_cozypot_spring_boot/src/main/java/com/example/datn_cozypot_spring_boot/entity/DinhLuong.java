@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,12 +15,18 @@ public class DinhLuong {
     @Column(name = "id_dinh_luong")
     private Integer id;
 
+    @Column(name = "gia_tri", nullable = false)
+    private String giaTri;
+
     @Column(name = "ten_hien_thi")
     private String tenHienThi;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_don_vi", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private DonVi donVi;
 
-    @Column(name = "kich_co")
-    private String kichCo;
-
-    @Column(name = "dinh_luong")
-    private String dinhLuong;
+    @Column(name = "trang_thai")
+    private Integer trangThai;
 }

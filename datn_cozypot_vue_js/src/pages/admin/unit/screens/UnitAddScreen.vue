@@ -1,9 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { foodApi } from '@/services/foodFunction'; 
+import { foodApi } from '@/services/foodFunction';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
-// Import theme mặc định của multiselect
 import '@vueform/multiselect/themes/default.css';
 
 const props = defineProps({
@@ -12,43 +11,66 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'refresh']);
 
+// Data cấu trúc mới theo DonViRequest
 const formData = ref({
-    idDanhMuc: null,
-    kichCo: '',
-    dinhLuong: '',
-    tenHienThi: ''
+    tenDonVi: '',
+    moTa: '',
+    listIdDanhMuc: [],
+    values: [] // Chứa danh sách { giaTri: '...' }
 });
+
+const newValueInput = ref(''); // Biến tạm để nhập từng giá trị định lượng
 
 // Reset form khi mở modal
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {
-        formData.value = { 
-            idDanhMuc: null, 
-            kichCo: '', 
-            dinhLuong: '', 
-            tenHienThi: '' 
+        formData.value = {
+            tenDonVi: '',
+            moTa: '',
+            listIdDanhMuc: [],
+            values: []
         };
+        newValueInput.value = '';
     }
 });
 
-const handleSave = async () => {
-    // 1. Validate và Trim dữ liệu
-    formData.value.kichCo = (formData.value.kichCo || '').trim();
-    formData.value.dinhLuong = (formData.value.dinhLuong || '').trim();
-    formData.value.tenHienThi = (formData.value.tenHienThi || '').trim();
+// Thêm một giá trị định lượng vào danh sách (VD: gõ 200 rồi Enter)
+const addValue = () => {
+    const val = newValueInput.value.trim();
+    if (!val) return;
 
-    if (!formData.value.idDanhMuc) {
-        return Swal.fire('Chú ý', 'Vui lòng chọn danh mục áp dụng!', 'warning');
+    // Kiểm tra trùng lặp trong mảng hiện tại
+    if (formData.value.values.some(v => v.giaTri === val)) {
+        return Swal.fire('Chú ý', 'Giá trị này đã có trong danh sách!', 'info');
     }
 
-    if (!formData.value.kichCo || !formData.value.tenHienThi) {
-        return Swal.fire('Chú ý', 'Vui lòng nhập đầy đủ Kích cỡ và Tên hiển thị!', 'warning');
+    formData.value.values.push({ giaTri: val });
+    newValueInput.value = ''; // Clear input
+};
+
+// Xóa một giá trị định lượng khỏi danh sách
+const removeValue = (index) => {
+    formData.value.values.splice(index, 1);
+};
+
+const handleSave = async () => {
+    // 1. Validate
+    if (!formData.value.tenDonVi.trim()) {
+        return Swal.fire('Chú ý', 'Vui lòng nhập tên đơn vị (VD: ml, gram)!', 'warning');
+    }
+
+    if (formData.value.listIdDanhMuc.length === 0) {
+        return Swal.fire('Chú ý', 'Vui lòng chọn ít nhất một danh mục áp dụng!', 'warning');
+    }
+
+    if (formData.value.values.length === 0) {
+        return Swal.fire('Chú ý', 'Vui lòng thêm ít nhất một giá trị định lượng!', 'warning');
     }
 
     // 2. Xác nhận lưu
     const result = await Swal.fire({
         title: 'Xác nhận',
-        text: 'Thêm định lượng mới này?',
+        text: `Tạo đơn vị "${formData.value.tenDonVi}" với ${formData.value.values.length} giá trị?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#8B0000',
@@ -58,13 +80,16 @@ const handleSave = async () => {
 
     if (result.isConfirmed) {
         try {
-            await foodApi.createUnit(formData.value);
+            // Backend nhận DonViRequest { tenDonVi, moTa, values: [{giaTri},...], listIdDanhMuc: [...] }
+            await foodApi.createUnitType(formData.value);
+
             Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
             emit('refresh');
             emit('close');
         } catch (error) {
             console.error(error);
-            Swal.fire('Lỗi', 'Không thể thêm định lượng. Vui lòng thử lại!', 'error');
+            const msg = error.response?.data?.message || 'Không thể thêm đơn vị. Vui lòng thử lại!';
+            Swal.fire('Lỗi', msg, 'error');
         }
     }
 };
@@ -74,54 +99,59 @@ const handleSave = async () => {
     <div v-if="isOpen" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>Thêm định lượng mới</h3>
+                <h3 style="color: white !important;">Thêm đơn vị tính & định lượng</h3>
                 <button @click="emit('close')" class="close-btn">&times;</button>
             </div>
 
             <div class="modal-body">
                 <div class="form-group">
+                    <label>Tên đơn vị tính (VD: ml, gram, đĩa) <span class="required">*</span></label>
+                    <input v-model="formData.tenDonVi" type="text" class="form-control"
+                        placeholder="Nhập tên đơn vị...">
+                </div>
+
+                <div class="form-group">
                     <label>Áp dụng cho danh mục <span class="required">*</span></label>
-                    <div class="multiselect-container">
-                        <Multiselect
-                            v-model="formData.idDanhMuc"
-                            :options="categories"
-                            label="tenDanhMuc"
-                            valueProp="id"
-                            placeholder="-- Chọn danh mục (VD: Đồ uống, Khai vị) --"
-                            :searchable="true"
-                            :can-clear="true"
-                            noOptionsText="Không có dữ liệu"
-                            noResultsText="Không tìm thấy danh mục"
-                        />
+                    <Multiselect v-model="formData.listIdDanhMuc" :options="categories" label="tenDanhMuc"
+                        valueProp="id" mode="tags" placeholder="-- Chọn danh mục --" :searchable="true" />
+                </div>
+
+                <div class="form-group">
+                    <label>Giá trị định lượng con (VD: 200, 500, 1.5) <span class="required">*</span></label>
+                    <div class="input-with-btn">
+                        <input v-model="newValueInput" type="text" class="form-control"
+                            placeholder="Nhập số và nhấn Enter..." @keyup.enter="addValue">
+                        <button @click="addValue" class="btn-add-val"><i class="fas fa-plus"></i></button>
+                    </div>
+
+                    <div class="values-list mt-2">
+                        <div v-for="(v, index) in formData.values" :key="index" class="value-tag">
+                            {{ v.giaTri }}
+                            <span @click="removeValue(index)" class="remove-tag">&times;</span>
+                        </div>
+                        <div v-if="formData.values.length === 0" class="empty-hint">
+                            Chưa có giá trị nào được thêm.
+                        </div>
                     </div>
                 </div>
-                
-                <div class="form-group">
-                    <label>Kích cỡ / Đơn vị (VD: Đĩa, Ly, Lon) <span class="required">*</span></label>
-                    <input v-model="formData.kichCo" type="text" class="form-control" placeholder="Nhập đơn vị (VD: Đĩa)...">
-                </div>
 
                 <div class="form-group">
-                    <label>Giá trị định lượng (VD: 200g, 330ml)</label>
-                    <input v-model="formData.dinhLuong" type="text" class="form-control" placeholder="Nhập thông số (VD: 200g)...">
-                </div>
-
-                <div class="form-group">
-                    <label>Tên hiển thị Menu <span class="required">*</span></label>
-                    <input v-model="formData.tenHienThi" type="text" class="form-control" placeholder="Tên khách sẽ nhìn thấy (VD: Đĩa lớn)...">
+                    <label>Mô tả đơn vị</label>
+                    <textarea v-model="formData.moTa" class="form-control" rows="2"
+                        placeholder="Nhập mô tả ngắn..."></textarea>
                 </div>
             </div>
 
             <div class="modal-footer">
                 <button @click="emit('close')" class="btn-secondary">Hủy bỏ</button>
-                <button @click="handleSave" class="btn-primary">Lưu lại</button>
+                <button @click="handleSave" class="btn-primary">Lưu đơn vị</button>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* CSS cho Modal Overlay và Container */
+/* Giữ nguyên các style Modal cũ của bạn và thêm các style mới bên dưới */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -138,11 +168,9 @@ const handleSave = async () => {
 .modal-container {
     background: white;
     width: 550px;
-    max-width: 95%;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    animation: slideDown 0.3s ease-out;
+    animation: slideDown 0.3s;
 }
 
 .modal-header {
@@ -151,39 +179,24 @@ const handleSave = async () => {
     padding: 16px 24px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.3rem;
-    color: white !important;
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.8rem;
-    cursor: pointer;
-    line-height: 1;
 }
 
 .modal-body {
-    padding: 24px;
+    padding: 20px 24px;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 .form-group {
-    margin-bottom: 18px;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .form-group label {
     font-weight: 600;
     color: #444;
-    font-size: 0.95rem;
     text-align: left;
 }
 
@@ -193,17 +206,59 @@ const handleSave = async () => {
 
 .form-control {
     width: 100%;
-    padding: 10px 14px;
+    padding: 10px;
     border: 1px solid #ccc;
     border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
 }
 
-.form-control:focus {
-    border-color: #8B0000;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+/* Style cho phần nhập giá trị con */
+.input-with-btn {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-add-val {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 0 15px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.values-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    min-height: 45px;
+}
+
+.value-tag {
+    background: #8B0000;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.remove-tag {
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.empty-hint {
+    color: #999;
+    font-size: 0.85rem;
+    font-style: italic;
 }
 
 .modal-footer {
@@ -211,7 +266,7 @@ const handleSave = async () => {
     border-top: 1px solid #eee;
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
 }
 
 .btn-secondary {
@@ -219,7 +274,6 @@ const handleSave = async () => {
     background: #f1f3f5;
     border: 1px solid #dee2e6;
     border-radius: 6px;
-    font-weight: 500;
     cursor: pointer;
 }
 
@@ -233,51 +287,7 @@ const handleSave = async () => {
     cursor: pointer;
 }
 
-.btn-primary:hover {
-    background: #660000;
-}
-
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* CSS CUSTOM CHO MULTISELECT - SỬA LỖI DẤU CHẤM TRÒN */
-.multiselect-container {
-    width: 100%;
-}
-
-:deep(.multiselect) {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    min-height: 42px;
-}
-
-:deep(.multiselect.is-active) {
-    border-color: #8B0000;
-    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
-}
-
-/* Triệt tiêu bullet points */
-:deep(.multiselect-options) {
-    list-style: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-:deep(.multiselect-option) {
-    padding: 10px 14px;
-}
-
-:deep(.multiselect-option.is-selected) {
-    background: #8B0000;
-}
-
-:deep(.multiselect-option.is-selected.is-pointed) {
-    background: #660000;
-}
-
-:deep(.multiselect-placeholder) {
-    color: #999;
+:deep(.multiselect-tag) {
+    background: #8B0000 !important;
 }
 </style>
