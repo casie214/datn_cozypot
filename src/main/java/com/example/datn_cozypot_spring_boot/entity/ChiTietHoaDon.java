@@ -10,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -33,8 +34,8 @@ public class ChiTietHoaDon {
     private SetLau idSetLau;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_chi_tiet_mon_an")
-    private ChiTietMonAn idChiTietMonAn;
+    @JoinColumn(name = "id_danh_muc_chi_tiet")
+    private DanhMucChiTiet idChiTietMonAn;
 
     @Column(name = "so_luong")
     private Integer soLuong;
@@ -54,7 +55,7 @@ public class ChiTietHoaDon {
     private Integer trangThaiMon;
 
     @Column(name = "ngay_gio_tao")
-    private Instant ngayGioTao;
+    private LocalDateTime ngayGioTao;
 
     @Column(name = "ngay_gio_sua")
     private Instant ngayGioSua;

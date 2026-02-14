@@ -2,7 +2,7 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.SetLauDTO;
 import com.example.datn_cozypot_spring_boot.entity.SetLau;
-import com.example.datn_cozypot_spring_boot.repository.monAnRepository.SetLauRepository;
+import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

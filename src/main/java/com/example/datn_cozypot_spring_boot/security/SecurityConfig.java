@@ -28,6 +28,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -38,34 +40,38 @@ public class SecurityConfig {
         http
 
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+          .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(unauthorizedHandler))
+          .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/**").permitAll()
+                  .requestMatchers("/api/auth/refresh-token").permitAll()
+                  .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
+                  .requestMatchers(
+                          "/api/dot-khuyen-mai/export-excel"
+                  ).permitAll()
+                  .requestMatchers("/api/guest/**").permitAll()
+                  .requestMatchers("/api/khach-hang/**").permitAll()
+                  .requestMatchers("/api/thong-ke/**").permitAll()
+                  .requestMatchers("/api/mon-an-di-kem/**").permitAll()
+                  .requestMatchers("/api/set-lau/**").permitAll()
+                  .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                  .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
+                  .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
+            .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
+            .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN")
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/test-mail").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
-                        .requestMatchers(
-                                "/api/dot-khuyen-mai/export-excel"
-                        ).permitAll()
-                        .requestMatchers("/api/guest/**").permitAll()
-                        .requestMatchers("/api/khach-hang/**").permitAll()
 
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN")
+                  .requestMatchers("/dat-ban/**").permitAll()
+            .requestMatchers("/uploads/**").permitAll()
+            .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
 
+            .anyRequest().authenticated()
+        )
 
-                        .requestMatchers("/dat-ban/**").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
-
-                        .anyRequest().authenticated()
-                )
-
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

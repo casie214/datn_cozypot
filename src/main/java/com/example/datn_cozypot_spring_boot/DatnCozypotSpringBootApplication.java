@@ -7,9 +7,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @SpringBootApplication
-@EnableAsync // Thêm annotation này để cho phép chạy tác vụ ngầm
+@EnableAsync
 public class DatnCozypotSpringBootApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(DatnCozypotSpringBootApplication.class, args);
     }

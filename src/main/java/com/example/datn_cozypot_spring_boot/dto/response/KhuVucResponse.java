@@ -7,9 +7,11 @@ import lombok.Data;
 public class KhuVucResponse {
     private Integer id;
     private String tenKhuVuc;
+    private Integer tang;
 
     public KhuVucResponse(KhuVuc khuVuc) {
         this.id = khuVuc.getId();
         this.tenKhuVuc = khuVuc.getTenKhuVuc();
+        this.tang = khuVuc.getTang();
     }
 }
