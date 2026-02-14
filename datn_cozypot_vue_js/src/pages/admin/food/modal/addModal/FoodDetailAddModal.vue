@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-import { foodApi } from '../../../../../services/foodFunction';
+import { foodApi } from '../../../../../services/foodFunction'; // Đảm bảo đường dẫn đúng
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 
@@ -21,16 +21,11 @@ const formData = ref({
 const errors = ref({});
 const listCategories = ref([]);
 
-// Danh sách Định lượng thật từ Database (Để lấy ID gửi lên API tránh lỗi 400)
-const listDinhLuongDB = ref([]);
+// Dữ liệu Đơn vị (Cha - Con) lấy từ API
+const availableUnits = ref([]); 
 
-// Dữ liệu cho Combobox (Sẽ được đổ tự động từ DB khi chọn Danh mục)
-const unitOptions = ref([]);
-const weightOptions = ref([]);
-
-// Giá trị user chọn trong Combobox
-const selectedUnits = ref([]);
-const selectedWeights = ref([]);
+// Danh sách ID các định lượng con được chọn (VD: [101, 102, 205])
+const selectedDinhLuongIds = ref([]);
 
 const generatedVariants = ref([]);
 const fileInputRef = ref(null);
@@ -49,37 +44,34 @@ onMounted(async () => {
 // 2. LOGIC LẤY ĐỊNH LƯỢNG TỪ DB THEO DANH MỤC
 // ==========================================
 const loadDataByCategory = async () => {
-    // Reset dữ liệu cũ
-    selectedUnits.value = [];
-    selectedWeights.value = [];
+    // Reset dữ liệu
+    availableUnits.value = [];
+    selectedDinhLuongIds.value = [];
     generatedVariants.value = [];
-    unitOptions.value = [];
-    weightOptions.value = [];
     errors.value.idDanhMuc = '';
 
     if (!formData.value.idDanhMuc) return;
 
     try {
-        const res = await foodApi.getUnitsByCategory(formData.value.idDanhMuc);
-        listDinhLuongDB.value = res.data || [];
-
-        const units = new Set();
-        const weights = new Set();
-
-        // CHỈ LẤY DỮ LIỆU CÓ SẴN TỪ DATABASE DỰA VÀO JSON
-        listDinhLuongDB.value.forEach(item => {
-            // Combobox 1: Đẩy dữ liệu từ trường "kichCo"
-            if (item.kichCo) units.add(item.kichCo.trim());
-
-            // Combobox 2: Đẩy dữ liệu từ trường "dinhLuong"
-            if (item.dinhLuong) weights.add(item.dinhLuong.trim());
-        });
-
-        unitOptions.value = Array.from(units);
-        weightOptions.value = Array.from(weights);
-
+        // Gọi API mới: Lấy Đơn vị theo Danh mục (đã lọc active)
+        // Endpoint: /unit-types/by-category/{id}
+        const res = await foodApi.getUnitTypesByCategory(formData.value.idDanhMuc);
+        availableUnits.value = res.data || [];
+        
+        if (availableUnits.value.length === 0) {
+            Swal.fire('Thông báo', 'Danh mục này chưa có định lượng nào. Vui lòng sang trang Quản lý Đơn vị để cấu hình trước!', 'info');
+        }
     } catch (error) {
         console.error("Lỗi lấy định lượng:", error);
+    }
+};
+
+// Hàm chọn/bỏ chọn một giá trị định lượng
+const toggleDinhLuong = (id) => {
+    if (selectedDinhLuongIds.value.includes(id)) {
+        selectedDinhLuongIds.value = selectedDinhLuongIds.value.filter(i => i !== id);
+    } else {
+        selectedDinhLuongIds.value.push(id);
     }
 };
 
@@ -92,49 +84,59 @@ const handleGenerateVariants = () => {
         errors.value.baseName = 'Vui lòng nhập Tên sản phẩm gốc trước!'; return;
     }
 
+    if (selectedDinhLuongIds.value.length === 0) {
+        return Swal.fire('Chú ý', 'Vui lòng chọn ít nhất 1 định lượng!', 'warning');
+    }
+
     const newVariants = [];
-    const name = formData.value.baseName.trim();
-    const uList = selectedUnits.value.length > 0 ? selectedUnits.value : [''];
-    const wList = selectedWeights.value.length > 0 ? selectedWeights.value : [''];
+    const baseName = formData.value.baseName.trim();
 
-    uList.forEach(u => {
-        wList.forEach(w => {
-            const parts = [name, u, w].filter(p => p !== '');
-            const variantName = parts.join(' - ');
+    // Duyệt qua tất cả Đơn vị Cha để tìm các con được chọn
+    availableUnits.value.forEach(unit => {
+        if (unit.values) {
+            unit.values.forEach(val => {
+                // Nếu giá trị con này nằm trong danh sách đã tick
+                if (selectedDinhLuongIds.value.includes(val.id)) {
+                    
+                    // Tạo tên món: "Coca Cola - 330 ml" hoặc "Thịt bò - 200 gram"
+                    // val.giaTri = "330", unit.tenDonVi = "ml"
+                    const variantName = `${baseName} - ${val.giaTri} ${unit.tenDonVi}`;
+                    
+                    // Kiểm tra trùng trong list hiện tại
+                    const existing = generatedVariants.value.find(v => v.idDinhLuong === val.id);
 
-            // KHỚP VỚI JSON CỦA BẠN: u = kichCo (VD: S), w = dinhLuong (VD: 100g)
-            const matchedDB = listDinhLuongDB.value.find(dbItem => 
-                (dbItem.kichCo || '').toLowerCase() === u.toLowerCase() && 
-                (dbItem.dinhLuong || '').toLowerCase() === w.toLowerCase()
-            );
-
-            const existing = generatedVariants.value.find(v => v.tenMon === variantName);
-
-            newVariants.push({
-                tenMon: variantName,
-                giaVon: existing ? existing.giaVon : 0,
-                giaBan: existing ? existing.giaBan : 0,
-                tenDinhLuong: matchedDB ? matchedDB.tenHienThi : `${u} ${w}`.trim(),
-                idDinhLuong: matchedDB ? matchedDB.id : null, 
-                
-                // --- THÊM 2 TRƯỜNG NÀY ĐỂ ĐÁNH DẤU TẠO MỚI ---
-                isNewUnit: !matchedDB, 
-                newUnitData: !matchedDB ? { kichCo: u, dinhLuong: w } : null,
-                
-                trangThai: existing ? existing.trangThai : 1
+                    newVariants.push({
+                        tenMon: variantName,
+                        giaVon: existing ? existing.giaVon : 0,
+                        giaBan: existing ? existing.giaBan : 0,
+                        
+                        // Lưu thông tin hiển thị
+                        tenHienThiDinhLuong: `${val.giaTri} ${unit.tenDonVi}`,
+                        
+                        // ID QUAN TRỌNG ĐỂ GỬI BACKEND
+                        idDinhLuong: val.id
+                    });
+                }
             });
-        });
+        }
     });
+
     generatedVariants.value = newVariants;
 };
 
-const removeVariant = (index) => generatedVariants.value.splice(index, 1);
+const removeVariant = (index) => {
+    // Khi xóa dòng bảng, ta cũng bỏ tick chọn ở trên cho đồng bộ
+    const idToRemove = generatedVariants.value[index].idDinhLuong;
+    selectedDinhLuongIds.value = selectedDinhLuongIds.value.filter(id => id !== idToRemove);
+    
+    generatedVariants.value.splice(index, 1);
+};
 
 // ==========================================
-// 4. LOGIC UPLOAD ẢNH (Rút gọn)
+// 4. LOGIC UPLOAD ẢNH (Giữ nguyên)
 // ==========================================
 const triggerFileInput = () => fileInputRef.value.click();
-const resizeImage = (file, maxWidth = 800) => { /* Giữ nguyên hàm của bạn */
+const resizeImage = (file, maxWidth = 800) => {
     return new Promise((resolve) => {
         const reader = new FileReader(); reader.readAsDataURL(file);
         reader.onload = (e) => {
@@ -159,78 +161,58 @@ const handleFileUpload = async (event) => {
 // 5. LƯU DỮ LIỆU
 // ==========================================
 const handleSave = async () => {
-    // Validate cơ bản
+    // 1. Validate
+    errors.value = {};
     if (!formData.value.idDanhMuc || !formData.value.baseName || !formData.value.hinhAnh) {
-        return Swal.fire({ icon: 'warning', text: 'Vui lòng nhập đủ thông tin và ảnh!' });
+        return Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập đủ Tên món, Danh mục và Ảnh!' });
     }
-    if (generatedVariants.value.length === 0) return;
+    if (generatedVariants.value.length === 0) {
+        return Swal.fire({ icon: 'warning', text: 'Vui lòng chọn định lượng và nhấn "Tạo biến thể"!' });
+    }
 
+    // Check giá bán
+    const invalidPrice = generatedVariants.value.some(v => !v.giaBan || v.giaBan < 0);
+    if (invalidPrice) {
+        return Swal.fire({ icon: 'warning', text: 'Vui lòng nhập giá bán hợp lệ cho tất cả các món!' });
+    }
+
+    // 2. Xác nhận
     const result = await Swal.fire({
         title: 'Xác nhận lưu?',
-        text: "Hệ thống sẽ tự động tạo các định lượng mới và lưu món ăn.",
+        text: `Hệ thống sẽ tạo ${generatedVariants.value.length} món ăn mới.`,
         icon: 'question',
         showCancelButton: true,
+        confirmButtonColor: '#8B0000',
         confirmButtonText: 'Đồng ý'
     });
 
     if (result.isConfirmed) {
+        Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
+
         try {
-            // --- BƯỚC 1: TẠO ĐỊNH LƯỢNG MỚI VÀ CẬP NHẬT ID ---
-            // Dùng for...of để đợi từng API chạy xong rồi mới đi tiếp
-            for (let variant of generatedVariants.value) {
-                if (variant.isNewUnit || !variant.idDinhLuong) {
-                    const unitPayload = {
-                        idDanhMuc: formData.value.idDanhMuc,
-                        kichCo: variant.newUnitData.kichCo,
-                        dinhLuong: variant.newUnitData.dinhLuong,
-                        tenHienThi: variant.tenDinhLuong
-                    };
-                    
-                    // GỌI API TẠO ĐỊNH LƯỢNG
-                    const resUnit = await foodApi.createUnit(unitPayload);
-                    
-                    // LẤY ID TRẢ VỀ TỪ BACKEND GÁN VÀO BIẾN THỂ
-                    if (resUnit.data && resUnit.data.id) {
-                        variant.idDinhLuong = resUnit.data.id;
-                        variant.isNewUnit = false; 
-                    } else {
-                        throw new Error(`Không lấy được ID cho định lượng: ${variant.tenDinhLuong}`);
-                    }
-                }
-            }
-
-            // --- BƯỚC 2: KIỂM TRA LẠI MỘT LẦN NỮA ---
-            const stillMissingId = generatedVariants.value.some(v => !v.idDinhLuong);
-            if (stillMissingId) {
-                throw new Error("Vẫn còn món chưa có ID định lượng!");
-            }
-
-            // --- BƯỚC 3: LƯU HÀNG LOẠT MÓN ĂN ---
+            // Chuẩn bị mảng Promises gọi API Create MonAn
             const savePromises = generatedVariants.value.map(v => {
                 return foodApi.createFood({
                     tenMon: v.tenMon,
-                    giaVon: v.giaVon,
+                    giaVon: v.giaVon || 0,
                     giaBan: v.giaBan,
-                    moTa: formData.value.moTa,
+                    moTa: formData.value.moTa || '',
                     hinhAnh: formData.value.hinhAnh,
                     idDanhMuc: formData.value.idDanhMuc,
-                    idDinhLuong: v.idDinhLuong, // BÂY GIỜ CHẮC CHẮN ĐÃ CÓ ID
+                    idDinhLuong: v.idDinhLuong, // ID định lượng lấy từ DB
                     trangThai: 1
                 });
             });
 
             await Promise.all(savePromises);
             
-            Swal.fire({ icon: 'success', title: 'Thành công!', showConfirmButton: false, timer: 1500 });
+            await Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
             router.push({ name: 'foodManager', query: { tab: 'thucdon' } });
             
         } catch (error) {
-            console.error("Lỗi quá trình lưu:", error);
-            Swal.fire({ 
-                icon: 'error', 
-                title: 'Lưu thất bại', 
-                text: error.response?.data?.errors?.idDinhLuong || "Vui lòng kiểm tra lại dữ liệu định lượng!" 
-            });
+            console.error("Lỗi lưu:", error);
+            const msg = error.response?.data?.message || error.message || 'Lỗi hệ thống';
+            Swal.fire({ icon: 'error', title: 'Lưu thất bại', text: msg });
         }
     }
 };
@@ -256,7 +238,8 @@ const handleSave = async () => {
                             <select v-model="formData.idDanhMuc" class="form-control" @change="loadDataByCategory"
                                 style="border: 2px solid #7b121c;">
                                 <option value="" disabled>-- Bắt buộc chọn --</option>
-                                <option v-for="cat in listCategories" :key="cat.id" :value="cat.id">{{ cat.tenDanhMuc }}
+                                <option v-for="cat in listCategories" :key="cat.id" :value="cat.id">
+                                    {{ cat.tenDanhMuc }}
                                 </option>
                             </select>
                         </div>
@@ -270,30 +253,43 @@ const handleSave = async () => {
                 </div>
 
                 <div class="card">
-                    <h3><i class="fas fa-layer-group"></i> Bước 2: Tạo các tùy chọn (Size/Unit)</h3>
-                    <div class="form-container">
-                        <div class="form-row-2">
-                            <div class="form-group">
-                                <label>Đơn vị tính</label>
-                                <Multiselect v-model="selectedUnits" mode="tags" :options="unitOptions"
-                                    :disabled="!formData.idDanhMuc" :searchable="true" :create-option="false"
-                                    placeholder="Chọn đơn vị..." noOptionsText="Không có dữ liệu từ DB" />
-                                <small v-if="!formData.idDanhMuc" class="text-muted mt-1 d-block">Vui lòng chọn Danh mục
-                                    trước</small>
-                            </div>
+                    <h3><i class="fas fa-layer-group"></i> Bước 2: Chọn Định Lượng / Kích Cỡ</h3>
+                    
+                    <div v-if="!formData.idDanhMuc" class="text-muted text-center p-4">
+                        Vui lòng chọn Danh mục ở Bước 1 trước.
+                    </div>
 
-                            <div class="form-group">
-                                <label>Khối lượng / Kích cỡ</label>
-                                <Multiselect v-model="selectedWeights" mode="tags" :options="weightOptions"
-                                    :disabled="!formData.idDanhMuc" :searchable="true" :create-option="false"
-                                    placeholder="Chọn khối lượng..." noOptionsText="Không có dữ liệu từ DB" />
+                    <div v-else class="unit-selection-container">
+                        <div v-if="availableUnits.length === 0" class="empty-units">
+                            <i class="fas fa-box-open"></i> Không tìm thấy định lượng nào cho danh mục này.
+                        </div>
+
+                        <div v-for="unit in availableUnits" :key="unit.id" class="unit-group">
+                            <div class="unit-header">
+                                <span class="unit-name">{{ unit.tenDonVi }}</span>
+                                <span class="unit-desc text-muted ms-2" style="font-size: 0.8rem; font-weight: normal;">
+                                    {{ unit.moTa }}
+                                </span>
+                            </div>
+                            
+                            <div class="unit-values">
+                                <button 
+                                    v-for="val in unit.values" 
+                                    :key="val.id"
+                                    class="btn-option"
+                                    :class="{ 'active': selectedDinhLuongIds.includes(val.id) }"
+                                    @click="toggleDinhLuong(val.id)"
+                                >
+                                    {{ val.giaTri }}
+                                    <i v-if="selectedDinhLuongIds.includes(val.id)" class="fas fa-check-circle ms-1"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <div class="text-center mt-3">
-                            <button class="btn btn-warning fw-bold" @click="handleGenerateVariants"
-                                :disabled="!formData.idDanhMuc">
-                                <i class="fas fa-magic"></i> Tạo Bảng Biến Thể
+                        <div class="text-left mt-4 border-top pt-3">
+                            <button class="btn btn-danger fw-bold" @click="handleGenerateVariants"
+                                :disabled="selectedDinhLuongIds.length === 0">
+                                <i class="fas fa-magic"></i> Tạo {{ selectedDinhLuongIds.length }} biến thể
                             </button>
                         </div>
                     </div>
@@ -307,31 +303,30 @@ const handleSave = async () => {
                                 <tr>
                                     <th style="width: 50px;">STT</th>
                                     <th>Tên món sẽ tạo</th>
-                                    <th>Trạng thái CSDL</th>
-                                    <th style="width: 130px;">Giá bán <span class="text-danger">*</span></th>
+                                    <th>Kích cỡ</th>
+                                    <th style="width: 150px;">Giá bán <span class="text-danger">*</span></th>
                                     <th style="width: 50px;">Xóa</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(v, idx) in generatedVariants" :key="idx">
                                     <td class="text-center">{{ idx + 1 }}</td>
-                                    <td class="fw-bold">{{ v.tenMon }}</td>
-
+                                    <td class="fw-bold text-primary">{{ v.tenMon }}</td>
                                     <td>
-                                        <span v-if="!v.isNewUnit" class="badge bg-success">
-                                            <i class="fas fa-check"></i> Có sẵn trong DB
-                                        </span>
-                                        <span v-else class="badge bg-warning text-dark"
-                                            title="Hệ thống sẽ tự động tạo định lượng này">
-                                            <i class="fas fa-plus"></i> Sẽ tạo mới ngầm
+                                        <span class="badge bg-light text-dark border">
+                                            {{ v.tenHienThiDinhLuong }}
                                         </span>
                                     </td>
-
-                                    <td><input v-model="v.giaBan" type="number" class="form-control form-control-sm"
-                                            placeholder="0"></td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input v-model="v.giaBan" type="number" class="form-control fw-bold" placeholder="0">
+                                            <span class="input-group-text">đ</span>
+                                        </div>
+                                    </td>
                                     <td class="text-center">
-                                        <button class="btn-clear-img text-danger" @click="removeVariant(idx)"><i
-                                                class="fas fa-trash"></i></button>
+                                        <button class="btn-clear-img text-danger" @click="removeVariant(idx)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -364,10 +359,8 @@ const handleSave = async () => {
                                         <img :src="formData.hinhAnh"
                                             style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px;">
                                         <div class="mt-2 d-flex justify-content-between">
-                                            <button class="btn btn-sm btn-outline-primary" @click="triggerFileInput">Đổi
-                                                ảnh</button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                @click="formData.hinhAnh = ''">Xóa</button>
+                                            <button class="btn btn-sm btn-outline-primary" @click="triggerFileInput">Đổi ảnh</button>
+                                            <button class="btn btn-sm btn-outline-danger" @click="formData.hinhAnh = ''">Xóa</button>
                                         </div>
                                     </div>
                                 </div>
@@ -376,10 +369,10 @@ const handleSave = async () => {
                     </div>
                 </div>
                 <div class="page-footer mt-4 text-center">
-                    <button class="btn btn-secondary me-2" @click="router.back()" style="min-width: 120px;">Hủy
-                        bỏ</button>
-                    <button class="btn btn-danger" @click="handleSave"
-                        style="min-width: 120px; background-color: #d32f2f;">Lưu hàng loạt</button>
+                    <button class="btn btn-secondary me-2" @click="router.back()" style="min-width: 120px;">Hủy bỏ</button>
+                    <button class="btn btn-danger" @click="handleSave" style="min-width: 120px; background-color: #d32f2f;">
+                        Lưu hàng loạt
+                    </button>
                 </div>
             </div>
         </div>
@@ -389,46 +382,70 @@ const handleSave = async () => {
 <style scoped>
 @import url("/src/assets/foodModalManager.css");
 
-.invalid-border {
-    border: 1px solid #dc3545 !important;
+.invalid-border { border: 1px solid #dc3545 !important; }
+.error-message { color: #dc3545; font-size: 0.85em; margin-top: 4px; display: block; }
+
+.variants-table { width: 100%; border-collapse: collapse; }
+.variants-table th, .variants-table td { border: 1px solid #eee; padding: 10px; vertical-align: middle; }
+.variants-table th { background-color: #f8f9fa; font-weight: 600; }
+
+/* STYLE CHO PHẦN CHỌN UNIT (MỚI) */
+.unit-group {
+    margin-bottom: 20px;
+    border-bottom: 1px dashed #eee;
+    padding-bottom: 15px;
+}
+.unit-group:last-child { border-bottom: none; }
+
+.unit-header {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+}
+.unit-name {
+    font-weight: 700;
+    color: #444;
+    font-size: 1.1rem;
+    text-transform: uppercase;
 }
 
-.error-message {
-    color: #dc3545;
-    font-size: 0.85em;
-    margin-top: 4px;
-    display: block;
+.unit-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-:deep(.multiselect-tag) {
-    background-color: #7b121c;
-    color: white;
+.btn-option {
+    background-color: white;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
     font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
 }
 
-:deep(.multiselect-tag i:before) {
+.btn-option:hover {
+    background-color: #f1f1f1;
+    border-color: #bbb;
+}
+
+.btn-option.active {
+    background-color: #8B0000;
     color: white;
+    border-color: #8B0000;
+    box-shadow: 0 2px 5px rgba(139, 0, 0, 0.3);
 }
 
-:deep(.multiselect.is-disabled) {
-    background-color: #e9ecef;
-    cursor: not-allowed;
-}
-
-.variants-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.variants-table th,
-.variants-table td {
-    border: 1px solid #eee;
-    padding: 8px;
-    vertical-align: middle;
-}
-
-.variants-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
+.empty-units {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+    font-style: italic;
+    background: #f9f9f9;
+    border-radius: 8px;
 }
 </style>

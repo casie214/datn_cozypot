@@ -15,4 +15,8 @@ public interface DanhMucChiTietRepository extends JpaRepository<DanhMucChiTiet, 
     List<DanhMucChiTiet> findByTrangThai(int i);
 
     List<DanhMucChiTiet> findAllByTrangThai(int i);
+
+    boolean existsByMaMon(String finalCode);
+
+    boolean existsByTenMonAndDanhMucIdAndDinhLuongId(String tenMonChuan, Integer idDanhMuc, Integer idDinhLuong);
 }

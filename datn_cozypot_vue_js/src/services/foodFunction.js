@@ -16,6 +16,12 @@ export const foodApi = {
     updateCategory: (id, data) => axiosClient.put(`${API_BASE}/category/${id}`, data),
     
     getUnits: () => axiosClient.get(`${API_BASE}/unit`),
+    getUnitTypes: () => axiosClient.get(`${API_BASE}/unit-types`),
+    createUnitType: (data) => axiosClient.post(`${API_BASE}/unit-types`, data),
+    updateUnitType: (id, data) => axiosClient.put(`${API_BASE}/unit-types/${id}`, data),
+    updateSingleUnit: (id, data) => axiosClient.put(`/manage/food/quantitative/${id}`, data),
+    getUnitTypesByCategory: (id) => axiosClient.get(`${API_BASE}/unit-types/by-category/${id}`),
+
     getUnitsByCategory: (id) => axiosClient.get(`${API_BASE}/unit/by-category/${id}`),
 
     getFoods: () => axiosClient.get(`${API_BASE}`),
@@ -32,7 +38,9 @@ export const foodApi = {
     createHotpot: (data) => axiosClient.post(`${API_BASE}/hotpot`, data),
     updateHotpot: (id, data) => axiosClient.put(`${API_BASE}/hotpot/${id}`, data),
 
-    createUnit: (data) => axiosClient.post(`${API_BASE}/dinh-luong`, data)
+    createUnit: (data) => axiosClient.post(`${API_BASE}/dinh-luong`, data),
+    updateUnit: (id, data) => axiosClient.put(`${API_BASE}/dinh-luong/${id}`, data)
+    
 };
 
 // ============================================================================
@@ -1011,44 +1019,73 @@ export function useHotpotForm(isEditMode = false) {
     };
 }
 
+
+
 export function useUnitManager() {
-    const unitData = ref([]);
+    const unitData = ref([]); // Danh sách DonViResponse từ Backend
     const isLoading = ref(false);
     const searchQuery = ref('');
     const sortOption = ref('id_desc');
     const currentPage = ref(1);
     const itemsPerPage = ref(8);
     const listCategories = ref([]);
+    const categoryFilter = ref(null);
 
     const fetchAllData = async () => {
         isLoading.value = true;
         try {
+            // Gọi đồng thời lấy danh sách Đơn vị (mới) và Danh mục
             const [resUnits, resCats] = await Promise.all([
-                foodApi.getUnits(),
+                foodApi.getUnitTypes(), // Endpoint: /api/manage/food/unit-types
                 foodApi.getCategories()
             ]);
+            
             unitData.value = resUnits.data || [];
             listCategories.value = resCats.data || [];
+            return resUnits.data; 
         } catch (e) {
-            console.error(e);
+            console.error("Lỗi tải dữ liệu:", e);
+            return [];
         } finally {
             isLoading.value = false;
         }
     };
 
+    // LOGIC LỌC VÀ TÌM KIẾM MỚI
     const filteredData = computed(() => {
         let result = [...unitData.value];
-        if (searchQuery.value) {
-            const q = searchQuery.value.toLowerCase().trim();
-            result = result.filter(i => 
-                (i.tenHienThi && i.tenHienThi.toLowerCase().includes(q)) ||
-                (i.kichCo && i.kichCo.toLowerCase().includes(q))
+
+        // 1. Lọc theo Danh mục (Quan hệ N-N ở cấp Đơn vị)
+        if (categoryFilter.value) {
+            const selectedId = Number(categoryFilter.value);
+            result = result.filter(unit => 
+                unit.listIdDanhMuc && unit.listIdDanhMuc.includes(selectedId)
             );
         }
-        return result.sort((a, b) => {
-            if (sortOption.value === 'name_asc') return (a.tenHienThi || '').localeCompare(b.tenHienThi || '');
-            return sortOption.value === 'id_asc' ? a.id - b.id : b.id - a.id;
-        });
+
+        // 2. Tìm kiếm (Tìm trong tên Đơn vị HOẶC các giá trị con bên trong)
+        if (searchQuery.value) {
+            const q = searchQuery.value.toLowerCase().trim();
+            result = result.filter(unit => {
+                const matchUnitName = unit.tenDonVi?.toLowerCase().includes(q);
+                const matchChildValues = unit.values?.some(v => v.giaTri.toLowerCase().includes(q));
+                return matchUnitName || matchChildValues;
+            });
+        }
+
+        // 3. Sắp xếp
+        switch (sortOption.value) {
+            case 'name_asc':
+                result.sort((a, b) => a.tenDonVi.localeCompare(b.tenDonVi, 'vi'));
+                break;
+            case 'id_asc':
+                result.sort((a, b) => a.id - b.id);
+                break;
+            default: // id_desc
+                result.sort((a, b) => b.id - a.id);
+        }
+
+        return result;
     });
 
     const paginatedData = computed(() => {
@@ -1060,23 +1097,28 @@ export function useUnitManager() {
     const totalElements = computed(() => filteredData.value.length);
 
     const exportToExcel = () => {
-        if (filteredData.value.length === 0) return Swal.fire('Trống', 'Không có dữ liệu', 'warning');
-        const data = filteredData.value.map((item, index) => ({
+        if (filteredData.value.length === 0) return Swal.fire('Thông báo', 'Không có dữ liệu để xuất', 'warning');
+        
+        const data = filteredData.value.map((unit, index) => ({
             'STT': index + 1,
-            'Kích cỡ/Đơn vị': item.kichCo || '',
-            'Giá trị định lượng': item.dinhLuong || '',
-            'Tên hiển thị': item.tenHienThi || ''
+            'Đơn vị tính': unit.tenDonVi,
+            'Các kích cỡ/giá trị': unit.values?.map(v => v.giaTri).join(', '),
+            'Mô tả': unit.moTa || '',
+            'Danh mục áp dụng': unit.listIdDanhMuc?.map(id => 
+                listCategories.value.find(c => c.id === id)?.tenDanhMuc
+            ).join(', ')
         }));
+
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "DinhLuong");
-        XLSX.writeFile(wb, "Danh_Sach_Dinh_Luong.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "DonViDinhLuong");
+        XLSX.writeFile(wb, "Quan_Ly_Don_Vi_Tinh.xlsx");
     };
 
     onMounted(() => fetchAllData());
 
     return {
-        unitData, isLoading, searchQuery, sortOption, currentPage, itemsPerPage,
+        unitData, isLoading, searchQuery, sortOption, currentPage, itemsPerPage, categoryFilter,
         totalElements, totalPages, paginatedData, fetchAllData, exportToExcel, listCategories
     };
 }
