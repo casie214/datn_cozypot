@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -50,9 +51,7 @@ public class KhachHangRequest {
     @NotNull(message = "Vui lòng chọn trạng thái")
     private Integer trangThai;
 
-    @NotBlank(message = "Địa chỉ không được để trống")
-    @Size(max = 255, message = "Địa chỉ không được vượt quá 255 ký tự")
-    private String diaChi;
+    private List<DiaChiRequest> danhSachDiaChi;
 
     public static class PhieuGiamGiaResponseDTO {
     }
