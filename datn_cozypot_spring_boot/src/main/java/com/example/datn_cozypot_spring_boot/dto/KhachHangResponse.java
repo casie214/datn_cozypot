@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,6 +22,7 @@ public class KhachHangResponse {
     private String tenDangNhap;
     private String matKhauDangNhap;
     private Integer trangThai;
-    private String diaChi;
-    private String anhDaiDien;
+    private String diaChi; // Đây là cái hiển thị ở Table
+    private List<DiaChiResponse> danhSachDiaChi; // Đây là cái để hiện lên Form
 }
+

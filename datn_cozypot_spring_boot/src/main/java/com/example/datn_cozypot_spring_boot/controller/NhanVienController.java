@@ -5,14 +5,16 @@ import com.example.datn_cozypot_spring_boot.service.NhanVienService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
-
+import org.springframework.core.io.Resource;
 @RestController
 @RequestMapping("/api/nhan-vien")
 @CrossOrigin(origins = "http://localhost:5173") // Đảm bảo đúng port của Vue
@@ -81,18 +83,51 @@ public class NhanVienController {
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
 
-    // 7. Xuất file Excel
+    // 7. Xuất file Excel - CẬP NHẬT ĐỂ TÍCH CÁI NÀO TẢI CÁI ĐÓ
     @GetMapping("/export")
-    public ResponseEntity<org.springframework.core.io.Resource> exportExcel(
+    public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
+            @RequestParam(required = false) List<Integer> listId // Nhận mảng ID từ Frontend
+    ) {
         try {
-            // Gọi service để tạo file Excel (trả về InputStreamResource)
-            return service.exportExcel(keyword, trangThai, tuNgay);
+            // Truyền thêm listId vào service
+            return service.exportExcel(keyword, trangThai, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
+    // 8. Xuất file PDF và hiển thị trên Tab mới
+    @GetMapping("/print-pdf")
+    public ResponseEntity<byte[]> printPdf(@RequestParam List<Integer> ids) {
+        try {
+            // Gọi hàm generatePdf từ service (Hàm đã được dọn dẹp hết lỗi đỏ)
+            byte[] pdfContent = service.generatePdf(ids);
+
+            HttpHeaders headers = new HttpHeaders();
+            // Thiết lập kiểu file là PDF
+            headers.setContentType(MediaType.APPLICATION_PDF);
+
+            // "inline" giúp trình duyệt tự động mở Tab xem trước thay vì tải về máy
+            headers.add("Content-Disposition", "inline; filename=Danh_Sach_Nhan_Vien.pdf");
+
+            // Trả về dữ liệu PDF dưới dạng mảng byte
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfContent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+
+
+
+
+
+
 }

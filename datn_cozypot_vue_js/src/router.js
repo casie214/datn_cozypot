@@ -13,22 +13,22 @@ const routes = [
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
         children: [
             {
-                path: "", 
+                path: "",
                 name: "clientList",
                 component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
-                meta: { index: 1 } 
+                meta: { index: 1 } // Cấp độ 1: Danh sách
             },
             {
                 path: "view/:id",
                 name: "clientView",
                 component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
-                meta: { index: 2 } 
+                meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
             },
             {
-                path: "form/:id?", 
+                path: "form/:id?",
                 name: "clientForm",
                 component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
-                meta: { index: 2 } 
+                meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
             }
         ]
     },
@@ -45,7 +45,8 @@ const routes = [
     {
         path: "/admin/dashboard",
         name: "adminDashboard",
-        component: () => import("@/pages/admin/adminDashboard.vue"),
+        component: () =>
+            import("@/pages/admin/adminDashboard.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -69,24 +70,25 @@ const routes = [
     {
         path: "/manage/all",
         name: "tableManaAll",
-        component: () => import("@/pages/admin/table/screen/tableManaAll.vue"),
-        children: [
-            {
-                path: "",
-                component: CardTable,
-                meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-            },
-            {
-                path: "danh-sach",
-                component: ListTable,
-                meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-            },
+        component: () =>
+            import("@/pages/admin/table/screen/tableManaAll.vue"),
+        children: [{
+            path: "",
+            component: CardTable,
+            meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+        },
+        {
+            path: "danh-sach",
+            component: ListTable,
+            meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+        },
         ],
     },
 
     // ================== NHÂN VIÊN ==================
     {
         path: "/admin/staff",
+        // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
         component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
         children: [
             {
@@ -119,19 +121,16 @@ const routes = [
     {
         path: "/manage/food",
         name: "foodManager",
-        component: () => import("./pages/admin/food/screens/foodManager.vue"),
-        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-    },
-    {
-        path: "/manage/unit",
-        name: "unitManager",
-        component: () => import("./pages/admin/unit/screens/UnitManagerAll.vue"),
+        component: () =>
+
+            import("./pages/admin/food/screens/foodManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     {
         path: "/manage/category",
         name: "categoryManager",
-        component: () => import("./pages/admin/category/screens/categoryManager.vue"),
+        component: () =>
+            import("./pages/admin/category/screens/categoryManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     

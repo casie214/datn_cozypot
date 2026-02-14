@@ -38,22 +38,24 @@ const clientService = {
     return axiosClient.patch(`/khach-hang/${id}/toggle-status`);
   },
 
-  // BỔ SUNG: Hàm kiểm tra trùng dữ liệu realtime
   checkDuplicate: (type, value, excludeId = null) => {
     return axiosClient.get('/khach-hang/check-duplicate', {
       params: { type, value, excludeId }
     });
   },
-  exportExcel: (params) => {
+  // clientService.js
+exportExcel: (params, listId = []) => {
     return axiosClient.get('/khach-hang/export-excel', {
       params: {
         keyword: params.keyword || null,
         trangThai: params.trangThai !== undefined ? params.trangThai : null,
-        tuNgay: params.tuNgay || null
+        tuNgay: params.tuNgay || null,
+        // CHỖ NÀY QUAN TRỌNG: Biến mảng thành chuỗi 1,2,3 để Spring Boot tự convert sang List<Integer>
+        listId: listId && listId.length > 0 ? listId.join(',') : null
       },
-      responseType: 'blob' // Rất quan trọng: Để nhận dữ liệu nhị phân của file
+      responseType: 'blob' 
     });
-  }
+}
 };
 
 export default clientService;
