@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -65,4 +67,7 @@ public class DanhMuc {
     @Formula("(SELECT COUNT(c.id_danh_muc_chi_tiet) FROM danh_muc_chi_tiet c WHERE c.id_danh_muc = id_danh_muc)")
     private Integer soLuongMon;
 
+    @ManyToMany(mappedBy = "listDanhMuc")
+    @JsonIgnore // Tránh loop JSON
+    private List<DonVi> listDonVi;
 }
