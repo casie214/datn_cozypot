@@ -6,6 +6,7 @@ import "@vueform/slider/themes/default.css";
 import CommonPagination from '@/components/commonPagination.vue';
 import '@vueform/multiselect/themes/default.css';
 import Multiselect from '@vueform/multiselect';
+import Swal from 'sweetalert2';
 
 const router = useRouter();
 
@@ -34,6 +35,12 @@ const handleEdit = (item) => {
   });
 };
 
+const handleRefreshListBtn = () =>{
+  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    setTimeout(() => emit('close'), 1000);
+  getAllHotpot();
+}
+
 const getImg = (url) => {
   if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
     return url;
@@ -43,15 +50,9 @@ const getImg = (url) => {
 </script>
 
 <template>
-  <div class="flex-row">
-    <h1 class="page-title" style="padding-left: 0;">Quản lý thực đơn</h1>
-    <div class="action-row">
-      <button class="btn-add" @click="goToAddScreen">+ Thêm set lẩu</button>
-      <button class="btn-excel" @click="exportToExcel" title="Xuất Excel">
-        <i class="fas fa-file-excel"></i> Xuất Excel
-      </button>
-    </div>
-  </div>
+  
+    
+  
   <div class="tab-content">
     <div class="filter-box">
       <div class="filter-row">
@@ -117,6 +118,17 @@ const getImg = (url) => {
         <button class="btn-clear" @click="clearFilters">Xóa bộ lọc</button>
       </div>
     </div>
+
+    <div class="action-row" style="margin-left: auto;">
+      <button class="btn-action-icon btn-add-only" @click="goToAddScreen">
+        <i class="fas fa-plus"></i>
+      </button>
+      <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
+          <i class="fas fa-file-excel"></i>
+      </button>
+      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i class="fas fa-sync-alt"></i></button>
+    </div>
+    
     <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
@@ -134,7 +146,7 @@ const getImg = (url) => {
         <tbody>
           <tr v-for="(item, index) in paginatedData" :key="item.id || index">
 
-            <td align="left">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
+            <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maSetLau }}</td>
             <td>{{ item.tenSetLau }}</td>
             <td>{{ item.giaBan?.toLocaleString() }} VNĐ</td>
@@ -146,7 +158,6 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
-
                 <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
                   @click="handleViewDetail(item)"></i>
 
@@ -251,5 +262,43 @@ const getImg = (url) => {
 
 .action-group i:hover {
   transform: scale(1.2);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: white;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.status-badge.inactive {
+  background-color: whitesmoke;
+  color: black;
+  border: 1px solid lightgray;
+}
+
+.btn-add-only {
+    background-color: #8B0000 !important;
+    color: white !important;
+    border: none !important;
+}
+
+
+.btn-action-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #eee !important;
+    color: var(--primary-red);
+    transition: all 0.2s ease;
 }
 </style>

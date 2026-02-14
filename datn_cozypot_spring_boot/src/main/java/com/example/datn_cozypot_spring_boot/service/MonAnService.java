@@ -1,80 +1,58 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongRequest;
+import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongResponse;
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnRequest;
+import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
-import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietRequest;
-import com.example.datn_cozypot_spring_boot.dto.danhMucChiTiet.DanhMucChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
-import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnRequest;
-import com.example.datn_cozypot_spring_boot.dto.monAn.MonAnResponse;
-import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietRequest;
-import com.example.datn_cozypot_spring_boot.dto.monAnChiTiet.MonAnChiTietResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
+import com.example.datn_cozypot_spring_boot.entity.DinhLuong;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public interface MonAnService {
-    List<MonAnResponse> findAllMonAn();
+    List<DanhMucResponse> getAllDanhMuc();
+    DanhMucResponse createDanhMuc(DanhMucRequest request);
+    DanhMucResponse updateDanhMuc(Integer id, DanhMucRequest request);
+    void deleteDanhMuc(Integer id);
 
-    List<SetLauResponse> findAllSetLau();
+    // --- Định Lượng ---
+    List<DinhLuongResponse> getAllDinhLuong();
+    List<DinhLuongResponse> getDinhLuongByDanhMuc(Integer idDanhMuc);
 
-    List<MonAnChiTietResponse> findAllChiTietMonAn();
-
-    MonAnResponse findMonAnById(int id);
-
-    List<MonAnChiTietResponse> findChiTietMonAnByMonAnId(int id);
-
-    List<DanhMucResponse> findAllDanhMuc();
-
-    List<DanhMucChiTietResponse> findAllDanhMucChiTiet();
-
-    List<LoaiLauResponse> findAllLoaiLau();
-
+    // --- Món Ăn (DanhMucChiTiet) ---
+    List<MonAnResponse> getAllMonAn();
+    MonAnResponse getMonAnById(Integer id);
     MonAnResponse createMonAn(MonAnRequest request);
+    MonAnResponse updateMonAn(Integer id, MonAnRequest request);
+    void deleteMonAn(Integer id);
 
+    // --- Loại Set Lẩu ---
+    List<LoaiLauResponse> getAllLoaiSetLau();
+    LoaiLauResponse createLoaiSetLau(LoaiLauRequest request);
+    LoaiLauResponse updateLoaiSetLau(Integer id, LoaiLauRequest request);
+
+    // --- Set Lẩu ---
+    List<SetLauResponse> getAllSetLau();
+    SetLauResponse getSetLauById(Integer id);
     SetLauResponse createSetLau(SetLauRequest request);
+    SetLauResponse updateSetLau(Integer id, SetLauRequest request);
 
-    MonAnChiTietResponse createMonAnChiTiet(MonAnChiTietRequest request);
+    List<DanhMucResponse> findDanhMucActive();
 
-    MonAnChiTietResponse putMonAnChiTiet(int id, MonAnChiTietRequest request);
+    List<LoaiLauResponse> findLoaiSetLauActive();
 
-    MonAnResponse putMonAn(int id, MonAnRequest request);
+    List<SetLauResponse> findSetLauActive();
 
-    SetLauResponse putLau(int id, SetLauRequest request);
-
-    DanhMucResponse putDanhMuc(int id, DanhMucRequest request);
-
-    DanhMucResponse addNewDanhMuc(DanhMucRequest request);
-
-    LoaiLauResponse putLoaiLau(int id, LoaiLauRequest request);
-
-    LoaiLauResponse addNewLoaiLau(LoaiLauRequest request);
-
-    DanhMucChiTietResponse putDanhMucChiTiet(int id, DanhMucChiTietRequest request);
-
-    DanhMucChiTietResponse addNewDanhMucChiTiet(DanhMucChiTietRequest request);
-
-    SetLauResponse findSetLauById(int id);
-
-    MonAnChiTietResponse findChiTietMonAnById(int id);
-
-    void deleteFoodDetailById(int id);
+    List<MonAnResponse> findMonAnActive();
 
     List<SetLauResponse> findSetLauTop(int metric);
 
-//    List<MonAnResponse> findMonAnActive();
-//
-//    List<DanhMucResponse> findDanhMucActive();
-//
-//    List<SetLauResponse> findSetLauActive();
-//
-//    List<DanhMucChiTietResponse> findDanhMucChiTietActive();
-//
-//    List<LoaiLauResponse> findLoaiSetLauActive();
-//
-//    List<MonAnChiTietResponse> findChiTietMonAnActive();
+    DinhLuong createDinhLuong(DinhLuongRequest request);
 }

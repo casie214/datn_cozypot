@@ -26,4 +26,6 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
             "LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(pg.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<PhieuGiamGiaCaNhan> search(@Param("keyword") String keyword, Pageable pageable);
+
+    List<PhieuGiamGiaCaNhan> findByPhieuGiamGiaId(Integer phieuGiamGiaId);
 }

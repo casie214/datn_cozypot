@@ -92,5 +92,5 @@ public class DotKhuyenMai {
             joinColumns = @JoinColumn(name = "id_dot_khuyen_mai"),
             inverseJoinColumns = @JoinColumn(name = "id_mon_an_di_kem")
     )
-    private Set<MonAnDiKem> monAnDiKems = new HashSet<>();
+    private Set<DanhMucChiTiet> monAnDiKems = new HashSet<>();
 }

@@ -10,9 +10,20 @@
 .container {
   padding: 30px;
   background: var(--bg-light);
-  min-height: 100vh;
   font-family: "Segoe UI", sans-serif;
   color: var(--text-dark);
+}
+
+.container-new {
+  padding: 30px;
+  background: var(--bg-light);
+  font-family: "Segoe UI", sans-serif;
+  color: var(--text-dark);
+  --bs-gutter-x: 1.5rem;
+  --bs-gutter-y: 0;
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 h2 {

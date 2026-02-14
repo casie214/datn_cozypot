@@ -87,7 +87,7 @@ onUnmounted(() => {
                     <div class="user-profile" ref="dropdownRef">
                         <div class="user-info" @click="toggleDropdown">
                             <img :src="userAvatar" alt="User" class="avatar-img" />
-                            <span class="user-name">{{ authStore.user?.username || 'Khách' }}</span>
+                            <span class="user-name">{{ authStore.user?.username || 'Đã đăng nhập' }}</span>
                             <i class="fa-solid fa-caret-down"></i>
                         </div>
 
