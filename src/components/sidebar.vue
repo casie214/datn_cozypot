@@ -12,20 +12,6 @@ const menuItems = ref([
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
 
-    // ==========================================
-    // 1. ĐỊNH LƯỢNG
-    // ==========================================
-    {
-        name: 'Định lượng',
-        icon: "fa-solid fa-scale-balanced",
-        routeName: 'unitManager',
-        query: { tab: 'dinhluong' },
-        isOpen: false
-    },
-
-    // ==========================================
-    // 2. THỰC ĐƠN
-    // ==========================================
     {
         name: 'Thực đơn',
         icon: 'fa-solid fa-bell-concierge',
@@ -36,17 +22,26 @@ const menuItems = ref([
             { name: 'Món ăn', routeName: 'foodManager', tab: 'thucdon' }
         ]
     },
-    // -----------------------------------mm
+
 
     {
         name: 'Set lẩu',
-        icon: "fa-solid fa-fire-burner", // Icon nồi lẩu
+        icon: "fa-solid fa-fire-burner",
         isOpen: false,
         children: [
             { name: 'Loại lẩu', routeName: 'categoryManager', tab: 'loaiset' },
             { name: 'Set lẩu', routeName: 'foodManager', tab: 'setlau' }
         ]
     },
+
+    {
+        name: 'Định lượng',
+        icon: "fa-solid fa-scale-balanced",
+        routeName: 'unitManager',
+        query: { tab: 'dinhluong' },
+        isOpen: false
+    },
+    
     { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
 
