@@ -3,24 +3,28 @@ import {
   fetchAllBanAn,
   fetchAllCheckIn,
   updateTrangThaiBan,
+  createOrder,
+  fetchActiveBillByBan,
 } from "../../../../services/tableManageService";
-import { computed, onMounted, ref, onUnmounted } from "vue";
+import { computed, onMounted, ref, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
+import router from "@/App";
+import { useRoute, useRouter } from "vue-router";
+import FoodList from "../modal/innerComponents/foodList.vue";
+import Swal from "sweetalert2";
+import { BeGetChiTietHoaDon } from "../../order/screens/orderService";
 
-// --- QUẢN LÝ BÀN ---
 const activeFloor = ref(1);
 const danhSachBan = ref([]);
+const selectedItems = ref({});
+
 
 const fetchAllBan = async () => {
   try {
     const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
-      // 3 bàn mỗi hàng trên lưới 12 cột:
-      // Bàn 0 -> cột 1, Bàn 1 -> cột 5, Bàn 2 -> cột 9
       const defaultCol = (index % 3) * 4 + 1;
-
-      // Hàng: cứ sau 3 bàn thì xuống hàng mới (mỗi hàng cao 2 ô lưới)
       const defaultRow = Math.floor(index / 3) * 2 + 1;
 
       return {
@@ -50,24 +54,20 @@ const thongKeTang = computed(() => {
   return { total, free };
 });
 
-// --- QUẢN LÝ KHÁCH CHỜ ---
 const searchQuery = ref("");
-const filterDate = ref(null); // yyyy-MM-dd từ <input type="date">
+const filterDate = ref(null);
 const danhSachCho = ref([]);
 
 const handleFetchAllCheckIn = async () => {
   try {
-    // API này trả về danh sách có trangThai = 1 từ DatBanService.getAllByTrangThai
     danhSachCho.value = await fetchAllCheckIn();
   } catch (error) {
     console.error("Lỗi fetch khách chờ:", error);
   }
 };
 
-// Logic lọc: Tìm kiếm + Chỉ hiện khách chưa tới giờ (Hiện tại <= Thời gian đặt)
 const danhSachLoc = computed(() => {
   return danhSachCho.value.filter((khach) => {
-    //  Chưa xếp bàn
     if (!khach.maBan && !khach.idBanAn) return false;
 
     const thoiGianDat = dayjs(khach.thoiGianDat);
@@ -98,6 +98,8 @@ const danhSachLoc = computed(() => {
 const currentTime = ref(new Date());
 let timer;
 
+const currentStaffName = ref("");
+
 onMounted(() => {
   fetchAllBan();
   handleFetchAllCheckIn();
@@ -105,6 +107,9 @@ onMounted(() => {
   timer = setInterval(() => {
     currentTime.value = new Date();
   }, 1000);
+
+  const user = JSON.parse(localStorage.getItem("user"));
+    if (user) currentStaffName.value = user.hoTen || user.username;
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -151,17 +156,60 @@ const getStatusText = (s) => {
 // --- QUẢN LÝ MODAL & CẬP NHẬT ---
 const isShowModal = ref(false);
 const selectedBan = ref(null);
-const selectedPhieu = ref(null); // THÊM BIẾN NÀY
+const selectedPhieu = ref(null);
+const draftOrders = ref({});
+const activeHoaDonId = ref(null);
 
-const openManageModal = (ban) => {
-  const khachCuaBan = danhSachCho.value.find((k) => k.maBan === ban.maBan);
+const openManageModal = async (ban) => {
+  selectedBan.value = { ...ban };
+  modalView.value = 'info';
+  activeHoaDonId.value = null;
+  listMonDaChon.value = []; 
+  selectedPhieu.value = null;
 
-  selectedPhieu.value = khachCuaBan || null;
+   
+    try {
+      const resHd = await fetchActiveBillByBan(ban.id);
+      
+      if (resHd) {
+        activeHoaDonId.value = resHd.id;
+        console.log("🔥 Đã tìm thấy hóa đơn ID:", resHd.id);
 
-  selectedBan.value = {
-    ...JSON.parse(JSON.stringify(ban)),
-    trangThai: Number(ban.trangThai) === 2 ? 0 : Number(ban.trangThai),
-  };
+        selectedPhieu.value = {
+          maDatBan: resHd.maHoaDon || 'N/A',
+          tenKhachHang: resHd.tenKhachHang || 'Khách lẻ',
+          idKhachHang: resHd.idKhachHang, 
+          thoiGianDat: resHd.thoiGianTao
+        };
+
+        const items = await BeGetChiTietHoaDon(resHd.id);
+        console.log("🍱 Danh sách chi tiết món từ DB:", items);
+
+        if (items && items.length > 0) {
+          listMonDaChon.value = items.map(dbItem => {
+            // LƯU Ý QUAN TRỌNG: Kiểm tra tên trường từ log Console để sửa dbItem.xxxx cho đúng
+            const isFood = dbItem.idChiTietMonAn !== null;
+            return {
+              uniqueId: isFood ? `food_${dbItem.idChiTietMonAn}` : `set_${dbItem.idSetLau}`,
+              originalId: isFood ? dbItem.idChiTietMonAn : dbItem.idSetLau,
+              dbDetailId: dbItem.id, // ID này dùng để Backend biết dòng nào cần hủy/sửa
+              type: isFood ? 'FOOD' : 'SET',
+              name: dbItem.tenMonAn || dbItem.tenSetLau || dbItem.tenMon || "Không tên",
+              price: dbItem.donGia,
+              quantity: dbItem.soLuong,
+              note: dbItem.ghiChu || ''
+            };
+          });
+          console.log("✅ Đã map thành công vào listMonDaChon:", listMonDaChon.value);
+        }
+      }
+    } catch (e) {
+      console.error("❌ Lỗi khi lấy thông tin món ăn:", e);
+    }
+  
+    // Bàn trống thì lấy từ nháp
+    listMonDaChon.value = draftOrders.value[ban.id] || [];
+  
 
   isShowModal.value = true;
 };
@@ -175,12 +223,10 @@ const closeModal = () => {
 const updateStatus = async () => {
   if (!selectedBan.value) return;
 
-  // Cấu trúc Payload theo yêu cầu của Backend bạn đã nêu
   const payload = {
-    id: selectedPhieu.value?.id || null, // ID Phiếu (có thể null nếu đổi trạng thái thủ công)
+    id: selectedPhieu.value?.id || null,
     idBanAn: selectedBan.value.id, // ID Bàn
     trangThai: Number(selectedBan.value.trangThai),
-    // Gửi trạng thái mới ("0" hoặc "1")
   };
   console.log(selectedBan.value);
 
@@ -188,13 +234,13 @@ const updateStatus = async () => {
   try {
     await updateTrangThaiBan(payload);
 
-    alert(`Cập nhật bàn ${selectedBan.value.maBan} thành công!`);
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: `Cập nhật bàn ${selectedBan.value.maBan} thành công!`, timer: 1500, showConfirmButton: false });
     closeModal();
-    await fetchAllBan(); // Load lại sơ đồ bàn
-    await handleFetchAllCheckIn(); // Load lại danh sách khách chờ
+    await fetchAllBan();
+    await handleFetchAllCheckIn();
   } catch (err) {
     console.error(err);
-    alert("Lỗi: " + err.message);
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Cập nhật thất bại!' + err.message });
   }
 };
 
@@ -202,6 +248,124 @@ const formatDate = (time) => {
   if (!time) return "";
   return dayjs(time).format("DD/MM/YYYY HH:mm");
 };
+
+const modalView = ref('info');
+
+const switchToAddFood = () => {
+  modalView.value = 'addFood';
+};
+
+// Phần xử lí thêm món ăn
+// Cái này là array các món/set đã chọn nhé, dùng thì lấy từ đây ra
+
+
+
+const listMonDaChon = ref([]);
+
+// Tính tổng giá của mấy món đã thêm
+const totalTempPrice = computed(() => {
+  return listMonDaChon.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+});
+
+const handleSaveFood = async (itemsArray) => {
+  listMonDaChon.value = itemsArray;
+  
+  if (selectedBan.value) {
+    draftOrders.value[selectedBan.value.id] = itemsArray;
+  }
+
+  if (itemsArray.length === 0) {
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn ít nhất 1 món' });
+    return;
+  }
+
+  try {
+    const userStorage = localStorage.getItem("user");
+    let currentStaffId = 1;
+    if (userStorage) {
+      const user = JSON.parse(userStorage);
+      if (user.id) currentStaffId = user.id;
+    }
+
+    let customerId = null;
+    let phieuDatId = null;
+    if (selectedPhieu.value) {
+      const sp = selectedPhieu.value;
+      customerId = sp.idKhachHang?.id || sp.idKhachHang || (sp.khachHang ? sp.khachHang.id : null);
+      phieuDatId = sp.idDatBan || sp.id;
+    }
+
+    const payload = {
+      idBanAn: selectedBan.value.id,
+      idNhanVien: currentStaffId,
+      idKhachHang: customerId,
+      idPhieuDatBan: phieuDatId,
+
+      chiTietHoaDon: itemsArray.map(item => ({
+        // 👈 Gửi ID cũ lên. Nếu ID này có mà SL thay đổi, Backend sẽ hủy dòng cũ và tạo dòng mới
+        idChiTietHoaDonCu: item.dbDetailId || null, 
+        idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
+        idSetLau: item.type === 'SET' ? item.originalId : null,
+        soLuong: item.quantity,
+        donGia: item.price,
+        thanhTien: item.price * item.quantity,
+        ghiChu: item.note || ''
+      })),
+
+      tongTien: totalTempPrice.value
+    };
+
+    // Gọi API lưu
+    await createOrder(payload);
+
+    // Xóa nháp sau khi lưu thành công
+    delete draftOrders.value[selectedBan.value.id];
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Thành công!',
+      text: "Đã cập nhật thực đơn thành công!",
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    await fetchAllBan();
+    modalView.value = 'info';
+
+  } catch (e) {
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi',
+      text: "Lỗi khi lưu hóa đơn: " + (e.response?.data?.message || e.message)
+    });
+  }
+};
+
+const props = defineProps({
+    initialItems: {
+        type: Array,
+        default: () => []
+    }
+});
+
+const initSelectedItems = () => {
+    selectedItems.value = {};
+    if (props.initialItems && props.initialItems.length > 0) {
+        props.initialItems.forEach(item => {
+            const key = item.uniqueId;
+            if (key) {
+                selectedItems.value[key] = { ...item };
+            }
+        });
+    }
+};
+
+
+watch(() => props.initialItems, (newItems) => {
+    console.log("🔄 FoodList nhận dữ liệu mới từ cha:", newItems);
+    initSelectedItems();
+}, { deep: true, immediate: true });
 </script>
 
 <template>
@@ -218,20 +382,12 @@ const formatDate = (time) => {
         <div class="mb-3">
           <div class="d-inline-block">
             <div class="d-inline-block me-2">
-              <button
-                class="btn"
-                :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'"
-                @click="activeFloor = 1"
-              >
+              <button class="btn" :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'" @click="activeFloor = 1">
                 Tầng 1
               </button>
             </div>
             <div class="d-inline-block">
-              <button
-                class="btn"
-                :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'"
-                @click="activeFloor = 2"
-              >
+              <button class="btn" :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'" @click="activeFloor = 2">
                 Tầng 2
               </button>
             </div>
@@ -255,34 +411,21 @@ const formatDate = (time) => {
               <div class="floor-plan-section">
                 <div class="floor-header"></div>
                 <div class="grid-container">
-                  <div
-                    class="grid-canvas"
-                    @dragover.prevent
-                    @drop="onDrop"
-                    :class="{ 'editing-mode': isEditing }"
-                  >
-                    <div
-                      v-for="ban in banTheoTang"
-                      :key="ban.idBanAn"
-                      class="table-card"
-                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }"
-                      @click="openManageModal(ban)"
-                      :style="{
+                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
+                    <div v-for="ban in banTheoTang" :key="ban.idBanAn" class="table-card"
+                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }" @click="openManageModal(ban)" :style="{
                         gridColumnStart: ban.column,
                         gridRowStart: ban.row,
                         gridColumnEnd: 'span 4',
                         gridRowEnd: 'span 2',
                         cursor: 'pointer',
-                      }"
-                    >
+                      }">
                       <div class="table-content">
                         <div class="table-id">
                           <strong>{{ ban.maBan }}</strong>
                         </div>
                         <div class="table-id">({{ ban.soCho }} chỗ)</div>
-                        <div
-                          :class="['status-tag', getStatusClass(ban.trangThai)]"
-                        >
+                        <div :class="['status-tag', getStatusClass(ban.trangThai)]">
                           {{ getStatusText(ban.trangThai) }}
                         </div>
                       </div>
@@ -304,11 +447,7 @@ const formatDate = (time) => {
                           <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                         </label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="text"
-                            v-model="searchQuery"
-                            placeholder="SĐT khách hàng"
-                          />
+                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
                         </div>
                       </div>
 
@@ -318,28 +457,17 @@ const formatDate = (time) => {
                           ngày đến
                         </label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="date"
-                            v-model="filterDate"
-                            class="date-input"
-                          />
+                          <input type="date" v-model="filterDate" class="date-input" />
                         </div>
                       </div>
                     </div>
 
                     <div class="list-waiting">
-                      <p
-                        v-if="danhSachLoc.length === 0"
-                        class="text-center text-muted mt-3"
-                      >
+                      <p v-if="danhSachLoc.length === 0" class="text-center text-muted mt-3">
                         Không có khách nào thỏa mãn tìm kiếm
                       </p>
 
-                      <div
-                        v-for="khach in danhSachLoc"
-                        :key="khach.id"
-                        class="customer-card"
-                      >
+                      <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card">
                         <div class="card-header">
                           <span class="customer-name">{{
                             khach.tenKhachHang
@@ -380,34 +508,21 @@ const formatDate = (time) => {
                 <div class="floor-header"></div>
 
                 <div class="grid-container">
-                  <div
-                    class="grid-canvas"
-                    @dragover.prevent
-                    @drop="onDrop"
-                    :class="{ 'editing-mode': isEditing }"
-                  >
-                    <div
-                      v-for="ban in banTheoTang"
-                      :key="ban.idBanAn"
-                      class="table-card"
-                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }"
-                      @click="openManageModal(ban)"
-                      :style="{
+                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
+                    <div v-for="ban in banTheoTang" :key="ban.idBanAn" class="table-card"
+                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }" @click="openManageModal(ban)" :style="{
                         gridColumnStart: ban.column,
                         gridRowStart: ban.row,
                         gridColumnEnd: 'span 4',
                         gridRowEnd: 'span 2',
                         cursor: 'pointer',
-                      }"
-                    >
+                      }">
                       <div class="table-content">
                         <div class="table-id">
                           <strong>{{ ban.maBan }}</strong>
                         </div>
                         <div class="table-id">({{ ban.soCho }} chỗ)</div>
-                        <div
-                          :class="['status-tag', getStatusClass(ban.trangThai)]"
-                        >
+                        <div :class="['status-tag', getStatusClass(ban.trangThai)]">
                           {{ getStatusText(ban.trangThai) }}
                         </div>
                       </div>
@@ -428,11 +543,7 @@ const formatDate = (time) => {
                           <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                         </label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="text"
-                            v-model="searchQuery"
-                            placeholder="SĐT khách hàng"
-                          />
+                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
                         </div>
                       </div>
 
@@ -442,28 +553,17 @@ const formatDate = (time) => {
                           ngày đến
                         </label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="date"
-                            v-model="filterDate"
-                            class="date-input"
-                          />
+                          <input type="date" v-model="filterDate" class="date-input" />
                         </div>
                       </div>
                     </div>
 
                     <div class="list-waiting">
-                      <p
-                        v-if="danhSachLoc.length === 0"
-                        class="text-center text-muted mt-3"
-                      >
+                      <p v-if="danhSachLoc.length === 0" class="text-center text-muted mt-3">
                         Không có khách nào thỏa mãn tìm kiếm
                       </p>
 
-                      <div
-                        v-for="khach in danhSachLoc"
-                        :key="khach.id"
-                        class="customer-card"
-                      >
+                      <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card">
                         <div class="card-header">
                           <span class="customer-name">{{
                             khach.tenKhachHang
@@ -500,93 +600,114 @@ const formatDate = (time) => {
       </div>
     </div>
   </div>
+
   <div v-if="isShowModal" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box" :class="{ 'modal-fullscreen': modalView === 'addFood' }">
       <div class="modal-header-custom">
         <h4 class="modal-title-custom">
-          Check-in bàn {{ selectedBan?.maBan }}
+          {{ modalView === 'info' ? `Check-in bàn ${selectedBan?.maBan}` : 'Thêm món ăn' }}
         </h4>
         <button class="close-btn" @click="closeModal">✕</button>
       </div>
 
       <div class="modal-body-custom">
-        <h6 class="section-title">Thông tin bàn</h6>
-        <div class="info-row">
-          <span>Mã bàn:</span>
-          <strong>{{ selectedBan?.maBan }}</strong>
-        </div>
-        <div class="info-row">
-          <span>Sức chứa:</span>
-          <strong>{{ selectedBan?.soCho }} người</strong>
-        </div>
-        <div class="info-row align-items-center">
-          <span>Trạng thái:</span>
-          <span class="badge-status">{{
-            getStatusText(selectedBan?.trangThai)
-          }}</span>
-        </div>
-        <div class="info-row">
-          <span>Vị trí:</span>
-          <strong>Tầng {{ selectedBan?.soTang }}</strong>
-        </div>
-        <div class="info-row">
-          <span>Nhân viên:</span>
-          <strong>???</strong>
-        </div>
 
-        <hr class="my-3" />
+        <div v-if="modalView === 'info'">
+          <div v-if="selectedPhieu || Number(selectedBan?.trangThai) === 1"
+            class="alert alert-danger p-3 mb-3 border-0 shadow-sm"
+            style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{
+                  selectedPhieu?.maDatBan || 'N/A' }}</div>
+                <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{
+                  selectedPhieu?.tenKhachHang || 'Khách lẻ' }}</div>
+                <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{
+                  formatDate(selectedPhieu?.thoiGianDat) || '---' }}</div>
+              </div>
+              <span class="badge bg-danger p-2">ĐANG PHỤC VỤ</span>
+            </div>
+          </div>
 
-        <div class="action-buttons">
-          <button class="btn-action">
-            <i class="fa-solid fa-plus"></i> Thêm món
+          <h6 class="section-title">Thông tin bàn</h6>
+          <div class="info-row">
+            <span>Mã bàn:</span>
+            <strong>{{ selectedBan?.maBan }}</strong>
+          </div>
+          <div class="info-row">
+            <span>Sức chứa:</span>
+            <strong>{{ selectedBan?.soCho }} người</strong>
+          </div>
+          <div class="info-row align-items-center">
+            <span>Trạng thái:</span>
+            <span class="badge-status">{{ getStatusText(selectedBan?.trangThai) }}</span>
+          </div>
+          <div class="info-row">
+            <span>Vị trí:</span>
+            <strong>Tầng {{ selectedBan?.soTang }}</strong>
+          </div>
+          <div class="info-row">
+            <span>Nhân viên:</span>
+            <strong>{{ currentStaffName || 'Chưa xác định' }}</strong>
+          </div>
+
+          <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3">
+            <div class="d-flex justify-content-between">
+              <span class="text-success fw-bold">Món vừa thêm:</span>
+              <span class="text-danger fw-bold">{{ totalTempPrice.toLocaleString() }}đ</span>
+            </div>
+            <ul class="summary-list">
+              <li v-for="item in listMonDaChon" :key="item.id">
+                {{ item.name }} <span class="text-muted">x{{ item.quantity }}<span class="text-muted">: <strong>{{ item.price }} VNĐ</strong></span></span>
+              </li>
+            </ul>
+          </div>
+
+          <hr class="my-3" />
+
+          <div class="action-buttons">
+            <button class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood">
+              <i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i>
+              <span v-if="listMonDaChon.length === 0">Thêm món</span>
+              <span v-else>
+                Đã chọn {{ listMonDaChon.length }} món
+              </span>
+            </button>
+            <button class="btn-action">QR đặt món</button>
+            <button class="btn-action">Xem đơn hàng</button>
+            <button class="btn-action">Đổi bàn</button>
+          </div>
+
+          <hr class="my-3" />
+
+          <h6 class="section-title">Tùy chỉnh trạng thái bàn</h6>
+          <div class="status-options">
+            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 0 }"
+              @click="() => (selectedBan.trangThai = 0)">
+              <label>
+                <i :class="selectedBan?.trangThai === 0 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i>
+                Trống
+              </label>
+            </div>
+
+            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 1 }"
+              @click="() => (selectedBan.trangThai = 1)">
+              <label>
+                <i :class="selectedBan?.trangThai === 1 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i>
+                Checked-in
+              </label>
+            </div>
+          </div>
+
+          <button class="btn btn-update-status mt-4" @click="updateStatus">
+            Cập nhật trạng thái bàn
           </button>
-          <button class="btn-action">QR đặt món</button>
-          <button class="btn-action">Xem đơn hàng</button>
-          <button class="btn-action">Đổi bàn</button>
         </div>
 
-        <hr class="my-3" />
-
-        <h6 class="section-title">Tùy chỉnh trạng thái bàn</h6>
-        <div class="status-options">
-          <div
-            class="status-item"
-            :class="{ 'active-border': selectedBan?.trangThai === 0 }"
-            @click="() => (selectedBan.trangThai = 0)"
-          >
-            <label>
-              <i
-                :class="
-                  selectedBan?.trangThai === 0
-                    ? 'fa-solid fa-circle-dot'
-                    : 'fa-regular fa-circle'
-                "
-              ></i>
-              Trống
-            </label>
-          </div>
-
-          <div
-            class="status-item"
-            :class="{ 'active-border': selectedBan?.trangThai === 1 }"
-            @click="() => (selectedBan.trangThai = 1)"
-          >
-            <label>
-              <i
-                :class="
-                  selectedBan?.trangThai === 1
-                    ? 'fa-solid fa-circle-dot'
-                    : 'fa-regular fa-circle'
-                "
-              ></i>
-              Checked-in
-            </label>
-          </div>
+        <div v-else class="h-100 full-modal-content">
+          <FoodList :initial-items="listMonDaChon" @close="modalView = 'info'" @save="handleSaveFood" />
         </div>
 
-        <button class="btn btn-update-status mt-4" @click="updateStatus">
-          Cập nhật trạng thái bàn
-        </button>
       </div>
     </div>
   </div>
@@ -630,7 +751,8 @@ hr {
 }
 
 .btn-checkable {
-  background-color: #7d161a !important; /* Đỏ đậm hơn */
+  background-color: #7d161a !important;
+  /* Đỏ đậm hơn */
   color: white !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -656,8 +778,10 @@ hr {
   background-color: white;
   color: #333;
 }
+
 .btn:hover {
-  background-color: #5c0a16 !important; /* Đỏ đậm hơn một chút khi di chuột */
+  background-color: #5c0a16 !important;
+  /* Đỏ đậm hơn một chút khi di chuột */
   color: white !important;
 }
 
@@ -665,27 +789,30 @@ hr {
   background-color: #7d161a !important;
   color: white !important;
   border: 1px solid #7d161a;
-  cursor: default; /* Đã chọn rồi thì không hiện con trỏ tay */
+  cursor: default;
+  /* Đã chọn rồi thì không hiện con trỏ tay */
 }
 
 .btn-active:hover {
-  background-color: #5c0a16 !important; /* Đỏ đậm hơn một chút khi di chuột */
+  background-color: #5c0a16 !important;
+  /* Đỏ đậm hơn một chút khi di chuột */
   color: white !important;
 }
 
 /* Frame chung */
 .floor-frame {
   width: 100%;
-  height: calc(
-    100vh - 250px
-  ); /* Tự động tính toán: Toàn màn hình trừ đi phần header/search ở trên */
-  min-height: 450px; /* Đảm bảo không quá nhỏ trên màn hình thấp */
+  height: calc(100vh - 250px);
+  /* Tự động tính toán: Toàn màn hình trừ đi phần header/search ở trên */
+  min-height: 450px;
+  /* Đảm bảo không quá nhỏ trên màn hình thấp */
   border: 1px solid #dee2e6;
   border-radius: 12px;
   background: #fff;
   padding: 16px;
   display: flex;
-  overflow: hidden; /* Không cho phép cả khung lớn bị cuộn */
+  overflow: hidden;
+  /* Không cho phép cả khung lớn bị cuộn */
 }
 
 /* Nội dung sơ đồ */
@@ -705,7 +832,8 @@ hr {
 
 .floor-info {
   margin-top: 6px;
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.875rem;
+  /* 14px */
   color: #555;
   font-weight: 500;
 }
@@ -752,7 +880,8 @@ hr {
 /* Vùng chứa lưới có chức năng scroll */
 .grid-container {
   flex-grow: 1;
-  overflow: auto; /* Hiện thanh cuộn khi grid bên trong lớn hơn */
+  overflow: auto;
+  /* Hiện thanh cuộn khi grid bên trong lớn hơn */
   position: relative;
   background-color: #f8f9fa;
 }
@@ -761,14 +890,14 @@ hr {
 .grid-canvas {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(
-    15,
-    1fr
-  ); /* Tăng số hàng và cố định chiều cao mỗi hàng (ví dụ 100px) */
+  grid-template-rows: repeat(15,
+      1fr);
+  /* Tăng số hàng và cố định chiều cao mỗi hàng (ví dụ 100px) */
   gap: 15px;
   padding: 20px;
   width: 100%;
-  min-width: 800px; /* Đảm bảo không bị quá hẹp trên màn hình nhỏ */
+  min-width: 800px;
+  /* Đảm bảo không bị quá hẹp trên màn hình nhỏ */
   box-sizing: border-box;
   background-image:
     linear-gradient(to right, #eee 1px, transparent 1px),
@@ -841,9 +970,11 @@ hr {
 .status-occupied-light {
   background-color: #e67e22;
 }
+
 .status-empty {
   background-color: #5c0a16;
 }
+
 .status-booked {
   background-color: #f1c40f;
   color: #333;
@@ -853,7 +984,8 @@ hr {
 /* Container chứa bộ lọc */
 .filter-section {
   display: flex;
-  flex-direction: column; /* Ép các nhóm lọc xếp chồng lên nhau */
+  flex-direction: column;
+  /* Ép các nhóm lọc xếp chồng lên nhau */
   gap: 10px;
   margin-bottom: 15px;
   padding: 12px;
@@ -864,7 +996,8 @@ hr {
 /* Từng nhóm nhãn + ô nhập */
 .filter-group {
   display: flex;
-  flex-direction: column; /* QUAN TRỌNG: Nhãn ở trên, Input ở dưới */
+  flex-direction: column;
+  /* QUAN TRỌNG: Nhãn ở trên, Input ở dưới */
   width: 100%;
 }
 
@@ -873,7 +1006,8 @@ hr {
   font-size: 11px !important;
   font-weight: 700;
   color: #656565;
-  margin-bottom: 4px; /* Tạo khoảng cách với ô nhập */
+  margin-bottom: 4px;
+  /* Tạo khoảng cách với ô nhập */
   display: flex;
   align-items: center;
   gap: 5px;
@@ -979,7 +1113,8 @@ hr {
 }
 
 .btn-checkin {
-  background: #68051b; /* Màu đỏ sẫm như hình */
+  background: #68051b;
+  /* Màu đỏ sẫm như hình */
   color: white;
   border: none;
   padding: 8px 15px;
@@ -1007,9 +1142,12 @@ hr {
 
 /* Tìm và thay thế class .list-waiting cũ bằng cái này */
 .list-waiting {
-  max-height: 15rem; /* Giới hạn chiều cao cố định (khoảng 3-4 card) */
-  overflow-y: auto; /* Hiện thanh cuộn khi danh sách dài vượt quá max-height */
-  padding-right: 8px; /* Khoảng cách để không đè lên card khi hiện thanh cuộn */
+  max-height: 15rem;
+  /* Giới hạn chiều cao cố định (khoảng 3-4 card) */
+  overflow-y: auto;
+  /* Hiện thanh cuộn khi danh sách dài vượt quá max-height */
+  padding-right: 8px;
+  /* Khoảng cách để không đè lên card khi hiện thanh cuộn */
 
   /* Tùy chỉnh thanh cuộn (Scrollbar) cho Chrome/Edge/Safari */
 }
@@ -1024,7 +1162,8 @@ hr {
 }
 
 .list-waiting::-webkit-scrollbar-thumb {
-  background: #7d161a; /* Màu đỏ sẫm đồng bộ với theme của bạn */
+  background: #7d161a;
+  /* Màu đỏ sẫm đồng bộ với theme của bạn */
   border-radius: 10px;
 }
 
@@ -1054,14 +1193,24 @@ hr {
 
 .modal-box {
   width: 100%;
-  max-width: 420px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-
+  max-width: 620px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  transition: all 0.1s ease-in-out;
+}
+
+.modal-box.modal-fullscreen {
+  width: 80vw !important;
+  height: 90vh !important;
+  max-width: none !important;
+  max-height: none !important;
+
+  border-radius: 0 !important;
+  margin: 0 !important;
 }
 
 .modal-header-custom {
@@ -1069,6 +1218,7 @@ hr {
   display: flex;
   justify-content: space-between;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 
 .modal-title-custom {
@@ -1079,6 +1229,56 @@ hr {
 
 .modal-body-custom {
   padding: 20px;
+  overflow-y: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.h-100 {
+  height: 100%;
+}
+
+.full-modal-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Prevent double scrollbars */
+}
+
+.selected-summary {
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px dashed #ddd;
+  font-size: 0.9rem;
+}
+
+.summary-list {
+  margin: 5px 0 0 0;
+  padding-left: 20px;
+  color: #555;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.btn-action.has-items {
+  background: #5c0a16;
+  color: white;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modal-title-custom {
+  margin: 0;
+  font-weight: bold;
+  color: #7d161a;
 }
 
 .info-row {
@@ -1113,6 +1313,7 @@ hr {
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
+
 .btn-action:hover {
   background: linear-gradient(to right, #7d161a, #c0392b);
   color: white;
@@ -1131,16 +1332,19 @@ hr {
 .status-item {
   padding: 3%;
   width: 100%;
-  border: 1px solid #ddd; /* Viền mặc định xám */
+  border: 1px solid #ddd;
+  /* Viền mặc định xám */
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #666; /* Màu chữ mặc định */
+  color: #666;
+  /* Màu chữ mặc định */
 }
 
 /* Khi được chọn: Viền đỏ, Chữ đỏ, Nền hồng nhạt */
 .status-item.active-border {
-  border: 2px solid #7d161a !important; /* Màu đỏ viền */
+  border: 2px solid #7d161a !important;
+  /* Màu đỏ viền */
   color: #7d161a;
   background-color: #fff5f5;
   font-weight: bold;
@@ -1167,7 +1371,8 @@ hr {
 }
 
 .table-card {
-  cursor: pointer; /* Thêm con trỏ tay để khách biết bàn có thể click */
+  cursor: pointer;
+  /* Thêm con trỏ tay để khách biết bàn có thể click */
   transition: transform 0.2s;
 }
 
@@ -1175,8 +1380,14 @@ hr {
   transform: scale(1.02);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
+
 .close-btn {
   border: none;
   background-color: white;
+}
+
+:global(.swal2-container) {
+  z-index: 20000 !important;
+  /* Cao hơn 9999 của .modal-overlay */
 }
 </style>

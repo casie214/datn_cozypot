@@ -502,7 +502,6 @@
                                         </thead>
 
                                         <tbody v-if="formData.doiTuong === 1">
-
                                             <tr v-for="kh in pagedCustomers" :key="kh.id">
                                                 <td class="text-center">
                                                     <input type="checkbox" :value="kh.id"
@@ -544,7 +543,6 @@
                                             </td>
                                         </tr>
                                     </table>
-
                                     <!-- Pagination Khách Hàng -->
                                     <div class="d-flex justify-content-center mt-3 gap-2">
 
@@ -616,7 +614,6 @@
                     </div>
                 </div>
                 <div class="mt-4 d-flex justify-content-end gap-2">
-
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
                             class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
@@ -687,7 +684,6 @@ const exportExcel = async () => {
         showToast('Lỗi', 'Xuất Excel thất bại!', 'error');
     }
 };
-
 
 const customerPagination = reactive({
     currentPage: 1,
@@ -908,7 +904,6 @@ const filteredCustomers = computed(() => {
 
     return result;
 });
-
 
 const pagedCustomers = computed(() => {
     const start =
@@ -1321,7 +1316,6 @@ watch(customerMonth, async () => {
         await loadCustomers();
     }
 });
-
 watch(sortConfig, () => {
     customerPagination.currentPage = 1;
 }, { deep: true });

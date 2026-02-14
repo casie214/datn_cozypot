@@ -2,14 +2,29 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axiosClient from '@/services/axiosClient';
 
-// --- STATE ---
+// --- 1. STATE QUẢN LÝ DỮ LIỆU ---
 const categories = ref([]);
 const menuData = ref([]);
 const isLoading = ref(false);
-const cart = ref([]);
+const searchQuery = ref('');
 const activeCategory = ref('');
-const searchQuery = ref('')
 
+// --- 2. STATE GIỎ HÀNG ---
+const cart = ref([]);
+const isCartOpen = ref(false);   // Trạng thái Modal giỏ hàng
+const isCartHover = ref(false);  // Trạng thái Hover xem trước
+
+// --- 3. STATE MODAL CHI TIẾT MÓN (BIẾN THỂ) ---
+const variantsMap = ref({});      // Map lưu: { foodId: [detail1, detail2...] }
+const isDetailModalOpen = ref(false);
+const selectedProduct = ref(null);    // Món đang click chọn
+const currentVariants = ref([]);      // Danh sách biến thể của món đang chọn
+const selectedVariantId = ref(null);  // ID biến thể đang chọn
+const modalQuantity = ref(1);         // Số lượng trong modal
+
+// ==========================================
+// A. PHẦN XỬ LÝ DỮ LIỆU (FETCH & MAP)
+// ==========================================
 const fetchData = async () => {
     isLoading.value = true;
     try {
@@ -29,17 +44,14 @@ const fetchData = async () => {
         const listLoaiSet = resLoaiSet.data || [];
         const listFoodDetail = resFoodDetail.data || [];
 
-
+        // 1. Map Danh mục con -> Danh mục cha
         const subToRootMap = {};
         const subNameMap = {};
         const rootToSubsList = {};
 
-        const priceMap = {};
-
         listChiTiet.forEach(sub => {
             subToRootMap[sub.id] = sub.idDanhMuc;
             subNameMap[sub.id] = sub.tenDanhMucChiTiet;
-
             if (!rootToSubsList[sub.idDanhMuc]) {
                 rootToSubsList[sub.idDanhMuc] = [];
             }
@@ -49,26 +61,35 @@ const fetchData = async () => {
             });
         });
 
+        // 2. Gom nhóm Food Detail (Biến thể) theo Food ID
+        const vMap = {};
         listFoodDetail.forEach(detail => {
             const foodId = detail.idMonAnDiKem;
-            const price = detail.giaBan;
+            if (!vMap[foodId]) vMap[foodId] = [];
 
-            if (!priceMap[foodId]) {
-                priceMap[foodId] = { min: price, max: price, hasDetail: true };
-            } else {
-                priceMap[foodId].min = Math.min(priceMap[foodId].min, price);
-                priceMap[foodId].max = Math.max(priceMap[foodId].max, price);
-            }
+            vMap[foodId].push({
+                id: detail.id,
+                name: detail.tenChiTietMonAn || 'Tiêu chuẩn',
+                price: detail.giaBan,
+                unit: detail.donVi,
+                image: detail.hinhAnh
+            });
         });
+        // Sắp xếp biến thể theo giá tăng dần
+        for (const key in vMap) {
+            vMap[key].sort((a, b) => a.price - b.price);
+        }
+        variantsMap.value = vMap;
 
+        // 3. Xử lý Menu hiển thị
         const processedMenu = [];
 
+        // --- Nhóm Set Lẩu ---
         if (listSetLau.length > 0) {
             const hotpotFilters = [
                 { id: 'all', name: 'Tất cả' },
                 ...listLoaiSet.map(ls => ({ id: ls.id, name: ls.tenLoaiSet }))
             ];
-
             processedMenu.push({
                 categoryId: 'combo-set',
                 categoryName: 'SET LẨU',
@@ -78,25 +99,24 @@ const fetchData = async () => {
                     id: item.id,
                     name: item.tenSetLau,
                     price: item.giaBan,
-                    image: item.hinhAnh || 'https://placehold.co/400x300?text=Combo',
-                    desc: item.moTa || 'Set lẩu đầy đặn, phù hợp cho nhóm.',
+                    image: item.hinhAnh || 'https://placehold.co/400x300?text=Hotpot',
+                    desc: item.moTa || 'Set lẩu đầy đặn.',
                     type: 'SET',
                     groupId: item.idLoaiSet,
-                    isRange: false
+                    isRange: false,
+                    hasVariants: false
                 }))
             });
         }
 
-        // --- B. XỬ LÝ MÓN ĂN (FOOD) ---
+        // --- Nhóm Món Ăn ---
         listDanhMuc.forEach(dm => {
-            // Lọc các món thuộc danh mục cha này
             const monsInCat = listMonAn.filter(m => {
-                const rootIdOfFood = subToRootMap[m.idDanhMucChiTiet];
-                return String(rootIdOfFood) === String(dm.id);
+                const rootId = subToRootMap[m.idDanhMucChiTiet];
+                return String(rootId) === String(dm.id);
             });
 
             if (monsInCat.length > 0) {
-                // Lấy danh sách bộ lọc con tương ứng với danh mục cha này
                 const subFilters = rootToSubsList[dm.id]
                     ? [{ id: 'all', name: 'Tất cả' }, ...rootToSubsList[dm.id]]
                     : [];
@@ -107,30 +127,32 @@ const fetchData = async () => {
                     activeFilter: 'all',
                     filters: subFilters,
                     items: monsInCat.map(item => {
-
-                        const detailPrice = priceMap[item.id];
-                        let finalPrice = item.giaBan; // Mặc định lấy giá gốc
+                        const variants = vMap[item.id] || [];
+                        let displayPrice = item.giaBan;
                         let isRange = false;
 
-                        if (detailPrice) {
-                            if (detailPrice.min !== detailPrice.max) {
-                                isRange = true; // Đánh dấu là khoảng giá
-                                finalPrice = { min: detailPrice.min, max: detailPrice.max };
+                        // Tính khoảng giá nếu có biến thể
+                        if (variants.length > 0) {
+                            const minP = variants[0].price;
+                            const maxP = variants[variants.length - 1].price;
+                            if (minP !== maxP) {
+                                isRange = true;
+                                displayPrice = { min: minP, max: maxP };
                             } else {
-                                finalPrice = detailPrice.min; // Nếu min == max thì hiện 1 giá
+                                displayPrice = minP;
                             }
                         }
-                        return {
 
+                        return {
                             id: item.id,
                             name: item.tenMonAn,
-                            price: finalPrice,
-                            image: item.hinhAnh || 'https://placehold.co/300x200?text=Mon+An',
-                            desc: item.moTa || '',
+                            price: displayPrice,
+                            image: item.hinhAnh || 'https://placehold.co/300x200?text=Food',
+                            desc: item.moTa,
                             type: 'MON',
                             isRange: isRange,
-                            subCategoryName: subNameMap[item.idDanhMucChiTiet] || '',
-                            groupId: item.idDanhMucChiTiet 
+                            subCategoryName: subNameMap[item.idDanhMucChiTiet],
+                            groupId: item.idDanhMucChiTiet
                         };
                     })
                 });
@@ -140,116 +162,189 @@ const fetchData = async () => {
         menuData.value = processedMenu;
 
         // Tạo Nav Categories
-        categories.value = processedMenu.map(section => ({
-            id: section.categoryId,
-            name: section.categoryName
-        }));
-
-        if (categories.value.length > 0) activeCategory.value = categories.value[0].id;
+        categories.value = processedMenu.map(s => ({ id: s.categoryId, name: s.categoryName }));
+        if (categories.value.length) activeCategory.value = categories.value[0].id;
 
     } catch (error) {
-        console.error("Lỗi tải thực đơn:", error);
+        console.error("Lỗi tải dữ liệu:", error);
     } finally {
         isLoading.value = false;
     }
 };
 
-// --- HÀM LỌC HIỂN THỊ ---
-// Hàm này được gọi trong v-for để trả về danh sách món đã lọc
-const getFilteredItems = (section) => {
-    if (section.activeFilter === 'all') {
-        return section.items;
+// ==========================================
+// B. LOGIC CHỌN MÓN & MODAL SẢN PHẨM
+// ==========================================
+const handleItemClick = (item) => {
+    // 1. Set Lẩu -> Thêm ngay
+    if (item.type === 'SET') {
+        pushToCart({
+            id: item.id,
+            detailId: null,
+            name: item.name,
+            price: item.price,
+            image: item.image,
+            type: 'SET',
+            quantity: 1
+        });
+        return;
     }
-    // Lọc theo groupId (đã map ở trên: là idLoaiSet hoặc idDanhMucChiTiet)
-    return section.items.filter(item => item.groupId === section.activeFilter);
+
+    // 2. Món ăn -> Kiểm tra biến thể
+    const variants = variantsMap.value[item.id] || [];
+
+    if (variants.length <= 1) {
+        // Nếu chỉ có 1 biến thể (hoặc ko có - fallback) -> Thêm ngay
+        const variant = variants.length === 1 ? variants[0] : { id: null, price: item.price };
+        pushToCart({
+            id: item.id,
+            detailId: variant.id,
+            name: item.name + (variants.length === 1 && variant.name !== 'Tiêu chuẩn' ? ` (${variant.name})` : ''),
+            price: variant.price,
+            image: item.image,
+            type: 'MON',
+            quantity: 1
+        });
+    } else {
+        // Có nhiều biến thể -> Mở Modal
+        openProductModal(item, variants);
+    }
 };
 
-// Hàm xử lý khi bấm nút Toggle
-const selectFilter = (section, filterId) => {
-    section.activeFilter = filterId;
+const openProductModal = (item, variants) => {
+    selectedProduct.value = item;
+    currentVariants.value = variants;
+    selectedVariantId.value = variants[0].id; // Chọn cái đầu tiên (rẻ nhất)
+    modalQuantity.value = 1;
+    isDetailModalOpen.value = true;
 };
 
-// ... (Các hàm cart, formatPrice, scrollSpy GIỮ NGUYÊN như cũ) ...
-const addToCart = (item) => {
-    const existing = cart.value.find(i => i.id === item.id && i.type === item.type);
-    if (existing) existing.quantity++;
-    else cart.value.push({ ...item, quantity: 1 });
+const closeDetailModal = () => {
+    isDetailModalOpen.value = false;
+    selectedProduct.value = null;
+    currentVariants.value = [];
 };
+
+const confirmAddToCart = () => {
+    if (!selectedProduct.value || !selectedVariantId.value) return;
+    const variant = currentVariants.value.find(v => v.id === selectedVariantId.value);
+
+    pushToCart({
+        id: selectedProduct.value.id,
+        detailId: variant.id,
+        name: selectedProduct.value.name + ` (${variant.name})`,
+        price: variant.price,
+        image: selectedProduct.value.image,
+        type: selectedProduct.value.type,
+        quantity: modalQuantity.value
+    });
+    closeDetailModal();
+};
+
+// ==========================================
+// C. LOGIC GIỎ HÀNG
+// ==========================================
+const pushToCart = (newItem) => {
+    // Tìm món trùng (so sánh ID và DetailID)
+    const existingIndex = cart.value.findIndex(i => {
+        if (i.type === 'SET') return i.id === newItem.id; // Set lẩu so theo ID chính
+        return i.detailId === newItem.detailId;           // Món ăn so theo ID biến thể
+    });
+
+    if (existingIndex !== -1) {
+        cart.value[existingIndex].quantity += newItem.quantity;
+    } else {
+        cart.value.push(newItem);
+    }
+};
+
+const openCartModal = () => { if (cart.value.length > 0) isCartOpen.value = true; };
+const closeCartModal = () => isCartOpen.value = false;
+
+const increaseQty = (index) => cart.value[index].quantity++;
+const decreaseQty = (index) => {
+    if (cart.value[index].quantity > 1) cart.value[index].quantity--;
+    else removeItem(index);
+};
+const removeItem = (index) => {
+    cart.value.splice(index, 1);
+    if (cart.value.length === 0) closeCartModal();
+};
+
+// Computed Cart
 const totalCount = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0));
 const totalPrice = computed(() => cart.value.reduce((sum, item) => sum + (item.price * item.quantity), 0));
+
+// ==========================================
+// D. UTILS & SCROLL SPY
+// ==========================================
 const formatPrice = (value) => {
-    if (typeof value !== 'number' || isNaN(value)) {
-        if (typeof value === 'object' && value.min) return formatPrice(value.min);
-        return '0 ₫';
+    if (typeof value === 'object' && value !== null && value.min !== undefined) {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value.min);
     }
+    if (typeof value !== 'number' || isNaN(value)) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
+
+const getFilteredItems = (section) => {
+    if (section.activeFilter === 'all') return section.items;
+    return section.items.filter(item => item.groupId === section.activeFilter);
+};
+const selectFilter = (section, filterId) => { section.activeFilter = filterId; };
+
+// Search
+const allSearchItem = computed(() => menuData.value ? menuData.value.flatMap(s => s.items) : []);
+const searchResult = computed(() => {
+    if (!searchQuery.value.trim()) return [];
+    const q = searchQuery.value.trim().toLowerCase();
+    return allSearchItem.value.filter(i => i.name.toLowerCase().includes(q));
+});
+const clearSearch = () => searchQuery.value = '';
+
+// Scroll Spy
 const pageContainer = ref(null);
 const scrollToCategory = (id) => {
     activeCategory.value = id;
-    const element = document.getElementById(id);
-    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
-
-const allSearchItem = computed(() => {
-    if (!menuData.value) {
-        return [];
-    }
-    return menuData.value.flatMap(section => section.items);
-})
-
-const searchResult = computed(() => {
-    if (!searchQuery.value || searchQuery.value.trim() === '') {
-        return [];
-    }
-    const query = searchQuery.value.trim().toLowerCase();
-    return allSearchItem.value.filter(item => {
-        const matchName = item.name.toLowerCase().includes(query);
-        return matchName;
-    })
-})
-
-const clearSearch = () => {
-    searchQuery.value = '';
-}
-
 const onScroll = () => {
     const offset = 150;
     for (const cat of categories.value) {
-        const element = document.getElementById(cat.id);
-        if (element) {
-            const rect = element.getBoundingClientRect();
+        const el = document.getElementById(cat.id);
+        if (el) {
+            const rect = el.getBoundingClientRect();
             if (rect.top <= offset && rect.bottom > offset) {
                 if (activeCategory.value !== cat.id) {
                     activeCategory.value = cat.id;
-                    const navItem = document.getElementById(`nav-item-${cat.id}`);
-                    if (navItem) navItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    const nav = document.getElementById(`nav-item-${cat.id}`);
+                    if (nav) nav.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }
                 break;
             }
         }
     }
 };
+
 onMounted(() => {
     fetchData();
-    if (pageContainer.value) pageContainer.value.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll);
 });
 onUnmounted(() => {
-    if (pageContainer.value) pageContainer.value.removeEventListener('scroll', onScroll);
+    window.removeEventListener('scroll', onScroll);
 });
 </script>
 
 <template>
-    <div class="customer-menu-page">
+    <div class="customer-menu-page" ref="pageContainer">
         <div v-if="isLoading" class="text-center py-5 mt-5">
             <div class="spinner-border text-primary-red" role="status"></div>
-            <p class="mt-2 text-muted">Đang tải thực đơn</p>
+            <p class="mt-2 text-muted">Đang tải thực đơn...</p>
         </div>
 
         <div v-else>
             <nav class="category-nav">
                 <div class="container d-flex align-items-center justify-content-between h-100">
-
                     <div class="nav-scroll-container">
                         <ul class="nav-list">
                             <li v-for="cat in categories" :key="cat.id" :id="`nav-item-${cat.id}`" class="nav-item"
@@ -259,8 +354,7 @@ onUnmounted(() => {
                         </ul>
                     </div>
 
-                    <div class="search-wrapper ms-3" style="position: relative; z-index: 1050;">
-
+                    <div class="search-wrapper ms-3">
                         <div class="search-input-group d-flex align-items-center bg-white border rounded-pill px-3 py-1"
                             style="width: 250px;">
                             <input type="text" class="form-control border-0 shadow-none p-0" placeholder="Tìm món..."
@@ -269,34 +363,21 @@ onUnmounted(() => {
                                 @click="clearSearch"></i>
                             <i v-else class="fas fa-search text-muted ms-2"></i>
                         </div>
-
-                        <div v-if="searchQuery" class="search-dropdown shadow-lg animate__animated animate__fadeIn">
+                        <div v-if="searchQuery" class="search-dropdown shadow-lg">
                             <div v-if="searchResult.length > 0" class="search-results-list custom-scrollbar">
                                 <div v-for="item in searchResult" :key="item.id + item.type" class="search-item"
-                                    @click="addToCart(item)">
-
+                                    @click="handleItemClick(item)">
                                     <div class="search-img-box">
                                         <img :src="item.image" :alt="item.name">
                                         <span v-if="item.type === 'SET'" class="badge-mini-set">SET</span>
                                     </div>
-
                                     <div class="search-item-info">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <h6 class="search-item-name">{{ item.name }}</h6>
-                                        </div>
-                                        <p class="search-item-desc text-muted mb-1"
-                                            style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            {{ item.desc }}</p>
+                                        <h6 class="search-item-name">{{ item.name }}</h6>
+                                        <p class="search-item-desc">{{ item.desc }}</p>
                                         <div class="d-flex justify-content-between align-items-center mt-1">
                                             <span class="search-item-price">
-                                                <template v-if="item.isRange">
-                                                    {{ formatPrice(item.price.min) }} - {{ formatPrice(item.price.max)
-                                                    }}
-                                                </template>
-
-                                                <template v-else>
-                                                    {{ formatPrice(item.price) }}
-                                                </template>
+                                                {{ item.isRange ? `${formatPrice(item.price.min)} -
+                                                ${formatPrice(item.price.max)}` : formatPrice(item.price) }}
                                             </span>
                                             <button class="btn-search-add"><i class="fas fa-plus"></i></button>
                                         </div>
@@ -304,21 +385,16 @@ onUnmounted(() => {
                                 </div>
                             </div>
                             <div v-else class="text-center py-4 text-muted">
-                                <i class="fas fa-search mb-2" style="font-size: 20px; opacity: 0.5;"></i>
                                 <p class="mb-0 small">Không tìm thấy món nào.</p>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </nav>
 
-
-
             <div class="main-content container py-4">
                 <div v-for="section in menuData" :key="section.categoryId" :id="section.categoryId"
-                    class="menu-section mb-5 animate__animated animate__fadeIn">
-
+                    class="menu-section mb-5">
                     <h3 class="section-title">{{ section.categoryName }}</h3>
 
                     <div class="filter-bar mb-3" v-if="section.filters && section.filters.length > 1">
@@ -330,12 +406,10 @@ onUnmounted(() => {
                             </button>
                         </div>
                     </div>
-                    <TransitionGroup name="filter-list" tag="div" class="row g-3">
 
-                        <div v-for="item in getFilteredItems(section)" :key="item.id" :class="[
-                            'col-6',
-                            section.categoryId === 'combo-set' ? 'col-md-4 col-lg-3' : 'col-md-3 col-lg-2'
-                        ]">
+                    <TransitionGroup name="filter-list" tag="div" class="row g-3">
+                        <div v-for="item in getFilteredItems(section)" :key="item.id"
+                            :class="section.categoryId === 'combo-set' ? 'col-md-4 col-lg-3 col-6' : 'col-md-3 col-lg-2 col-6'">
                             <div class="food-card">
                                 <div class="card-img-wrapper"
                                     :class="{ 'square-ratio': section.categoryId !== 'combo-set' }">
@@ -348,62 +422,136 @@ onUnmounted(() => {
                                     <h5 class="food-name" :class="{ 'text-small': section.categoryId !== 'combo-set' }">
                                         {{ item.name }}</h5>
                                     <p v-if="section.categoryId === 'combo-set'" class="food-desc">{{ item.desc }}</p>
-                                    <div class="card-footer-action">
-                                        <span class="food-price">
-                                            <span class="food-price" :class="section.categoryId === 'combo-set' ? 'food-price-lg' : ''">
-                                                <template v-if="item.isRange">
-                                                    {{ formatPrice(item.price.min) }} - {{ formatPrice(item.price.max)
-                                                    }}
-                                                </template>
-                                                <template v-else>
-                                                    {{ formatPrice(item.price) }}
-                                                </template>
-                                            </span>
 
+                                    <div class="card-footer-action">
+                                        <span class="food-price"
+                                            :class="section.categoryId === 'combo-set' ? 'food-price-lg' : ''">
+                                            {{ item.isRange ? `${formatPrice(item.price.min)} +` :
+                                            formatPrice(item.price) }}
                                         </span>
-                                        <button class="btn-add" @click="addToCart(item)"><i
-                                                class="fas fa-plus"></i></button>
+                                        <button class="btn-add" @click.stop="handleItemClick(item)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                     </TransitionGroup>
-                    <div v-if="getFilteredItems(section).length === 0" class="text-center py-4 text-muted w-100">
-                        Không tìm thấy món nào.
-                    </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="cart.length > 0" class="floating-cart animate__animated animate__fadeInUp">
-            <div class="cart-info">
-                <span class="cart-count"><i class="fas fa-shopping-cart me-1"></i> {{ totalCount }} món</span>
-                <span class="cart-total">{{ formatPrice(totalPrice) }}</span>
+        <div class="cart-wrapper-fixed" v-if="cart.length > 0" @mouseenter="isCartHover = true"
+            @mouseleave="isCartHover = false">
+            <Transition name="fade-up">
+                <div v-if="isCartHover" class="cart-preview-popup">
+                    <div class="preview-header">Đang chọn {{ totalCount }}món</div>
+                    <div class="preview-list">
+                        <div v-for="(item, index) in cart.slice().reverse().slice(0, 3)" :key="index"
+                            class="preview-item">
+                            <span class="p-name">{{ item.quantity }}x {{ item.name }}</span>
+                            <span class="p-price">{{ formatPrice(item.price * item.quantity) }}</span>
+                        </div>
+                        <div v-if="cart.length > 3" class="preview-more text-center text-muted small">...và {{
+                            cart.length - 3 }} món khác</div>
+                    </div>
+                    <div class="preview-arrow"></div>
+                </div>
+            </Transition>
+
+            <div class="floating-cart" @click="openCartModal">
+                <div class="cart-info" style="display: flex; align-items: center; gap: 0.5em;">
+                    <span class="cart-count"><i class="fas fa-shopping-cart me-1"></i> {{ totalCount }} món</span>
+                    <span class="cart-total">{{ formatPrice(totalPrice) }}</span>
+                </div>
+                <button class="btn-view-cart">Chi tiết <i class="fas fa-chevron-up ms-1"></i></button>
             </div>
-            <button class="btn-view-cart">Xác nhận <i class="fas fa-arrow-right ms-1"></i></button>
         </div>
+
+        <Transition name="modal-fade">
+            <div v-if="isCartOpen" class="cart-modal-overlay" @click.self="closeCartModal">
+                <div class="cart-modal-content">
+                    <div class="modal-header">
+                        <h5>Giỏ hàng <span class="badge bg-danger rounded-pill">{{ totalCount }}</span></h5>
+                        <button class="btn-close-modal" @click="closeCartModal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body custom-scrollbar">
+                        <div v-for="(item, index) in cart" :key="index" class="cart-item-row">
+                            <div class="item-img"><img :src="item.image" :alt="item.name"></div>
+                            <div class="item-details">
+                                <h6 class="item-name">{{ item.name }}</h6>
+                                <div class="item-price-unit">{{ formatPrice(item.price) }}</div>
+                            </div>
+                            <div class="item-actions">
+                                <div class="qty-control">
+                                    <button @click="decreaseQty(index)">-</button>
+                                    <span>{{ item.quantity }}</span>
+                                    <button @click="increaseQty(index)">+</button>
+                                </div>
+                                <button class="btn-remove" @click="removeItem(index)"><i
+                                        class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <span class="fw-bold text-dark fs-5">Tổng: <span class="text-danger">{{
+                                    formatPrice(totalPrice) }}</span></span>
+                            <button class="btn-checkout">XÁC NHẬN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
+        <Transition name="modal-fade">
+            <div v-if="isDetailModalOpen" class="product-modal-overlay" @click.self="closeDetailModal">
+                <div class="product-modal-content">
+                    <button class="btn-close-product" @click="closeDetailModal"><i class="fas fa-times"></i></button>
+                    <div class="product-header">
+                        <div class="product-img"><img :src="selectedProduct?.image" :alt="selectedProduct?.name"></div>
+                        <div class="product-info-basic">
+                            <h4>{{ selectedProduct?.name }}</h4>
+                            <p class="text-muted small mb-0">{{ selectedProduct?.desc || 'Món ngon mỗi ngày' }}</p>
+                        </div>
+                    </div>
+                    <div class="product-body custom-scrollbar">
+                        <div class="option-group">
+                            <label class="option-title">Chọn phân loại:</label>
+                            <div class="option-list">
+                                <label v-for="variant in currentVariants" :key="variant.id" class="option-item"
+                                    :class="{ active: selectedVariantId === variant.id }">
+                                    <input type="radio" :value="variant.id" v-model="selectedVariantId" hidden>
+                                    <span class="opt-name">{{ variant.name }}</span>
+                                    <span class="opt-price">{{ formatPrice(variant.price) }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-footer">
+                        <div class="qty-selector">
+                            <button @click="modalQuantity > 1 ? modalQuantity-- : null"
+                                :disabled="modalQuantity <= 1">-</button>
+                            <span>{{ modalQuantity }}</span>
+                            <button @click="modalQuantity++">+</button>
+                        </div>
+                        <button class="btn-confirm-add" @click="confirmAddToCart">
+                            Thêm - {{formatPrice(currentVariants.find(v => v.id === selectedVariantId)?.price *
+                            modalQuantity) }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>
 
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
-.menu-section {
-    /* 👇 Dòng này cực quan trọng: 
-       Khoảng cách = Header (60px) + Nav (60px) + Padding dư ra (20px) = 140px */
-    scroll-margin-top: 140px;
-
-    /* Giữ nguyên các thuộc tính cũ */
-    margin-bottom: 3rem;
-}
-
 :root {
     --primary-red: #7d161a;
-    --light-red: #f8ecec;
-    --text-white: #ffffff;
     --text-dark: #333;
-    --bg-gray: #f4f4f4;
 }
 
 .text-primary-red {
@@ -416,94 +564,222 @@ onUnmounted(() => {
     padding-bottom: 90px;
 }
 
-.main-header {
-    background-color: #7d161a;
-    height: 60px;
-    position: sticky;
-    top: 0;
-    z-index: 1001;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.menu-section {
+    scroll-margin-top: 140px;
 }
 
+/* NAV & SEARCH */
 .category-nav {
-    background-color: #ffffff;
+    background: #fff;
     position: sticky;
-    top: 0px;
+    top: 0;
     z-index: 1000;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    white-space: nowrap;
     border-bottom: 1px solid #eee;
+    height: 60px;
 }
 
 .nav-scroll-container {
     flex: 1;
-    /* Chiếm hết chỗ trống bên trái */
     overflow-x: auto;
-    /* Cuộn ngang */
     white-space: nowrap;
     height: 100%;
     display: flex;
     align-items: center;
-    /* Ẩn thanh cuộn */
     scrollbar-width: none;
+}
+.nav-list {
+    display: flex !important;       
+    flex-direction: row !important;  
+    flex-wrap: nowrap !important;    
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    align-items: center;
 }
 
 .nav-scroll-container::-webkit-scrollbar {
     display: none;
 }
 
-.search-wrapper {
-    /* Đảm bảo search luôn nổi lên trên */
-    position: relative;
-    z-index: 2000;
-    /* Cao hơn nội dung bên dưới */
-}
-
-.category-nav::-webkit-scrollbar {
-    display: none;
-}
-
-.nav-list {
-    display: flex;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
 .nav-item {
     padding: 15px 20px;
     font-weight: 600;
-    font-size: 14px;
     color: #666;
     cursor: pointer;
     text-transform: uppercase;
-    transition: all 0.3s;
     border-bottom: 3px solid transparent;
-    user-select: none;
+    transition: 0.3s;
 }
 
 .nav-item:hover {
     color: #7d161a;
-    background-color: #fdf2f2;
+    background: #fdf2f2;
 }
 
 .nav-item.active {
     color: #7d161a;
-    background-color: #fff5f5;
     border-bottom: 3px solid #7d161a;
+    font-weight: 800;
+    background: #fff5f5;
+}
+
+.search-wrapper {
+    position: relative;
+    z-index: 2000;
+}
+
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    margin-top: 8px;
+    z-index: 1100;
+    border: 1px solid #eee;
+    overflow: hidden;
+}
+
+.search-results-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.search-item {
+    display: flex;
+    padding: 10px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-item:hover {
+    background: #f9f9f9;
+}
+
+.search-img-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 12px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.search-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.badge-mini-set {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(125, 22, 26, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.search-item-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.search-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-desc {
+    font-size: 11px;
+    color: #888;
+    margin: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-item-price {
+    font-size: 12px;
+    color: #7d161a;
     font-weight: 800;
 }
 
+.btn-search-add {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #7d161a;
+    background: white;
+    color: #7d161a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.search-item:hover .btn-search-add {
+    background: #7d161a;
+    color: white;
+}
+
+/* FOOD CARDS */
 .section-title {
     color: #7d161a;
     font-weight: 800;
     font-size: 1.4rem;
     margin-bottom: 20px;
-    padding-bottom: 5px;
-    text-transform: uppercase;
     border-left: 5px solid #7d161a;
     padding-left: 10px;
+    text-transform: uppercase;
+}
+
+.filter-scroll-wrapper {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 5px 0;
+    scrollbar-width: none;
+}
+
+.filter-scroll-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.btn-filter {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    color: #666;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+
+.btn-filter:hover {
+    background: #f5f5f5;
+}
+
+.btn-filter.active {
+    background: #7d161a;
+    color: white;
+    border-color: #7d161a;
+    box-shadow: 0 2px 6px rgba(125, 22, 26, 0.3);
 }
 
 .food-card {
@@ -515,7 +791,7 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     border: 1px solid #f0f0f0;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: 0.2s;
 }
 
 .food-card:hover {
@@ -530,6 +806,10 @@ onUnmounted(() => {
     overflow: hidden;
 }
 
+.card-img-wrapper.square-ratio {
+    padding-top: 100%;
+}
+
 .card-img-wrapper img {
     position: absolute;
     top: 0;
@@ -537,10 +817,10 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s;
+    transition: 0.5s;
 }
 
-.food-card:hover .card-img-wrapper img {
+.food-card:hover img {
     transform: scale(1.05);
 }
 
@@ -554,7 +834,6 @@ onUnmounted(() => {
     font-weight: 800;
     padding: 4px 10px;
     border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .card-body {
@@ -562,6 +841,14 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+}
+
+.sub-cat-name {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 2px;
 }
 
 .food-name {
@@ -574,6 +861,11 @@ onUnmounted(() => {
     -webkit-box-orient: vertical;
     overflow: hidden;
     min-height: 40px;
+}
+
+.food-name.text-small {
+    font-size: 14px;
+    min-height: 36px;
 }
 
 .food-desc {
@@ -602,8 +894,6 @@ onUnmounted(() => {
 }
 
 .food-price-lg {
-    font-weight: 800;
-    color: #7d161a;
     font-size: 16px !important;
 }
 
@@ -618,7 +908,7 @@ onUnmounted(() => {
     justify-content: center;
     color: #7d161a;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: 0.2s;
 }
 
 .btn-add:hover {
@@ -627,18 +917,24 @@ onUnmounted(() => {
     transform: rotate(90deg);
 }
 
-.btn-add:active {
-    transform: scale(0.9);
-}
-
-.floating-cart {
+/* FLOATING CART & PREVIEW */
+.cart-wrapper-fixed {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
     max-width: 500px;
-    background-color: #7d161a;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.floating-cart {
+    position: relative;
+    width: 100%;
+    background: #7d161a;
     color: white;
     border-radius: 50px;
     padding: 10px 20px;
@@ -646,14 +942,13 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 8px 25px rgba(125, 22, 26, 0.4);
-    z-index: 1100;
     cursor: pointer;
     border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: 0.2s;
 }
 
-.cart-info {
-    display: flex;
-    flex-direction: column;
+.floating-cart:active {
+    transform: scale(0.98);
 }
 
 .cart-count {
@@ -678,104 +973,514 @@ onUnmounted(() => {
     border-radius: 20px;
 }
 
-@media (max-width: 768px) {
-    .category-nav {
-        top: 60px;
-    }
-
-    .main-header {
-        height: 60px;
-    }
-
-    .food-card {
-        border-radius: 12px;
-    }
-
-    .nav-item {
-        padding: 12px 15px;
-        font-size: 13px;
-    }
+.cart-preview-popup {
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 15px;
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    border: 1px solid #eee;
+    z-index: 1090;
 }
 
-.card-img-wrapper.square-ratio {
-    padding-top: 100%;
-}
-
-.food-name.text-small {
-    font-size: 14px;
-    min-height: 36px;
-}
-
-
-.col-lg-2 .card-body {
-    padding: 8px;
-}
-
-.col-lg-2 .btn-add {
-    width: 28px;
-    height: 28px;
+.preview-header {
     font-size: 12px;
-}
-
-.sub-cat-name {
-    font-size: 11px;
+    font-weight: 700;
     color: #999;
     text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 2px;
-    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 4px;
+}
+
+.preview-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.preview-item .p-name {
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 70%;
 }
 
-.food-name {
-    margin-top: 0;
+.preview-item .p-price {
+    font-weight: 700;
+    color: #7d161a;
 }
 
-.filter-bar {
-    position: relative;
-    margin-left: -10px;
-    margin-right: -10px;
+.preview-arrow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
+    transform: translateX(-50%) rotate(45deg);
 }
 
-.filter-scroll-wrapper {
+/* CART MODAL (LARGE) */
+.cart-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
     display: flex;
-    overflow-x: auto;
-    gap: 8px;
-    padding: 5px 10px;
-    scrollbar-width: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
 }
 
-.filter-scroll-wrapper::-webkit-scrollbar {
-    display: none;
+.cart-modal-content {
+    background: white;
+    width: 95%;
+    max-width: 900px;
+    height: 90vh;
+    border-radius: 16px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: zoomIn 0.3s;
 }
 
-.btn-filter {
-    background-color: #fff;
-    border: 1px solid #e0e0e0;
-    color: #666;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
+@keyframes zoomIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 20px 25px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h5 {
+    margin: 0;
+    font-weight: 700;
+    color: #333;
+    font-size: 1.25rem;
+}
+
+.btn-close-modal {
+    background: #f1f1f1;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
-    outline: none;
+    transition: 0.2s;
 }
 
-.btn-filter:hover {
-    background-color: #f5f5f5;
-    border-color: #ccc;
+.btn-close-modal:hover {
+    background: #e0e0e0;
 }
 
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px;
+    background: #fff;
+}
 
-.btn-filter.active {
-    background-color: #7d161a;
+.cart-item-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    transition: background 0.2s;
+}
+
+.cart-item-row:hover {
+    background: #fcfcfc;
+    border-color: #ddd;
+}
+
+.item-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 20px;
+    flex-shrink: 0;
+}
+
+.item-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 10px;
+}
+
+.item-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+    line-height: 1.3;
+}
+
+.item-price-unit {
+    font-size: 15px;
+    color: #7d161a;
+    font-weight: 700;
+}
+
+.item-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .cart-item-row {
+        justify-content: space-between;
+    }
+
+    .item-details {
+        margin-right: 40px;
+    }
+
+    .item-actions {
+        flex-direction: row;
+    }
+}
+
+.qty-control {
+    display: flex;
+    align-items: center;
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 4px;
+    border: 1px solid #ddd;
+}
+
+.qty-control button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: white;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.qty-control span {
+    width: 40px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.btn-remove {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #fff0f0;
+    color: #dc3545;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-remove:hover {
+    background: #dc3545;
     color: white;
+}
+
+.modal-footer {
+    padding: 25px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+@media (min-width: 768px) {
+    .modal-footer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .btn-checkout {
+        width: 300px;
+    }
+}
+
+.btn-checkout {
+    background: #7d161a;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 4px 15px rgba(125, 22, 26, 0.3);
+    text-transform: uppercase;
+}
+
+.btn-checkout:hover {
+    background: #5e1013;
+    transform: translateY(-2px);
+}
+
+/* PRODUCT DETAIL MODAL */
+.product-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
+
+.product-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.btn-close-product {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    z-index: 10;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+}
+
+.product-img {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+
+.product-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-info-basic {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.product-info-basic h4 {
+    margin: 0;
+    font-weight: 800;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.product-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.option-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    user-select: none;
+}
+
+.option-item:hover {
+    background: #fafafa;
+}
+
+.option-item.active {
     border-color: #7d161a;
-    box-shadow: 0 2px 6px rgba(125, 22, 26, 0.3);
+    background: #fdf2f2;
+    color: #7d161a;
+}
+
+.opt-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.opt-price {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.product-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    background: white;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.qty-selector {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    height: 44px;
+}
+
+.qty-selector button {
+    width: 36px;
+    height: 100%;
+    background: none;
+    border: none;
+    font-weight: bold;
+    font-size: 18px;
+    color: #333;
+    cursor: pointer;
+}
+
+.qty-selector button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.qty-selector span {
+    width: 30px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.btn-confirm-add {
+    flex: 1;
+    background: #7d161a;
+    color: white;
+    border: none;
+    height: 44px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
+}
+
+.btn-confirm-add:hover {
+    background: #5e1013;
+    transform: translateY(-2px);
+}
+
+/* TRANSITIONS */
+.fade-up-enter-active,
+.fade-up-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
 }
 
 .filter-list-enter-active,
@@ -789,183 +1494,11 @@ onUnmounted(() => {
     transform: scale(0.9) translateY(30px);
 }
 
-.filter-list-move {
-    transition: transform 0.5s cubic-bezier(0.55, 0, 0.1, 1);
-}
-
 .filter-list-leave-active {
     position: absolute;
     z-index: -1;
 }
 
-.search-img-box {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    margin-right: 10px;
-    border-radius: 8px;
-    overflow: hidden;
-    flex-shrink: 0;
-    /* Không bị co lại */
-}
-
-.search-img-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Badge SET màu đỏ nhỏ xíu đè lên góc ảnh */
-.badge-mini-set {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: rgba(125, 22, 26, 0.9);
-    /* Màu đỏ chủ đạo */
-    color: white;
-    font-size: 9px;
-    font-weight: bold;
-    text-align: center;
-    padding: 2px 0;
-    line-height: 1;
-}
-
-/* Chỉnh lại tên món để không bị dính */
-.search-item-name {
-    font-size: 13px;
-    margin-bottom: 0;
-    color: #333;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.search-dropdown {
-    position: absolute;
-    top: 100%;
-    /* Nằm ngay dưới ô input */
-    left: 0;
-    width: 100%;
-    background: white;
-    border-radius: 12px;
-    margin-top: 8px;
-    z-index: 1100;
-    border: 1px solid #eee;
-    overflow: hidden;
-    /* Bo góc */
-}
-
-.search-results-list {
-    max-height: 350px;
-    /* Chiều cao tối đa */
-    overflow-y: auto;
-    /* Cho phép cuộn dọc */
-}
-
-/* Từng dòng kết quả */
-.search-item {
-    display: flex;
-    padding: 10px;
-    border-bottom: 1px solid #f5f5f5;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-item:hover {
-    background-color: #f9f9f9;
-}
-
-.search-item:last-child {
-    border-bottom: none;
-}
-
-.search-item-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-    /* Tránh vỡ layout nếu text dài */
-}
-
-/* Ảnh thumbnail */
-.search-img-box {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    margin-right: 12px;
-    border-radius: 8px;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.search-img-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Badge SET */
-.badge-mini-set {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: rgba(125, 22, 26, 0.9);
-    color: white;
-    font-size: 9px;
-    font-weight: bold;
-    text-align: center;
-    padding: 1px 0;
-}
-
-/* Text styles */
-.search-item-name {
-    font-size: 13px;
-    margin-bottom: 2px;
-    color: #333;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.search-item-desc {
-    font-size: 11px;
-    color: #888;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.search-item-price {
-    font-size: 12px;
-    color: #7d161a;
-    font-weight: 800;
-}
-
-/* Nút cộng nhỏ */
-.btn-search-add {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 1px solid #7d161a;
-    background: white;
-    color: #7d161a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    transition: all 0.2s;
-}
-
-.search-item:hover .btn-search-add {
-    background: #7d161a;
-    color: white;
-}
-
-/* Thanh cuộn đẹp */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
 }
