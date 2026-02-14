@@ -12,68 +12,68 @@ import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
 
 
-    const routes = [
-  {
-    path: "/admin/client",
-    component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-    meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
-    children: [
-        {
-            path: "", 
-            name: "clientList",
-            component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
-            meta: { index: 1 } // Cấp độ 1: Danh sách
-        },
-        {
-            path: "view/:id",
-            name: "clientView",
-            component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
-        },
-        {
-            path: "form/:id?", 
-            name: "clientForm",
-            component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
-            meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
-        }
-    ]
-},
+const routes = [
+    {
+        path: "/admin/client",
+        component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
+        children: [
+            {
+                path: "",
+                name: "clientList",
+                component: () => import("@/pages/admin/client/modal/clientListContent.vue"),
+                meta: { index: 1 } // Cấp độ 1: Danh sách
+            },
+            {
+                path: "view/:id",
+                name: "clientView",
+                component: () => import("@/pages/admin/client/modal/clientDetailPage.vue"),
+                meta: { index: 2 } // Cấp độ 2: Chi tiết (Sâu hơn)
+            },
+            {
+                path: "form/:id?",
+                name: "clientForm",
+                component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
+                meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
+            }
+        ]
+    },
     {
         path: "/login",
         name: "login",
         component: () =>
-            import ("@/pages/guest/authentication/loginPage.vue")
+            import("@/pages/guest/authentication/loginPage.vue")
     },
     {
         path: "/register",
         name: "register",
         component: () =>
-            import ("@/pages/guest/authentication/registerPage.vue")
+            import("@/pages/guest/authentication/registerPage.vue")
     },
 
     {
         path: "/admin/dashboard",
         name: "adminDashboard",
         component: () =>
-            import ("@/pages/admin/adminDashboard.vue"),
+            import("@/pages/admin/adminDashboard.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
     //Table
 
     {
-        path: "/admin/tables", 
+        path: "/admin/tables",
         name: "tableManager",
         component: () =>
-            import ("@/pages/admin/table/screen/tableReserveManager.vue"),
+            import("@/pages/admin/table/screen/tableReserveManager.vue"),
         children: [{
-                path: "",
-                component: ListReserve,
-            },
-            {
-                path: "calendar",
-                component: TableCalendar,
-            },
+            path: "",
+            component: ListReserve,
+        },
+        {
+            path: "calendar",
+            component: TableCalendar,
+        },
         ],
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
@@ -81,7 +81,7 @@ import Swal from 'sweetalert2';
         path: "/admin/checkin",
         name: "tableCheckIn",
         component: () =>
-            import ("@/pages/admin/table/screen/tableCheckIn.vue"),
+            import("@/pages/admin/table/screen/tableCheckIn.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     //   {
@@ -95,50 +95,50 @@ import Swal from 'sweetalert2';
         path: "/manage/all",
         name: "tableManaAll",
         component: () =>
-            import ("@/pages/admin/table/screen/tableManaAll.vue"),
+            import("@/pages/admin/table/screen/tableManaAll.vue"),
         children: [{
-                path: "",
-                component: CardTable,
-                meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-            },
-            {
-                path: "danh-sach",
-                component: ListTable,
-                meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-            },
+            path: "",
+            component: CardTable,
+            meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+        },
+        {
+            path: "danh-sach",
+            component: ListTable,
+            meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+        },
         ],
     },
 
     //NvKh
 
     {
-    path: "/admin/staff",
-    // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
-    component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
-    children: [
-        {
-            path: "",
-            name: "staffManager",
-            component: () => import("@/pages/admin/staff/modal/staffListContent.vue"),
-        },
-        {
-            path: "form/:id?",
-            name: "staffForm",
-            component: () => import("@/pages/admin/staff/modal/staffFormPage.vue"),
-        },
-        {
-            path: "view/:id",
-            name: "staffView",
-            component: () => import("@/pages/admin/staff/modal/staffDetailPage.vue"),
-        }
-    ]
-},
+        path: "/admin/staff",
+        // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
+        component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
+        children: [
+            {
+                path: "",
+                name: "staffManager",
+                component: () => import("@/pages/admin/staff/modal/staffListContent.vue"),
+            },
+            {
+                path: "form/:id?",
+                name: "staffForm",
+                component: () => import("@/pages/admin/staff/modal/staffFormPage.vue"),
+            },
+            {
+                path: "view/:id",
+                name: "staffView",
+                component: () => import("@/pages/admin/staff/modal/staffDetailPage.vue"),
+            }
+        ]
+    },
 
     {
         path: "/admin/statistics",
         name: "statisticsManager",
         component: () =>
-            import ("@/pages/admin/statistics/screens/statisticsManager.vue"),
+            import("@/pages/admin/statistics/screens/statisticsManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -150,7 +150,7 @@ import Swal from 'sweetalert2';
         name: "foodManager",
         component: () =>
 
-            import ("./pages/admin/food/screens/foodManager.vue"),
+            import("./pages/admin/food/screens/foodManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -158,14 +158,14 @@ import Swal from 'sweetalert2';
         path: "/manage/category",
         name: "categoryManager",
         component: () =>
-            import ("./pages/admin/category/screens/categoryManager.vue"),
+            import("./pages/admin/category/screens/categoryManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     {
         path: '/manage/food/hotpot/add',
         name: 'addHotpotSet',
         component: () =>
-            import ("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
+            import("./pages/admin/food/modal/addModal/FoodHotpotAddModal.vue"),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
@@ -178,20 +178,20 @@ import Swal from 'sweetalert2';
         path: "/admin/promotion",
         name: "promotionManager",
         component: () =>
-            import ("@/pages/admin/promotion/screens/promotionManager.vue"),
+            import("@/pages/admin/promotion/screens/promotionManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     {
         path: "/test",
         name: "test",
         component: () =>
-            import ("./components/testConnection.vue")
+            import("./components/testConnection.vue")
     },
     {
         path: '/manage/food/hotpot/update/:id',
         name: 'updateHotpotSet',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
@@ -203,7 +203,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/hotpot/view/:id',
         name: 'viewHotpotSet',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodHotpotModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
@@ -215,7 +215,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/detail/add',
         name: 'addFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
+            import('./pages/admin/food/modal/addModal/FoodDetailAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
@@ -227,7 +227,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/add',
         name: 'addFood',
         component: () =>
-            import ('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
+            import('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'thucdon',
@@ -239,7 +239,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/update/:id',
         name: 'updateFood',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
         meta: {
             title: 'Cập nhật Món Ăn',
             parentMenu: 'foodManager',
@@ -252,7 +252,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/view/:id',
         name: 'viewFood',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
         meta: {
             title: 'Chi tiết Món Ăn',
             parentMenu: 'foodManager',
@@ -265,7 +265,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/detail/update/:id',
         name: 'updateFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
@@ -277,7 +277,7 @@ import Swal from 'sweetalert2';
         path: '/manage/food/detail/view/:id',
         name: 'viewFoodDetail',
         component: () =>
-            import ('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
+            import('./pages/admin/food/modal/updateModal/foodDetailModal.vue'),
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
@@ -294,7 +294,7 @@ import Swal from 'sweetalert2';
         path: "/home",
         name: "homePage",
         component: () =>
-            import ("./pages/guest/viewPages/home.vue"),
+            import("./pages/guest/viewPages/home.vue"),
         meta: {
             requiresAuth: false
         }
@@ -304,7 +304,7 @@ import Swal from 'sweetalert2';
         path: "/menu",
         name: "menu",
         component: () =>
-            import ("./pages/guest/viewPages/food-menu.vue"),
+            import("./pages/guest/viewPages/food-menu.vue"),
         meta: {
             requiresAuth: false
         }
@@ -314,7 +314,7 @@ import Swal from 'sweetalert2';
         path: "/admin/orders",
         name: "orderManager",
         component: () =>
-            import ("@/pages/admin/order/screens/OrderManager.vue"),
+            import("@/pages/admin/order/screens/OrderManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -322,7 +322,7 @@ import Swal from 'sweetalert2';
         path: "/admin/orders/detail/:id",
         name: "OrderDetail",
         component: () =>
-            import ("@/pages/admin/order/screens/OrderDetailPage.vue"),
+            import("@/pages/admin/order/screens/OrderDetailPage.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -330,7 +330,7 @@ import Swal from 'sweetalert2';
         path: "/admin/payment/:id",
         name: "paymentScreen",
         component: () =>
-            import ("@/pages/admin/order/screens/PaymentScreen.vue"),
+            import("@/pages/admin/order/screens/PaymentScreen.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
@@ -338,7 +338,7 @@ import Swal from 'sweetalert2';
         path: "/admin/add-food/:id",
         name: "addFoodScreen",
         component: () =>
-            import ("@/pages/admin/order/screens/AddFoodScreen.vue"),
+            import("@/pages/admin/order/screens/AddFoodScreen.vue"),
         meta: {
             requiresAuth: true,
             requiredRole: 'ADMIN'
@@ -351,22 +351,22 @@ import Swal from 'sweetalert2';
         path: '/admin/voucher',
         name: 'AdminVoucher',
         component: () =>
-            import ('@/pages/admin/voucher/screens/voucherManager.vue'),
+            import('@/pages/admin/voucher/screens/voucherManager.vue'),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
     {
         path: "/admin/promotions",
         name: "voucherManager",
         component: () =>
-            import ("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue"),
+            import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
     {
-    path: '/auth/google/callback',
-    name: 'GoogleCallback',
-    component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
-    meta: { requiresAuth: false } 
+        path: '/auth/google/callback',
+        name: 'GoogleCallback',
+        component: () => import('@/pages/guest/authentication/googleLoginCallback.vue'),
+        meta: { requiresAuth: false }
     },
 
 
@@ -414,7 +414,7 @@ router.beforeEach((to, from, next) => {
                     timerProgressBar: true
                 });
                 if (userRole === 'EMPLOYEE' || userRole === 'Nhân viên') {
-                    return next(false); 
+                    return next(false);
                 }
                 return next('/');
             }
