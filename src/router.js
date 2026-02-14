@@ -282,7 +282,13 @@ const routes = [
         path: "/test",
         name: "test",
         component: () => import("./components/testConnection.vue")
-    }
+    },
+    {
+        path: "/manage/unit",
+        name: "unitManager",
+        component: () => import("./pages/admin/unit/screens/UnitManagerAll.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+    },
 ];
 
 const router = createRouter({

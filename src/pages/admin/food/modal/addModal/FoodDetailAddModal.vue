@@ -222,7 +222,7 @@ const handleSave = async () => {
     <div class="main-content">
         <div class="page-header">
             <div class="header-title">
-                <h1>Thêm Món Ăn Mới (Gen Biến Thể)</h1>
+                <h1>Thêm Món Ăn Mới</h1>
             </div>
             <button class="btn-back" @click="router.back()"><i class="fas fa-arrow-left"></i> Quay lại</button>
         </div>
@@ -311,7 +311,7 @@ const handleSave = async () => {
                             <tbody>
                                 <tr v-for="(v, idx) in generatedVariants" :key="idx">
                                     <td class="text-center">{{ idx + 1 }}</td>
-                                    <td class="fw-bold text-primary">{{ v.tenMon }}</td>
+                                    <td class="fw-bold">{{ v.tenMon }}</td>
                                     <td>
                                         <span class="badge bg-light text-dark border">
                                             {{ v.tenHienThiDinhLuong }}

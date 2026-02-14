@@ -140,13 +140,13 @@ const router = useRouter();
 
 
 
-            
-
-            <td>{{ item.kichCo || '---' }}</td>
-
             <td>
               <span class="badge bg-secondary">{{ item.giaTriDinhLuong || '---' }}</span>
             </td>
+
+            <td>{{ item.kichCo || '---' }}</td>
+
+            
 
             <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
 
