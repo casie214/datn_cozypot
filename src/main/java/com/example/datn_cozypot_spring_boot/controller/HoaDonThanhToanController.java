@@ -2,11 +2,14 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
+import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
+import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
@@ -21,7 +24,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,6 +41,7 @@ public class HoaDonThanhToanController {
     private final LichSuHoaDonService lichSuHoaDonService;
 
     private final LichSuThanhToanService lichSuThanhToanService;
+    private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -132,5 +139,35 @@ public class HoaDonThanhToanController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PostMapping("/tao-don")
+    public ResponseEntity<?> createOrder(@RequestBody HoaDonThanhToanRequest request) {
+        try {
+            hoaDonThanhToanService.createOrder(request);
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Lên đơn món ăn thành công!");
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", "Lỗi hệ thống: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/active-by-ban/{idBanAn}")
+    public Optional<HoaDonThanhToanResponse> findActiveBillByBanAn(@PathVariable Integer idBanAn) {
+        List<HoaDonThanhToan> list = hoaDonThanhToanRepository.findActiveBills(idBanAn);
+
+        if (list.isEmpty()) {
+            return Optional.empty();
+        }
+
+        HoaDonThanhToan newestBill = list.get(0);
+        return Optional.of(hoaDonThanhToanRepository.getHoaDonById(newestBill.getId()));
     }
 }

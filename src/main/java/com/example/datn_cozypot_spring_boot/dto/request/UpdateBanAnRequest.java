@@ -17,6 +17,6 @@ public class UpdateBanAnRequest {
     private Integer idKhuVuc;
     @NotNull(message = "Trạng thái không được trống")
     private Integer trangThai;
-    private LocalDateTime ngayTao;
-    private String nguoiTao;
+//    private LocalDateTime ngayTao;
+//    private String nguoiTao;
 }

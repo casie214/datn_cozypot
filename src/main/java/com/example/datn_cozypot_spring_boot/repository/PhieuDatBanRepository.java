@@ -144,4 +144,18 @@ Page<PhieuDatBan> search(
     );
 
 
+    @Query("""
+    SELECT p
+    FROM PhieuDatBan p
+    WHERE p.thoiGianDat >= :start
+      AND p.thoiGianDat < :end
+      AND p.idBanAn IS NOT NULL
+""")
+    List<PhieuDatBan> findPhieuTrongNgay(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+
+
 }
