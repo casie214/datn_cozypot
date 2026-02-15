@@ -22,6 +22,7 @@ public class KhachHangResponse {
     private String tenDangNhap;
     private String matKhauDangNhap;
     private Integer trangThai;
+    private String anhDaiDien; // THÊM DÒNG NÀY VÀO ĐÂY
     private String diaChi; // Đây là cái hiển thị ở Table
     private List<DiaChiResponse> danhSachDiaChi; // Đây là cái để hiện lên Form
 }

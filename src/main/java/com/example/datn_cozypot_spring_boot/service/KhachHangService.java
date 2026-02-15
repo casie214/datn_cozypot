@@ -114,25 +114,29 @@ public class KhachHangService {
     public KhachHangResponse update(Integer id, KhachHangRequest req, MultipartFile file) {
         KhachHang kh = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
-        if (repo.existsBySoDienThoaiAndIdNot(req.getSoDienThoai(), id))
-            throw new RuntimeException("Số điện thoại đã bị sử dụng!");
-        if (repo.existsByEmailAndIdNot(req.getEmail(), id)) throw new RuntimeException("Email đã bị sử dụng!");
-
+        // 1. Map thông tin text (Dùng hàm của bạn - Rất an toàn vì không có field ảnh)
         mapRequestToEntity(req, kh);
 
+        // 2. Xử lý ảnh - Đảm bảo tính duy nhất
         if (file != null && !file.isEmpty()) {
+            // CÓ FILE MỚI: Ưu tiên số 1, lưu file và lấy tên mới hoàn toàn
             kh.setAnhDaiDien(saveFile(file));
+        } else {
+            // KHÔNG CÓ FILE MỚI: Lấy lại tên cũ từ Request
+            String oldImage = req.getAnhDaiDien();
+
+            if (oldImage != null && !oldImage.isEmpty()) {
+                // Đề phòng trường hợp Frontend gửi chuỗi bị lặp (có dấu phẩy)
+                // Ta chỉ lấy phần tử đầu tiên trước dấu phẩy
+                if (oldImage.contains(",")) {
+                    oldImage = oldImage.split(",")[0];
+                }
+                kh.setAnhDaiDien(oldImage);
+            }
+            // Nếu cả 2 đều trống thì giữ nguyên ảnh cũ trong DB (kh.getAnhDaiDien())
         }
 
         KhachHang savedKh = repo.save(kh);
-
-        // GỬI MAIL CẬP NHẬT (Mới bổ sung)
-        try {
-            userMailService.sendClientNotificationMail(req, "UPDATE");
-        } catch (Exception e) {
-            System.err.println("🔥 Lỗi gửi mail khi cập nhật: " + e.getMessage());
-        }
-
         return convertToResponse(savedKh);
     }
 
@@ -341,8 +345,10 @@ public class KhachHangService {
     private KhachHangResponse convertToResponse(KhachHang kh) {
         if (kh == null) return null;
         KhachHangResponse res = new KhachHangResponse();
-        // Copy các trường cơ bản: tên, sđt, email...
         BeanUtils.copyProperties(kh, res);
+
+        // Đảm bảo dòng này tồn tại để chuyển tên file ảnh sang giao diện
+        res.setAnhDaiDien(kh.getAnhDaiDien());
 
         if (kh.getDanhSachDiaChi() != null && !kh.getDanhSachDiaChi().isEmpty()) {
             // 1. Chuyển đổi List Entity sang List DTO (DiaChiResponse)
