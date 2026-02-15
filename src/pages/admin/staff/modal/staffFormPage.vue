@@ -46,11 +46,30 @@
 
               <div class="scanner-box p-3 rounded-4 bg-light-wine border-wine-dashed text-center">
                 <h6 class="fw-bold text-wine mb-3 small"><i class="fas fa-qrcode me-2"></i>NHẬP LIỆU NHANH CCCD</h6>
+
                 <button type="button" class="btn btn-wine-sm w-100 mb-2 shadow-sm" @click="toggleScanner">
                   <i class="fas" :class="isScanning ? 'fa-times-circle' : 'fa-camera-retro'"></i>
                   {{ isScanning ? ' Ngừng quét' : ' Bật Camera quét mã' }}
                 </button>
+
+                <!-- <button v-if="!isScanning" type="button" class="btn btn-outline-wine w-100 mb-2"
+                  @click="triggerQRFileInput">
+                  <i class="fas fa-image me-2"></i> Chọn ảnh từ máy
+                </button> -->
+
+                <input type="file" ref="qrFileInput" class="d-none" @change="onQRFileChange" accept="image/*" />
+
+                <div class="d-flex align-items-center">
+      <i class="fas fa-exclamation-circle fs-5 me-2"></i>
+      <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
+    </div>
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
+
+                <div v-if="qrErrorMessage" class="alert alert-danger mt-2 py-1 px-2 small border-0 shadow-sm"
+                  style="font-size: 0.75rem;">
+                  <i class="fas fa-exclamation-triangle me-1"></i> {{ qrErrorMessage }}
+                </div>
+
                 <p v-if="isScanning" class="tiny text-muted mt-2">Đưa mã QR trên thẻ CCCD vào khung hình</p>
               </div>
 
@@ -149,7 +168,7 @@
                   </div>
 
                   <div class="row g-4">
-                    <!-- <div class="col-md-12">
+                    <div class="col-md-12">
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
@@ -157,7 +176,7 @@
                           :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
-                    </div> -->
+                    </div>
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Ngày cấp <span class="star">*</span></label>
@@ -238,6 +257,58 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+// 1. Khai báo thêm các Ref cần thiết
+const qrErrorMessage = ref("");
+const qrFileInput = ref(null);
+
+// 2. Hàm kích hoạt chọn file (Dùng cho nút "Chọn ảnh từ máy")
+const triggerQRFileInput = () => {
+  qrErrorMessage.value = ""; // Xóa lỗi cũ
+  qrFileInput.value.click();
+};
+
+// 3. Hàm xử lý quét file ảnh - ĐÂY LÀ ĐOẠN SỬA LỖI QUÉT ẢNH TỪ THƯ MỤC
+const onQRFileChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 1. Reset trạng thái ban đầu
+  qrErrorMessage.value = "";
+  loading.value = true; // Nếu em có biến loading để hiện spinner thì dùng
+
+  try {
+    const response = await staffService.scanQR(file);
+
+    if (response.data) {
+      // 2. Gọi hàm điền dữ liệu
+      onScanSuccess(response.data);
+
+      // 3. Thông báo thành công kiểu "sang chảnh"
+      toast.success("Quét mã CCCD thành công! Dữ liệu đã được tự động điền.", {
+        timeout: 3000,
+        icon: "🚀"
+      });
+    }
+  } catch (err) {
+    console.error("Lỗi quét QR:", err);
+
+    const status = err.response?.status;
+
+    if (status === 404) {
+      // Chỉ hiện text dưới input cho lỗi "không tìm thấy mã"
+      qrErrorMessage.value = "Hệ thống không tìm thấy mã QR. Bạn hãy thử chụp rõ nét, không bị lóa nhé!";
+    } else if (status === 403 || status === 401) {
+      // Lỗi bảo mật thì dùng Toast cho nghiêm trọng
+      toast.error("Phiên đăng nhập hết hạn, vui lòng F5 lại trang!");
+    } else {
+      // Lỗi server/kết nối
+      toast.error("Không thể kết nối đến máy chủ. Hãy kiểm tra Backend!");
+    }
+  } finally {
+    loading.value = false;
+    e.target.value = ""; // Luôn reset input file
+  }
+};
 
 // ID từ URL
 const staffId = ref(route.params.id || null);
@@ -277,6 +348,7 @@ const stopScanner = () => {
 };
 
 const onScanSuccess = (decodedText) => {
+  qrErrorMessage.value = "";
   if (scanned) return;
   scanned = true;
 
@@ -408,45 +480,81 @@ const checkDuplicate = async (type) => {
 const validateForm = async () => {
   let ok = true;
   const today = dayjs();
+  
+  // Reset lỗi
   Object.keys(errors).forEach(k => errors[k] = '');
+  qrErrorMessage.value = ""; 
 
+  // --- BƯỚC 1: KIỂM TRA TRỐNG (REQUIRED) ---
   const requiredFields = [
-    { key: 'hoTenNhanVien', msg: 'Vui lòng nhập họ và tên nhân viên' },
-    { key: 'idVaiTro', msg: 'Vui lòng chọn vai trò cho nhân viên' },
-    { key: 'soCccd', msg: 'Vui lòng nhập số CCCD' },
-    { key: 'ngayCapCccd', msg: 'Vui lòng chọn ngày cấp CCCD' },
-    { key: 'noiCapCccd', msg: 'Vui lòng nhập nơi cấp CCCD' },
-    { key: 'sdtNhanVien', msg: 'Vui lòng nhập số điện thoại' },
-    { key: 'email', msg: 'Vui lòng nhập địa chỉ email' },
-    { key: 'ngaySinh', msg: 'Vui lòng chọn ngày tháng năm sinh' },
-    { key: 'diaChi', msg: 'Vui lòng nhập địa chỉ thường trú' }
-    // Đã bỏ tenDangNhap khỏi đây vì bạn đang ẩn input trong template
+    { key: 'hoTenNhanVien', msg: 'Họ tên không được để trống' },
+    { key: 'idVaiTro', msg: 'Vui lòng chọn vai trò' },
+    { key: 'sdtNhanVien', msg: 'Số điện thoại không được để trống' },
+    { key: 'email', msg: 'Email không được để trống' },
+    { key: 'diaChi', msg: 'Địa chỉ thường trú không được để trống' },
+    { key: 'ngayCapCccd', msg: 'Thiếu ngày cấp CCCD' },
+    { key: 'noiCapCccd', msg: 'Thiếu nơi cấp CCCD' }
   ];
 
-  requiredFields.forEach(field => {
-    if (!formData[field.key] || formData[field.key].toString().trim() === '') {
-      errors[field.key] = field.msg;
+  requiredFields.forEach(f => {
+    if (!formData[f.key] || formData[f.key].toString().trim() === '') {
+      errors[f.key] = f.msg;
       ok = false;
     }
   });
 
-  // Chỉ check format nếu các trường bắt buộc đã có dữ liệu
-  if (formData.soCccd && !/^\d{12}$/.test(formData.soCccd)) {
-    errors.soCccd = 'Số CCCD phải gồm 12 chữ số';
+  // --- BƯỚC 2: KIỂM TRA ĐỊNH DẠNG CHI TIẾT ---
+
+  // 1. Số điện thoại: Phải là số, đúng 10 chữ số (đầu số VN thường là 0)
+  const vnf_regex = /^(03|05|07|08|09|01[2|6|8|9])+([0-9]{8})$/;
+  if (formData.sdtNhanVien && !vnf_regex.test(formData.sdtNhanVien)) {
+    errors.sdtNhanVien = 'Số điện thoại phải đủ 10 số và đúng đầu số Việt Nam';
     ok = false;
   }
 
+  // 2. Email: Đúng định dạng email chuẩn
+  const email_regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (formData.email && !email_regex.test(formData.email)) {
+    errors.email = 'Định dạng email không hợp lệ (ví dụ: abc@gmail.com)';
+    ok = false;
+  }
+
+  // 3. Ngày sinh: Không ở tương lai & Đủ 18 tuổi
+  if (formData.ngaySinh) {
+    const birthDate = dayjs(formData.ngaySinh);
+    if (birthDate.isAfter(today)) {
+      errors.ngaySinh = 'Ngày sinh không thể ở trong tương lai!';
+      ok = false;
+    } else {
+      const age = today.diff(birthDate, 'year');
+      if (age < 18) {
+        errors.ngaySinh = `Nhân viên chưa đủ 18 tuổi (Hiện tại: ${age} tuổi)`;
+        ok = false;
+      }
+    }
+  } else {
+    errors.ngaySinh = 'Vui lòng chọn ngày sinh';
+    ok = false;
+  }
+
+  // 4. CCCD (Trường ẩn): Check nếu chưa quét mã
+  if (!formData.soCccd) {
+    qrErrorMessage.value = "⚠️ Vui lòng quét mã QR CCCD để điền thông tin!";
+    ok = false;
+  }
+
+  // Nếu sai các logic cơ bản trên thì dừng luôn
   if (!ok) return false;
 
-  // Check trùng lặp từ Database
+  // --- BƯỚC 3: KIỂM TRA TRÙNG LẶP (DATABASE) ---
   try {
-    const duplicateChecks = [
+    const checkList = [
       { key: 'email', label: 'Email' },
       { key: 'sdtNhanVien', label: 'Số điện thoại' },
       { key: 'soCccd', label: 'Số CCCD' }
     ];
 
-    for (const item of duplicateChecks) {
+    for (const item of checkList) {
       const res = await staffService.checkDuplicate({
         type: item.key,
         value: formData[item.key],
@@ -454,17 +562,14 @@ const validateForm = async () => {
       });
 
       if (res.data === true || res.data?.exists === true) {
-        errors[item.key] = `${item.label} này đã tồn tại`;
-        if (item.key === 'soCccd') {
-          alert(`⚠️ CẢNH BÁO: Số CCCD [${formData.soCccd}] đã được sử dụng!`);
-        }
+        errors[item.key] = `${item.label} này đã được sử dụng bởi nhân viên khác`;
+        if (item.key === 'soCccd') qrErrorMessage.value = "Số CCCD đã tồn tại!";
         ok = false;
-        break;
+        break; 
       }
     }
   } catch (e) {
-    console.error("Lỗi validate trùng lặp:", e);
-    return false;
+    console.error("Lỗi kiểm tra trùng lặp:", e);
   }
 
   return ok;
@@ -485,66 +590,113 @@ const generateRandomPassword = (length = 8) => {
 //////////////////////////////////////////////////////
 
 const handleSave = async () => {
- // 1. Kiểm tra Validate FE (đã bỏ yêu cầu nhập user/pass ở hàm validateForm)
+  // 1. Kiểm tra Validate (Ngày sinh tương lai, thiếu CCCD, trùng lặp...)
   const isValid = await validateForm();
-  if (!isValid) return;
+  
+  if (!isValid) {
+    // Nếu không hợp lệ, bắn một cái thông báo tổng quát thật to
+    Swal.fire({
+      icon: 'error',
+      title: 'Thông tin chưa hoàn tất!',
+      text: 'Vui lòng kiểm tra các ô báo đỏ và đảm bảo đã quét mã QR CCCD.',
+      confirmButtonColor: '#800000',
+      confirmButtonText: 'Đã hiểu'
+    });
+    return;
+  }
 
   try {
     loading.value = true;
-    
+
     // 2. TỰ ĐỘNG SINH THÔNG TIN TÀI KHOẢN (Chỉ khi thêm mới)
     if (!staffId.value) {
-      // Nếu chưa có tên đăng nhập, dùng 'nv' + số điện thoại (ví dụ: nv0987654321)
       if (!formData.tenDangNhap) {
         formData.tenDangNhap = 'nv' + formData.sdtNhanVien;
       }
-      // TẠO MẬT KHẨU NGẪU NHIÊN Ở ĐÂY
-      const randomPass = generateRandomPassword(10); 
+      const randomPass = generateRandomPassword(10);
       formData.matKhauDangNhap = randomPass;
     }
 
     const data = new FormData();
 
-    // 3. DANH SÁCH CÁC TRƯỜNG GỬI ĐI (Đảm bảo có ngayVaoLam và các trường BE yêu cầu)
+    // 3. DANH SÁCH CÁC TRƯỜNG GỬI ĐI
     const fieldsToSend = [
-      'hoTenNhanVien', 'idVaiTro', 'soCccd', 'ngayCapCccd', 
-      'noiCapCccd', 'sdtNhanVien', 'email', 'diaChi', 
+      'hoTenNhanVien', 'idVaiTro', 'soCccd', 'ngayCapCccd',
+      'noiCapCccd', 'sdtNhanVien', 'email', 'diaChi',
       'ngaySinh', 'gioiTinh', 'trangThaiLamViec', 'ngayVaoLam',
-      'tenDangNhap', 'matKhauDangNhap' // Gửi kèm thông tin vừa tự sinh
+      'tenDangNhap', 'matKhauDangNhap'
     ];
 
     fieldsToSend.forEach(key => {
       let value = formData[key];
-      
-      // Chuẩn hóa kiểu dữ liệu
       if (key === 'idVaiTro') value = Number(value);
       if (key === 'gioiTinh') value = (value === true || value === 'true');
-      
-      // Chỉ append nếu có giá trị (tránh gửi "null" string)
+
       if (value !== null && value !== undefined && value !== '') {
         data.append(key, value);
       }
     });
 
-    // File ảnh
     if (selectedFile.value) {
       data.append('hinhAnhFile', selectedFile.value);
     }
 
     // 4. GỌI API
+    let message = "";
     if (staffId.value) {
       await staffService.update(staffId.value, data);
+      message = "Cập nhật thông tin nhân viên thành công!";
     } else {
       await staffService.create(data);
+      message = "Thêm nhân viên mới thành công!";
     }
 
-    toast.success("Thêm nhân viên thành công!");
-    router.push('/admin/staff');
+    // Hiển thị thông báo thành công xịn xò trước khi chuyển trang
+    Swal.fire({
+      icon: 'success',
+      title: 'Thành công',
+      text: message,
+      timer: 2000,
+      showConfirmButton: false
+    });
 
-  } catch (e) {
+    setTimeout(() => {
+      router.push('/admin/staff');
+    }, 1500);
+
+ } catch (e) {
     console.error("Chi tiết lỗi lưu:", e.response?.data);
-    const errorMsg = e.response?.data?.message || "Lỗi dữ liệu, vui lòng kiểm tra lại!";
-    toast.error(errorMsg);
+    
+    const resData = e.response?.data;
+
+    // Kiểm tra nếu Backend trả về lỗi Validation (giống cái Object em vừa gửi)
+    if (resData && resData.code === "VALIDATION_ERORR" && resData.errors) {
+      
+      // Duyệt qua danh sách lỗi từ Backend gửi về
+      // resData.errors lúc này là { ngaySinh: 'Ngày sinh phải là một ngày trong quá khứ' }
+      Object.keys(resData.errors).forEach(key => {
+        // Gán tin nhắn lỗi vào Object errors để UI bôi đỏ ô input
+        errors[key] = resData.errors[key];
+      });
+
+      toast.error("Thông tin nhập vào chưa đúng, vui lòng kiểm tra các ô báo đỏ!");
+      
+      // Tự động cuộn đến chỗ lỗi đầu tiên cho người dùng dễ thấy
+      nextTick(() => {
+        const firstError = document.querySelector('.is-invalid');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+    } else {
+      // Các lỗi hệ thống khác (500, 404,...)
+      const errorMsg = resData?.message || "Lỗi hệ thống, vui lòng thử lại sau!";
+      toast.error(errorMsg);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi máy chủ',
+        text: errorMsg
+      });
+    }
   } finally {
     loading.value = false;
   }
