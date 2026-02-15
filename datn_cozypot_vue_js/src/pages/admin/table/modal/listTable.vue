@@ -188,7 +188,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <div class="container">
+  <div class="">
     <div>
       <div class="filter-box">
   <!-- Lọc tầng -->
@@ -211,7 +211,7 @@ onMounted(() => {
   </select>
 
   <!-- Reset -->
-  <button class="btn btn-outline" @click="() => {
+  <button class="btn" @click="() => {
     filterTang = '';
     filterLoaiDatBan = '';
   }">
@@ -232,7 +232,7 @@ onMounted(() => {
             <!-- <th>Trạng thái</th> -->
             <!-- <th>Ngày tạo</th> -->
             <!-- <th>Người tạo</th> -->
-            <th>Đặt online</th>
+            <!-- <th>Đặt online</th> -->
             <th>Thao tác</th>
           </tr>
         </thead>
@@ -261,9 +261,9 @@ onMounted(() => {
             </td> -->
             <!-- <td>{{ formatDate(ban.ngayTao) }}</td> -->
             <!-- <td>{{ ban.nguoiTao }}</td> -->
-            <td>
+            <!-- <td>
               {{ ban.loaiDatBan == 0 ? "Không cho phép" : "Cho phép" }}
-            </td>
+            </td> -->
 
             <td>
               <button
@@ -508,6 +508,11 @@ onMounted(() => {
   font-size: 14px;
   cursor: pointer;
   transition: 0.2s;
+  border: 1px solid #5f0f12;
+}
+
+.btn:hover{
+    border: 1px solid #5f0f12 !important;
 }
 
 .btn-outline {

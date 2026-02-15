@@ -230,7 +230,25 @@
 
     </div>
 
+    <div class="col-md-6" v-if="!clientId">
+      <label class="form-label-custom">Tên hiển thị <span class="star">*</span></label>
+      <div class="input-group-custom">
+        <i class="fas fa-user-circle icon-input"></i>
+        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenDangNhap }"
+          v-model="formData.tenDangNhap" placeholder="username123" autocomplete="new-password">
+      </div>
+      <div class="error-text">{{ errors.tenDangNhap }}</div>
+    </div>
 
+    <div class="col-md-6" v-if="!clientId">
+      <label class="form-label-custom">Mật khẩu <span class="star">*</span></label>
+      <div class="input-group-custom">
+        <i class="fas fa-lock icon-input"></i>
+        <input type="password" class="form-control" :class="{ 'is-invalid': errors.matKhauDangNhap }"
+          v-model="formData.matKhauDangNhap" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="error-text">{{ errors.matKhauDangNhap }}</div>
+    </div>
 
     <div class="col-md-6">
 

@@ -46,11 +46,21 @@
 
               <div class="scanner-box p-3 rounded-4 bg-light-wine border-wine-dashed text-center">
                 <h6 class="fw-bold text-wine mb-3 small"><i class="fas fa-qrcode me-2"></i>NHẬP LIỆU NHANH CCCD</h6>
+                
                 <button type="button" class="btn btn-wine-sm w-100 mb-2 shadow-sm" @click="toggleScanner">
                   <i class="fas" :class="isScanning ? 'fa-times-circle' : 'fa-camera-retro'"></i>
                   {{ isScanning ? ' Ngừng quét' : ' Bật Camera quét mã' }}
                 </button>
+
+                <button type="button" class="btn btn-light-custom w-100 mb-2 shadow-sm border" @click="$refs.qrInput.click()">
+                  <i class="fas fa-upload me-2"></i> Tải ảnh QR có sẵn
+                </button>
+                <input type="file" ref="qrInput" class="d-none" accept="image/*" @change="handleScanFromFile">
+
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
+                
+                <div v-if="!isScanning" id="reader-hidden" style="display:none;"></div> 
+
                 <p v-if="isScanning" class="tiny text-muted mt-2">Đưa mã QR trên thẻ CCCD vào khung hình</p>
               </div>
 
@@ -149,7 +159,7 @@
                   </div>
 
                   <div class="row g-4">
-                    <!-- <div class="col-md-12">
+                    <div class="col-md-12">
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
@@ -157,7 +167,7 @@
                           :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
-                    </div> -->
+                    </div>
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Ngày cấp <span class="star">*</span></label>
@@ -185,24 +195,6 @@
                         :class="{ 'is-invalid': errors.diaChi }" placeholder="Địa chỉ ghi trên CCCD"></textarea>
                       <div class="error-text">{{ errors.diaChi }}</div>
                     </div>
-
-                    <!-- <div class="col-md-6">
-                      <label class="form-label-custom">Tên đăng nhập <span class="star">*</span></label>
-                      <input type="text" class="form-control custom-input bg-light" v-model="formData.tenDangNhap"
-                        :readonly="!!staffId" placeholder="username">
-                      <div class="error-text">{{ errors.tenDangNhap }}</div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <label class="form-label-custom">Mật khẩu <span v-if="!staffId" class="star">*</span></label>
-                      <div class="input-group-custom">
-                        <i class="fas fa-lock icon-input"></i>
-                        <input v-if="!staffId" type="password" class="form-control" v-model="formData.matKhauDangNhap"
-                          :class="{ 'is-invalid': errors.matKhauDangNhap }" placeholder="••••••••">
-                        <input v-else type="text" class="form-control bg-light" value="********" readonly>
-                      </div>
-                      <div class="error-text">{{ errors.matKhauDangNhap }}</div>
-                    </div> -->
                   </div>
                 </div>
 
@@ -226,6 +218,7 @@
     </div>
   </div>
 </template>
+
 <script setup>
 import { reactive, nextTick, ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -233,23 +226,25 @@ import staffService from '@/services/staffService';
 import dayjs from 'dayjs';
 import Swal from 'sweetalert2';
 import { useToast } from "vue-toastification";
-import { Html5QrcodeScanner } from "html5-qrcode";
+// [MỚI] Thêm import Html5Qrcode để quét file
+import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
 
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-// ID từ URL
 const staffId = ref(route.params.id || null);
 
 //////////////////////////////////////////////////////
-// SCANNER
+// SCANNER LOGIC (Đã cập nhật để fix lỗi scan file)
 //////////////////////////////////////////////////////
 
 const isScanning = ref(false);
 let html5QrcodeScanner = null;
-let scanned = false; // chống quét lặp
+let scanned = false;
+const qrInput = ref(null); // Ref cho input file QR
 
+// 1. Logic bật/tắt Camera
 const toggleScanner = () => {
   isScanning.value = !isScanning.value;
 
@@ -262,7 +257,9 @@ const toggleScanner = () => {
         qrbox: { width: 250, height: 250 }
       });
 
-      html5QrcodeScanner.render(onScanSuccess, () => { });
+      html5QrcodeScanner.render(onScanSuccess, (error) => {
+        // console.warn(error); // Bỏ qua lỗi quét liên tục
+      });
     });
   } else stopScanner();
 };
@@ -276,9 +273,45 @@ const stopScanner = () => {
   isScanning.value = false;
 };
 
+// 2. [MỚI] Logic quét từ File (Fix lỗi NotFoundException)
+const handleScanFromFile = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  event.target.value = ''; // Reset để chọn lại file cũ được
+
+  const loadingAlert = Swal.fire({
+    title: 'Đang phân tích ảnh...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  try {
+    // Dùng div 'reader' nếu đang hiện, hoặc 'reader-hidden' nếu đang ẩn
+    const elementId = isScanning.value ? "reader" : "reader-hidden";
+    const html5QrCode = new Html5Qrcode(elementId, false);
+
+    // scanFileV2 mạnh mẽ hơn scanFile cũ
+    const decodedText = await html5QrCode.scanFileV2(file);
+    
+    loadingAlert.close();
+    onScanSuccess(decodedText); // Tái sử dụng hàm thành công
+
+  } catch (err) {
+    loadingAlert.close();
+    console.error("Lỗi quét ảnh:", err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Không tìm thấy QR',
+      text: 'Vui lòng tải ảnh rõ nét, cắt gọn vào vùng mã QR và tránh bị lóa sáng.',
+    });
+  }
+};
+
 const onScanSuccess = (decodedText) => {
-  if (scanned) return;
-  scanned = true;
+  // Logic parse dữ liệu CCCD giữ nguyên
+  if (scanned && isScanning.value) return; // Chỉ chặn lặp khi dùng camera
+  if (isScanning.value) scanned = true;
 
   if (!decodedText.includes('|')) {
     toast.error("QR không phải CCCD hợp lệ");
@@ -306,13 +339,14 @@ const onScanSuccess = (decodedText) => {
 
   toast.success("Đã lấy thông tin CCCD!");
   checkDuplicate('soCccd');
-  stopScanner();
+  
+  if (isScanning.value) stopScanner();
 };
 
 onUnmounted(stopScanner);
 
 //////////////////////////////////////////////////////
-// DATA
+// DATA & LOGIC KHÁC (Giữ nguyên)
 //////////////////////////////////////////////////////
 
 const loading = ref(false);
@@ -339,27 +373,17 @@ const formData = reactive({
   trangThaiLamViec: 1
 });
 
-const originalData = ref({});
-
 const errors = reactive({
   idVaiTro: '', hoTenNhanVien: '', soCccd: '', ngayCapCccd: '',
   noiCapCccd: '', tenDangNhap: '', sdtNhanVien: '', email: '',
   ngaySinh: '', diaChi: '', matKhauDangNhap: ''
 });
 
-//////////////////////////////////////////////////////
-// CLEAR ERROR WHEN TYPING
-//////////////////////////////////////////////////////
-
 watch(() => ({ ...formData }), (val) => {
   Object.keys(val).forEach(key => {
     if (val[key] && errors[key]) errors[key] = '';
   });
 }, { deep: true });
-
-//////////////////////////////////////////////////////
-// FILE UPLOAD
-//////////////////////////////////////////////////////
 
 const triggerFileInput = () => fileInput.value.click();
 
@@ -371,27 +395,18 @@ const onFileChange = (e) => {
   }
 };
 
-//////////////////////////////////////////////////////
-// DUPLICATE CHECK
-//////////////////////////////////////////////////////
-
 const checkDuplicate = async (type) => {
   if (!formData[type]) {
-    errors[type] = ""; // Xóa thông báo nếu input trống
+    errors[type] = "";
     return;
   }
-
   try {
-    // Xóa lỗi cũ trước khi gọi API check mới
     errors[type] = "";
-
     const res = await staffService.checkDuplicate({
       type: type,
       value: formData[type],
-      excludeId: staffId.value || null // Đảm bảo không bị undefined
+      excludeId: staffId.value || null
     });
-
-    // Lưu ý: Kiểm tra response trả về từ BE (thường là res.data hoặc res.data.exists)
     if (res.data === true || res.data.exists === true) {
       errors[type] = `${type === 'email' ? 'Email' : 'Thông tin'} này đã tồn tại trong hệ thống`;
     }
@@ -400,14 +415,8 @@ const checkDuplicate = async (type) => {
   }
 };
 
-
-//////////////////////////////////////////////////////
-// VALIDATE
-//////////////////////////////////////////////////////
-
 const validateForm = async () => {
   let ok = true;
-  const today = dayjs();
   Object.keys(errors).forEach(k => errors[k] = '');
 
   const requiredFields = [
@@ -420,7 +429,6 @@ const validateForm = async () => {
     { key: 'email', msg: 'Vui lòng nhập địa chỉ email' },
     { key: 'ngaySinh', msg: 'Vui lòng chọn ngày tháng năm sinh' },
     { key: 'diaChi', msg: 'Vui lòng nhập địa chỉ thường trú' }
-    // Đã bỏ tenDangNhap khỏi đây vì bạn đang ẩn input trong template
   ];
 
   requiredFields.forEach(field => {
@@ -430,7 +438,6 @@ const validateForm = async () => {
     }
   });
 
-  // Chỉ check format nếu các trường bắt buộc đã có dữ liệu
   if (formData.soCccd && !/^\d{12}$/.test(formData.soCccd)) {
     errors.soCccd = 'Số CCCD phải gồm 12 chữ số';
     ok = false;
@@ -438,7 +445,6 @@ const validateForm = async () => {
 
   if (!ok) return false;
 
-  // Check trùng lặp từ Database
   try {
     const duplicateChecks = [
       { key: 'email', label: 'Email' },
@@ -479,66 +485,49 @@ const generateRandomPassword = (length = 8) => {
   return retVal;
 };
 
-
-//////////////////////////////////////////////////////
-// SAVE
-//////////////////////////////////////////////////////
-
 const handleSave = async () => {
- // 1. Kiểm tra Validate FE (đã bỏ yêu cầu nhập user/pass ở hàm validateForm)
   const isValid = await validateForm();
   if (!isValid) return;
 
   try {
     loading.value = true;
     
-    // 2. TỰ ĐỘNG SINH THÔNG TIN TÀI KHOẢN (Chỉ khi thêm mới)
     if (!staffId.value) {
-      // Nếu chưa có tên đăng nhập, dùng 'nv' + số điện thoại (ví dụ: nv0987654321)
       if (!formData.tenDangNhap) {
         formData.tenDangNhap = 'nv' + formData.sdtNhanVien;
       }
-      // TẠO MẬT KHẨU NGẪU NHIÊN Ở ĐÂY
       const randomPass = generateRandomPassword(10); 
       formData.matKhauDangNhap = randomPass;
     }
 
     const data = new FormData();
-
-    // 3. DANH SÁCH CÁC TRƯỜNG GỬI ĐI (Đảm bảo có ngayVaoLam và các trường BE yêu cầu)
     const fieldsToSend = [
       'hoTenNhanVien', 'idVaiTro', 'soCccd', 'ngayCapCccd', 
       'noiCapCccd', 'sdtNhanVien', 'email', 'diaChi', 
       'ngaySinh', 'gioiTinh', 'trangThaiLamViec', 'ngayVaoLam',
-      'tenDangNhap', 'matKhauDangNhap' // Gửi kèm thông tin vừa tự sinh
+      'tenDangNhap', 'matKhauDangNhap'
     ];
 
     fieldsToSend.forEach(key => {
       let value = formData[key];
-      
-      // Chuẩn hóa kiểu dữ liệu
       if (key === 'idVaiTro') value = Number(value);
       if (key === 'gioiTinh') value = (value === true || value === 'true');
-      
-      // Chỉ append nếu có giá trị (tránh gửi "null" string)
       if (value !== null && value !== undefined && value !== '') {
         data.append(key, value);
       }
     });
 
-    // File ảnh
     if (selectedFile.value) {
       data.append('hinhAnhFile', selectedFile.value);
     }
 
-    // 4. GỌI API
     if (staffId.value) {
       await staffService.update(staffId.value, data);
     } else {
       await staffService.create(data);
     }
 
-    toast.success("Thêm nhân viên thành công!");
+    toast.success("Thao tác thành công!");
     router.push('/admin/staff');
 
   } catch (e) {
@@ -550,12 +539,6 @@ const handleSave = async () => {
   }
 };
 
-
-
-//////////////////////////////////////////////////////
-// LOAD DATA
-//////////////////////////////////////////////////////
-
 onMounted(async () => {
   try {
     const roleRes = await staffService.getActiveRoles();
@@ -564,11 +547,9 @@ onMounted(async () => {
     if (staffId.value) {
       const res = await staffService.getDetail(staffId.value);
       Object.assign(formData, res.data);
-
       formData.idVaiTro = res.data.idVaiTro;
       formData.ngayCapCccd = dayjs(res.data.ngayCapCccd).format('YYYY-MM-DD');
       formData.ngaySinh = dayjs(res.data.ngaySinh).format('YYYY-MM-DD');
-
       if (res.data.anhDaiDien)
         imagePreview.value = `http://localhost:8080/uploads/images/${res.data.anhDaiDien}`;
     }
@@ -576,10 +557,7 @@ onMounted(async () => {
     toast.error("Không tải được dữ liệu");
   }
 });
-
-
 </script>
-
 
 <style scoped>
 /* Tổng thể trang */
@@ -828,30 +806,23 @@ hr.dashed {
 /* Khối Avatar chính */
 .avatar-upload {
   width: 300px;
-  /* Đã tăng từ 100px lên 200px */
   height: 300px;
-  /* Đã tăng từ 100px lên 200px */
   position: relative;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   background-color: #f5f5f5;
-  /* Xám cực nhẹ */
   display: flex;
   align-items: center;
   justify-content: center;
   border: 4px solid #ffffff;
-  /* Viền trắng dày cho sang */
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  /* Đổ bóng cho nổi khối */
   transition: all 0.3s ease-in-out;
 }
 
 .avatar-upload:hover {
   border-color: #3498db;
-  /* Đổi màu viền khi hover cho chuyên nghiệp */
   transform: scale(1.02);
-  /* Phóng to nhẹ khi di chuột vào */
 }
 
 .avatar-preview {
