@@ -265,6 +265,16 @@ public class PhieuGiamGiaService {
 
         PhieuGiamGia saved = repo.save(entity);
 
+        // ✅ Nếu chuyển từ HOẠT ĐỘNG → NGỪNG thì gửi mail HỦY
+        if (oldTrangThai != null
+                && oldTrangThai == 1
+                && saved.getTrangThai() == 0
+                && saved.getDoiTuong() == 1) {
+
+            sendMailWhenDeactivate(saved);
+        }
+
+
 // ✅ Nếu chuyển từ NGỪNG → HOẠT ĐỘNG thì gửi mail
         if (oldTrangThai != null
                 && oldTrangThai == 0
@@ -276,6 +286,26 @@ public class PhieuGiamGiaService {
 
         return saved;
 
+    }
+    @Async
+    protected void sendMailWhenDeactivate(PhieuGiamGia p) {
+
+        List<PhieuGiamGiaCaNhan> list =
+                phieuGiamGiaCaNhanRepo.findByPhieuGiamGiaId(p.getId());
+
+        if (list == null || list.isEmpty()) return;
+
+        for (PhieuGiamGiaCaNhan cn : list) {
+
+            if (cn.getKhachHang() != null
+                    && cn.getKhachHang().getEmail() != null) {
+
+                sendCancelEmail(
+                        cn.getKhachHang().getEmail(),
+                        p
+                );
+            }
+        }
     }
 
     @Async
