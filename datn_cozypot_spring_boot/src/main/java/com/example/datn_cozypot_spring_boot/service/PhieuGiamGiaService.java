@@ -109,11 +109,18 @@ public class PhieuGiamGiaService {
     // ============= THÊM MỚI & GỬI EMAIL =============
     @Transactional
     public PhieuGiamGia create(PhieuGiamGiaDTO dto) {
+
+        // ✅ CHECK TRÙNG CODE TRƯỚC
+        if (repo.existsByCodeGiamGia(dto.getCodeGiamGia())) {
+            throw new RuntimeException("Mã giảm giá đã tồn tại");
+        }
+
         PhieuGiamGia entity = new PhieuGiamGia();
         mapToEntity(dto, entity);
+
         PhieuGiamGia savedPhieu = repo.save(entity);
 
-        // Lưu bảng cá nhân nếu cần
+        // Lưu bảng cá nhân
         if (dto.getDoiTuong() == 1 && dto.getListIdKhachHang() != null) {
             for (Integer khId : dto.getListIdKhachHang()) {
                 KhachHang kh = khachHangRepo.findById(khId).orElse(null);
@@ -126,7 +133,7 @@ public class PhieuGiamGiaService {
             }
         }
 
-        // Gửi Email thông báo dựa trên danh sách Vue gửi xuống
+        // Gửi mail
         if (dto.getListEmails() != null && !dto.getListEmails().isEmpty()) {
             sendNotificationEmails(dto.getListEmails(), savedPhieu);
         }
@@ -213,13 +220,14 @@ public class PhieuGiamGiaService {
     public PhieuGiamGia update(Integer id, PhieuGiamGiaDTO dto) {
         PhieuGiamGia entity = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ID: " + id));
+        Integer oldTrangThai = entity.getTrangThai();
 
         if (repo.existsByCodeGiamGiaAndIdNot(dto.getCodeGiamGia(), id)) {
             throw new RuntimeException("Mã giảm giá đã tồn tại");
         }
 
         // --- LOGIC XỬ LÝ THAY ĐỔI KHÁCH HÀNG VÀ GỬI MAIL ---
-        if (dto.getDoiTuong() == 1) { // Chỉ xử lý nếu là Voucher cá nhân
+        if (dto.getDoiTuong() == 1 && dto.getListIdKhachHang() != null) {
             List<Integer> newIds = dto.getListIdKhachHang() != null ? dto.getListIdKhachHang() : new ArrayList<>();
 
             // 1. Lấy danh sách khách hàng hiện tại từ DB
@@ -254,8 +262,46 @@ public class PhieuGiamGiaService {
         }
 
         mapToEntity(dto, entity);
-        return repo.save(entity);
+
+        PhieuGiamGia saved = repo.save(entity);
+
+// ✅ Nếu chuyển từ NGỪNG → HOẠT ĐỘNG thì gửi mail
+        if (oldTrangThai != null
+                && oldTrangThai == 0
+                && saved.getTrangThai() == 1
+                && saved.getDoiTuong() == 1) {
+
+            sendMailWhenActive(saved);
+        }
+
+        return saved;
+
     }
+
+    @Async
+    protected void sendMailWhenActive(PhieuGiamGia p) {
+
+        // Lấy danh sách khách đã gán voucher
+        List<PhieuGiamGiaCaNhan> list =
+                phieuGiamGiaCaNhanRepo.findByPhieuGiamGiaId(p.getId());
+
+        if (list == null || list.isEmpty()) return;
+
+        List<String> emails = new ArrayList<>();
+
+        for (PhieuGiamGiaCaNhan cn : list) {
+            if (cn.getKhachHang() != null
+                    && cn.getKhachHang().getEmail() != null) {
+
+                emails.add(cn.getKhachHang().getEmail());
+            }
+        }
+
+        if (!emails.isEmpty()) {
+            sendNotificationEmails(emails, p);
+        }
+    }
+
 
     @Async
     protected void sendCancelEmail(String email, PhieuGiamGia p) {
