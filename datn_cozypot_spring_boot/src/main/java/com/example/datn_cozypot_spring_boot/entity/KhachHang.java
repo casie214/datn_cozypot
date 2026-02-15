@@ -58,25 +58,25 @@ public class KhachHang {
 
     // --- Bổ sung các trường mới ---
 
+    // Mở rộng lên 500 để lưu tên file ảnh thoải mái
     @Size(max = 500)
     @Column(name = "anh_dai_dien", length = 500)
     private String anhDaiDien;
-    // ----------------------------
-
-    @Size(max = 50)
-    @Column(name = "ten_dang_nhap", length = 50)
+    // Thêm vào bên trong class KhachHang
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+    // PHẢI SỬA: Nâng từ 50 lên 100 để khớp với SQL bạn vừa chạy
+    @Size(max = 100)
+    @Column(name = "ten_dang_nhap", length = 100)
     private String tenDangNhap;
 
     @Size(max = 255)
-    @Column(name = "mat_khau_dang_nhap")
+    @Column(name = "mat_khau_dang_nhap", length = 255)
     private String matKhauDangNhap;
 
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-
-
+    // Đảm bảo authProvider map đúng cột trong SQL
     @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", length = 50)
     private AuthProvider authProvider;
 
     @JsonBackReference
