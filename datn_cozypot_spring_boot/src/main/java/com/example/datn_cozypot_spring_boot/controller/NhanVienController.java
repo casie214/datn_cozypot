@@ -123,7 +123,29 @@ public class NhanVienController {
         }
     }
 
+    // 9. API Quét mã QR từ file (Hỗ trợ nhập liệu nhanh CCCD)
+    @PostMapping("/scan-qr")
+    public ResponseEntity<?> scanQRCode(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Vui lòng chọn ảnh mã QR!");
+        }
 
+        try {
+            // Gọi service xử lý giải mã (Chúng ta sẽ viết hàm này ở NhanVienService tiếp theo)
+            String qrContent = service.decodeQRCode(file);
+
+            if (qrContent == null) {
+                // Trả về lỗi 404 để Vue hiển thị thông báo "Không tìm thấy mã"
+                return ResponseEntity.status(404).body("Hệ thống không nhận diện được mã QR trong ảnh này.");
+            }
+
+            // Trả về chuỗi dữ liệu CCCD nếu thành công
+            return ResponseEntity.ok(qrContent);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi khi xử lý quét ảnh: " + e.getMessage());
+        }
+    }
 
 
 

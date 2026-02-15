@@ -72,8 +72,14 @@ const staffService = {
 
     return `${baseUrl}/nhan-vien/print-pdf?${queryString}`;
   },
-
-
+// 9. Quét mã QR từ file ảnh (Hỗ trợ nhập liệu CCCD)
+  scanQR: (file) => {
+    const data = new FormData();
+    data.append('file', file);
+    return axiosClient.post('/nhan-vien/scan-qr', data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 
 
 };

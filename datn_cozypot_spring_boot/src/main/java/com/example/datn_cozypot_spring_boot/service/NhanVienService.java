@@ -43,6 +43,14 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 
+import com.google.zxing.*;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.util.EnumMap;
+import java.util.Map;
+
 @Service
 public class NhanVienService {
 
@@ -141,7 +149,8 @@ public class NhanVienService {
     public NhanVienResponse update(Integer id, NhanVienRequest req, MultipartFile file) {
         // 1. Kiểm tra tồn tại và trùng lặp
         NhanVien nv = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
-        if (repo.existsByTenDangNhapAndIdNot(req.getTenDangNhap(), id)) throw new RuntimeException("Tên đăng nhập bị trùng");
+        if (repo.existsByTenDangNhapAndIdNot(req.getTenDangNhap(), id))
+            throw new RuntimeException("Tên đăng nhập bị trùng");
         if (repo.existsByEmailAndIdNot(req.getEmail(), id)) throw new RuntimeException("Email đã bị trùng");
 
         // 2. Map dữ liệu mới và xử lý ảnh (nếu có ảnh mới)
@@ -346,6 +355,25 @@ public class NhanVienService {
                 .setTextAlignment(alignment);
     }
 
+    public String decodeQRCode(MultipartFile file) {
+        try {
+            BufferedImage bufferedImage = ImageIO.read(file.getInputStream());
+            LuminanceSource source = new BufferedImageLuminanceSource(bufferedImage);
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
+            Map<DecodeHintType, Object> hints = new EnumMap<>(DecodeHintType.class);
+            hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+            hints.put(DecodeHintType.CHARACTER_SET, "UTF-8");
 
-}
+            // THÊM DÒNG NÀY: Chỉ định rõ định dạng là QR_CODE để máy đỡ tìm các loại mã vạch khác
+            hints.put(DecodeHintType.POSSIBLE_FORMATS, List.of(BarcodeFormat.QR_CODE));
+
+            Result result = new MultiFormatReader().decode(bitmap, hints);
+            return result.getText();
+        } catch (NotFoundException e) {
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }}
