@@ -777,18 +777,27 @@ const validateForm = () => {
     /* ========================
        2. Tên phiếu
     ======================== */
-    if (!formData.tenPhieuGiamGia) {
-        errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
-        isValid = false;
-    }
-    else if (formData.tenPhieuGiamGia.length < 5) {
-        errors.tenPhieuGiamGia = "Tên phải ≥ 5 ký tự";
-        isValid = false;
-    }
-    else if (formData.tenPhieuGiamGia.length > 200) {
-        errors.tenPhieuGiamGia = "Tên tối đa 200 ký tự";
-        isValid = false;
-    }
+    const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/;
+
+if (!formData.tenPhieuGiamGia) {
+    errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
+    isValid = false;
+}
+else if (!nameRegex.test(formData.tenPhieuGiamGia)) {
+    errors.tenPhieuGiamGia =
+        "Tên không được chứa ký tự đặc biệt";
+    isValid = false;
+}
+else if (formData.tenPhieuGiamGia.length < 5) {
+    errors.tenPhieuGiamGia =
+        "Tên phải ≥ 5 ký tự";
+    isValid = false;
+}
+else if (formData.tenPhieuGiamGia.length > 200) {
+    errors.tenPhieuGiamGia =
+        "Tên tối đa 200 ký tự";
+    isValid = false;
+}
 
     /* ========================
        3. Code
