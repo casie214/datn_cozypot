@@ -493,7 +493,7 @@ const validateForm = async () => {
     { key: 'email', msg: 'Email không được để trống' },
     { key: 'diaChi', msg: 'Địa chỉ thường trú không được để trống' },
     { key: 'ngayCapCccd', msg: 'Thiếu ngày cấp CCCD' },
-    { key: 'noiCapCccd', msg: 'Thiếu nơi cấp CCCD' }
+    { key: 'noiCapCccd', msg: 'Thiếu nơi cấp ' }
   ];
 
   requiredFields.forEach(f => {
