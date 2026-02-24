@@ -1,7 +1,10 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongItemRequest;
 import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongRequest;
 import com.example.datn_cozypot_spring_boot.dto.DinhLuong.DinhLuongResponse;
+import com.example.datn_cozypot_spring_boot.dto.DonVi.DonViRequest;
+import com.example.datn_cozypot_spring_boot.dto.DonVi.DonViResponse;
 import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnRequest;
 import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucRequest;
@@ -22,9 +25,6 @@ public interface MonAnService {
     DanhMucResponse updateDanhMuc(Integer id, DanhMucRequest request);
     void deleteDanhMuc(Integer id);
 
-    // --- Định Lượng ---
-    List<DinhLuongResponse> getAllDinhLuong();
-    List<DinhLuongResponse> getDinhLuongByDanhMuc(Integer idDanhMuc);
 
     // --- Món Ăn (DanhMucChiTiet) ---
     List<MonAnResponse> getAllMonAn();
@@ -54,5 +54,14 @@ public interface MonAnService {
 
     List<SetLauResponse> findSetLauTop(int metric);
 
-    DinhLuong createDinhLuong(DinhLuongRequest request);
+
+    List<DonViResponse> getAllDonVi();
+
+    DonViResponse createDonVi(DonViRequest request);
+
+    DonViResponse updateDonVi(Integer id, DonViRequest request);
+
+    List<DonViResponse> getDonViByCategoryId(Integer id);
+
+    void updateDinhLuongSingle(Integer id, DinhLuongItemRequest req);
 }
