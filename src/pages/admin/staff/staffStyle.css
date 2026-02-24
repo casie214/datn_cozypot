@@ -234,3 +234,90 @@
 /* Trạng thái chữ thuần */
 .text-status-active { color: #27ae60 !important; font-weight: 600; }
 .text-status-locked { color: #95a5a6 !important; }
+
+/* Chỉ ép cỡ chữ cho nội dung bên trong THÂN bảng (tbody) về 15px */
+.custom-table tbody td,
+.custom-table tbody td .fw-bold,
+.custom-table tbody td .small,
+.custom-table tbody td span,
+.custom-table tbody td div,
+.custom-table tbody td i {
+    font-size: 15px !important;
+}
+
+/* Điều chỉnh khoảng cách dòng để bảng trông thoáng đãng hơn */
+.custom-table tbody td {
+    padding: 10px 8px !important; /* Giảm nhẹ padding so với 16px để bảng gọn hơn */
+    vertical-align: middle;
+}
+
+/* Đảm bảo các thông tin phụ (Email, SĐT) không bị quá nhỏ */
+.custom-table tbody .contact-box .small,
+.custom-table tbody .text-muted.small {
+    font-size: 15px !important; /* Cho phép các thông tin phụ nhỏ hơn 1 chút (14px) để phân cấp thông tin tốt hơn */
+}
+
+/* 1. Chỉ ép cỡ chữ và màu sắc cho văn bản trong thân bảng */
+.custom-table tbody td,
+.custom-table tbody td div,
+.custom-table tbody td span {
+    font-size: 15px !important;
+    font-weight: 400 !important; /* Chữ bình thường, không đậm */
+    color: #333 !important;      /* Màu đen xám đồng nhất */
+    background: transparent !important; /* Loại bỏ màu nền của badge */
+    border: none !important;     /* Loại bỏ viền của badge */
+}
+
+/* 2. Giữ lại và hiển thị icon */
+.custom-table tbody i {
+    font-size: 15px !important;
+    font-style: normal !important; /* Reset font-style để icon FontAwesome hiện lên */
+    display: inline-block !important; /* Đảm bảo icon không bị ẩn */
+    color: #555 !important;      /* Màu icon tối để cùng tông với chữ */
+    margin-right: 5px;           /* Khoảng cách giữa icon và chữ */
+}
+
+/* 3. Xử lý riêng cho các nút thao tác (Sửa/Switch) để không bị mất hình dạng */
+.custom-table tbody .btn-link i {
+    color: #444 !important;      /* Màu riêng cho nút pen (sửa) */
+}
+
+.custom-table tbody .form-switch .form-check-input {
+    background-color: #ccc;      /* Màu nền switch khi tắt */
+    border: 1px solid #bbb;
+}
+
+/* 4. Căn chỉnh hàng lối cho đẹp */
+.custom-table tbody td {
+    padding: 12px 8px !important;
+    vertical-align: middle;
+}
+
+/* 1. Ép cỡ chữ 15px cho các ô Input và Select (bao gồm cả placeholder) */
+.custom-input, 
+.custom-input option,
+.custom-input::placeholder {
+    font-size: 15px !important;
+    font-weight: normal !important;
+    color: #333 !important;
+}
+
+/* 2. Ép cỡ chữ 15px cho các nhãn tiêu đề (Từ khóa, Trạng thái) */
+.filter-label {
+    font-size: 15px !important;
+    font-weight: 500; /* Nhãn có thể để hơi đậm một chút để phân biệt, hoặc đổi thành normal nếu bạn muốn mảnh hẳn */
+    color: #444;
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* 3. Đảm bảo chữ trên nút bấm "Tìm kiếm" cũng đồng bộ */
+.btn-red-dark {
+    font-size: 15px !important;
+    font-weight: normal !important;
+}
+
+/* 4. Tăng nhẹ chiều cao ô nhập cho cân đối với cỡ chữ 15px */
+.custom-input {
+    height: 42px !important; 
+}
