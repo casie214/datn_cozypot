@@ -33,7 +33,7 @@ const {
       />
 
       <div class="modal-header">
-        <h2 style="color: white !important;">Thêm Loại Set Lẩu Mới</h2>
+        <h2>Thêm Loại Set Lẩu Mới</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
@@ -49,7 +49,7 @@ const {
                 <textarea v-model="formData.moTa" rows="3" placeholder="Nhập mô tả chi tiết..."></textarea>
             </div>
 
-            <div class="form-group full-width">
+            <!-- <div class="form-group full-width">
                 <label>Trạng thái</label>
                 <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                     <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
@@ -59,7 +59,7 @@ const {
                         {{ formData.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
                     </span>
                 </div>
-            </div>
+            </div> -->
         </div>
       </div>
 
