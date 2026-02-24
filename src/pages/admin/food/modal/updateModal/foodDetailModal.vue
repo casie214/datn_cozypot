@@ -385,6 +385,7 @@ const goBack = () => router.back();
                                         :disabled="isViewMode || !formData.idDanhMuc" 
                                         :searchable="true" 
                                         :create-option="false"
+                                        noResultsText="Không tìm thấy kết quả nào"
                                         placeholder="Chọn đơn vị..." 
                                         noOptionsText="Không có dữ liệu" 
                                     />
@@ -398,6 +399,7 @@ const goBack = () => router.back();
                                         :disabled="isViewMode || !formData.idDanhMuc" 
                                         :searchable="true" 
                                         :create-option="false"
+                                        noResultsText="Không tìm thấy kết quả nào"
                                         placeholder="Chọn kích cỡ..." 
                                         noOptionsText="Không có dữ liệu" 
                                     />
@@ -482,5 +484,36 @@ textarea:disabled {
 }
 :deep(.is-disabled .multiselect-single-label) {
     color: #666;
+}
+
+:deep(.multiselect-tag) {
+    background: #8B0000 !important;
+}
+
+:deep(.multiselect.is-active) {
+  /* Đổi viền thành màu đỏ rượu */
+  border-color: #8B0000 !important;
+  
+  /* Tạo hiệu ứng phát sáng (glow) viền ngoài màu đỏ trong suốt 20% */
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  
+  /* Xóa viền xanh dương mặc định của trình duyệt */
+  outline: none !important;
+}
+
+/* Kèm thêm class custom của bạn cho chắc chắn (nếu cần) */
+.custom-multiselect-theme.is-active {
+  border-color: #8B0000 !important;
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  outline: none !important;
+}
+:deep(.multiselect-option.is-selected) {
+    background: #8B0000 !important;
+    color: #ffffff !important;
+}
+
+/* Hiệu ứng khi di chuột vào option đang được chọn */
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #a00000 !important;
 }
 </style>
