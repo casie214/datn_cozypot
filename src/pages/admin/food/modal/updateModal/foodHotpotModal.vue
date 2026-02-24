@@ -254,7 +254,7 @@ const hideTooltip = () => {
                             <img :src="getImg(item.hinhAnh)" alt="" class="selected-thumb" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover; margin-right: 15px;">
 
                             <div class="selected-info" style="flex: 1;">
-                                <div class="selected-name fw-bold text-primary" style="cursor: pointer;" @click="goToVariantDetail(item)">
+                                <div class="selected-name fw-bold" style="cursor: pointer;" @click="goToVariantDetail(item)">
                                     {{ item.tenMon }}
                                 </div>
                                 <div class="selected-unit text-muted" style="font-size: 0.85rem;">{{ item.dinhLuong || '---' }}</div>
