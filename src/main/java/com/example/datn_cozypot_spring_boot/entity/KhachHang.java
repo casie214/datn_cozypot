@@ -6,13 +6,13 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,28 +58,25 @@ public class KhachHang {
 
     // --- Bổ sung các trường mới ---
 
+    // Mở rộng lên 500 để lưu tên file ảnh thoải mái
     @Size(max = 500)
     @Column(name = "anh_dai_dien", length = 500)
     private String anhDaiDien;
-    // ----------------------------
-
-    @Size(max = 50)
-    @Column(name = "ten_dang_nhap", length = 50)
+    // Thêm vào bên trong class KhachHang
+    @Column(name = "trang_thai")
+    private Integer trangThai;
+    // PHẢI SỬA: Nâng từ 50 lên 100 để khớp với SQL bạn vừa chạy
+    @Size(max = 100)
+    @Column(name = "ten_dang_nhap", length = 100)
     private String tenDangNhap;
 
     @Size(max = 255)
-    @Column(name = "mat_khau_dang_nhap")
+    @Column(name = "mat_khau_dang_nhap", length = 255)
     private String matKhauDangNhap;
 
-    @Column(name = "trang_thai")
-    private Integer trangThai;
-
-    @Size(max = 255)
-    @Nationalized
-    @Column(name = "dia_chi")
-    private String diaChi;
-
+    // Đảm bảo authProvider map đúng cột trong SQL
     @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", length = 50)
     private AuthProvider authProvider;
 
     @JsonBackReference
@@ -104,4 +101,8 @@ public class KhachHang {
         }
     }
 
+    // Sửa lại dòng khai báo trong KhachHang.java
+    @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<DiaChiKhachHang> danhSachDiaChi = new ArrayList<>(); // Thêm khởi tạo này
 }

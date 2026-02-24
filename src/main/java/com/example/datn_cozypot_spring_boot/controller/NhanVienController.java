@@ -5,14 +5,16 @@ import com.example.datn_cozypot_spring_boot.service.NhanVienService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
-
+import org.springframework.core.io.Resource;
 @RestController
 @RequestMapping("/api/nhan-vien")
 @CrossOrigin(origins = "http://localhost:5173") // Đảm bảo đúng port của Vue
@@ -81,18 +83,73 @@ public class NhanVienController {
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
 
-    // 7. Xuất file Excel
+    // 7. Xuất file Excel - CẬP NHẬT ĐỂ TÍCH CÁI NÀO TẢI CÁI ĐÓ
     @GetMapping("/export")
-    public ResponseEntity<org.springframework.core.io.Resource> exportExcel(
+    public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
+            @RequestParam(required = false) List<Integer> listId // Nhận mảng ID từ Frontend
+    ) {
         try {
-            // Gọi service để tạo file Excel (trả về InputStreamResource)
-            return service.exportExcel(keyword, trangThai, tuNgay);
+            // Truyền thêm listId vào service
+            return service.exportExcel(keyword, trangThai, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
+    // 8. Xuất file PDF và hiển thị trên Tab mới
+    @GetMapping("/print-pdf")
+    public ResponseEntity<byte[]> printPdf(@RequestParam List<Integer> ids) {
+        try {
+            // Gọi hàm generatePdf từ service (Hàm đã được dọn dẹp hết lỗi đỏ)
+            byte[] pdfContent = service.generatePdf(ids);
+
+            HttpHeaders headers = new HttpHeaders();
+            // Thiết lập kiểu file là PDF
+            headers.setContentType(MediaType.APPLICATION_PDF);
+
+            // "inline" giúp trình duyệt tự động mở Tab xem trước thay vì tải về máy
+            headers.add("Content-Disposition", "inline; filename=Danh_Sach_Nhan_Vien.pdf");
+
+            // Trả về dữ liệu PDF dưới dạng mảng byte
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfContent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 9. API Quét mã QR từ file (Hỗ trợ nhập liệu nhanh CCCD)
+    @PostMapping("/scan-qr")
+    public ResponseEntity<?> scanQRCode(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Vui lòng chọn ảnh mã QR!");
+        }
+
+        try {
+            // Gọi service xử lý giải mã (Chúng ta sẽ viết hàm này ở NhanVienService tiếp theo)
+            String qrContent = service.decodeQRCode(file);
+
+            if (qrContent == null) {
+                // Trả về lỗi 404 để Vue hiển thị thông báo "Không tìm thấy mã"
+                return ResponseEntity.status(404).body("Hệ thống không nhận diện được mã QR trong ảnh này.");
+            }
+
+            // Trả về chuỗi dữ liệu CCCD nếu thành công
+            return ResponseEntity.ok(qrContent);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi khi xử lý quét ảnh: " + e.getMessage());
+        }
+    }
+
+
+
+
+
+
 }

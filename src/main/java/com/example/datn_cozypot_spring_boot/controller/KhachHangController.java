@@ -14,7 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-
+import java.io.IOException;
+import org.springframework.core.io.Resource;
 @RestController
 @RequestMapping("/api/khach-hang")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -56,16 +57,29 @@ public class KhachHangController {
         }
     }
 
-    // 4. Cập nhật khách hàng
     @PutMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
             @PathVariable Integer id,
             @Valid @ModelAttribute KhachHangRequest request,
             @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
     ) {
+        // --- DEBUG TẠI ĐÂY ---
+        System.out.println("========== DEBUG CONTROLLER ==========");
+        System.out.println("ID Khách hàng cập nhật: " + id);
+        if (request.getDanhSachDiaChi() == null) {
+            System.out.println("CẢNH BÁO: danhSachDiaChi gửi lên bị NULL!");
+        } else {
+            System.out.println("Số lượng địa chỉ nhận được: " + request.getDanhSachDiaChi().size());
+            request.getDanhSachDiaChi().forEach(dc ->
+                    System.out.println(" - Địa chỉ: " + dc.getThongTinDiaChi() + " | ID: " + dc.getId())
+            );
+        }
+        // ---------------------
+
         try {
             return ResponseEntity.ok(service.update(id, request, file));
         } catch (Exception e) {
+            e.printStackTrace(); // In lỗi ra console để xem nguyên nhân cụ thể
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -91,26 +105,19 @@ public class KhachHangController {
     }
     // 7. Xuất file Excel khách hàng
     @GetMapping("/export-excel")
-    public ResponseEntity<byte[]> exportExcel(
+    public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
+            @RequestParam(required = false) List<Integer> listId) {
         try {
-            // Gọi service để lấy mảng byte của file Excel
-            byte[] data = service.exportExcel(keyword, trangThai, tuNgay);
-
-            // Tạo tên file kèm thời gian hiện tại cho chuyên nghiệp
-            String fileName = "DS_KhachHang_" + LocalDate.now() + ".xlsx";
-
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=" + fileName)
-                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                    .body(data);
+            // Gọi service và truyền đủ 4 tham số thực tế
+            return service.exportExcel(keyword, trangThai, tuNgay, listId);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
-
     @GetMapping("/thong-ke")
     public ResponseEntity<List<KhachHangThongKeResponse>> thongKeKhachHang(
             @RequestParam int thang,

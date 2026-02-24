@@ -9,9 +9,18 @@ public class AuthResponse {
     private String refreshToken;
     private String role;
 
-    public AuthResponse(String accessToken, String refreshToken, String role) {
+    private Integer id;
+    private String username;
+    private String hoTen;
+    private String sdt;
+
+    public AuthResponse(String accessToken, String refreshToken, String role, Integer id, String username, String hoTen, String sdt) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.role = role;
+        this.id = id;
+        this.username = username;
+        this.hoTen = hoTen;
+        this.sdt = sdt;
     }
 }

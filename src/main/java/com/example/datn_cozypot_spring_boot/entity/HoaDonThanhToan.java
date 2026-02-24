@@ -44,7 +44,7 @@ public class HoaDonThanhToan {
     private PhieuDatBan idPhieuDatBan;
 
     @Size(max = 50)
-    @Column(name = "ma_hoa_don", length = 50)
+    @Column(name = "ma_hoa_don", length = 50, insertable = false, updatable = false)
     private String maHoaDon;
 
     @Column(name = "thoi_gian_tao")

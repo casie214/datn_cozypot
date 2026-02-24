@@ -24,8 +24,8 @@ public class ChiTietSetLau {
     private SetLau setLau;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_chi_tiet_mon_an", nullable = false)
-    private ChiTietMonAn chiTietMonAn;
+    @JoinColumn(name = "id_danh_muc_chi_tiet")
+    private DanhMucChiTiet monAn;
 
     @Column(name = "so_luong")
     private Integer soLuong;
