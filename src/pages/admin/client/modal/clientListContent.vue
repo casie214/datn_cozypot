@@ -167,6 +167,7 @@ import CommonPagination from '@/components/commonPagination.vue';
 import clientService from '@/services/clientService';
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
+import '../clientStyle.css';
 
 
 
