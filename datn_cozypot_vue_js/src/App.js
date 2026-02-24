@@ -110,45 +110,7 @@ const routes = [
             requiredRole: 'ADMIN'
         }
     },
-    {
-        path: '/manage/food/add',
-        name: 'addFood',
-        component: () =>
-            import('./pages/admin/food/modal/addModal/FoodAddModal.vue'),
-        meta: {
-            parentMenu: 'foodManager',
-            activeTab: 'thucdon',
-            requiresAuth: true, 
-            requiredRole: 'ADMIN'
-        }
-    },
-    {
-        path: '/manage/food/update/:id',
-        name: 'updateFood',
-        component: () =>
-            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
-        meta: {
 
-                title: 'Cập nhật Món Ăn',
-                parentMenu: 'foodManager',
-                activeTab: 'thucdon',
-                requiresAuth: true, 
-                requiredRole: 'ADMIN'
-            }
-    },
-    {
-        path: '/manage/food/view/:id',
-        name: 'viewFood',
-        component: () =>
-            import('./pages/admin/food/modal/updateModal/foodModal.vue'),
-        meta: {
-            title: 'Chi tiết Món Ăn',
-            parentMenu: 'foodManager',
-            activeTab: 'thucdon',
-            requiresAuth: true, 
-            requiredRole: 'ADMIN'
-        }
-    },
     {
         path: '/manage/food/detail/update/:id',
         name: 'updateFoodDetail',

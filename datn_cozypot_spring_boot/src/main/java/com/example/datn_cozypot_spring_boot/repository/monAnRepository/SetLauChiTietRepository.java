@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.repository.monAnRepository;
+package com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
@@ -14,10 +14,10 @@ public interface SetLauChiTietRepository extends JpaRepository<ChiTietSetLau, In
     void deleteBySetLau_Id(Integer idSetLau);
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse(" +
-            " ct.chiTietMonAn.tenChiTietMonAn, " +
-            " ct.chiTietMonAn.donVi, " +
+            " ct.monAn.tenMon, " +
+            " ct.monAn.dinhLuong.tenHienThi, " +
             " ct.soLuong) " +
-            "FROM ChiTietSetLau ct " +
-            "WHERE ct.setLau.id = :idSetLau")
+            " FROM ChiTietSetLau ct " +
+            " WHERE ct.setLau.id = :idSetLau")
     List<ChiTietSetLauResponse> findChiTietBySetId(@Param("idSetLau") Integer idSetLau);
 }

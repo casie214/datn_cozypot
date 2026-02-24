@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.repository.monAnRepository;
+package com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository;
 
 import com.example.datn_cozypot_spring_boot.entity.SetLau;
 import org.springframework.data.jpa.repository.JpaRepository;

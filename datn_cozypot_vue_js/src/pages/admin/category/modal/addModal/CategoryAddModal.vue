@@ -33,7 +33,7 @@ const {
       />
 
       <div class="modal-header">
-        <h2>Thêm Danh Mục Mới</h2>
+        <h2 style="color: white !important;">Thêm Danh Mục Mới</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 

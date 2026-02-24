@@ -31,7 +31,7 @@ public class AuthService {
         user.setTenDangNhap(request.getTenDangNhap());
         user.setEmail(request.getEmail());
         user.setTenKhachHang(request.getTenKhachHang());
-        user.setDiaChi(request.getDiaChi());
+//        user.setDiaChi(request.getDiaChi());
         user.setSoDienThoai(request.getSoDienThoai());
         user.setGioiTinh(request.getGioiTinh());
         user.setNgaySinh(request.getNgaySinh());

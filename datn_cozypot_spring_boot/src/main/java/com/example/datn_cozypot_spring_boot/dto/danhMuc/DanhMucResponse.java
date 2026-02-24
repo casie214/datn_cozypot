@@ -24,5 +24,6 @@ public class DanhMucResponse {
     private String nguoiSua;
 
     private Integer trangThai;
+    private Integer soLuongMon;
 }
 

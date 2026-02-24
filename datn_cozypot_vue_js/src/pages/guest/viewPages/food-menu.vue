@@ -15,76 +15,90 @@ const isCartOpen = ref(false);   // Trạng thái Modal giỏ hàng
 const isCartHover = ref(false);  // Trạng thái Hover xem trước
 
 // --- 3. STATE MODAL CHI TIẾT MÓN (BIẾN THỂ) ---
-const variantsMap = ref({});      // Map lưu: { foodId: [detail1, detail2...] }
+const variantsMap = ref({});      // Map lưu: { groupKey: [variant1, variant2...] }
 const isDetailModalOpen = ref(false);
 const selectedProduct = ref(null);    // Món đang click chọn
 const currentVariants = ref([]);      // Danh sách biến thể của món đang chọn
 const selectedVariantId = ref(null);  // ID biến thể đang chọn
 const modalQuantity = ref(1);         // Số lượng trong modal
 
+// --- HELPER HÌNH ẢNH ---
+const getImg = (url) => {
+    if (!url) return 'https://placehold.co/300x200?text=No+Image';
+    if (url.startsWith('http') || url.startsWith('data:image')) return url;
+    return `http://localhost:8080/uploads/${url}`;
+};
+
 // ==========================================
-// A. PHẦN XỬ LÝ DỮ LIỆU (FETCH & MAP)
+// A. PHẦN XỬ LÝ DỮ LIỆU (FETCH, FLAT TO GROUP)
 // ==========================================
 const fetchData = async () => {
     isLoading.value = true;
     try {
-        const [resDanhMuc, resMonAn, resSetLau, resChiTiet, resLoaiSet, resFoodDetail] = await Promise.all([
+        // GỌI 4 API MỚI NHẤT TỪ BACKEND
+        const [resDanhMuc, resMonAn, resSetLau, resLoaiSet] = await Promise.all([
             axiosClient.get('/guest/category/active'),
             axiosClient.get('/guest/food/active'),
             axiosClient.get('/guest/hotpot/active'),
-            axiosClient.get('/guest/category-detail/active'),
-            axiosClient.get('/guest/hotpot-type/active'),
-            axiosClient.get('/guest/food-detail/active')
+            axiosClient.get('/guest/hotpot-type/active')
         ]);
 
         const listDanhMuc = resDanhMuc.data || [];
         const listMonAn = resMonAn.data || [];
         const listSetLau = resSetLau.data || [];
-        const listChiTiet = resChiTiet.data || [];
         const listLoaiSet = resLoaiSet.data || [];
-        const listFoodDetail = resFoodDetail.data || [];
 
-        // 1. Map Danh mục con -> Danh mục cha
-        const subToRootMap = {};
-        const subNameMap = {};
-        const rootToSubsList = {};
-
-        listChiTiet.forEach(sub => {
-            subToRootMap[sub.id] = sub.idDanhMuc;
-            subNameMap[sub.id] = sub.tenDanhMucChiTiet;
-            if (!rootToSubsList[sub.idDanhMuc]) {
-                rootToSubsList[sub.idDanhMuc] = [];
-            }
-            rootToSubsList[sub.idDanhMuc].push({
-                id: sub.id,
-                name: sub.tenDanhMucChiTiet
-            });
-        });
-
-        // 2. Gom nhóm Food Detail (Biến thể) theo Food ID
+        // 1. THUẬT TOÁN GOM NHÓM MÓN ĂN LẺ
+        // Vì DB giờ là Flat (Coca - 330ml, Coca - 500ml là 2 dòng riêng), 
+        // ta sẽ gom chúng lại thành 1 Group (Coca) dựa vào Tên và ID Danh Mục
+        const groupedFoods = {};
         const vMap = {};
-        listFoodDetail.forEach(detail => {
-            const foodId = detail.idMonAnDiKem;
-            if (!vMap[foodId]) vMap[foodId] = [];
 
-            vMap[foodId].push({
-                id: detail.id,
-                name: detail.tenChiTietMonAn || 'Tiêu chuẩn',
-                price: detail.giaBan,
-                unit: detail.donVi,
-                image: detail.hinhAnh
+        listMonAn.forEach(m => {
+            let baseName = m.tenMon || "Món chưa đặt tên";
+            let variantName = m.tenDinhLuong || m.giaTriDinhLuong || 'Tiêu chuẩn';
+
+            // Cắt tên nếu có dấu " - " (Ví dụ: "Coca Cola - 330ml" -> Base: "Coca Cola", Variant: "330ml")
+            if (m.tenMon && m.tenMon.includes(' - ')) {
+                const parts = m.tenMon.split(' - ');
+                variantName = parts.pop().trim(); // Lấy khúc cuối làm Size
+                baseName = parts.join(' - ').trim(); // Phần còn lại là tên gốc
+            }
+
+            const catId = m.idDanhMuc || m.danhMuc?.id;
+            const groupKey = `cat_${catId}_name_${baseName}`; // Tạo ID Nhóm ảo
+
+            if (!groupedFoods[groupKey]) {
+                groupedFoods[groupKey] = {
+                    groupKey: groupKey,
+                    name: baseName,
+                    image: m.hinhAnh,
+                    desc: m.moTa,
+                    idDanhMuc: catId
+                };
+                vMap[groupKey] = [];
+            }
+
+            // Đẩy món này vào mảng biến thể của Nhóm
+            vMap[groupKey].push({
+                id: m.id, // ID thật trong Database
+                name: variantName,
+                price: m.giaBan || 0,
+                originalName: m.tenMon, // Tên thật gửi xuống Backend lúc tính tiền
+                image: m.hinhAnh
             });
         });
-        // Sắp xếp biến thể theo giá tăng dần
-        for (const key in vMap) {
+
+        // Sắp xếp các biến thể (size) theo giá tăng dần
+        Object.keys(vMap).forEach(key => {
             vMap[key].sort((a, b) => a.price - b.price);
-        }
+        });
         variantsMap.value = vMap;
 
-        // 3. Xử lý Menu hiển thị
+        // 2. XÂY DỰNG MENU HIỂN THỊ
         const processedMenu = [];
 
-        // --- Nhóm Set Lẩu ---
+        // --- NHÓM SET LẨU (Giữ nguyên) ---
         if (listSetLau.length > 0) {
             const hotpotFilters = [
                 { id: 'all', name: 'Tất cả' },
@@ -96,63 +110,53 @@ const fetchData = async () => {
                 activeFilter: 'all',
                 filters: hotpotFilters,
                 items: listSetLau.map(item => ({
-                    id: item.id,
+                    id: item.id, // ID thật của Set Lẩu
                     name: item.tenSetLau,
                     price: item.giaBan,
-                    image: item.hinhAnh || 'https://placehold.co/400x300?text=Hotpot',
-                    desc: item.moTa || 'Set lẩu đầy đặn.',
+                    image: getImg(item.hinhAnh),
+                    desc: item.moTa || 'Set lẩu đầy đặn, thích hợp cho nhiều người.',
                     type: 'SET',
-                    groupId: item.idLoaiSet,
+                    groupId: item.idLoaiSet || item.loaiSet?.id,
                     isRange: false,
                     hasVariants: false
                 }))
             });
         }
 
-        // --- Nhóm Món Ăn ---
+        // --- NHÓM MÓN LẺ (Đã gom nhóm) ---
         listDanhMuc.forEach(dm => {
-            const monsInCat = listMonAn.filter(m => {
-                const rootId = subToRootMap[m.idDanhMucChiTiet];
-                return String(rootId) === String(dm.id);
-            });
+            const groupsInCat = Object.values(groupedFoods).filter(g => String(g.idDanhMuc) === String(dm.id));
 
-            if (monsInCat.length > 0) {
-                const subFilters = rootToSubsList[dm.id]
-                    ? [{ id: 'all', name: 'Tất cả' }, ...rootToSubsList[dm.id]]
-                    : [];
-
+            if (groupsInCat.length > 0) {
                 processedMenu.push({
                     categoryId: `cat-${dm.id}`,
                     categoryName: dm.tenDanhMuc.toUpperCase(),
                     activeFilter: 'all',
-                    filters: subFilters,
-                    items: monsInCat.map(item => {
-                        const variants = vMap[item.id] || [];
-                        let displayPrice = item.giaBan;
+                    filters: [], // Không còn danh mục con nên bỏ filter
+                    items: groupsInCat.map(group => {
+                        const variants = vMap[group.groupKey] || [];
+                        let displayPrice = variants.length > 0 ? variants[0].price : 0;
                         let isRange = false;
 
-                        // Tính khoảng giá nếu có biến thể
-                        if (variants.length > 0) {
+                        // Nếu có nhiều size khác giá, hiển thị khoảng giá "Min - Max"
+                        if (variants.length > 1) {
                             const minP = variants[0].price;
                             const maxP = variants[variants.length - 1].price;
                             if (minP !== maxP) {
                                 isRange = true;
                                 displayPrice = { min: minP, max: maxP };
-                            } else {
-                                displayPrice = minP;
                             }
                         }
 
                         return {
-                            id: item.id,
-                            name: item.tenMonAn,
+                            id: group.groupKey, // Lưu ID Ảo để map với variantsMap lúc click
+                            name: group.name,
                             price: displayPrice,
-                            image: item.hinhAnh || 'https://placehold.co/300x200?text=Food',
-                            desc: item.moTa,
+                            image: getImg(group.image),
+                            desc: group.desc,
                             type: 'MON',
                             isRange: isRange,
-                            subCategoryName: subNameMap[item.idDanhMucChiTiet],
-                            groupId: item.idDanhMucChiTiet
+                            groupId: group.idDanhMuc
                         };
                     })
                 });
@@ -161,12 +165,12 @@ const fetchData = async () => {
 
         menuData.value = processedMenu;
 
-        // Tạo Nav Categories
+        // Tạo Nav Scroll Spy bên trái
         categories.value = processedMenu.map(s => ({ id: s.categoryId, name: s.categoryName }));
         if (categories.value.length) activeCategory.value = categories.value[0].id;
 
     } catch (error) {
-        console.error("Lỗi tải dữ liệu:", error);
+        console.error("Lỗi tải dữ liệu Menu:", error);
     } finally {
         isLoading.value = false;
     }
@@ -176,11 +180,10 @@ const fetchData = async () => {
 // B. LOGIC CHỌN MÓN & MODAL SẢN PHẨM
 // ==========================================
 const handleItemClick = (item) => {
-    // 1. Set Lẩu -> Thêm ngay
+    // 1. Bấm vào SET LẨU -> Bỏ thẳng giỏ hàng (Không có Modal)
     if (item.type === 'SET') {
         pushToCart({
-            id: item.id,
-            detailId: null,
+            id: item.id, // ID Set Lẩu thật
             name: item.name,
             price: item.price,
             image: item.image,
@@ -190,23 +193,22 @@ const handleItemClick = (item) => {
         return;
     }
 
-    // 2. Món ăn -> Kiểm tra biến thể
+    // 2. Bấm vào MÓN LẺ -> Lấy mảng biến thể ra
     const variants = variantsMap.value[item.id] || [];
 
     if (variants.length <= 1) {
-        // Nếu chỉ có 1 biến thể (hoặc ko có - fallback) -> Thêm ngay
-        const variant = variants.length === 1 ? variants[0] : { id: null, price: item.price };
+        // Nếu món lẻ chỉ có 1 kích cỡ (hoặc ko có) -> Bỏ thẳng vào giỏ hàng
+        const variant = variants.length === 1 ? variants[0] : { id: item.id, price: item.price, originalName: item.name };
         pushToCart({
-            id: item.id,
-            detailId: variant.id,
-            name: item.name + (variants.length === 1 && variant.name !== 'Tiêu chuẩn' ? ` (${variant.name})` : ''),
+            id: variant.id, // ID Món ăn thật
+            name: variant.originalName || item.name,
             price: variant.price,
             image: item.image,
             type: 'MON',
             quantity: 1
         });
     } else {
-        // Có nhiều biến thể -> Mở Modal
+        // Món có nhiều Size (VD: Size M, Size L) -> Bật Modal
         openProductModal(item, variants);
     }
 };
@@ -214,7 +216,7 @@ const handleItemClick = (item) => {
 const openProductModal = (item, variants) => {
     selectedProduct.value = item;
     currentVariants.value = variants;
-    selectedVariantId.value = variants[0].id; // Chọn cái đầu tiên (rẻ nhất)
+    selectedVariantId.value = variants[0].id; // Mặc định chọn Size rẻ nhất
     modalQuantity.value = 1;
     isDetailModalOpen.value = true;
 };
@@ -230,12 +232,11 @@ const confirmAddToCart = () => {
     const variant = currentVariants.value.find(v => v.id === selectedVariantId.value);
 
     pushToCart({
-        id: selectedProduct.value.id,
-        detailId: variant.id,
-        name: selectedProduct.value.name + ` (${variant.name})`,
+        id: variant.id, // ID Món ăn thật tương ứng Size
+        name: variant.originalName, // VD: "Coca Cola - 330ml"
         price: variant.price,
-        image: selectedProduct.value.image,
-        type: selectedProduct.value.type,
+        image: variant.image ? getImg(variant.image) : selectedProduct.value.image,
+        type: 'MON',
         quantity: modalQuantity.value
     });
     closeDetailModal();
@@ -245,11 +246,8 @@ const confirmAddToCart = () => {
 // C. LOGIC GIỎ HÀNG
 // ==========================================
 const pushToCart = (newItem) => {
-    // Tìm món trùng (so sánh ID và DetailID)
-    const existingIndex = cart.value.findIndex(i => {
-        if (i.type === 'SET') return i.id === newItem.id; // Set lẩu so theo ID chính
-        return i.detailId === newItem.detailId;           // Món ăn so theo ID biến thể
-    });
+    // Vì Database mới mỗi Size là 1 dòng riêng biệt => id là Unique
+    const existingIndex = cart.value.findIndex(i => i.id === newItem.id && i.type === newItem.type);
 
     if (existingIndex !== -1) {
         cart.value[existingIndex].quantity += newItem.quantity;
@@ -271,7 +269,6 @@ const removeItem = (index) => {
     if (cart.value.length === 0) closeCartModal();
 };
 
-// Computed Cart
 const totalCount = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0));
 const totalPrice = computed(() => cart.value.reduce((sum, item) => sum + (item.price * item.quantity), 0));
 
@@ -333,6 +330,144 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('scroll', onScroll);
 });
+
+// ==========================================
+// E. LOGIC MODAL XÁC NHẬN ĐẶT BÀN (CHECKOUT)
+// ==========================================
+import Swal from 'sweetalert2';
+
+const isCheckoutOpen = ref(false);
+const isSubmitting = ref(false);
+
+const tables = ref([]); 
+
+// Hàm lấy danh sách bàn
+const fetchTables = async () => {
+    try {
+        const res = await axiosClient.get('/guest/table/active'); // URL API lấy bàn của bạn
+        tables.value = res.data || [];
+    } catch (error) {
+        console.error("Lỗi lấy danh sách bàn:", error);
+    }
+};
+
+// Form lưu trữ thông tin đặt bàn
+const checkoutForm = ref({
+    tenKhachHang: '',
+    soDienThoai: '',
+    email: '',
+    ngayDat: '',
+    gioDat: '',
+    soNguoi: 2,
+    ghiChu: '',
+    idKhachHang: null,
+    idBanAn: null // Thêm idBanAn
+});
+const openCheckoutModal = () => {
+    if (cart.value.length === 0) return;
+
+    fetchTables(); // Gọi lấy danh sách bàn khi mở modal
+
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        try {
+            const userObj = JSON.parse(userStr);
+            checkoutForm.value.idKhachHang = userObj.id || null;
+            checkoutForm.value.tenKhachHang = userObj.tenKhachHang || userObj.hoTen || '';
+            checkoutForm.value.soDienThoai = userObj.soDienThoai || userObj.sdt || userObj.phone || userObj.dienThoai || '';
+            checkoutForm.value.email = userObj.email || '';
+        } catch (e) { console.error("Lỗi parse user:", e); }
+    }
+
+    const now = new Date();
+    checkoutForm.value.ngayDat = now.toISOString().split('T')[0];
+    now.setHours(now.getHours() + 1);
+    checkoutForm.value.gioDat = now.toTimeString().substring(0, 5);
+
+    isCartOpen.value = false;
+    isCheckoutOpen.value = true;
+};
+
+const closeCheckoutModal = () => {
+    isCheckoutOpen.value = false;
+};
+
+const quayLaiGioHang = () => {
+    isCheckoutOpen.value = false;
+    isCartOpen.value = true;
+};
+
+// Gọi API Xác nhận đặt bàn
+const submitOrder = async () => {
+
+    
+    const ten = checkoutForm.value.tenKhachHang ? checkoutForm.value.tenKhachHang.toString().trim() : '';
+    const sdt = checkoutForm.value.soDienThoai ? checkoutForm.value.soDienThoai.toString().trim() : '';
+    const ngay = checkoutForm.value.ngayDat;
+    const gio = checkoutForm.value.gioDat;
+    const soNguoi = checkoutForm.value.soNguoi;
+    const idBan = checkoutForm.value.idBanAn;
+
+    // 2. Kiểm tra rỗng tất cả các trường (Trừ ô ghi chú)
+    if (!ten || !sdt || !ngay || !gio || !soNguoi) {
+        Swal.fire('Thiếu thông tin', 'Vui lòng điền đầy đủ Tên, SĐT, Ngày đến, Giờ đến và Số người!', 'warning');
+        return;
+    }
+
+    // 3. Kiểm tra chọn bàn
+    if (!idBan) {
+        Swal.fire('Lưu ý', 'Vui lòng chọn bàn bạn muốn ngồi!', 'warning');
+        return;
+    }
+
+    // 4. Kiểm tra logic giờ đặt (Giả sử nhà hàng mở từ 09:00 đến 22:00)
+    const hour = parseInt(gio.split(':')[0]);
+    if (hour < 9 || hour > 22) {
+        Swal.fire('Lưu ý', 'Nhà hàng chỉ nhận đặt bàn từ 09:00 đến 22:00', 'warning');
+        return;
+    }
+
+    // 5. Kiểm tra số người hợp lệ (Phải lớn hơn 0)
+    if (soNguoi <= 0) {
+        Swal.fire('Lưu ý', 'Số người tối thiểu phải là 1!', 'warning');
+        return;
+    }
+
+    try {
+        isSubmitting.value = true;
+
+        const payload = {
+            idKhachHang: checkoutForm.value.idKhachHang,
+            idBanAn: checkoutForm.value.idBanAn,
+            tenKhachHangThoiVu: checkoutForm.value.tenKhachHang,
+            sdtThoiVu: checkoutForm.value.soDienThoai,
+            thoiGianDat: `${checkoutForm.value.ngayDat}T${checkoutForm.value.gioDat}:00`,
+            soNguoi: checkoutForm.value.soNguoi,
+            ghiChu: checkoutForm.value.ghiChu,
+            tongTien: totalPrice.value,
+            chiTiet: cart.value.map(item => ({
+                idChiTietMonAn: item.type === 'MON' ? item.id : null,
+                idSetLau: item.type === 'SET' ? item.id : null,
+                soLuong: item.quantity,
+                donGia: item.price
+            }))
+        };
+
+        // Gọi API
+        await axiosClient.post('/guest/reservation/create', payload);
+
+        await Swal.fire('Thành công', 'Đơn đặt bàn của bạn đã được ghi nhận. Vui lòng chờ nhân viên xác nhận!', 'success');
+
+        cart.value = [];
+        closeCheckoutModal();
+
+    } catch (error) {
+        console.error("Lỗi đặt bàn:", error);
+        Swal.fire('Lỗi', 'Có lỗi xảy ra trong quá trình đặt bàn. Vui lòng thử lại!', 'error');
+    } finally {
+        isSubmitting.value = false;
+    }
+};
 </script>
 
 <template>
@@ -427,7 +562,7 @@ onUnmounted(() => {
                                         <span class="food-price"
                                             :class="section.categoryId === 'combo-set' ? 'food-price-lg' : ''">
                                             {{ item.isRange ? `${formatPrice(item.price.min)} +` :
-                                            formatPrice(item.price) }}
+                                                formatPrice(item.price) }}
                                         </span>
                                         <button class="btn-add" @click.stop="handleItemClick(item)">
                                             <i class="fas fa-plus"></i>
@@ -496,8 +631,8 @@ onUnmounted(() => {
                     <div class="modal-footer">
                         <div class="d-flex justify-content-between align-items-center w-100">
                             <span class="fw-bold text-dark fs-5">Tổng: <span class="text-danger">{{
-                                    formatPrice(totalPrice) }}</span></span>
-                            <button class="btn-checkout">XÁC NHẬN</button>
+                                formatPrice(totalPrice) }}</span></span>
+                            <button class="btn-checkout" @click="openCheckoutModal">XÁC NHẬN</button>
                         </div>
                     </div>
                 </div>
@@ -537,7 +672,121 @@ onUnmounted(() => {
                         </div>
                         <button class="btn-confirm-add" @click="confirmAddToCart">
                             Thêm - {{formatPrice(currentVariants.find(v => v.id === selectedVariantId)?.price *
-                            modalQuantity) }}
+                                modalQuantity)}}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
+        <Transition name="modal-fade">
+            <div v-if="isCheckoutOpen" class="cart-modal-overlay" @click.self="closeCheckoutModal">
+                <div class="cart-modal-content checkout-modal-size">
+                    <div class="modal-header bg-primary-red text-white">
+                        <h5 class="text-white"><i class="fas fa-calendar-check me-2"></i> Xác Nhận Đặt Bàn</h5>
+                        <button class="btn-close-modal text-white border-white bg-transparent"
+                            @click="closeCheckoutModal"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div class="modal-body custom-scrollbar p-4">
+                        <div class="row g-4">
+                            <div class="col-md-7">
+                                <h6 class="border-bottom pb-2 mb-3 fw-bold text-primary-red">Thông tin liên hệ</h6>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-sm-6">
+                                        <label class="form-label small fw-bold text-muted">Họ và tên <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-lg custom-input"
+                                            v-model="checkoutForm.tenKhachHang" placeholder="Nhập họ tên"
+                                            :readonly="!!checkoutForm.idKhachHang"
+                                            :class="{ 'bg-light text-muted cursor-not-allowed': checkoutForm.idKhachHang }">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label small fw-bold text-muted">Số điện thoại <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-lg custom-input"
+                                            v-model="checkoutForm.soDienThoai" placeholder="Nhập SĐT"
+                                            :readonly="!!checkoutForm.idKhachHang"
+                                            :class="{ 'bg-light text-muted cursor-not-allowed': checkoutForm.idKhachHang }">
+                                    </div>
+                                    <div class="col-12" v-if="checkoutForm.idKhachHang">
+                                        <div class="badge bg-success w-100 p-2 text-start">
+                                            <i class="fas fa-check-circle me-1"></i> Đang đặt bàn bằng tài khoản thành viên hệ thống
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 class="border-bottom pb-2 mb-3 fw-bold text-primary-red">Chi tiết đặt bàn</h6>
+                                <div class="row g-3">
+                                    <div class="col-sm-4">
+                                        <label class="form-label small fw-bold text-muted">Ngày đến <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control custom-input" v-model="checkoutForm.ngayDat">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label small fw-bold text-muted">Giờ đến <span class="text-danger">*</span></label>
+                                        <input type="time" class="form-control custom-input" v-model="checkoutForm.gioDat">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label small fw-bold text-muted">Số người <span class="text-danger">*</span></label>
+                                        <input type="number" min="1" max="50" class="form-control custom-input" v-model="checkoutForm.soNguoi">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted">Chọn bàn ăn <span class="text-danger">*</span></label>
+                                        <select class="form-select custom-input" v-model="checkoutForm.idBanAn">
+                                            <option :value="null" disabled>-- Chọn bàn còn trống --</option>
+                                            <option v-for="table in tables" :key="table.id" :value="table.id">
+                                                Bàn {{ table.maBan }} (Tầng {{ table.soTang }}) - Sức chứa: {{ table.soCho }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted">Ghi chú thêm (Yêu cầu vị trí bàn, dị ứng...)</label>
+                                        <textarea class="form-control custom-input" rows="2"
+                                            v-model="checkoutForm.ghiChu"
+                                            placeholder="Ví dụ: Cần ghế trẻ em, không ăn hành..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-5">
+                                <div class="bg-light p-3 rounded-3 h-100 border">
+                                    <h6 class="border-bottom pb-2 mb-3 fw-bold text-dark">Tóm tắt món ăn ({{ totalCount }} món)</h6>
+
+                                    <div class="summary-items custom-scrollbar" style="max-height: 300px; overflow-y: auto;">
+                                        <div v-for="item in cart" :key="item.id" class="d-flex justify-content-between mb-2 small">
+                                            <div class="pe-2">
+                                                <span class="fw-bold">{{ item.quantity }}x</span> {{ item.name }}
+                                            </div>
+                                            <div class="fw-bold text-nowrap text-dark">
+                                                {{ formatPrice(item.price * item.quantity) }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-top mt-3 pt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted">Tạm tính</span>
+                                            <span>{{ formatPrice(totalPrice) }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span class="text-muted">Phí VAT (8%)</span>
+                                            <span>Chưa tính</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold fs-5">TỔNG CỘNG</span>
+                                            <span class="fw-bold fs-4 text-primary-red">{{ formatPrice(totalPrice) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-light">
+                        <button class="btn btn-outline-secondary px-4 py-2 fw-bold" @click="quayLaiGioHang" :disabled="isSubmitting">
+                            <i class="fas fa-arrow-left me-2"></i> Quay lại giỏ hàng
+                        </button>
+                        <button class="btn-checkout" style="width: 250px;" @click="submitOrder" :disabled="isSubmitting">
+                            <span v-if="isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i> ĐANG XỬ LÝ</span>
+                            <span v-else>HOÀN TẤT ĐẶT BÀN</span>
                         </button>
                     </div>
                 </div>
@@ -588,10 +837,11 @@ onUnmounted(() => {
     align-items: center;
     scrollbar-width: none;
 }
+
 .nav-list {
-    display: flex !important;       
-    flex-direction: row !important;  
-    flex-wrap: nowrap !important;    
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -1510,5 +1760,48 @@ onUnmounted(() => {
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #ccc;
     border-radius: 4px;
+}
+
+/* --- CSS CHO CHECKOUT MODAL --- */
+.checkout-modal-size {
+    max-width: 950px !important;
+}
+
+.bg-primary-red {
+    background-color: #7d161a !important;
+}
+
+.custom-input {
+    background-color: #fcfcfc;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 15px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.custom-input:focus {
+    background-color: #fff;
+    border-color: #7d161a;
+    box-shadow: 0 0 0 3px rgba(125, 22, 26, 0.15);
+    outline: none;
+}
+
+.summary-items::-webkit-scrollbar {
+    width: 4px;
+}
+
+.summary-items::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.cursor-not-allowed {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+:global(.swal2-container) {
+    z-index: 20000 !important;
 }
 </style>

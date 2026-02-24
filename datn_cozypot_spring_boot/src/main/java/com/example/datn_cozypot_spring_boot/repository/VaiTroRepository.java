@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface VaiTroRepository extends JpaRepository<VaiTro, Integer> {
@@ -18,4 +19,5 @@ public interface VaiTroRepository extends JpaRepository<VaiTro, Integer> {
 
     // Lấy danh sách vai trò đang hoạt động để hiển thị lên ComboBox/Select ở màn hình Nhân Viên
     List<VaiTro> findByTrangThai(Integer trangThai);
+    Optional<VaiTro> findByTenVaiTro(String tenVaiTro);
 }

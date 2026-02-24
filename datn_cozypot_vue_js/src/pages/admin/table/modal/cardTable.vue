@@ -223,21 +223,10 @@ onUnmounted(() => {
     </div>
   </div>
 
-  <div class="notice-contain">
-    <div class="container notice mt-3">
-      <h5 style="font-size: 1rem; font-weight: bold">
-        <i
-          class="fa-solid fa-wifi"
-          style="
-            border-color: darkgrey;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-          "
-        ></i>
-        Có thể đặt online
-      </h5>
-    </div>
+  <div class="notice-contain gap-2">
+    
     <div
-      class="container notice mt-3"
+      class="notice-item notice mt-3"
       style="border: #7d161a 1px solid; background-color: #efe3e4"
     >
       <h5 style="font-size: 1rem; font-weight: bold">
@@ -253,7 +242,7 @@ onUnmounted(() => {
         Trống
       </h5>
     </div>
-    <div class="container notice mt-3">
+    <div class="notice-item notice mt-3">
       <h5 style="font-size: 1rem; font-weight: bold">
         <i
           class="fa-solid fa-users"
@@ -267,7 +256,7 @@ onUnmounted(() => {
         Có khách
       </h5>
     </div>
-    <div class="container notice mt-3">
+    <div class="notice-item notice mt-3">
       <h5 style="font-size: 1rem; font-weight: bold">
         <i
           class="fa-regular fa-clock"
@@ -280,7 +269,7 @@ onUnmounted(() => {
         Đã đặt
       </h5>
     </div>
-    <div class="container notice mt-3">
+    <div class="notice-item notice mt-3">
       <h5 style="font-size: 1rem; font-weight: bold">
         <i
           class="fa-solid fa-circle-exclamation"

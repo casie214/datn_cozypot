@@ -1,4 +1,4 @@
-package com.example.datn_cozypot_spring_boot.repository.monAnRepository;
+package com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository;
 
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.entity.DanhMuc;

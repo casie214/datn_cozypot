@@ -3,13 +3,17 @@ package com.example.datn_cozypot_spring_boot.dto.response;
 import com.example.datn_cozypot_spring_boot.entity.BanAn;
 import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class BanAnResponse {
     private Integer id;
     private String maBan;

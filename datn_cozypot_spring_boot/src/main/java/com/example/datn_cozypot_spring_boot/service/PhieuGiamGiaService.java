@@ -109,11 +109,18 @@ public class PhieuGiamGiaService {
     // ============= THÊM MỚI & GỬI EMAIL =============
     @Transactional
     public PhieuGiamGia create(PhieuGiamGiaDTO dto) {
+
+        // ✅ CHECK TRÙNG CODE TRƯỚC
+        if (repo.existsByCodeGiamGia(dto.getCodeGiamGia())) {
+            throw new RuntimeException("Mã giảm giá đã tồn tại");
+        }
+
         PhieuGiamGia entity = new PhieuGiamGia();
         mapToEntity(dto, entity);
+
         PhieuGiamGia savedPhieu = repo.save(entity);
 
-        // Lưu bảng cá nhân nếu cần
+        // Lưu bảng cá nhân
         if (dto.getDoiTuong() == 1 && dto.getListIdKhachHang() != null) {
             for (Integer khId : dto.getListIdKhachHang()) {
                 KhachHang kh = khachHangRepo.findById(khId).orElse(null);
@@ -126,7 +133,7 @@ public class PhieuGiamGiaService {
             }
         }
 
-        // Gửi Email thông báo dựa trên danh sách Vue gửi xuống
+        // Gửi mail
         if (dto.getListEmails() != null && !dto.getListEmails().isEmpty()) {
             sendNotificationEmails(dto.getListEmails(), savedPhieu);
         }
@@ -209,24 +216,150 @@ public class PhieuGiamGiaService {
         }
     }
 
-
-
-    // ============= CẬP NHẬT =============
     @Transactional
     public PhieuGiamGia update(Integer id, PhieuGiamGiaDTO dto) {
-
         PhieuGiamGia entity = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ID: " + id));
+        Integer oldTrangThai = entity.getTrangThai();
 
-        // ✅ CHECK TRÙNG CODE (TRỪ CHÍNH NÓ)
         if (repo.existsByCodeGiamGiaAndIdNot(dto.getCodeGiamGia(), id)) {
             throw new RuntimeException("Mã giảm giá đã tồn tại");
         }
 
+        // --- LOGIC XỬ LÝ THAY ĐỔI KHÁCH HÀNG VÀ GỬI MAIL ---
+        if (dto.getDoiTuong() == 1 && dto.getListIdKhachHang() != null) {
+            List<Integer> newIds = dto.getListIdKhachHang() != null ? dto.getListIdKhachHang() : new ArrayList<>();
+
+            // 1. Lấy danh sách khách hàng hiện tại từ DB
+            List<PhieuGiamGiaCaNhan> currentList = phieuGiamGiaCaNhanRepo.findByPhieuGiamGiaId(id);
+            List<Integer> oldIds = currentList.stream()
+                    .map(cn -> cn.getKhachHang().getId())
+                    .toList();
+
+            // 2. Tìm khách hàng bị xóa (Có trong cũ, không có trong mới) -> Gửi mail HỦY
+            for (PhieuGiamGiaCaNhan cn : currentList) {
+                if (!newIds.contains(cn.getKhachHang().getId())) {
+                    sendCancelEmail(cn.getKhachHang().getEmail(), entity);
+                    phieuGiamGiaCaNhanRepo.delete(cn); // Xóa khỏi DB
+                }
+            }
+
+            // 3. Tìm khách hàng mới thêm (Có trong mới, không có trong cũ) -> Gửi mail TẶNG
+            for (Integer newId : newIds) {
+                if (!oldIds.contains(newId)) {
+                    KhachHang kh = khachHangRepo.findById(newId).orElse(null);
+                    if (kh != null) {
+                        // Lưu vào DB
+                        PhieuGiamGiaCaNhan moi = new PhieuGiamGiaCaNhan();
+                        moi.setPhieuGiamGia(entity);
+                        moi.setKhachHang(kh);
+                        phieuGiamGiaCaNhanRepo.save(moi);
+                        // Gửi mail thông báo
+                        sendNotificationEmails(List.of(kh.getEmail()), entity);
+                    }
+                }
+            }
+        }
+
         mapToEntity(dto, entity);
-        return repo.save(entity);
+
+        PhieuGiamGia saved = repo.save(entity);
+
+        // ✅ Nếu chuyển từ HOẠT ĐỘNG → NGỪNG thì gửi mail HỦY
+        if (oldTrangThai != null
+                && oldTrangThai == 1
+                && saved.getTrangThai() == 0
+                && saved.getDoiTuong() == 1) {
+
+            sendMailWhenDeactivate(saved);
+        }
+
+
+// ✅ Nếu chuyển từ NGỪNG → HOẠT ĐỘNG thì gửi mail
+        if (oldTrangThai != null
+                && oldTrangThai == 0
+                && saved.getTrangThai() == 1
+                && saved.getDoiTuong() == 1) {
+
+            sendMailWhenActive(saved);
+        }
+
+        return saved;
+
+    }
+    @Async
+    protected void sendMailWhenDeactivate(PhieuGiamGia p) {
+
+        List<PhieuGiamGiaCaNhan> list =
+                phieuGiamGiaCaNhanRepo.findByPhieuGiamGiaId(p.getId());
+
+        if (list == null || list.isEmpty()) return;
+
+        for (PhieuGiamGiaCaNhan cn : list) {
+
+            if (cn.getKhachHang() != null
+                    && cn.getKhachHang().getEmail() != null) {
+
+                sendCancelEmail(
+                        cn.getKhachHang().getEmail(),
+                        p
+                );
+            }
+        }
     }
 
+    @Async
+    protected void sendMailWhenActive(PhieuGiamGia p) {
+
+        // Lấy danh sách khách đã gán voucher
+        List<PhieuGiamGiaCaNhan> list =
+                phieuGiamGiaCaNhanRepo.findByPhieuGiamGiaId(p.getId());
+
+        if (list == null || list.isEmpty()) return;
+
+        List<String> emails = new ArrayList<>();
+
+        for (PhieuGiamGiaCaNhan cn : list) {
+            if (cn.getKhachHang() != null
+                    && cn.getKhachHang().getEmail() != null) {
+
+                emails.add(cn.getKhachHang().getEmail());
+            }
+        }
+
+        if (!emails.isEmpty()) {
+            sendNotificationEmails(emails, p);
+        }
+    }
+
+
+    @Async
+    protected void sendCancelEmail(String email, PhieuGiamGia p) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom("CozyPot <email_cua_ban@gmail.com>");
+            helper.setTo(email);
+            helper.setSubject("[CozyPot] Thông báo thay đổi chương trình ưu đãi");
+
+            String htmlContent =
+                    "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px;'>" +
+                            "<h2 style='color: #7B1F1F;'>Thông báo thu hồi mã giảm giá</h2>" +
+                            "<p>Xin chào quý khách,</p>" +
+                            "<p>Chúng tôi rất tiếc phải thông báo rằng mã giảm giá <strong>" + p.getCodeGiamGia() + "</strong> " +
+                            "trước đó đã được thay đổi hoặc không còn áp dụng cho tài khoản của bạn trong đợt cập nhật này.</p>" +
+                            "<p>Đừng lo lắng, hãy theo dõi các chương trình khuyến mãi tiếp theo của <strong>CozyPot</strong> để nhận được nhiều ưu đãi hấp dẫn khác.</p>" +
+                            "<p>Trân trọng,<br>Đội ngũ CozyPot</p>" +
+                            "</div>";
+
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            System.out.println("Đã gửi mail HỦY thành công cho: " + email);
+        } catch (Exception e) {
+            System.err.println("Lỗi gửi mail hủy đến " + email + ": " + e.getMessage());
+        }
+    }
 
     // ============= XÓA (FIX LỖI CONTROLLER) =============
     @Transactional
