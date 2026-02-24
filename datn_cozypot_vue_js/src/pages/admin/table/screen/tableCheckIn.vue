@@ -2,9 +2,10 @@
 import {
   fetchAllBanAn,
   fetchAllCheckIn,
+  fetchTableStatusByDate,
   updateTrangThaiBan,
 } from "../../../../services/tableManageService";
-import { computed, onMounted, ref, onUnmounted } from "vue";
+import { computed, onMounted, ref, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
 import router from "@/App";
 import { useRoute, useRouter } from "vue-router";
@@ -45,13 +46,43 @@ const banTheoTang = computed(() => {
 
 const thongKeTang = computed(() => {
   const total = banTheoTang.value.length;
-  const free = banTheoTang.value.filter((ban) =>
-    ["0", "trống", "trong"].includes(
-      ban.trangThai?.toString().toLowerCase().trim(),
-    ),
-  ).length;
+  const free = banTheoTang.value.filter((ban) => {
+    const trangThai = getTrangThaiTheoNgay(ban.idBanAn);
+    return Number(trangThai) === 0;
+    // 0 = Trống
+  }).length;
   return { total, free };
 });
+
+/**
+ * Map trạng thái bàn theo ngày
+ * key: idBan
+ * value: status
+ */
+const tableStatusMap = ref({});
+
+// Thêm vào script setup
+const getTrangThaiTheoNgay = (banId) => {
+  return Number(tableStatusMap.value[banId] ?? 0);
+};
+
+const selectedDate = ref(
+  new Date().toISOString().slice(0, 10), // yyyy-MM-dd
+);
+const fetchTableStatus = async () => {
+  try {
+    const data = await fetchTableStatusByDate(selectedDate.value);
+
+    const newMap = {};
+    data.forEach((item) => {
+      newMap[item.banId] = item.trangThai;
+    });
+
+    tableStatusMap.value = newMap;
+  } catch (error) {
+    tableStatusMap.value = {};
+  }
+};
 
 // --- QUẢN LÝ KHÁCH CHỜ ---
 const searchQuery = ref("");
@@ -136,19 +167,18 @@ const getCountdown = (dbTime) => {
 };
 
 // --- HELPER UI ---
-const getStatusClass = (s) => {
-  s = Number(s);
-
-  if (s === 1) return "status-occupied-light"; // Có khách
-  if (s === 2) return "status-booked"; // Đã đặt
-  return "status-empty"; // Trống (0 hoặc null)
+const getStatusText = (trangThai) => {
+  const status = String(trangThai).trim();
+  if (status === "0") return "Trống";
+  if (status === "1") return "Có khách";
+  return "Đã đặt";
 };
 
-const getStatusText = (s) => {
-  s = Number(s);
-  if (s === 1) return "Có khách";
-  if (s === 2) return "Đã đặt";
-  return "Trống";
+const getStatusClass = (trangThai) => {
+  const status = String(trangThai).trim();
+  if (status === "0") return "status-empty";
+  if (status === "1") return "status-occupied-light";
+  return "status-booked";
 };
 
 // --- QUẢN LÝ MODAL & CẬP NHẬT ---
@@ -168,14 +198,14 @@ const openManageModal = (ban) => {
   };
 
   const banId = ban.id;
-  
+
   if (draftOrders.value[banId]) {
-      listMonDaChon.value = [...draftOrders.value[banId]];
+    listMonDaChon.value = [...draftOrders.value[banId]];
   } else {
-      listMonDaChon.value = [];
+    listMonDaChon.value = [];
   }
 
-  modalView.value = 'info';
+  modalView.value = "info";
 
   isShowModal.value = true;
 };
@@ -217,22 +247,23 @@ const formatDate = (time) => {
   return dayjs(time).format("DD/MM/YYYY HH:mm");
 };
 
-const modalView = ref('info');
+const modalView = ref("info");
 
 const switchToAddFood = () => {
-  modalView.value = 'addFood';
+  modalView.value = "addFood";
 };
 
 // Phần xử lí thêm món ăn
 // Cái này là array các món/set đã chọn nhé, dùng thì lấy từ đây ra
 
-
-
 const listMonDaChon = ref([]);
 
 // Tính tổng giá của mấy món đã thêm
 const totalTempPrice = computed(() => {
-  return listMonDaChon.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  return listMonDaChon.value.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
 });
 
 const handleSaveFood = async (itemsArray) => {
@@ -241,11 +272,11 @@ const handleSaveFood = async (itemsArray) => {
   listMonDaChon.value = itemsArray;
 
   if (selectedBan.value) {
-      const banId = selectedBan.value.id; // Hoặc selectedBan.value.idBanAn
-      draftOrders.value[banId] = itemsArray;
+    const banId = selectedBan.value.id; // Hoặc selectedBan.value.idBanAn
+    draftOrders.value[banId] = itemsArray;
   }
 
-  modalView.value = 'info';
+  modalView.value = "info";
 
   /*
   try {
@@ -263,6 +294,28 @@ const handleSaveFood = async (itemsArray) => {
   }
   */
 };
+
+///
+const canCheckIn = (dbTime) => {
+  if (!dbTime) return false;
+
+  const now = dayjs(currentTime.value);
+  const target = dayjs(dbTime);
+
+  const minutesLeft = target.diff(now, "minute");
+
+  console.log("Minutes left:", minutesLeft); // 👈 debug
+
+  return minutesLeft <= 10;
+};
+
+watch(
+  selectedDate,
+  async () => {
+    await fetchTableStatus();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -272,29 +325,46 @@ const handleSaveFood = async (itemsArray) => {
         Check-in bàn
       </h3>
 
-      <div class=" search-form">
-        <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
+      <div class="search-form">
+        <div>
+          <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
 
-        <!-- Button chọn tầng -->
-        <div class="mb-3">
-          <div class="d-inline-block">
-            <div class="d-inline-block me-2">
-              <button class="btn" :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'" @click="activeFloor = 1">
-                Tầng 1
-              </button>
-            </div>
+          <!-- Button chọn tầng -->
+          <div class="mb-3">
             <div class="d-inline-block">
-              <button class="btn" :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'" @click="activeFloor = 2">
-                Tầng 2
-              </button>
+              <div class="d-inline-block me-2">
+                <button
+                  class="btn"
+                  :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'"
+                  @click="activeFloor = 1"
+                >
+                  Tầng 1
+                </button>
+              </div>
+              <div class="d-inline-block">
+                <button
+                  class="btn"
+                  :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'"
+                  @click="activeFloor = 2"
+                >
+                  Tầng 2
+                </button>
+              </div>
+            </div>
+
+            <div class="floor-info mt-2">
+              Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{
+                thongKeTang.total
+              }}
+              bàn
             </div>
           </div>
-
-          <div class="floor-info mt-2">
-            Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{
-              thongKeTang.total
-            }}
-            bàn
+        </div>
+        <div>
+          <!-- //Trạng thái bàn theo ngày ở đây -->
+          <div class="filter-date px-3">
+            <label>📅 Lọc theo ngày</label>
+            <input type="date" v-model="selectedDate" class="form-control" />
           </div>
         </div>
       </div>
@@ -308,22 +378,42 @@ const handleSaveFood = async (itemsArray) => {
               <div class="floor-plan-section">
                 <div class="floor-header"></div>
                 <div class="grid-container">
-                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
-                    <div v-for="ban in banTheoTang" :key="ban.idBanAn" class="table-card"
-                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }" @click="openManageModal(ban)" :style="{
+                  <div
+                    class="grid-canvas"
+                    @dragover.prevent
+                    @drop="onDrop"
+                    :class="{ 'editing-mode': isEditing }"
+                  >
+                    <div
+                      v-for="ban in banTheoTang"
+                      :key="ban.id"
+                      class="table-card"
+                      :class="{
+                        'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
+                      }"
+                      @click="openManageModal(ban)"
+                      :style="{
                         gridColumnStart: ban.column,
                         gridRowStart: ban.row,
-                        gridColumnEnd: 'span 4',
+                        gridColumnEnd: 'span 3',
                         gridRowEnd: 'span 2',
-                        cursor: 'pointer',
-                      }">
+                      }"
+                    >
                       <div class="table-content">
-                        <div class="table-id">
-                          <strong>{{ ban.maBan }}</strong>
+                        <strong>{{ ban.maBan }}</strong>
+                        <div class="small">({{ ban.soCho }} chỗ)</div>
+                        <div class="small">Khu vực: {{ ban.tenKhuVuc }}</div>
+                        <div
+                          :class="[
+                            'status-tag',
+                            getStatusClass(getTrangThaiTheoNgay(ban.id)),
+                          ]"
+                        >
+                          {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                         </div>
-                        <div class="table-id">({{ ban.soCho }} chỗ)</div>
-                        <div :class="['status-tag', getStatusClass(ban.trangThai)]">
-                          {{ getStatusText(ban.trangThai) }}
+                        <div class="small">
+                          ID: {{ ban.id }} | Status:
+                          {{ getTrangThaiTheoNgay(ban.id) }}
                         </div>
                       </div>
                     </div>
@@ -344,7 +434,11 @@ const handleSaveFood = async (itemsArray) => {
                           <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                         </label>
                         <div class="filter-input-wrapper">
-                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
+                          <input
+                            type="text"
+                            v-model="searchQuery"
+                            placeholder="SĐT khách hàng"
+                          />
                         </div>
                       </div>
 
@@ -354,17 +448,28 @@ const handleSaveFood = async (itemsArray) => {
                           ngày đến
                         </label>
                         <div class="filter-input-wrapper">
-                          <input type="date" v-model="filterDate" class="date-input" />
+                          <input
+                            type="date"
+                            v-model="filterDate"
+                            class="date-input"
+                          />
                         </div>
                       </div>
                     </div>
 
                     <div class="list-waiting">
-                      <p v-if="danhSachLoc.length === 0" class="text-center text-muted mt-3">
+                      <p
+                        v-if="danhSachLoc.length === 0"
+                        class="text-center text-muted mt-3"
+                      >
                         Không có khách nào thỏa mãn tìm kiếm
                       </p>
 
-                      <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card">
+                      <div
+                        v-for="khach in danhSachLoc"
+                        :key="khach.id"
+                        class="customer-card"
+                      >
                         <div class="card-header">
                           <span class="customer-name">{{
                             khach.tenKhachHang
@@ -377,8 +482,15 @@ const handleSaveFood = async (itemsArray) => {
                             {{ formatDate(khach.thoiGianDat) }}
                           </p>
                           <div class="card-footer">
-                            <button class="btn btn-checkable">
-                              Có thể check-in
+                            <button
+                              class="btn btn-checkable"
+                              :disabled="!canCheckIn(khach.thoiGianDat)"
+                            >
+                              {{
+                                canCheckIn(khach.thoiGianDat)
+                                  ? "Có thể check-in"
+                                  : "Chưa tới giờ"
+                              }}
                             </button>
                           </div>
                           <div class="countdown-layout">
@@ -405,22 +517,42 @@ const handleSaveFood = async (itemsArray) => {
                 <div class="floor-header"></div>
 
                 <div class="grid-container">
-                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
-                    <div v-for="ban in banTheoTang" :key="ban.idBanAn" class="table-card"
-                      :class="{ 'highlight-red': Number(ban.trangThai) === 0 }" @click="openManageModal(ban)" :style="{
+                  <div
+                    class="grid-canvas"
+                    @dragover.prevent
+                    @drop="onDrop"
+                    :class="{ 'editing-mode': isEditing }"
+                  >
+                    <div
+                      v-for="ban in banTheoTang"
+                      :key="ban.id"
+                      class="table-card"
+                      :class="{
+                        'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
+                      }"
+                      @click="openManageModal(ban)"
+                      :style="{
                         gridColumnStart: ban.column,
                         gridRowStart: ban.row,
-                        gridColumnEnd: 'span 4',
+                        gridColumnEnd: 'span 3',
                         gridRowEnd: 'span 2',
-                        cursor: 'pointer',
-                      }">
+                      }"
+                    >
                       <div class="table-content">
-                        <div class="table-id">
-                          <strong>{{ ban.maBan }}</strong>
+                        <strong>{{ ban.maBan }}</strong>
+                        <div class="small">({{ ban.soCho }} chỗ)</div>
+                        <div class="small">Khu vực: {{ ban.tenKhuVuc }}</div>
+                        <div
+                          :class="[
+                            'status-tag',
+                            getStatusClass(getTrangThaiTheoNgay(ban.id)),
+                          ]"
+                        >
+                          {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                         </div>
-                        <div class="table-id">({{ ban.soCho }} chỗ)</div>
-                        <div :class="['status-tag', getStatusClass(ban.trangThai)]">
-                          {{ getStatusText(ban.trangThai) }}
+                        <div class="small">
+                          ID: {{ ban.id }} | Status:
+                          {{ getTrangThaiTheoNgay(ban.id) }}
                         </div>
                       </div>
                     </div>
@@ -440,7 +572,11 @@ const handleSaveFood = async (itemsArray) => {
                           <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
                         </label>
                         <div class="filter-input-wrapper">
-                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
+                          <input
+                            type="text"
+                            v-model="searchQuery"
+                            placeholder="SĐT khách hàng"
+                          />
                         </div>
                       </div>
 
@@ -450,17 +586,28 @@ const handleSaveFood = async (itemsArray) => {
                           ngày đến
                         </label>
                         <div class="filter-input-wrapper">
-                          <input type="date" v-model="filterDate" class="date-input" />
+                          <input
+                            type="date"
+                            v-model="filterDate"
+                            class="date-input"
+                          />
                         </div>
                       </div>
                     </div>
 
                     <div class="list-waiting">
-                      <p v-if="danhSachLoc.length === 0" class="text-center text-muted mt-3">
+                      <p
+                        v-if="danhSachLoc.length === 0"
+                        class="text-center text-muted mt-3"
+                      >
                         Không có khách nào thỏa mãn tìm kiếm
                       </p>
 
-                      <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card">
+                      <div
+                        v-for="khach in danhSachLoc"
+                        :key="khach.id"
+                        class="customer-card"
+                      >
                         <div class="card-header">
                           <span class="customer-name">{{
                             khach.tenKhachHang
@@ -473,8 +620,15 @@ const handleSaveFood = async (itemsArray) => {
                             {{ formatDate(khach.thoiGianDat) }}
                           </p>
                           <div class="card-footer">
-                            <button class="btn btn-checkable">
-                              Có thể check-in
+                            <button
+                              class="btn btn-checkable"
+                              :disabled="!canCheckIn(khach.thoiGianDat)"
+                            >
+                              {{
+                                canCheckIn(khach.thoiGianDat)
+                                  ? "Có thể check-in"
+                                  : "Chưa tới giờ"
+                              }}
                             </button>
                           </div>
                           <div class="countdown-layout">
@@ -497,18 +651,24 @@ const handleSaveFood = async (itemsArray) => {
       </div>
     </div>
   </div>
-  
+
   <div v-if="isShowModal" class="modal-overlay">
-    <div class="modal-box" :class="{ 'modal-fullscreen': modalView === 'addFood' }">
+    <div
+      class="modal-box"
+      :class="{ 'modal-fullscreen': modalView === 'addFood' }"
+    >
       <div class="modal-header-custom">
         <h4 class="modal-title-custom">
-          {{ modalView === 'info' ? `Check-in bàn ${selectedBan?.maBan}` : 'Thêm món ăn' }}
+          {{
+            modalView === "info"
+              ? `Check-in bàn ${selectedBan?.maBan}`
+              : "Thêm món ăn"
+          }}
         </h4>
         <button class="close-btn" @click="closeModal">✕</button>
       </div>
 
       <div class="modal-body-custom">
-
         <div v-if="modalView === 'info'">
           <h6 class="section-title">Thông tin bàn</h6>
           <div class="info-row">
@@ -521,7 +681,9 @@ const handleSaveFood = async (itemsArray) => {
           </div>
           <div class="info-row align-items-center">
             <span>Trạng thái:</span>
-            <span class="badge-status">{{ getStatusText(selectedBan?.trangThai) }}</span>
+            <span class="badge-status">{{
+              getStatusText(selectedBan?.trangThai)
+            }}</span>
           </div>
           <div class="info-row">
             <span>Vị trí:</span>
@@ -535,11 +697,14 @@ const handleSaveFood = async (itemsArray) => {
           <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3">
             <div class="d-flex justify-content-between">
               <span class="text-success fw-bold">Món vừa thêm:</span>
-              <span class="text-danger fw-bold">{{ totalTempPrice.toLocaleString() }}đ</span>
+              <span class="text-danger fw-bold"
+                >{{ totalTempPrice.toLocaleString() }}đ</span
+              >
             </div>
             <ul class="summary-list">
               <li v-for="item in listMonDaChon" :key="item.id">
-                {{ item.name }} <span class="text-muted">x{{ item.quantity }}</span>
+                {{ item.name }}
+                <span class="text-muted">x{{ item.quantity }}</span>
               </li>
             </ul>
           </div>
@@ -547,12 +712,19 @@ const handleSaveFood = async (itemsArray) => {
           <hr class="my-3" />
 
           <div class="action-buttons">
-            <button class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood">
-              <i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i>
+            <button
+              class="btn-action"
+              :class="{ 'has-items': listMonDaChon.length > 0 }"
+              @click="switchToAddFood"
+            >
+              <i
+                class="fa-solid"
+                :class="
+                  listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'
+                "
+              ></i>
               <span v-if="listMonDaChon.length === 0">Thêm món</span>
-              <span v-else>
-                Đã chọn {{ listMonDaChon.length }} món
-              </span>
+              <span v-else> Đã chọn {{ listMonDaChon.length }} món </span>
             </button>
             <button class="btn-action">QR đặt món</button>
             <button class="btn-action">Xem đơn hàng</button>
@@ -563,18 +735,36 @@ const handleSaveFood = async (itemsArray) => {
 
           <h6 class="section-title">Tùy chỉnh trạng thái bàn</h6>
           <div class="status-options">
-            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 0 }"
-              @click="() => (selectedBan.trangThai = 0)">
+            <div
+              class="status-item"
+              :class="{ 'active-border': selectedBan?.trangThai === 0 }"
+              @click="() => (selectedBan.trangThai = 0)"
+            >
               <label>
-                <i :class="selectedBan?.trangThai === 0 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i>
+                <i
+                  :class="
+                    selectedBan?.trangThai === 0
+                      ? 'fa-solid fa-circle-dot'
+                      : 'fa-regular fa-circle'
+                  "
+                ></i>
                 Trống
               </label>
             </div>
 
-            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 1 }"
-              @click="() => (selectedBan.trangThai = 1)">
+            <div
+              class="status-item"
+              :class="{ 'active-border': selectedBan?.trangThai === 1 }"
+              @click="() => (selectedBan.trangThai = 1)"
+            >
               <label>
-                <i :class="selectedBan?.trangThai === 1 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i>
+                <i
+                  :class="
+                    selectedBan?.trangThai === 1
+                      ? 'fa-solid fa-circle-dot'
+                      : 'fa-regular fa-circle'
+                  "
+                ></i>
                 Checked-in
               </label>
             </div>
@@ -586,9 +776,12 @@ const handleSaveFood = async (itemsArray) => {
         </div>
 
         <div v-else class="h-100 full-modal-content">
-          <FoodList :initial-items="listMonDaChon" @close="modalView = 'info'" @save="handleSaveFood" />
+          <FoodList
+            :initial-items="listMonDaChon"
+            @close="modalView = 'info'"
+            @save="handleSaveFood"
+          />
         </div>
-
       </div>
     </div>
   </div>
@@ -606,6 +799,9 @@ const handleSaveFood = async (itemsArray) => {
   padding-top: 1%;
   padding-left: 2%;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn-outline {
@@ -633,9 +829,17 @@ hr {
 
 .btn-checkable {
   background-color: #7d161a !important;
-  /* Đỏ đậm hơn */
   color: white !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Khi button bị disabled */
+.btn-checkable:disabled {
+  background-color: #ccc !important;
+  color: #666 !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.8;
 }
 
 .table-container {
@@ -771,8 +975,7 @@ hr {
 .grid-canvas {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(15,
-      1fr);
+  grid-template-rows: repeat(15, 1fr);
   /* Tăng số hàng và cố định chiều cao mỗi hàng (ví dụ 100px) */
   gap: 15px;
   padding: 20px;
@@ -1089,7 +1292,7 @@ hr {
   height: 90vh !important;
   max-width: none !important;
   max-height: none !important;
-  
+
   border-radius: 0 !important;
   margin: 0 !important;
 }
