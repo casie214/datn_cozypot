@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', {
                 localStorage.setItem('refreshToken', refreshToken);
                 localStorage.setItem('role', role);
                 localStorage.setItem('user', JSON.stringify(userInfo));
+                
 
                 return true;
             } catch (error) {

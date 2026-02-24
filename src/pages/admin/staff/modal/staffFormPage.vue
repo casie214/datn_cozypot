@@ -25,38 +25,51 @@
           <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
             <div class="card-body p-4">
               <h6 class="form-label-custom mb-4 text-center">Ảnh nhân viên</h6>
-              
-              <div class="upload-container mb-4">
-                <div class="upload-zone" @click="triggerFileInput" :class="{'has-image': imagePreview}">
-                  <template v-if="imagePreview">
-                    <img :src="imagePreview" alt="Avatar" class="img-preview" />
-                    <div class="upload-overlay">
-                      <i class="fas fa-camera mb-2"></i>
-                      <span>Thay đổi ảnh</span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div class="upload-placeholder">
-                      <div class="icon-circle">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                      </div>
-                      <p class="mt-3 mb-1 fw-bold">Tải ảnh lên</p>
-                      <span class="text-muted tiny">JPG, PNG (Max 2MB)</span>
-                    </div>
-                  </template>
+
+              <div class="avatar-wrapper">
+                <div class="avatar-upload" @click="triggerFileInput">
+                  <img v-if="imagePreview" :src="imagePreview" class="avatar-preview" />
+
+                  <div v-else class="avatar-placeholder">
+                    <i class="fas fa-user"></i>
+                  </div>
+
+                  <div class="avatar-edit-overlay">
+                    <i class="fas fa-camera"></i>
+                  </div>
+
+                  <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
                 </div>
-                <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
               </div>
 
               <hr class="dashed">
 
               <div class="scanner-box p-3 rounded-4 bg-light-wine border-wine-dashed text-center">
                 <h6 class="fw-bold text-wine mb-3 small"><i class="fas fa-qrcode me-2"></i>NHẬP LIỆU NHANH CCCD</h6>
+
                 <button type="button" class="btn btn-wine-sm w-100 mb-2 shadow-sm" @click="toggleScanner">
                   <i class="fas" :class="isScanning ? 'fa-times-circle' : 'fa-camera-retro'"></i>
                   {{ isScanning ? ' Ngừng quét' : ' Bật Camera quét mã' }}
                 </button>
+
+                <!-- <button v-if="!isScanning" type="button" class="btn btn-outline-wine w-100 mb-2"
+                  @click="triggerQRFileInput">
+                  <i class="fas fa-image me-2"></i> Chọn ảnh từ máy
+                </button> -->
+
+                <input type="file" ref="qrFileInput" class="d-none" @change="onQRFileChange" accept="image/*" />
+
+                <div class="d-flex align-items-center">
+      <i class="fas fa-exclamation-circle fs-5 me-2"></i>
+      <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
+    </div>
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
+
+                <div v-if="qrErrorMessage" class="alert alert-danger mt-2 py-1 px-2 small border-0 shadow-sm"
+                  style="font-size: 0.75rem;">
+                  <i class="fas fa-exclamation-triangle me-1"></i> {{ qrErrorMessage }}
+                </div>
+
                 <p v-if="isScanning" class="tiny text-muted mt-2">Đưa mã QR trên thẻ CCCD vào khung hình</p>
               </div>
 
@@ -79,14 +92,14 @@
                     <span class="badge-number">1</span>
                     <h5 class="m-0 fw-bold">Thông tin cá nhân</h5>
                   </div>
-                  
+
                   <div class="row g-4">
                     <div class="col-md-6">
                       <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-user icon-input"></i>
-                        <input type="text" class="form-control" :class="{'is-invalid': errors.hoTenNhanVien}" 
-                               v-model="formData.hoTenNhanVien" placeholder="Nguyễn Văn A">
+                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.hoTenNhanVien }"
+                          v-model="formData.hoTenNhanVien" placeholder="Nguyễn Văn A">
                       </div>
                       <div class="error-text">{{ errors.hoTenNhanVien }}</div>
                     </div>
@@ -95,9 +108,11 @@
                       <label class="form-label-custom">Vai trò <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="fas fa-user-tag icon-input"></i>
-                        <select class="form-select border-0 bg-transparent" v-model="formData.idVaiTro" :class="{'is-invalid': errors.idVaiTro}">
+                        <select class="form-select border-0 bg-transparent" v-model="formData.idVaiTro"
+                          :class="{ 'is-invalid': errors.idVaiTro }">
                           <option value="" disabled>-- Chọn vai trò --</option>
-                          <option v-for="role in listRoles" :key="role.id" :value="role.id">{{ role.tenVaiTro }}</option>
+                          <option v-for="role in listRoles" :key="role.id" :value="role.id">{{ role.tenVaiTro }}
+                          </option>
                         </select>
                       </div>
                       <div class="error-text">{{ errors.idVaiTro }}</div>
@@ -107,7 +122,8 @@
                       <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="fas fa-phone-alt icon-input"></i>
-                        <input type="text" class="form-control" v-model="formData.sdtNhanVien" :class="{'is-invalid': errors.sdtNhanVien}" placeholder="09xxxxxxxx">
+                        <input type="text" class="form-control" v-model="formData.sdtNhanVien"
+                          :class="{ 'is-invalid': errors.sdtNhanVien }" placeholder="09xxxxxxxx">
                       </div>
                       <div class="error-text">{{ errors.sdtNhanVien }}</div>
                     </div>
@@ -116,25 +132,30 @@
                       <label class="form-label-custom">Email liên hệ <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-envelope icon-input"></i>
-                        <input type="email" class="form-control" v-model="formData.email" :class="{'is-invalid': errors.email}" placeholder="email@congty.com">
+                        <input type="email" class="form-control" v-model="formData.email"
+                          :class="{ 'is-invalid': errors.email }" placeholder="email@congty.com">
                       </div>
                       <div class="error-text">{{ errors.email }}</div>
                     </div>
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Ngày sinh <span class="star">*</span></label>
-                      <input type="date" class="form-control custom-input" v-model="formData.ngaySinh" :class="{'is-invalid': errors.ngaySinh}">
+                      <input type="date" class="form-control custom-input" v-model="formData.ngaySinh"
+                        :class="{ 'is-invalid': errors.ngaySinh }">
                       <div class="error-text">{{ errors.ngaySinh }}</div>
                     </div>
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Giới tính <span class="star">*</span></label>
                       <div class="gender-selector d-flex gap-3">
-                        <input type="radio" class="btn-check" name="gender" id="male" :value="true" v-model="formData.gioiTinh">
+                        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
+                          v-model="formData.gioiTinh">
                         <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
 
-                        <input type="radio" class="btn-check" name="gender" id="female" :value="false" v-model="formData.gioiTinh">
-                        <label class="btn btn-outline-wine w-100" for="female"><i class="fas fa-venus me-2"></i>Nữ</label>
+                        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
+                          v-model="formData.gioiTinh">
+                        <label class="btn btn-outline-wine w-100" for="female"><i
+                            class="fas fa-venus me-2"></i>Nữ</label>
                       </div>
                     </div>
                   </div>
@@ -143,7 +164,7 @@
                 <div class="form-section mb-5 pt-4 border-top">
                   <div class="d-flex align-items-center mb-4">
                     <span class="badge-number">2</span>
-                    <h5 class="m-0 fw-bold">Thông tin CCCD & Tài khoản</h5>
+                    <h5 class="m-0 fw-bold">Địa chỉ liên hệ </h5>
                   </div>
 
                   <div class="row g-4">
@@ -151,32 +172,43 @@
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
-                        <input type="text" class="form-control" v-model="formData.soCccd" :class="{'is-invalid': errors.soCccd}" placeholder="12 chữ số">
+                        <input type="text" class="form-control" v-model="formData.soCccd"
+                          :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
                     </div>
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Ngày cấp <span class="star">*</span></label>
-                      <input type="date" class="form-control custom-input" v-model="formData.ngayCapCccd" :class="{'is-invalid': errors.ngayCapCccd}">
+                      <input type="date" class="form-control custom-input" v-model="formData.ngayCapCccd"
+                        :class="{ 'is-invalid': errors.ngayCapCccd }">
                       <div class="error-text">{{ errors.ngayCapCccd }}</div>
                     </div>
-
                     <div class="col-md-6">
+                      <label class="form-label-custom">Ngày vào làm <span class="star">*</span></label>
+                      <input type="date" class="form-control custom-input" v-model="formData.ngayVaoLam"
+                        :class="{ 'is-invalid': errors.ngayVaoLam }">
+                      <div class="error-text">{{ errors.ngayVaoLam }}</div>
+                    </div>
+
+                    <div class="col-md-12">
                       <label class="form-label-custom">Nơi cấp <span class="star">*</span></label>
-                      <input type="text" class="form-control custom-input" v-model="formData.noiCapCccd" :class="{'is-invalid': errors.noiCapCccd}" placeholder="Cục CSQLHC...">
+                      <input type="text" class="form-control custom-input" v-model="formData.noiCapCccd"
+                        :class="{ 'is-invalid': errors.noiCapCccd }" placeholder="Cục CSQLHC...">
                       <div class="error-text">{{ errors.noiCapCccd }}</div>
                     </div>
 
                     <div class="col-12">
                       <label class="form-label-custom">Địa chỉ thường trú <span class="star">*</span></label>
-                      <textarea class="form-control custom-input" rows="2" v-model="formData.diaChi" :class="{'is-invalid': errors.diaChi}" placeholder="Địa chỉ ghi trên CCCD"></textarea>
+                      <textarea class="form-control custom-input" rows="2" v-model="formData.diaChi"
+                        :class="{ 'is-invalid': errors.diaChi }" placeholder="Địa chỉ ghi trên CCCD"></textarea>
                       <div class="error-text">{{ errors.diaChi }}</div>
                     </div>
 
-                    <div class="col-md-6">
+                    <!-- <div class="col-md-6">
                       <label class="form-label-custom">Tên đăng nhập <span class="star">*</span></label>
-                      <input type="text" class="form-control custom-input bg-light" v-model="formData.tenDangNhap" :readonly="!!staffId" placeholder="username">
+                      <input type="text" class="form-control custom-input bg-light" v-model="formData.tenDangNhap"
+                        :readonly="!!staffId" placeholder="username">
                       <div class="error-text">{{ errors.tenDangNhap }}</div>
                     </div>
 
@@ -184,19 +216,22 @@
                       <label class="form-label-custom">Mật khẩu <span v-if="!staffId" class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="fas fa-lock icon-input"></i>
-                        <input v-if="!staffId" type="password" class="form-control" v-model="formData.matKhauDangNhap" :class="{'is-invalid': errors.matKhauDangNhap}" placeholder="••••••••">
+                        <input v-if="!staffId" type="password" class="form-control" v-model="formData.matKhauDangNhap"
+                          :class="{ 'is-invalid': errors.matKhauDangNhap }" placeholder="••••••••">
                         <input v-else type="text" class="form-control bg-light" value="********" readonly>
                       </div>
                       <div class="error-text">{{ errors.matKhauDangNhap }}</div>
-                    </div>
+                    </div> -->
                   </div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center pt-4 border-top">
                   <p class="text-muted small mb-0">* Bảo mật thông tin nhân sự nội bộ</p>
                   <div class="d-flex gap-3">
-                    <button type="button" class="btn btn-light-custom px-4" @click="$router.push('/admin/staff')">Hủy bỏ</button>
-                    <button type="button" class="btn btn-main-custom px-5 py-2 shadow-sm" @click="handleSave" :disabled="loading">
+                    <button type="button" class="btn btn-light-custom px-4" @click="$router.push('/admin/staff')">Hủy
+                      bỏ</button>
+                    <button type="button" class="btn btn-main-custom px-5 py-2 shadow-sm" @click="handleSave"
+                      :disabled="loading">
                       <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                       {{ staffId ? 'Cập nhật ngay' : 'Thêm nhân viên' }}
                     </button>
@@ -222,6 +257,58 @@ import { Html5QrcodeScanner } from "html5-qrcode";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+// 1. Khai báo thêm các Ref cần thiết
+const qrErrorMessage = ref("");
+const qrFileInput = ref(null);
+
+// 2. Hàm kích hoạt chọn file (Dùng cho nút "Chọn ảnh từ máy")
+const triggerQRFileInput = () => {
+  qrErrorMessage.value = ""; // Xóa lỗi cũ
+  qrFileInput.value.click();
+};
+
+// 3. Hàm xử lý quét file ảnh - ĐÂY LÀ ĐOẠN SỬA LỖI QUÉT ẢNH TỪ THƯ MỤC
+const onQRFileChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // 1. Reset trạng thái ban đầu
+  qrErrorMessage.value = "";
+  loading.value = true; // Nếu em có biến loading để hiện spinner thì dùng
+
+  try {
+    const response = await staffService.scanQR(file);
+
+    if (response.data) {
+      // 2. Gọi hàm điền dữ liệu
+      onScanSuccess(response.data);
+
+      // 3. Thông báo thành công kiểu "sang chảnh"
+      toast.success("Quét mã CCCD thành công! Dữ liệu đã được tự động điền.", {
+        timeout: 3000,
+        icon: "🚀"
+      });
+    }
+  } catch (err) {
+    console.error("Lỗi quét QR:", err);
+
+    const status = err.response?.status;
+
+    if (status === 404) {
+      // Chỉ hiện text dưới input cho lỗi "không tìm thấy mã"
+      qrErrorMessage.value = "Hệ thống không tìm thấy mã QR. Bạn hãy thử chụp rõ nét, không bị lóa nhé!";
+    } else if (status === 403 || status === 401) {
+      // Lỗi bảo mật thì dùng Toast cho nghiêm trọng
+      toast.error("Phiên đăng nhập hết hạn, vui lòng F5 lại trang!");
+    } else {
+      // Lỗi server/kết nối
+      toast.error("Không thể kết nối đến máy chủ. Hãy kiểm tra Backend!");
+    }
+  } finally {
+    loading.value = false;
+    e.target.value = ""; // Luôn reset input file
+  }
+};
 
 // ID từ URL
 const staffId = ref(route.params.id || null);
@@ -235,62 +322,63 @@ let html5QrcodeScanner = null;
 let scanned = false; // chống quét lặp
 
 const toggleScanner = () => {
-    isScanning.value = !isScanning.value;
+  isScanning.value = !isScanning.value;
 
-    if (isScanning.value) {
-        nextTick(() => {
-            if (html5QrcodeScanner) html5QrcodeScanner.clear();
+  if (isScanning.value) {
+    nextTick(() => {
+      if (html5QrcodeScanner) html5QrcodeScanner.clear();
 
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            });
+      html5QrcodeScanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      });
 
-            html5QrcodeScanner.render(onScanSuccess, () => { });
-        });
-    } else stopScanner();
+      html5QrcodeScanner.render(onScanSuccess, () => { });
+    });
+  } else stopScanner();
 };
 
 const stopScanner = () => {
-    scanned = false;
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(() => { });
-        html5QrcodeScanner = null;
-    }
-    isScanning.value = false;
+  scanned = false;
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.clear().catch(() => { });
+    html5QrcodeScanner = null;
+  }
+  isScanning.value = false;
 };
 
 const onScanSuccess = (decodedText) => {
-    if (scanned) return;
-    scanned = true;
+  qrErrorMessage.value = "";
+  if (scanned) return;
+  scanned = true;
 
-    if (!decodedText.includes('|')) {
-        toast.error("QR không phải CCCD hợp lệ");
-        return;
-    }
+  if (!decodedText.includes('|')) {
+    toast.error("QR không phải CCCD hợp lệ");
+    return;
+  }
 
-    const parts = decodedText.split('|');
+  const parts = decodedText.split('|');
 
-    formData.soCccd = parts[0] || '';
-    formData.hoTenNhanVien = parts[2] || '';
+  formData.soCccd = parts[0] || '';
+  formData.hoTenNhanVien = parts[2] || '';
 
-    if (parts[3]?.length === 8) {
-        const d = parts[3];
-        formData.ngaySinh = `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
-    }
+  if (parts[3]?.length === 8) {
+    const d = parts[3];
+    formData.ngaySinh = `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+  }
 
-    formData.gioiTinh = parts[4]?.toLowerCase().includes("nam");
-    formData.diaChi = parts[5] || '';
-    formData.noiCapCccd = "Cục CSQLHC về TTXH";
+  formData.gioiTinh = parts[4]?.toLowerCase().includes("nam");
+  formData.diaChi = parts[5] || '';
+  formData.noiCapCccd = "Cục CSQLHC về TTXH";
 
-    if (parts[6]?.length === 8) {
-        const d = parts[6];
-        formData.ngayCapCccd = `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
-    }
+  if (parts[6]?.length === 8) {
+    const d = parts[6];
+    formData.ngayCapCccd = `${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`;
+  }
 
-    toast.success("Đã lấy thông tin CCCD!");
-    checkDuplicate('soCccd');
-    stopScanner();
+  toast.success("Đã lấy thông tin CCCD!");
+  checkDuplicate('soCccd');
+  stopScanner();
 };
 
 onUnmounted(stopScanner);
@@ -306,27 +394,29 @@ const fileInput = ref(null);
 const selectedFile = ref(null);
 
 const formData = reactive({
-    id: null,
-    idVaiTro: '',
-    hoTenNhanVien: '',
-    soCccd: '',
-    ngayCapCccd: '',
-    noiCapCccd: '',
-    tenDangNhap: '',
-    matKhauDangNhap: '',
-    sdtNhanVien: '',
-    email: '',
-    diaChi: '',
-    ngaySinh: '',
-    ngayVaoLam: dayjs().format('YYYY-MM-DD'),
-    gioiTinh: true,
-    trangThaiLamViec: 1
+  id: null,
+  idVaiTro: '',
+  hoTenNhanVien: '',
+  soCccd: '',
+  ngayCapCccd: '',
+  noiCapCccd: '',
+  tenDangNhap: '',
+  matKhauDangNhap: '',
+  sdtNhanVien: '',
+  email: '',
+  diaChi: '',
+  ngaySinh: '',
+  ngayVaoLam: dayjs().format('YYYY-MM-DD'),
+  gioiTinh: true,
+  trangThaiLamViec: 1
 });
 
+const originalData = ref({});
+
 const errors = reactive({
-    idVaiTro: '', hoTenNhanVien: '', soCccd: '', ngayCapCccd: '',
-    noiCapCccd: '', tenDangNhap: '', sdtNhanVien: '', email: '',
-    ngaySinh: '', diaChi: '', matKhauDangNhap: ''
+  idVaiTro: '', hoTenNhanVien: '', soCccd: '', ngayCapCccd: '',
+  noiCapCccd: '', tenDangNhap: '', sdtNhanVien: '', email: '',
+  ngaySinh: '', diaChi: '', matKhauDangNhap: ''
 });
 
 //////////////////////////////////////////////////////
@@ -334,9 +424,9 @@ const errors = reactive({
 //////////////////////////////////////////////////////
 
 watch(() => ({ ...formData }), (val) => {
-    Object.keys(val).forEach(key => {
-        if (val[key] && errors[key]) errors[key] = '';
-    });
+  Object.keys(val).forEach(key => {
+    if (val[key] && errors[key]) errors[key] = '';
+  });
 }, { deep: true });
 
 //////////////////////////////////////////////////////
@@ -346,11 +436,11 @@ watch(() => ({ ...formData }), (val) => {
 const triggerFileInput = () => fileInput.value.click();
 
 const onFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        selectedFile.value = file;
-        imagePreview.value = URL.createObjectURL(file);
-    }
+  const file = e.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    imagePreview.value = URL.createObjectURL(file);
+  }
 };
 
 //////////////////////////////////////////////////////
@@ -358,23 +448,29 @@ const onFileChange = (e) => {
 //////////////////////////////////////////////////////
 
 const checkDuplicate = async (type) => {
-    if (!formData[type]) return;
+  if (!formData[type]) {
+    errors[type] = ""; // Xóa thông báo nếu input trống
+    return;
+  }
 
-    try {
-        const res = await staffService.checkDuplicate(
-            type,
-            formData[type],
-            staffId.value
-        );
+  try {
+    // Xóa lỗi cũ trước khi gọi API check mới
+    errors[type] = "";
 
-        if (res.data.exists) {
-            errors[type] = "Thông tin đã tồn tại";
-        }
-    } catch (e) {
-        console.error("Duplicate error:", e);
+    const res = await staffService.checkDuplicate({
+      type: type,
+      value: formData[type],
+      excludeId: staffId.value || null // Đảm bảo không bị undefined
+    });
+
+    // Lưu ý: Kiểm tra response trả về từ BE (thường là res.data hoặc res.data.exists)
+    if (res.data === true || res.data.exists === true) {
+      errors[type] = `${type === 'email' ? 'Email' : 'Thông tin'} này đã tồn tại trong hệ thống`;
     }
+  } catch (e) {
+    console.error("Duplicate error:", e);
+  }
 };
-
 
 
 //////////////////////////////////////////////////////
@@ -382,115 +478,111 @@ const checkDuplicate = async (type) => {
 //////////////////////////////////////////////////////
 
 const validateForm = async () => {
-    let ok = true;
-    const today = dayjs();
+  let ok = true;
+  const today = dayjs();
+  
+  // Reset lỗi
+  Object.keys(errors).forEach(k => errors[k] = '');
+  qrErrorMessage.value = ""; 
 
-    // 1. Reset toàn bộ lỗi trước khi kiểm tra
-    Object.keys(errors).forEach(k => errors[k] = '');
+  // --- BƯỚC 1: KIỂM TRA TRỐNG (REQUIRED) ---
+  const requiredFields = [
+    { key: 'hoTenNhanVien', msg: 'Họ tên không được để trống' },
+    { key: 'idVaiTro', msg: 'Vui lòng chọn vai trò' },
+    { key: 'sdtNhanVien', msg: 'Số điện thoại không được để trống' },
+    { key: 'email', msg: 'Email không được để trống' },
+    { key: 'diaChi', msg: 'Địa chỉ thường trú không được để trống' },
+    { key: 'ngayCapCccd', msg: 'Thiếu ngày cấp CCCD' },
+    { key: 'noiCapCccd', msg: 'Thiếu nơi cấp ' }
+  ];
 
-    // 2. Kiểm tra các trường bắt buộc (Required) với lời nhắc thân thiện
-    const requiredFields = [
-        { key: 'hoTenNhanVien', msg: 'Vui lòng nhập họ và tên nhân viên' },
-        { key: 'idVaiTro', msg: 'Vui lòng chọn vai trò cho nhân viên' },
-        { key: 'soCccd', msg: 'Vui lòng nhập số CCCD' },
-        { key: 'ngayCapCccd', msg: 'Vui lòng chọn ngày cấp CCCD' },
-        { key: 'noiCapCccd', msg: 'Vui lòng nhập nơi cấp CCCD' },
-        { key: 'sdtNhanVien', msg: 'Vui lòng nhập số điện thoại' },
-        { key: 'email', msg: 'Vui lòng nhập địa chỉ email' },
-        { key: 'ngaySinh', msg: 'Vui lòng chọn ngày tháng năm sinh' },
-        { key: 'tenDangNhap', msg: 'Vui lòng nhập tên đăng nhập hệ thống' },
-        { key: 'diaChi', msg: 'Vui lòng nhập địa chỉ thường trú' }
+  requiredFields.forEach(f => {
+    if (!formData[f.key] || formData[f.key].toString().trim() === '') {
+      errors[f.key] = f.msg;
+      ok = false;
+    }
+  });
+
+  // --- BƯỚC 2: KIỂM TRA ĐỊNH DẠNG CHI TIẾT ---
+
+  // 1. Số điện thoại: Phải là số, đúng 10 chữ số (đầu số VN thường là 0)
+  const vnf_regex = /^(03|05|07|08|09|01[2|6|8|9])+([0-9]{8})$/;
+  if (formData.sdtNhanVien && !vnf_regex.test(formData.sdtNhanVien)) {
+    errors.sdtNhanVien = 'Số điện thoại phải đủ 10 số và đúng đầu số Việt Nam';
+    ok = false;
+  }
+
+  // 2. Email: Đúng định dạng email chuẩn
+  const email_regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (formData.email && !email_regex.test(formData.email)) {
+    errors.email = 'Định dạng email không hợp lệ (ví dụ: abc@gmail.com)';
+    ok = false;
+  }
+
+  // 3. Ngày sinh: Không ở tương lai & Đủ 18 tuổi
+  if (formData.ngaySinh) {
+    const birthDate = dayjs(formData.ngaySinh);
+    if (birthDate.isAfter(today)) {
+      errors.ngaySinh = 'Ngày sinh không thể ở trong tương lai!';
+      ok = false;
+    } else {
+      const age = today.diff(birthDate, 'year');
+      if (age < 18) {
+        errors.ngaySinh = `Nhân viên chưa đủ 18 tuổi (Hiện tại: ${age} tuổi)`;
+        ok = false;
+      }
+    }
+  } else {
+    errors.ngaySinh = 'Vui lòng chọn ngày sinh';
+    ok = false;
+  }
+
+  // 4. CCCD (Trường ẩn): Check nếu chưa quét mã
+  if (!formData.soCccd) {
+    qrErrorMessage.value = "⚠️ Vui lòng quét mã QR CCCD để điền thông tin!";
+    ok = false;
+  }
+
+  // Nếu sai các logic cơ bản trên thì dừng luôn
+  if (!ok) return false;
+
+  // --- BƯỚC 3: KIỂM TRA TRÙNG LẶP (DATABASE) ---
+  try {
+    const checkList = [
+      { key: 'email', label: 'Email' },
+      { key: 'sdtNhanVien', label: 'Số điện thoại' },
+      { key: 'soCccd', label: 'Số CCCD' }
     ];
 
-    requiredFields.forEach(field => {
-        if (!formData[field.key] || formData[field.key].toString().trim() === '') {
-            errors[field.key] = field.msg;
-            ok = false;
-        }
-    });
+    for (const item of checkList) {
+      const res = await staffService.checkDuplicate({
+        type: item.key,
+        value: formData[item.key],
+        excludeId: staffId.value || null
+      });
 
-    // 3. Kiểm tra định dạng chuyên sâu (nếu đã nhập dữ liệu)
-    
-    // Mật khẩu (Chỉ kiểm tra khi thêm mới nhân viên)
-    if (!staffId.value) {
-        if (!formData.matKhauDangNhap) {
-            errors.matKhauDangNhap = 'Vui lòng thiết lập mật khẩu đăng nhập';
-            ok = false;
-        } else if (formData.matKhauDangNhap.length < 6) {
-            errors.matKhauDangNhap = 'Mật khẩu cần tối thiểu 6 ký tự để bảo mật';
-            ok = false;
-        }
-    }
-
-    // Định dạng CCCD (12 chữ số)
-    if (formData.soCccd && !/^\d{12}$/.test(formData.soCccd)) {
-        errors.soCccd = 'Số CCCD không hợp lệ (phải bao gồm đúng 12 chữ số)';
+      if (res.data === true || res.data?.exists === true) {
+        errors[item.key] = `${item.label} này đã được sử dụng bởi nhân viên khác`;
+        if (item.key === 'soCccd') qrErrorMessage.value = "Số CCCD đã tồn tại!";
         ok = false;
+        break; 
+      }
     }
+  } catch (e) {
+    console.error("Lỗi kiểm tra trùng lặp:", e);
+  }
 
-    // Định dạng Số điện thoại (Việt Nam)
-    if (formData.sdtNhanVien && !/^(0|84)(3|5|7|8|9)\d{8}$/.test(formData.sdtNhanVien)) {
-        errors.sdtNhanVien = 'Số điện thoại không đúng định dạng';
-        ok = false;
-    }
-
-    // Định dạng Email
-    if (formData.email && !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)) {
-        errors.email = 'Địa chỉ email không đúng định dạng (ví dụ: abc@gmail.com)';
-        ok = false;
-    }
-
-    // 4. Kiểm tra logic ngày tháng
-    if (formData.ngaySinh) {
-        const birth = dayjs(formData.ngaySinh);
-        if (birth.isAfter(today)) {
-            errors.ngaySinh = 'Ngày sinh không thể lớn hơn ngày hiện tại';
-            ok = false;
-        } else if (today.diff(birth, 'year') < 18) {
-            errors.ngaySinh = 'Nhân viên phải từ đủ 18 tuổi trở lên';
-            ok = false;
-        }
-    }
-
-    if (formData.ngayCapCccd && dayjs(formData.ngayCapCccd).isAfter(today)) {
-        errors.ngayCapCccd = 'Ngày cấp CCCD không hợp lệ';
-        ok = false;
-    }
-
-    // 5. Nếu các bước trên đã sai thì dừng lại luôn, chưa cần check DB để tiết kiệm tài nguyên
-    if (!ok) return false;
-
-    // 6. 🔥 Kiểm tra trùng lặp dữ liệu trong Cơ sở dữ liệu
-    try {
-        const duplicateChecks = [
-            { key: 'tenDangNhap', label: 'Tên đăng nhập' },
-            { key: 'email', label: 'Email' },
-            { key: 'sdtNhanVien', label: 'Số điện thoại' },
-            { key: 'soCccd', label: 'Số CCCD' }
-        ];
-
-        for (const item of duplicateChecks) {
-            const res = await staffService.checkDuplicate(
-                item.key,
-                formData[item.key],
-                staffId.value
-            );
-
-            if (res.data.exists) {
-                errors[item.key] = `${item.label} này đã được sử dụng bởi một nhân viên khác`;
-                ok = false;
-            }
-        }
-    } catch (e) {
-        console.error("Lỗi kiểm tra trùng lặp:", e);
-        toast.error("Hệ thống tạm thời không thể kiểm tra dữ liệu trùng. Vui lòng thử lại sau.");
-        return false;
-    }
-
-    return ok;
+  return ok;
 };
 
-
+const generateRandomPassword = (length = 8) => {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$";
+  let retVal = "";
+  for (let i = 0; i < length; ++i) {
+    retVal += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return retVal;
+};
 
 
 //////////////////////////////////////////////////////
@@ -498,49 +590,118 @@ const validateForm = async () => {
 //////////////////////////////////////////////////////
 
 const handleSave = async () => {
-    if (!(await validateForm())) {
-        toast.warning("Vui lòng kiểm tra form");
-        return;
+  // 1. Kiểm tra Validate (Ngày sinh tương lai, thiếu CCCD, trùng lặp...)
+  const isValid = await validateForm();
+  
+  if (!isValid) {
+    // Nếu không hợp lệ, bắn một cái thông báo tổng quát thật to
+    Swal.fire({
+      icon: 'error',
+      title: 'Thông tin chưa hoàn tất!',
+      text: 'Vui lòng kiểm tra các ô báo đỏ và đảm bảo đã quét mã QR CCCD.',
+      confirmButtonColor: '#800000',
+      confirmButtonText: 'Đã hiểu'
+    });
+    return;
+  }
+
+  try {
+    loading.value = true;
+
+    // 2. TỰ ĐỘNG SINH THÔNG TIN TÀI KHOẢN (Chỉ khi thêm mới)
+    if (!staffId.value) {
+      if (!formData.tenDangNhap) {
+        formData.tenDangNhap = 'nv' + formData.sdtNhanVien;
+      }
+      const randomPass = generateRandomPassword(10);
+      formData.matKhauDangNhap = randomPass;
     }
 
+    const data = new FormData();
 
-    try {
-        loading.value = true;
+    // 3. DANH SÁCH CÁC TRƯỜNG GỬI ĐI
+    const fieldsToSend = [
+      'hoTenNhanVien', 'idVaiTro', 'soCccd', 'ngayCapCccd',
+      'noiCapCccd', 'sdtNhanVien', 'email', 'diaChi',
+      'ngaySinh', 'gioiTinh', 'trangThaiLamViec', 'ngayVaoLam',
+      'tenDangNhap', 'matKhauDangNhap'
+    ];
 
-        const data = new FormData();
+    fieldsToSend.forEach(key => {
+      let value = formData[key];
+      if (key === 'idVaiTro') value = Number(value);
+      if (key === 'gioiTinh') value = (value === true || value === 'true');
 
-        Object.keys(formData).forEach(key => {
-            let value = formData[key];
+      if (value !== null && value !== undefined && value !== '') {
+        data.append(key, value);
+      }
+    });
 
-            if (key === 'gioiTinh')
-                value = value ? true : false;
-
-            if (value !== null && value !== undefined && value !== '') {
-                data.append(key, value);
-            }
-        });
-
-        // 🔥 ép kiểu số cho idVaiTro
-        data.set('idVaiTro', Number(formData.idVaiTro));
-
-        if (selectedFile.value)
-            data.append('hinhAnhFile', selectedFile.value);
-
-        if (staffId.value)
-            await staffService.update(staffId.value, data);
-        else
-            await staffService.create(data);
-
-        toast.success("Lưu thành công!");
-        router.push('/admin/staff');
-
-    } catch (e) {
-        console.error(e);
-        toast.error("Lỗi lưu dữ liệu");
-    } finally {
-        loading.value = false;
+    if (selectedFile.value) {
+      data.append('hinhAnhFile', selectedFile.value);
     }
+
+    // 4. GỌI API
+    let message = "";
+    if (staffId.value) {
+      await staffService.update(staffId.value, data);
+      message = "Cập nhật thông tin nhân viên thành công!";
+    } else {
+      await staffService.create(data);
+      message = "Thêm nhân viên mới thành công!";
+    }
+
+    // Hiển thị thông báo thành công xịn xò trước khi chuyển trang
+    Swal.fire({
+      icon: 'success',
+      title: 'Thành công',
+      text: message,
+      timer: 2000,
+      showConfirmButton: false
+    });
+
+    setTimeout(() => {
+      router.push('/admin/staff');
+    }, 1500);
+
+ } catch (e) {
+    console.error("Chi tiết lỗi lưu:", e.response?.data);
+    
+    const resData = e.response?.data;
+
+    // Kiểm tra nếu Backend trả về lỗi Validation (giống cái Object em vừa gửi)
+    if (resData && resData.code === "VALIDATION_ERORR" && resData.errors) {
+      
+      // Duyệt qua danh sách lỗi từ Backend gửi về
+      // resData.errors lúc này là { ngaySinh: 'Ngày sinh phải là một ngày trong quá khứ' }
+      Object.keys(resData.errors).forEach(key => {
+        // Gán tin nhắn lỗi vào Object errors để UI bôi đỏ ô input
+        errors[key] = resData.errors[key];
+      });
+
+      toast.error("Thông tin nhập vào chưa đúng, vui lòng kiểm tra các ô báo đỏ!");
+      
+      // Tự động cuộn đến chỗ lỗi đầu tiên cho người dùng dễ thấy
+      nextTick(() => {
+        const firstError = document.querySelector('.is-invalid');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+    } else {
+      // Các lỗi hệ thống khác (500, 404,...)
+      const errorMsg = resData?.message || "Lỗi hệ thống, vui lòng thử lại sau!";
+      toast.error(errorMsg);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi máy chủ',
+        text: errorMsg
+      });
+    }
+  } finally {
+    loading.value = false;
+  }
 };
+
 
 
 //////////////////////////////////////////////////////
@@ -548,25 +709,27 @@ const handleSave = async () => {
 //////////////////////////////////////////////////////
 
 onMounted(async () => {
-    try {
-        const roleRes = await staffService.getActiveRoles();
-        listRoles.value = roleRes.data;
+  try {
+    const roleRes = await staffService.getActiveRoles();
+    listRoles.value = roleRes.data;
 
-        if (staffId.value) {
-            const res = await staffService.getDetail(staffId.value);
-            Object.assign(formData, res.data);
+    if (staffId.value) {
+      const res = await staffService.getDetail(staffId.value);
+      Object.assign(formData, res.data);
 
-            formData.idVaiTro = res.data.idVaiTro;
-            formData.ngayCapCccd = dayjs(res.data.ngayCapCccd).format('YYYY-MM-DD');
-            formData.ngaySinh = dayjs(res.data.ngaySinh).format('YYYY-MM-DD');
+      formData.idVaiTro = res.data.idVaiTro;
+      formData.ngayCapCccd = dayjs(res.data.ngayCapCccd).format('YYYY-MM-DD');
+      formData.ngaySinh = dayjs(res.data.ngaySinh).format('YYYY-MM-DD');
 
-            if (res.data.anhDaiDien)
-                imagePreview.value = `http://localhost:8080/uploads/images/${res.data.anhDaiDien}`;
-        }
-    } catch {
-        toast.error("Không tải được dữ liệu");
+      if (res.data.anhDaiDien)
+        imagePreview.value = `http://localhost:8080/uploads/images/${res.data.anhDaiDien}`;
     }
+  } catch {
+    toast.error("Không tải được dữ liệu");
+  }
 });
+
+
 </script>
 
 
@@ -577,7 +740,9 @@ onMounted(async () => {
   color: #333;
 }
 
-.text-wine { color: #800000 !important; }
+.text-wine {
+  color: #800000 !important;
+}
 
 /* Header Icon */
 .icon-header-box {
@@ -666,7 +831,7 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.input-group-custom .form-control, 
+.input-group-custom .form-control,
 .input-group-custom .form-select {
   border: none !important;
   padding: 10px 12px 10px 0;
@@ -698,7 +863,7 @@ onMounted(async () => {
   transition: 0.2s;
 }
 
-.gender-selector .btn-check:checked + .btn-outline-wine {
+.gender-selector .btn-check:checked+.btn-outline-wine {
   background-color: #800000;
   border-color: #800000;
   color: #fff;
@@ -776,8 +941,13 @@ onMounted(async () => {
   display: block;
 }
 
-.star { color: #dc3545; }
-.tiny { font-size: 11px; }
+.star {
+  color: #dc3545;
+}
+
+.tiny {
+  font-size: 11px;
+}
 
 /* Đường kẻ */
 hr.dashed {
@@ -794,5 +964,80 @@ hr.dashed {
 #reader {
   border-radius: 10px;
   overflow: hidden;
+}
+
+/* Lớp bọc ngoài để căn giữa toàn bộ */
+.avatar-wrapper {
+  display: flex;
+  justify-content: center;
+  /* Căn giữa ngang */
+  align-items: center;
+  /* Căn giữa dọc (nếu có chiều cao) */
+  padding: 20px;
+  width: 100%;
+}
+
+/* Khối Avatar chính */
+.avatar-upload {
+  width: 300px;
+  /* Đã tăng từ 100px lên 200px */
+  height: 300px;
+  /* Đã tăng từ 100px lên 200px */
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background-color: #f5f5f5;
+  /* Xám cực nhẹ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #ffffff;
+  /* Viền trắng dày cho sang */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  /* Đổ bóng cho nổi khối */
+  transition: all 0.3s ease-in-out;
+}
+
+.avatar-upload:hover {
+  border-color: #3498db;
+  /* Đổi màu viền khi hover cho chuyên nghiệp */
+  transform: scale(1.02);
+  /* Phóng to nhẹ khi di chuột vào */
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Icon người xám to hơn */
+.avatar-placeholder i {
+  font-size: 5rem;
+  color: #bdc3c7;
+}
+
+.avatar-edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-edit-overlay i {
+  font-size: 1.5rem;
+}
+
+.avatar-upload:hover .avatar-edit-overlay {
+  opacity: 1;
 }
 </style>
