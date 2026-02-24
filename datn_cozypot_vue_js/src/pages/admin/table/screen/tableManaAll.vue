@@ -267,6 +267,7 @@ onUnmounted(() => {
 .layout-table {
   display: flex;
   background-color: white;
+  height: 100%;
 }
 
 .header-manager {

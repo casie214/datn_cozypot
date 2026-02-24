@@ -173,6 +173,215 @@
 
                 </div>
 
+<<<<<<< HEAD
+=======
+                <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
+
+              </div>
+
+
+
+              <hr class="dashed">
+
+
+
+              <div v-if="clientId" class="client-stats mb-4">
+
+                <div class="d-flex justify-content-between mb-2">
+
+                  <span class="text-muted small">Mã khách hàng:</span>
+
+                  <span class="fw-bold text-wine">{{ formData.maKhachHang || '---' }}</span>
+
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+
+                  <span class="text-muted small">Điểm tích lũy:</span>
+
+                  <span class="badge bg-gold text-dark fw-bold">{{ formData.diemTichLuy || 0 }} điểm</span>
+
+                </div>
+
+                <div class="d-flex justify-content-between">
+
+                  <span class="text-muted small">Ngày tham gia:</span>
+
+                  <span class="small">{{ dayjs(formData.ngayTaoTaiKhoan).format('DD/MM/YYYY') }}</span>
+
+                </div>
+
+              </div>
+
+
+
+              <div class="info-alert p-3 rounded-3 bg-light-wine border-start-wine">
+
+                <p class="small text-muted mb-0">
+
+                  <i class="fas fa-info-circle text-wine me-2"></i>
+
+                  Lưu ý: Các trường đánh dấu <span class="star">*</span> bắt buộc phải nhập đầy đủ.
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="col-lg-8">
+
+          <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+
+            <div class="card-body p-4 p-md-5">
+
+              <form @submit.prevent>
+
+                <div class="form-section mb-5">
+
+  <div class="d-flex align-items-center mb-4">
+
+    <span class="badge-number">1</span>
+
+    <h5 class="m-0 fw-bold">Thông tin định danh</h5>
+
+  </div>
+
+
+
+  <div class="row g-4">
+
+    <div class="col-md-6">
+
+      <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
+
+      <div class="input-group-custom">
+
+        <i class="far fa-user icon-input"></i>
+
+        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenKhachHang }"
+
+          v-model="formData.tenKhachHang" placeholder="Nguyễn Văn A">
+
+      </div>
+
+      <div class="error-text">{{ errors.tenKhachHang }}</div>
+
+    </div>
+
+
+
+    <div class="col-md-6">
+
+      <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
+
+      <div class="input-group-custom">
+
+        <i class="fas fa-phone-alt icon-input"></i>
+
+        <input type="text" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }"
+
+          v-model="formData.soDienThoai" placeholder="09xxxxxxxx">
+
+      </div>
+
+      <div class="error-text">{{ errors.soDienThoai }}</div>
+
+    </div>
+
+
+
+    <div class="col-md-6">
+
+      <label class="form-label-custom">Email <span class="star">*</span></label>
+
+      <div class="input-group-custom">
+
+        <i class="far fa-envelope icon-input"></i>
+
+        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }"
+
+          v-model="formData.email" placeholder="example@gmail.com">
+
+      </div>
+
+      <div class="error-text">{{ errors.email }}</div>
+
+    </div>
+
+    <div class="col-md-6" v-if="!clientId">
+      <label class="form-label-custom">Tên hiển thị <span class="star">*</span></label>
+      <div class="input-group-custom">
+        <i class="fas fa-user-circle icon-input"></i>
+        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenDangNhap }"
+          v-model="formData.tenDangNhap" placeholder="username123" autocomplete="new-password">
+      </div>
+      <div class="error-text">{{ errors.tenDangNhap }}</div>
+    </div>
+
+    <div class="col-md-6" v-if="!clientId">
+      <label class="form-label-custom">Mật khẩu <span class="star">*</span></label>
+      <div class="input-group-custom">
+        <i class="fas fa-lock icon-input"></i>
+        <input type="password" class="form-control" :class="{ 'is-invalid': errors.matKhauDangNhap }"
+          v-model="formData.matKhauDangNhap" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="error-text">{{ errors.matKhauDangNhap }}</div>
+    </div>
+
+    <div class="col-md-6">
+
+      <label class="form-label-custom">Ngày sinh <span class="star">*</span></label>
+
+      <div class="input-group-custom">
+
+        <i class="far fa-calendar-alt icon-input"></i> <input type="date" class="form-control" :class="{ 'is-invalid': errors.ngaySinh }"
+
+          v-model="formData.ngaySinh">
+
+      </div>
+
+      <div class="error-text">{{ errors.ngaySinh }}</div>
+
+    </div>
+
+
+
+    <div class="col-md-12"> <label class="form-label-custom">Giới tính <span class="star">*</span></label>
+
+      <div class="gender-selector d-flex gap-3">
+
+        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
+
+          v-model="formData.gioiTinh">
+
+        <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
+
+
+
+        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
+
+          v-model="formData.gioiTinh">
+
+        <label class="btn btn-outline-wine w-100" for="female"><i
+
+            class="fas fa-venus me-2"></i>Nữ</label>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+>>>>>>> origin/main
 
 
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">

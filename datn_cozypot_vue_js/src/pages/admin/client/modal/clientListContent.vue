@@ -86,13 +86,15 @@
               </td>
 
               <td>
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center" style="justify-content: center;">
                   <!-- <div class="avatar-placeholder me-2"
           style="width: 32px; height: 32px; background: #f8f9fa; border: 1px solid #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
           <i class="fas fa-user text-muted" style="font-size: 13px;"></i>
         </div> -->
                   <div>
-                    <div class="fw-bold text-dark mb-0">{{ kh.tenKhachHang }}</div>
+                    <div style="text-align: center !important;" class="fw-bold text-dark mb-0">
+                      <span>{{ kh.tenKhachHang }}</span>
+                    </div>
                     <!-- <small class="text-muted" style="font-size: 11px;">{{ kh.maKhachHang }}</small> -->
                   </div>
                 </div>

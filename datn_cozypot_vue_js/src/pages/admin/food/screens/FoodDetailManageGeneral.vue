@@ -146,6 +146,8 @@ const router = useRouter();
 
             <td>{{ item.kichCo || '---' }}</td>
 
+            
+
             <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
 
             <td>
