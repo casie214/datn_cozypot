@@ -4,10 +4,9 @@ import {
   fetchTableStatusByDate,
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { inject } from 'vue';
+import { inject } from "vue";
 
-
-const danhSachBanFromParent = inject('danhSachBan', ref([]));
+const danhSachBanFromParent = inject("danhSachBan", ref([]));
 // const tableStatusMapFromParent = inject('tableStatusMap', ref({}));
 // const selectedDateFromParent = inject('selectedDate', ref(''));
 
@@ -81,7 +80,7 @@ const thongKeTang = computed(() => {
   const free = banTheoTang.value.filter((ban) => {
     const trangThai = getTrangThaiTheoNgay(ban.idBanAn);
     return Number(trangThai) === 0;
- // 0 = Trống
+    // 0 = Trống
   }).length;
   return { total, free };
 });
@@ -143,13 +142,12 @@ const getTrangThaiTheoNgay = (banId) => {
   return Number(tableStatusMap.value[banId] ?? 0);
 };
 
-
 const fetchTableStatus = async () => {
   try {
     const data = await fetchTableStatusByDate(selectedDate.value);
 
     const newMap = {};
-    data.forEach(item => {
+    data.forEach((item) => {
       newMap[item.banId] = item.trangThai;
     });
 
@@ -159,19 +157,20 @@ const fetchTableStatus = async () => {
   }
 };
 
-
 watch(
   selectedDate,
   async () => {
     await fetchTableStatus();
   },
-  { immediate: true }
+  { immediate: true },
 );
-watch(tableStatusMap, (val) => {
-  console.log("Table status map updated:", val);
-}, { deep: true });
-
-
+watch(
+  tableStatusMap,
+  (val) => {
+    console.log("Table status map updated:", val);
+  },
+  { deep: true },
+);
 
 onMounted(() => {
   updateTime();
@@ -361,10 +360,9 @@ onUnmounted(() => {
                     {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                   </div>
                   <div class="small">
-  ID: {{ ban.id }} | Status: {{ getTrangThaiTheoNgay(ban.id) }}
-</div>
-
-
+                    ID: {{ ban.id }} | Status:
+                    {{ getTrangThaiTheoNgay(ban.id) }}
+                  </div>
                 </div>
               </div>
             </div>
