@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
+import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.entity.BanAn;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,6 +35,5 @@ LEFT JOIN PhieuDatBan p
     List<BanAn> findAllBanAn();
 
 
-
-
+    List<BanAn> findByTrangThai(int i);
 }

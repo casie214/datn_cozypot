@@ -5,10 +5,12 @@ import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
+import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,8 @@ import java.util.List;
 public class GuestController {
 
     private final MonAnService monAnService;
+    private final BanAnRepository banAnRepository;
+    private final ModelMapper modelMapper;
 
     // 1. Lấy danh sách Danh Mục (Category) đang hoạt động
     @GetMapping("/category/active")
@@ -62,5 +66,18 @@ public class GuestController {
     @GetMapping("/category-detail/active")
     public ResponseEntity<List<MonAnResponse>> getDanhMucChiTietActive() {
         return getMonAnActive(); // Tái sử dụng logic
+    }
+
+    @GetMapping("/table/active")
+    public ResponseEntity<List<BanAnResponse>> getBanAnActive(){
+        List<BanAnResponse> response = banAnRepository.findByTrangThai(0).stream()
+                .map(banAn -> {
+                    BanAnResponse banAnResponse = modelMapper.map(banAn, BanAnResponse.class);
+                    banAnResponse.setSoCho(banAn.getSoNguoiToiDa());
+                    banAnResponse.setSoTang(banAn.getIdKhuVuc().getTang());
+                    return banAnResponse;
+                }).toList();
+
+        return ResponseEntity.ok(response);
     }
 }
