@@ -1440,27 +1440,6 @@ textarea {
     padding-right: 5px;
 }
 
-.food-item-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    background: white;
-}
-
-.food-item-card:hover {
-    border-color: #28a745;
-    background: #f9fff9;
-}
-
-.food-item-card.active {
-    border: 2px solid #28a745;
-    background-color: #e8f5e9;
-}
 
 .food-thumb {
     width: 40px;

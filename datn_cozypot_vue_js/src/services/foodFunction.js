@@ -472,10 +472,23 @@ export function useFoodManager() {
     const fetchInitialData = async () => {
         try {
             const [resFood, resCat] = await Promise.all([ foodApi.getFoods(), foodApi.getCategories() ]);
-            mockData.value = resFood.data;
-            listCategories.value = resCat.data;
+            
+            const categories = resCat.data || [];
+            listCategories.value = categories;
+
+            mockData.value = (resFood.data || []).map(food => {
+                const category = categories.find(c => c.id === food.idDanhMuc);
+                return {
+                    ...food,
+                    maDanhMuc: category ? category.maDanhMuc : 'N/A',
+                    tenDanhMuc: category ? category.tenDanhMuc : 'Chưa phân loại'
+                };
+            });
+
             calculatePriceLimits(mockData.value);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Lỗi fetch dữ liệu:", e); 
+        }
     }
     
     onMounted(async () => {
@@ -495,7 +508,7 @@ export function useFoodManager() {
         if (statusFilter.value !== 'all') result = result.filter(i => i.trangThai === Number(statusFilter.value));
         if (categoryFilter.value) result = result.filter(i => i.idDanhMuc == categoryFilter.value);
         
-        result = result.filter(item => isPriceInRange(item)); // Lọc giá
+        result = result.filter(item => isPriceInRange(item));
 
         return result.sort((a, b) => {
             if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
