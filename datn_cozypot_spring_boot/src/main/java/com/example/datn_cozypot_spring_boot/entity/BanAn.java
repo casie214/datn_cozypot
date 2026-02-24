@@ -73,6 +73,7 @@ public class BanAn {
     @Column(name = "nguoi_tao", length = 100)
     private String nguoiTao;
 
+
     @Size(max = 100)
     @Nationalized
     @Column(name = "nguoi_sua", length = 100)

@@ -57,7 +57,8 @@ public class AuthController {
                 role,
                 nv.getId(),
                 nv.getTenDangNhap(),
-                nv.getHoTenNhanVien()));
+                nv.getHoTenNhanVien(),
+                nv.getSdtNhanVien()));
     }
 
     //login cho khách hàng
@@ -78,7 +79,8 @@ public class AuthController {
                 "USER",
                 kh.getId(),
                 kh.getEmail(),
-                kh.getTenKhachHang()));
+                kh.getTenKhachHang(),
+                kh.getSoDienThoai()));
     }
 
     @PostMapping("/register")
