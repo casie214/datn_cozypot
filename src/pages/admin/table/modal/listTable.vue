@@ -204,11 +204,11 @@ onMounted(() => {
   </select>
 
   <!-- Lọc đặt online -->
-  <select v-model.number="filterLoaiDatBan" class="form-select">
+  <!-- <select v-model.number="filterLoaiDatBan" class="form-select">
     <option value="">-- Tất cả --</option>
     <option value="1">Cho phép đặt online</option>
     <option value="0">Không cho phép</option>
-  </select>
+  </select> -->
 
   <!-- Reset -->
   <button class="btn" @click="() => {
@@ -345,7 +345,7 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <div class="form-check">
+        <!-- <div class="form-check">
           <input
             class="form-check-input"
             type="checkbox"
@@ -357,7 +357,7 @@ onMounted(() => {
           <label class="form-check-label" for="checkIndeterminate">
             Có thể đặt online
           </label>
-        </div>
+        </div> -->
 
         <!-- <div class="form-group">
           <label>Ngày tạo</label><br>

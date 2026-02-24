@@ -238,7 +238,7 @@ onUnmounted(() => {
           <input type="number" v-model="form.tang" readonly/>
         </div> -->
 
-        <div class="form-check">
+        <!-- <div class="form-check">
           <input
             class="form-check-input"
             type="checkbox"
@@ -250,7 +250,7 @@ onUnmounted(() => {
           <label class="form-check-label" for="checkIndeterminate">
             Có thể đặt online
           </label>
-        </div>
+        </div> -->
       </div>
 
       <div class="modal-footer">
