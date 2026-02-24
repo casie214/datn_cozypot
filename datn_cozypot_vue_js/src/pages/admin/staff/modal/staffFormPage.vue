@@ -60,9 +60,9 @@
                 <input type="file" ref="qrFileInput" class="d-none" @change="onQRFileChange" accept="image/*" />
 
                 <div class="d-flex align-items-center">
-      <i class="fas fa-exclamation-circle fs-5 me-2"></i>
-      <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
-    </div>
+                  <i class="fas fa-exclamation-circle fs-5 me-2"></i>
+                  <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
+                </div>
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
 
                 <div v-if="qrErrorMessage" class="alert alert-danger mt-2 py-1 px-2 small border-0 shadow-sm"
@@ -480,10 +480,10 @@ const checkDuplicate = async (type) => {
 const validateForm = async () => {
   let ok = true;
   const today = dayjs();
-  
+
   // Reset lỗi
   Object.keys(errors).forEach(k => errors[k] = '');
-  qrErrorMessage.value = ""; 
+  qrErrorMessage.value = "";
 
   // --- BƯỚC 1: KIỂM TRA TRỐNG (REQUIRED) ---
   const requiredFields = [
@@ -565,7 +565,7 @@ const validateForm = async () => {
         errors[item.key] = `${item.label} này đã được sử dụng bởi nhân viên khác`;
         if (item.key === 'soCccd') qrErrorMessage.value = "Số CCCD đã tồn tại!";
         ok = false;
-        break; 
+        break;
       }
     }
   } catch (e) {
@@ -592,7 +592,7 @@ const generateRandomPassword = (length = 8) => {
 const handleSave = async () => {
   // 1. Kiểm tra Validate (Ngày sinh tương lai, thiếu CCCD, trùng lặp...)
   const isValid = await validateForm();
-  
+
   if (!isValid) {
     // Nếu không hợp lệ, bắn một cái thông báo tổng quát thật to
     Swal.fire({
@@ -664,14 +664,14 @@ const handleSave = async () => {
       router.push('/admin/staff');
     }, 1500);
 
- } catch (e) {
+  } catch (e) {
     console.error("Chi tiết lỗi lưu:", e.response?.data);
-    
+
     const resData = e.response?.data;
 
     // Kiểm tra nếu Backend trả về lỗi Validation (giống cái Object em vừa gửi)
     if (resData && resData.code === "VALIDATION_ERORR" && resData.errors) {
-      
+
       // Duyệt qua danh sách lỗi từ Backend gửi về
       // resData.errors lúc này là { ngaySinh: 'Ngày sinh phải là một ngày trong quá khứ' }
       Object.keys(resData.errors).forEach(key => {
@@ -680,7 +680,7 @@ const handleSave = async () => {
       });
 
       toast.error("Thông tin nhập vào chưa đúng, vui lòng kiểm tra các ô báo đỏ!");
-      
+
       // Tự động cuộn đến chỗ lỗi đầu tiên cho người dùng dễ thấy
       nextTick(() => {
         const firstError = document.querySelector('.is-invalid');
