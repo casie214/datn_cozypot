@@ -49,7 +49,7 @@ export function useOrderManager() {
     },
   });
 
-const invoiceDate = computed(() => {
+  const invoiceDate = computed(() => {
     if (
       selectedOrder.value?.trangThai === "Hoàn thành" &&
       paymentHistory.value &&
@@ -111,9 +111,11 @@ const invoiceDate = computed(() => {
   const mapStatus = (statusInt) => {
     const statuses = {
       0: "Đã hủy",
-      1: "Đang phục vụ",
-      2: "Hoàn thành",
-      3: "Chờ nhận bàn",
+      1: "Chờ cọc",
+      2: "Chờ nhận bàn", // Hoặc "Đã cọc"
+      3: "Đang phục vụ",
+      4: "Chờ thanh toán",
+      5: "Hoàn thành",
     };
     return statuses[statusInt] || "Không xác định";
   };
@@ -228,9 +230,11 @@ const invoiceDate = computed(() => {
 
       const statusMap = {
         "Đã hủy": 0,
-        "Đang phục vụ": 1,
-        "Hoàn thành": 2,
-        "Chờ nhận bàn": 3,
+        "Chờ cọc": 1,
+        "Chờ nhận bàn": 2,
+        "Đang phục vụ": 3,
+        "Chờ thanh toán": 4,
+        "Hoàn thành": 5,
       };
 
       const refundStatusMap = {
@@ -494,7 +498,7 @@ const invoiceDate = computed(() => {
     let isWarning = false;
     let message = "";
 
-    const holdTimeHours = configHoldTime.value / 60; 
+    const holdTimeHours = configHoldTime.value / 60;
     const cancelLimitHours = configCancelLimit.value;
 
     // LOGIC CẢNH BÁO
@@ -613,7 +617,7 @@ const invoiceDate = computed(() => {
     selectedOrder,
     orderDetails,
     currentVAT,
-    configHoldTime,   
+    configHoldTime,
     configCancelLimit,
     isHistoryModalOpen,
     selectedHistoryOrder,

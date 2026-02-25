@@ -71,7 +71,6 @@ const taxAmount = computed(() => {
   return finalTotal.value + deposit.value + discount.value - subTotal.value;
 });
 
-
 const isReadOnly = computed(
   () =>
     selectedOrder.value?.trangThai === "Đã hủy" ||
@@ -82,21 +81,85 @@ const hasServedDish = computed(() =>
   orderDetails.value?.some((item) => item.trangThaiCode === 2),
 );
 
+const getPaymentTypeInfo = (type) => {
+  switch (type) {
+    case 1:
+      return { label: "Thanh toán", color: "success", icon: "fa-check" };
+    case 2:
+      return { label: "Đặt cọc", color: "warning", icon: "fa-coins" };
+    case 3:
+      return {
+        label: "Hoàn tiền",
+        color: "danger",
+        icon: "fa-arrow-rotate-left",
+      };
+    default:
+      return { label: "Giao dịch", color: "secondary", icon: "fa-money-bill" };
+  }
+};
+
 //Logic hien thi trang thai
-const standardSteps = [
-  { key: "Chờ nhận bàn", label: "Chờ nhận bàn", icon: "fa-hourglass-start" },
-  { key: "Đang phục vụ", label: "Đang phục vụ", icon: "fa-utensils" },
-  { key: "Hoàn thành", label: "Hoàn thành", icon: "fa-check" },
-];
-
-const currentStepIndex = computed(() => {
+const currentStatusInfo = computed(() => {
   const status = selectedOrder.value?.trangThai;
-  if (status === "Đã hủy") return -1;
-  return standardSteps.findIndex((s) => s.key === status);
+  switch (status) {
+    case "Đã hủy":
+      return {
+        icon: "fa-xmark",
+        bgColor: "bg-danger", // ĐỎ
+        textColor: "text-danger",
+        text: "Đã Hủy",
+        desc: "Hóa đơn này đã bị hủy và đóng lại.",
+      };
+    case "Chờ cọc":
+      return {
+        icon: "fa-money-bill-wave",
+        bgColor: "bg-secondary", // XÁM
+        textColor: "text-secondary",
+        text: "Chờ Cọc",
+        desc: "Khách đã đặt bàn, đang chờ thanh toán tiền cọc.",
+      };
+    case "Chờ nhận bàn":
+      return {
+        icon: "fa-clock",
+        bgColor: "bg-warning text-dark", // VÀNG
+        textColor: "text-warning",
+        text: "Chờ Nhận Bàn",
+        desc: "Đã xác nhận cọc, chờ khách đến quán.",
+      };
+    case "Đang phục vụ":
+      return {
+        icon: "fa-utensils",
+        bgColor: "bg-warning text-dark", // VÀNG
+        textColor: "text-warning",
+        text: "Đang Phục Vụ",
+        desc: "Khách đang dùng bữa tại quán.",
+      };
+    case "Chờ thanh toán":
+      return {
+        icon: "fa-file-invoice-dollar",
+        bgColor: "bg-warning text-dark", // VÀNG
+        textColor: "text-warning",
+        text: "Chờ Thanh Toán",
+        desc: "Khách đã yêu cầu tính tiền.",
+      };
+    case "Hoàn thành":
+      return {
+        icon: "fa-check",
+        bgColor: "bg-success", // XANH LÁ (Mặc định cho thành công)
+        textColor: "text-success",
+        text: "Hoàn Thành",
+        desc: "Hóa đơn đã thanh toán xong xuôi.",
+      };
+    default:
+      return {
+        icon: "fa-circle-question",
+        bgColor: "bg-dark",
+        textColor: "text-dark",
+        text: "Đang tải...",
+        desc: "Đang lấy thông tin trạng thái.",
+      };
+  }
 });
-
-const isCancelled = computed(() => selectedOrder.value?.trangThai === "Đã hủy");
-
 
 const onBack = () => router.push({ name: "orderManager" });
 
@@ -126,62 +189,33 @@ onMounted(async () => {
               selectedOrder?.id
             }}</span>
           </div>
-          <div class="card-body py-4">
-            <div v-if="isCancelled" class="text-center">
-              <div
-                class="d-inline-flex align-items-center justify-content-center bg-danger text-white rounded-circle mb-2"
-                style="width: 50px; height: 50px"
-              >
-                <i class="fa-solid fa-xmark fs-4"></i>
-              </div>
-              <h5 class="fw-bold text-danger">Đã Hủy</h5>
-            </div>
-
+          <div
+            class="card-body py-4 d-flex flex-column align-items-center justify-content-center"
+          >
             <div
-              v-else
-              class="stepper-wrapper d-flex justify-content-between position-relative w-75 mx-auto"
+              class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
+              :class="currentStatusInfo.bgColor"
+              style="width: 80px; height: 80px"
             >
-              <div
-                class="position-absolute top-50 start-0 translate-middle-y bg-secondary bg-opacity-25 w-100"
-                style="height: 3px; z-index: 0"
-              ></div>
-
-              <div
-                class="position-absolute top-50 start-0 translate-middle-y bg-success"
-                style="height: 3px; z-index: 0; transition: width 0.5s"
-                :style="{
-                  width:
-                    (currentStepIndex / (standardSteps.length - 1)) * 100 + '%',
-                }"
-              ></div>
-
-              <div
-                v-for="(step, index) in standardSteps"
-                :key="index"
-                class="step-item text-center position-relative"
-                style="z-index: 1"
-              >
-                <div
-                  class="step-circle d-flex align-items-center justify-content-center rounded-circle border border-3 mb-2 mx-auto"
-                  :class="
-                    index <= currentStepIndex
-                      ? 'bg-success border-success text-white'
-                      : 'bg-white border-secondary border-opacity-25 text-muted'
-                  "
-                  style="width: 40px; height: 40px; transition: all 0.3s"
-                >
-                  <i :class="['fa-solid', step.icon]"></i>
-                </div>
-                <div
-                  class="step-label fw-bold small"
-                  :class="
-                    index <= currentStepIndex ? 'text-success' : 'text-muted'
-                  "
-                >
-                  {{ step.label }}
-                </div>
-              </div>
+              <i
+                class="fa-solid fs-1"
+                :class="[
+                  currentStatusInfo.icon,
+                  currentStatusInfo.bgColor.includes('text-dark')
+                    ? 'text-dark'
+                    : 'text-white',
+                ]"
+              ></i>
             </div>
+
+            <h3
+              class="fw-bold text-uppercase mb-1"
+              :class="currentStatusInfo.textColor"
+            >
+              {{ currentStatusInfo.text }}
+            </h3>
+
+            <p class="text-muted small mb-0">{{ currentStatusInfo.desc }}</p>
           </div>
         </div>
         <div class="card-body">
@@ -292,8 +326,6 @@ onMounted(async () => {
 
       <div class="row g-4 mb-4 align-items-stretch">
         <div class="col-md-6 d-flex flex-column gap-4">
-
-
           <div class="card border-0 shadow-sm flex-grow-1">
             <div class="card-header bg-white border-bottom py-3 fw-bold">
               🕒 Lịch sử hóa đơn
@@ -340,7 +372,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          
           <div
             v-if="paymentHistory && paymentHistory.length > 0"
             class="card border-0 shadow-sm"
@@ -356,15 +387,27 @@ onMounted(async () => {
               >
                 <div class="me-3">
                   <div
-                    class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
+                    class="rounded-circle d-flex align-items-center justify-content-center"
+                    :class="[
+                      `bg-${getPaymentTypeInfo(pay.loaiGiaoDich).color}-subtle`,
+                      `text-${getPaymentTypeInfo(pay.loaiGiaoDich).color}`,
+                    ]"
                     style="width: 32px; height: 32px"
                   >
-                    <i class="fa-solid fa-check small"></i>
+                    <i
+                      class="fa-solid small"
+                      :class="getPaymentTypeInfo(pay.loaiGiaoDich).icon"
+                    ></i>
                   </div>
                 </div>
+
                 <div class="flex-grow-1">
                   <div class="d-flex justify-content-between">
-                    <span class="fw-bold text-warning">
+                    <span
+                      class="fw-bold"
+                      :class="`text-${getPaymentTypeInfo(pay.loaiGiaoDich).color}`"
+                    >
+                      <template v-if="pay.loaiGiaoDich === 3">- </template>
                       {{ formatMoney(pay.soTienThanhToan) }}
                     </span>
                     <span class="text-muted small">{{
@@ -376,7 +419,12 @@ onMounted(async () => {
                   >
                     <span class="small text-dark">
                       {{ pay.tenPhuongThuc }}
-                      <span class="badge bg-warning ms-1">Thanh toán</span>
+                      <span
+                        class="badge ms-1"
+                        :class="`bg-${getPaymentTypeInfo(pay.loaiGiaoDich).color}`"
+                      >
+                        {{ getPaymentTypeInfo(pay.loaiGiaoDich).label }}
+                      </span>
                     </span>
                   </div>
                   <div class="small text-muted fst-italic mt-1">
@@ -387,7 +435,6 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-
 
         <div class="col-md-6">
           <div class="card border-0 shadow-sm h-100">
@@ -499,7 +546,6 @@ onMounted(async () => {
       >
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
-            
             <!-- Không cọc -->
 
             <div class="modal-header bg-custom-red text-white">
@@ -789,46 +835,154 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.text-custom-red { color: #8b0000 !important; }
-.bg-custom-red { background-color: #8b0000 !important; }
-.border-bottom-red { border-bottom: 2px solid #8b0000 !important; }
-.page-title { color: #8b0000; font-size: 24px; font-weight: bold; }
+.text-custom-red {
+  color: #8b0000 !important;
+}
+.bg-custom-red {
+  background-color: #8b0000 !important;
+}
+.border-bottom-red {
+  border-bottom: 2px solid #8b0000 !important;
+}
+.page-title {
+  color: #8b0000;
+  font-size: 24px;
+  font-weight: bold;
+}
 
-.btn-custom { background-color: #8b0000; border-color: #8b0000; color: white; }
-.btn-custom:hover { background-color: #a00000; border-color: #a00000; color: white; }
-.btn-outline-custom { color: #8b0000; border-color: #8b0000; background-color: transparent; }
-.btn-outline-custom:hover { background-color: #8b0000; color: white; }
-.btn-print { background-color: #8b0000; border: none; }
-.btn-print:hover { background-color: #b84747; }
-.btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
+.btn-custom {
+  background-color: #8b0000;
+  border-color: #8b0000;
+  color: white;
+}
+.btn-custom:hover {
+  background-color: #a00000;
+  border-color: #a00000;
+  color: white;
+}
+.btn-outline-custom {
+  color: #8b0000;
+  border-color: #8b0000;
+  background-color: transparent;
+}
+.btn-outline-custom:hover {
+  background-color: #8b0000;
+  color: white;
+}
+.btn-print {
+  background-color: #8b0000;
+  border: none;
+}
+.btn-print:hover {
+  background-color: #b84747;
+}
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
 
-.bg-success-subtle { background-color: #d4edda !important; }
-.bg-warning-subtle { background-color: #fff3cd !important; }
-.text-warning { color: #856404 !important; }
-.alert-brand { background-color: rgba(139, 0, 0, 0.1); border: 1px solid rgba(139, 0, 0, 0.3); color: #8b0000; }
-.alert-brand i { color: #8b0000 !important; }
+.bg-success-subtle {
+  background-color: #d4edda !important;
+}
+.bg-warning-subtle {
+  background-color: #fff3cd !important;
+}
+.bg-danger-subtle {
+  background-color: #f8d7da !important;
+}
+.text-warning {
+  color: #856404 !important;
+}
+.alert-brand {
+  background-color: rgba(139, 0, 0, 0.1);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  color: #8b0000;
+}
+.alert-brand i {
+  color: #8b0000 !important;
+}
 
-.border-dashed { border-style: dashed !important; }
-.last-no-border:last-child { border-bottom: none !important; padding-bottom: 0 !important; margin-bottom: 0 !important; }
-.border-bottom-dashed { border-bottom: 1px dashed #eee; }
-.modal { background-color: rgba(0, 0, 0, 0.5); }
+.border-dashed {
+  border-style: dashed !important;
+}
+.last-no-border:last-child {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+.border-bottom-dashed {
+  border-bottom: 1px dashed #eee;
+}
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
 
 /* Style bảng chính  */
-.table-responsive { overflow-x: auto; }
-.table thead th { vertical-align: middle; }
+.table-responsive {
+  overflow-x: auto;
+}
+.table thead th {
+  vertical-align: middle;
+}
 
 /* Thanh trang thái */
-.stepper-wrapper { margin-top: 10px; margin-bottom: 10px; }
-.step-item { min-width: 100px; }
-.step-circle { background-color: #fff; transition: all 0.4s ease-in-out; }
-.position-absolute { transition: all 0.4s ease-in-out; }
+.stepper-wrapper {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.step-item {
+  min-width: 100px;
+}
+.step-circle {
+  background-color: #fff;
+  transition: all 0.4s ease-in-out;
+}
+.position-absolute {
+  transition: all 0.4s ease-in-out;
+}
 
 /* Hóa đơn in */
-.invoice-wrapper { width: 760px; background: white; padding: 20px; box-sizing: border-box; }
-.main-frame { border: 2px solid #000; border-radius: 15px; padding: 30px; min-height: 900px; position: relative; font-family: "Times New Roman", serif; color: #000; }
-.invoice-logo { width: 80px; height: 80px; object-fit: contain; }
-.invoice-table { width: 100%; margin-bottom: 20px; }
-.invoice-table thead th { background-color: #f0f0f0; border-top: 2px solid #000 !important; border-bottom: 2px solid #000 !important; border-left: 1px solid #000; border-right: 1px solid #000; text-transform: uppercase; font-size: 13px; font-weight: bold; vertical-align: middle; }
-.invoice-table tbody td { border: 1px solid #000; padding: 8px 10px; vertical-align: middle; font-size: 14px; }
-.table-bordered > :not(caption) > * { border-width: 1px; }
+.invoice-wrapper {
+  width: 760px;
+  background: white;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.main-frame {
+  border: 2px solid #000;
+  border-radius: 15px;
+  padding: 30px;
+  min-height: 900px;
+  position: relative;
+  font-family: "Times New Roman", serif;
+  color: #000;
+}
+.invoice-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+.invoice-table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+.invoice-table thead th {
+  background-color: #f0f0f0;
+  border-top: 2px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+  border-left: 1px solid #000;
+  border-right: 1px solid #000;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: bold;
+  vertical-align: middle;
+}
+.invoice-table tbody td {
+  border: 1px solid #000;
+  padding: 8px 10px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+.table-bordered > :not(caption) > * {
+  border-width: 1px;
+}
 </style>
