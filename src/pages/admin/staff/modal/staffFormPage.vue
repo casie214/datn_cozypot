@@ -59,10 +59,7 @@
 
                 <input type="file" ref="qrFileInput" class="d-none" @change="onQRFileChange" accept="image/*" />
 
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-exclamation-circle fs-5 me-2"></i>
-                  <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
-                </div>
+
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
 
                 <div v-if="qrErrorMessage" class="alert alert-danger mt-2 py-1 px-2 small border-0 shadow-sm"
@@ -172,7 +169,7 @@
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
-                        <input type="text" class="form-control" v-model="formData.soCccd"
+                        <input type="password" class="form-control" v-model="formData.soCccd"
                           :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>

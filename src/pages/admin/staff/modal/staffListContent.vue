@@ -27,7 +27,7 @@
           <input type="date" v-model="filters.tuNgay" class="form-control custom-input" @change="handleSearch">
         </div> -->
         <div class="col-md-2">
-          <button class="btn-red-dark w-100 py-2" @click="handleSearch">Tìm kiếm</button>
+          <button class="btn-red-dark w-100 py-2" @click="handleReset">Xóa bộ lọc </button>
         </div>
       </div>
     </div>
@@ -131,7 +131,7 @@
 
               <td class="text-center">
                 <span :class="['badge-status', nv.trangThaiLamViec === 1 ? 'status-active' : 'status-locked']">
-                  {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng việc' }}
+                  {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
                 </span>
               </td>
 
@@ -302,16 +302,7 @@ const handleEdit = (nv) => {
   router.push(`/admin/staff/form/${nv.id}`);
 };
 
-
-const openModalView = (id) => {
-  // detailStaffId.value = id;
-  // isDetailModalOpen.value = true;
-  router.push(`/admin/staff/view/${id}`);
-};
-
-const closeDetailModal = () => {
   isDetailModalOpen.value = false;
-};
 // 1. Mảng lưu trữ các ID được chọn
 const selectedIds = ref([]);
 
@@ -397,6 +388,50 @@ const triggerImport = () => {
   fileInput.value.click();
 };
 
+const searchForm = reactive({
+  keyword: '',
+  status: ''
+});
+
+const handleReset = async () => {
+  // 1. RESET CÁC Ô NHẬP LIỆU TRÊN GIAO DIỆN (v-model)
+  // Bạn hãy kiểm tra xem v-model của các ô input tên là gì và reset chúng ở đây
+  // Ví dụ nếu bạn dùng object:
+  filters.keyword = '';
+  filters.trangThai = null;
+  filters.tuNgay = null;
+  
+  // Hoặc nếu bạn dùng biến lẻ:
+  // keyword.value = '';
+  // selectedStatus.value = null;
+
+  // 2. KHAI BÁO DỮ LIỆU MẶC ĐỊNH ĐỂ GỌI API
+  const defaultFilters = {
+    keyword: '',
+    trangThai: null,
+    tuNgay: null
+  };
+
+  const defaultPagination = {
+    currentPage: 1,
+    pageSize: 10
+  };
+
+  try {
+    // 3. GỌI API LẤY LẠI DỮ LIỆU TOÀN BỘ
+    const data = await fetchData(defaultFilters, defaultPagination);
+    
+    // 4. CẬP NHẬT LẠI DANH SÁCH HIỂN THỊ
+    listNhanVien.value = data.content; 
+    
+    // Cập nhật lại tổng số trang nếu có
+    // totalPages.value = data.totalPages;
+
+    console.log("Đã reset giao diện và dữ liệu thành công!");
+  } catch (error) {
+    console.error("Lỗi khi reset:", error);
+  }
+};
 // Hàm xử lý file sau khi người dùng chọn
 const handleImportExcel = async (event) => {
   const file = event.target.files[0];

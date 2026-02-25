@@ -25,7 +25,7 @@
           </select>
         </div>
         <div class="col-md-2">
-          <button class="btn-red-dark w-100 py-2" style="color: white !important;" @click="handleSearch">Tìm kiếm</button>
+          <button class="btn-red-dark w-100 py-2" style="color: white !important;" @click="handleReset">Xóa bộ lọc</button>
         </div>
       </div>
     </div>
@@ -185,7 +185,38 @@ const handleSearch = async () => {
 };
 // 1. Thêm biến selectedIds để quản lý việc chọn nhiều dòng
 const selectedIds = ref([]);
+const handleReset = async () => {
+  // 1. Reset các ô nhập liệu trên giao diện (v-model)
+  // Vì filters là reactive, ta gán trực tiếp các thuộc tính
+  filters.keyword = '';
+  filters.trangThai = null;
+  filters.tuNgay = '';
 
+  // 2. Tham số mặc định để gọi lại API
+  const defaultFilters = { 
+    keyword: '', 
+    trangThai: null, 
+    tuNgay: '' 
+  };
+  
+  const defaultPagination = { 
+    currentPage: 1, 
+    pageSize: 10 
+  };
+
+  try {
+    // 3. Gọi hàm fetchData (Đảm bảo hàm này đã được import hoặc định nghĩa)
+    const data = await fetchData(defaultFilters, defaultPagination);
+    
+    // 4. Cập nhật lại danh sách khách hàng
+    // Nhớ dùng .value vì listKhachHang là ref
+    listKhachHang.value = data.content; 
+
+    console.log("Đã reset bộ lọc khách hàng thành công!");
+  } catch (error) {
+    console.error("Lỗi khi reset khách hàng:", error);
+  }
+};
 // 2. Thêm hàm định dạng ngày sinh (vì trong table bạn gọi formatBirthDate)
 const formatBirthDate = (date) => {
   if (!date) return '---';
