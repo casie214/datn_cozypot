@@ -90,8 +90,10 @@ const visiblePages = computed(() => {
                 class="form-select"
               >
                 <option>Tất cả</option>
+                <option>Chờ cọc</option>
                 <option>Chờ nhận bàn</option>
                 <option>Đang phục vụ</option>
+                <option>Chờ thanh toán</option>
                 <option>Hoàn thành</option>
                 <option>Đã hủy</option>
               </select>

@@ -74,6 +74,12 @@ public class HoaDonThanhToan {
     @Column(name = "vat_ap_dung", precision = 18)
     private Float vatApDung;
 
+    @Column(name = "diem_su_dung")
+    private Integer diemSuDung;
+
+    @Column(name = "diem_cong_them")
+    private Integer diemCongThem;
+
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;
 
