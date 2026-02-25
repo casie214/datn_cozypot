@@ -12,4 +12,6 @@ public class DatBanUpdateRequest {
         private Integer idBanAn;
 
         private Integer trangThai;
+
+        private Integer trangThaiPhieu;
 }

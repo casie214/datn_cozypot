@@ -7,9 +7,12 @@ import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequ
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
+import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
+import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
@@ -42,6 +45,7 @@ public class HoaDonThanhToanController {
 
     private final LichSuThanhToanService lichSuThanhToanService;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    private final PhieuDatBanRepository phieuDatBanRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -160,14 +164,50 @@ public class HoaDonThanhToanController {
     }
 
     @GetMapping("/active-by-ban/{idBanAn}")
-    public Optional<HoaDonThanhToanResponse> findActiveBillByBanAn(@PathVariable Integer idBanAn) {
-        List<HoaDonThanhToan> list = hoaDonThanhToanRepository.findActiveBills(idBanAn);
+    public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
+        // 1. Lấy danh sách phiếu đang hoạt động từ Repository
+        List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
-        if (list.isEmpty()) {
-            return Optional.empty();
+        if (list == null || list.isEmpty()) {
+            return ResponseEntity.noContent().build();
         }
 
-        HoaDonThanhToan newestBill = list.get(0);
-        return Optional.of(hoaDonThanhToanRepository.getHoaDonById(newestBill.getId()));
+        // 2. Lấy phiếu mới nhất
+        PhieuDatBan phieu = list.get(0);
+
+        // 3. Mapping sang DTO
+        PhieuDatBanResponse res = new PhieuDatBanResponse();
+        res.setId(phieu.getId());
+
+        // ĐOẠN LẤY MÃ PHIẾU: Bạn hãy kiểm tra lại Entity, thường là một trong các tên sau:
+        // phieu.getMaPhieuDatBan() hoặc phieu.getMaDatBan() hoặc phieu.getMaPhieu()
+        res.setMaPhieu(phieu.getMaDatBan());
+
+        res.setThoiGianDat(phieu.getThoiGianDat());
+        res.setSoNguoi(phieu.getIdBanAn().getSoNguoiToiDa());
+        res.setTrangThai(phieu.getTrangThai());
+
+        // 4. Mapping thông tin Khách hàng (Thêm kiểm tra null để an toàn)
+        if (phieu.getIdKhachHang() != null) {
+            res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
+            res.setSdtKhachHang(phieu.getIdKhachHang().getSoDienThoai());
+        } else {
+            // Nếu là khách vãng lai hoặc không có data khách hàng
+            res.setTenKhachHang("Khách vãng lai");
+            res.setSdtKhachHang("N/A");
+        }
+
+        // 5. Mapping thông tin Bàn ăn và Khu vực
+        if (phieu.getIdBanAn() != null) {
+            res.setIdBanAn(phieu.getIdBanAn().getId());
+            res.setMaBan(phieu.getIdBanAn().getMaBan());
+
+            if (phieu.getIdBanAn().getIdKhuVuc() != null) {
+                res.setTenKhuVuc(phieu.getIdBanAn().getIdKhuVuc().getTenKhuVuc());
+                res.setTang(phieu.getIdBanAn().getIdKhuVuc().getTang());
+            }
+        }
+
+        return ResponseEntity.ok(res);
     }
 }
