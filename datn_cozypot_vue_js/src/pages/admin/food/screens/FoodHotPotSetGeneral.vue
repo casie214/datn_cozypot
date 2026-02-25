@@ -61,7 +61,7 @@ const getImg = (url) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
+            
           </div>
         </div>
 
