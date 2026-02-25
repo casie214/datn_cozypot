@@ -17,8 +17,10 @@
         </button>
       </div>
     </div>
+
     <div class="container">
       <div class="row g-4">
+        
         <div class="col-lg-4">
           <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
             <div class="card-body p-4">
@@ -56,7 +58,7 @@
                 </div>
                 <div class="d-flex justify-content-between">
                   <span class="text-muted small">Ngày tham gia:</span>
-                  <span class="small">{{ dayjs(formData.ngayTaoTaiKhoan).format('DD/MM/YYYY') }}</span>
+                  <span class="small">{{ formData.ngayTaoTaiKhoan ? dayjs(formData.ngayTaoTaiKhoan).format('DD/MM/YYYY') : '---' }}</span>
                 </div>
               </div>
               <div class="info-alert p-3 rounded-3 bg-light-wine border-start-wine">
@@ -68,6 +70,7 @@
             </div>
           </div>
         </div>
+
         <div class="col-lg-8">
           <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
             <div class="card-body p-4 p-md-5">
@@ -77,469 +80,131 @@
                     <span class="badge-number">1</span>
                     <h5 class="m-0 fw-bold">Thông tin định danh</h5>
                   </div>
+
                   <div class="row g-4">
                     <div class="col-md-6">
                       <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-user icon-input"></i>
-                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenKhachHang }"
-                          v-model="formData.tenKhachHang" placeholder="Nguyễn Văn A">
+                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenKhachHang }" v-model="formData.tenKhachHang" placeholder="Nguyễn Văn A">
                       </div>
-
                       <div class="error-text">{{ errors.tenKhachHang }}</div>
-
                     </div>
 
-
-
                     <div class="col-md-6">
-
                       <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
-
                       <div class="input-group-custom">
-
                         <i class="fas fa-phone-alt icon-input"></i>
-
-                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }"
-                          v-model="formData.soDienThoai" placeholder="09xxxxxxxx">
-
+                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }" v-model="formData.soDienThoai" placeholder="09xxxxxxxx">
                       </div>
-
                       <div class="error-text">{{ errors.soDienThoai }}</div>
-
                     </div>
 
-
-
                     <div class="col-md-6">
-
                       <label class="form-label-custom">Email <span class="star">*</span></label>
-
                       <div class="input-group-custom">
-
                         <i class="far fa-envelope icon-input"></i>
-
-                        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }"
-                          v-model="formData.email" placeholder="example@gmail.com">
-
+                        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }" v-model="formData.email" placeholder="example@gmail.com">
                       </div>
-
                       <div class="error-text">{{ errors.email }}</div>
-
                     </div>
-
-
 
                     <div class="col-md-6">
-
                       <label class="form-label-custom">Ngày sinh <span class="star">*</span></label>
-
                       <div class="input-group-custom">
-
-                        <i class="far fa-calendar-alt icon-input"></i> <input type="date" class="form-control"
-                          :class="{ 'is-invalid': errors.ngaySinh }" v-model="formData.ngaySinh">
-
+                        <i class="far fa-calendar-alt icon-input"></i> 
+                        <input type="date" class="form-control" :class="{ 'is-invalid': errors.ngaySinh }" v-model="formData.ngaySinh">
                       </div>
-
                       <div class="error-text">{{ errors.ngaySinh }}</div>
-
                     </div>
 
-
-
-                    <div class="col-md-12"> <label class="form-label-custom">Giới tính <span
-                          class="star">*</span></label>
-
+                    <div class="col-md-12"> 
+                      <label class="form-label-custom">Giới tính <span class="star">*</span></label>
                       <div class="gender-selector d-flex gap-3">
-
-                        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
-                          v-model="formData.gioiTinh">
-
+                        <input type="radio" class="btn-check" name="gender" id="male" :value="true" v-model="formData.gioiTinh">
                         <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
 
-
-
-                        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
-                          v-model="formData.gioiTinh">
-
-                        <label class="btn btn-outline-wine w-100" for="female"><i
-                            class="fas fa-venus me-2"></i>Nữ</label>
-
+                        <input type="radio" class="btn-check" name="gender" id="female" :value="false" v-model="formData.gioiTinh">
+                        <label class="btn btn-outline-wine w-100" for="female"><i class="fas fa-venus me-2"></i>Nữ</label>
                       </div>
-
                     </div>
-
                   </div>
-
                 </div>
 
-<<<<<<< HEAD
-=======
-                <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
-
-              </div>
-
-
-
-              <hr class="dashed">
-
-
-
-              <div v-if="clientId" class="client-stats mb-4">
-
-                <div class="d-flex justify-content-between mb-2">
-
-                  <span class="text-muted small">Mã khách hàng:</span>
-
-                  <span class="fw-bold text-wine">{{ formData.maKhachHang || '---' }}</span>
-
-                </div>
-
-                <div class="d-flex justify-content-between mb-2">
-
-                  <span class="text-muted small">Điểm tích lũy:</span>
-
-                  <span class="badge bg-gold text-dark fw-bold">{{ formData.diemTichLuy || 0 }} điểm</span>
-
-                </div>
-
-                <div class="d-flex justify-content-between">
-
-                  <span class="text-muted small">Ngày tham gia:</span>
-
-                  <span class="small">{{ dayjs(formData.ngayTaoTaiKhoan).format('DD/MM/YYYY') }}</span>
-
-                </div>
-
-              </div>
-
-
-
-              <div class="info-alert p-3 rounded-3 bg-light-wine border-start-wine">
-
-                <p class="small text-muted mb-0">
-
-                  <i class="fas fa-info-circle text-wine me-2"></i>
-
-                  Lưu ý: Các trường đánh dấu <span class="star">*</span> bắt buộc phải nhập đầy đủ.
-
-                </p>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-
-        <div class="col-lg-8">
-
-          <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
-
-            <div class="card-body p-4 p-md-5">
-
-              <form @submit.prevent>
-
-                <div class="form-section mb-5">
-
-  <div class="d-flex align-items-center mb-4">
-
-    <span class="badge-number">1</span>
-
-    <h5 class="m-0 fw-bold">Thông tin định danh</h5>
-
-  </div>
-
-
-
-  <div class="row g-4">
-
-    <div class="col-md-6">
-
-      <label class="form-label-custom">Họ và tên <span class="star">*</span></label>
-
-      <div class="input-group-custom">
-
-        <i class="far fa-user icon-input"></i>
-
-        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenKhachHang }"
-
-          v-model="formData.tenKhachHang" placeholder="Nguyễn Văn A">
-
-      </div>
-
-      <div class="error-text">{{ errors.tenKhachHang }}</div>
-
-    </div>
-
-
-
-    <div class="col-md-6">
-
-      <label class="form-label-custom">Số điện thoại <span class="star">*</span></label>
-
-      <div class="input-group-custom">
-
-        <i class="fas fa-phone-alt icon-input"></i>
-
-        <input type="text" class="form-control" :class="{ 'is-invalid': errors.soDienThoai }"
-
-          v-model="formData.soDienThoai" placeholder="09xxxxxxxx">
-
-      </div>
-
-      <div class="error-text">{{ errors.soDienThoai }}</div>
-
-    </div>
-
-
-
-    <div class="col-md-6">
-
-      <label class="form-label-custom">Email <span class="star">*</span></label>
-
-      <div class="input-group-custom">
-
-        <i class="far fa-envelope icon-input"></i>
-
-        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }"
-
-          v-model="formData.email" placeholder="example@gmail.com">
-
-      </div>
-
-      <div class="error-text">{{ errors.email }}</div>
-
-    </div>
-
-    <div class="col-md-6" v-if="!clientId">
-      <label class="form-label-custom">Tên hiển thị <span class="star">*</span></label>
-      <div class="input-group-custom">
-        <i class="fas fa-user-circle icon-input"></i>
-        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenDangNhap }"
-          v-model="formData.tenDangNhap" placeholder="username123" autocomplete="new-password">
-      </div>
-      <div class="error-text">{{ errors.tenDangNhap }}</div>
-    </div>
-
-    <div class="col-md-6" v-if="!clientId">
-      <label class="form-label-custom">Mật khẩu <span class="star">*</span></label>
-      <div class="input-group-custom">
-        <i class="fas fa-lock icon-input"></i>
-        <input type="password" class="form-control" :class="{ 'is-invalid': errors.matKhauDangNhap }"
-          v-model="formData.matKhauDangNhap" placeholder="••••••••" autocomplete="new-password">
-      </div>
-      <div class="error-text">{{ errors.matKhauDangNhap }}</div>
-    </div>
-
-    <div class="col-md-6">
-
-      <label class="form-label-custom">Ngày sinh <span class="star">*</span></label>
-
-      <div class="input-group-custom">
-
-        <i class="far fa-calendar-alt icon-input"></i> <input type="date" class="form-control" :class="{ 'is-invalid': errors.ngaySinh }"
-
-          v-model="formData.ngaySinh">
-
-      </div>
-
-      <div class="error-text">{{ errors.ngaySinh }}</div>
-
-    </div>
-
-
-
-    <div class="col-md-12"> <label class="form-label-custom">Giới tính <span class="star">*</span></label>
-
-      <div class="gender-selector d-flex gap-3">
-
-        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
-
-          v-model="formData.gioiTinh">
-
-        <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
-
-
-
-        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
-
-          v-model="formData.gioiTinh">
-
-        <label class="btn btn-outline-wine w-100" for="female"><i
-
-            class="fas fa-venus me-2"></i>Nữ</label>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-
->>>>>>> origin/main
-
-
-                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-
-                  <div
-                    class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-light">
+                  <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold m-0 text-wine">
-
                       <i class="fas fa-map-marker-alt me-2"></i>Danh sách địa chỉ nhận hàng
-
                     </h6>
-
-
-
-                    <span v-if="editingIndex !== null" class="badge rounded-pill px-3 py-2"
-                      style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
-
+                    <span v-if="editingIndex !== null" class="badge rounded-pill px-3 py-2" style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
                       <i class="fas fa-edit me-1"></i>
-
                       Đang sửa địa chỉ #{{ editingIndex + 1 }}
-
                     </span>
-
                   </div>
-
-
 
                   <div class="card-body p-4">
-
-                    <div class="input-group-custom mb-2">
-
-                      <input v-model="tempAddressText" type="text"
-                        class="form-control form-control-lg bg-light border-0 ps-4 rounded-start-pill"
-                        :placeholder="editingIndex !== null ? 'Cập nhật địa chỉ...' : 'Nhập địa chỉ mới tại đây...'"
-                        @keyup.enter="handleAddressAction">
-
-
-
-                      <button @click="handleAddressAction" class="btn rounded-end-pill px-4 text-white"
-                        :class="editingIndex !== null ? '' : 'btn-wine'"
-                        :style="editingIndex !== null ? 'background-color: #d97706; border-color: #d97706;' : ''"
-                        type="button">
-
-
-
+                    <div class="input-group-custom mb-2 shadow-sm rounded-pill bg-white">
+                      <input v-model="tempAddressText" type="text" class="form-control form-control-lg border-0 ps-4 rounded-start-pill" :placeholder="editingIndex !== null ? 'Cập nhật địa chỉ...' : 'Nhập địa chỉ mới tại đây...'" @keyup.enter="handleAddressAction">
+                      <button @click="handleAddressAction" class="btn rounded-end-pill px-4 text-white" :class="editingIndex !== null ? '' : 'btn-wine'" :style="editingIndex !== null ? 'background-color: #d97706; border-color: #d97706;' : ''" type="button">
                         <i class="fas" :class="editingIndex !== null ? 'fa-check' : 'fa-plus'"></i>
-
-
-
                       </button>
-
                     </div>
 
-
-
-                    <div v-if="editingIndex !== null" class="ms-3 mb-4 d-flex align-items-center">
-
-                      <button @click="cancelEdit" type="button"
-                        class="btn btn-sm btn-outline-secondary border-0 d-flex align-items-center gap-1 px-2 py-1 rounded-pill shadow-none"
-                        style="font-size: 0.75rem; background-color: #f8f9fa;">
-
+                    <div v-if="editingIndex !== null" class="ms-3 mb-4 d-flex align-items-center mt-2">
+                      <button @click="cancelEdit" type="button" class="btn btn-sm btn-outline-secondary border-0 d-flex align-items-center gap-1 px-2 py-1 rounded-pill shadow-none" style="font-size: 0.75rem; background-color: #f8f9fa;">
                         <i class="fas fa-undo-alt"></i>
-
                         <span class="text-decoration-underline">Hủy bỏ cập nhật</span>
-
                       </button>
-
-
-
                       <small class="text-muted ms-2" style="font-size: 0.7rem; font-style: italic;">
-
                         (Hệ thống sẽ không lưu thay đổi nếu bạn hủy)
-
                       </small>
-
                     </div>
-
-
 
                     <div class="address-list mt-3">
-
                       <div>
-
-                        <div v-for="(item, index) in formData.danhSachDiaChi" :key="item.id ?? index"
-                          class="address-item d-flex align-items-center justify-content-between p-3 mb-2 rounded-3"
-                          :class="{ 'border-wine-light bg-wine-subtle': index === defaultIndex }">
-
-
-
+                        <div v-for="(item, index) in formData.danhSachDiaChi" :key="item.id ?? index" class="address-item bg-white d-flex align-items-center justify-content-between p-3 mb-2 rounded-3 shadow-sm" :class="{ 'border-wine-light bg-wine-subtle': index === defaultIndex }">
                           <div class="d-flex align-items-center overflow-hidden flex-grow-1">
-
-                            <div class="icon-star me-3 cursor-pointer" @click="setDefault(index)"
-                              title="Đặt làm mặc định">
-
-                              <i class="fas fa-star"
-                                :class="index === defaultIndex ? 'text-warning' : 'text-light-gray'"></i>
-
+                            <div class="icon-star me-3 cursor-pointer" @click="setDefault(index)" title="Đặt làm mặc định">
+                              <i class="fas fa-star" :class="index === defaultIndex ? 'text-warning' : 'text-light-gray'"></i>
                             </div>
-
-
 
                             <div class="d-flex flex-column overflow-hidden">
-
-                              <span class="text-truncate"
-                                :class="index === defaultIndex ? 'fw-bold text-wine' : 'text-secondary'">
-
+                              <span class="text-truncate" :class="index === defaultIndex ? 'fw-bold text-wine' : 'text-secondary'">
                                 {{ item.thong_tin_dia_chi || 'Địa chỉ không có nội dung' }}
-
                               </span>
-
-
-
                               <div class="d-flex align-items-center gap-2">
-
                                 <small v-if="index === defaultIndex" class="text-wine tiny fw-bold">Mặc định</small>
-
                                 <small class="text-muted tiny">
-
                                   - {{ formData.tenKhachHang }} | {{ formData.soDienThoai }}
-
                                 </small>
-
                               </div>
-
                             </div>
-
                           </div>
 
-
-
                           <div class="d-flex gap-2">
-
-                            <button @click="startEdit(index)" type="button"
-                              class="btn btn-sm btn-light border rounded-circle shadow-sm">
+                            <button @click="startEdit(index)" type="button" class="btn btn-sm btn-light border rounded-circle shadow-sm">
                               <i class="fas fa-pen text-primary fa-xs"></i>
                             </button>
-                            <button @click="removeAddress(index)" type="button"
-                              class="btn btn-sm btn-light border rounded-circle shadow-sm">
+                            <button @click="removeAddress(index)" type="button" class="btn btn-sm btn-light border rounded-circle shadow-sm">
                               <i class="fas fa-times text-danger fa-xs"></i>
                             </button>
                           </div>
                         </div>
                       </div>
-                      <div v-if="!formData.danhSachDiaChi || formData.danhSachDiaChi.length === 0"
-                        class="text-center py-4 text-muted opacity-50">
+
+                      <div v-if="!formData.danhSachDiaChi || formData.danhSachDiaChi.length === 0" class="text-center py-4 text-muted opacity-50">
                         <i class="fas fa-map-marked-alt fa-2x mb-2"></i>
                         <p class="small">Chưa có địa chỉ nào được thêm</p>
                       </div>
                     </div>
                   </div>
                 </div>
+
                 <div class="d-flex justify-content-between align-items-center pt-4 border-top">
                   <p class="text-muted small mb-0">* Thông tin này sẽ được bảo mật tuyệt đối</p>
                   <div class="d-flex gap-3">
                     <button type="button" class="btn btn-light-custom px-4" @click="handleBack">Hủy bỏ</button>
-                    <button type="button" class="btn btn-main-custom px-5 py-2 shadow-sm" @click="handleSave"
-                      :disabled="loading">
+                    <button type="button" class="btn btn-main-custom px-5 py-2 shadow-sm" @click="handleSave" :disabled="loading">
                       <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                       {{ clientId ? 'Cập nhật ngay' : 'Tạo tài khoản khách' }}
                     </button>

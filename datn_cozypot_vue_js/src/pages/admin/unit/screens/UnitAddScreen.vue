@@ -7,19 +7,20 @@ import '@vueform/multiselect/themes/default.css';
 
 const props = defineProps({
     isOpen: Boolean,
-    categories: Array
+    categories: Array,
+    // THÊM BIẾN NÀY ĐỂ XÁC ĐỊNH CHẾ ĐỘ THÊM NHANH TỪ MODAL DANH MỤC
+    isQuickAddMode: { type: Boolean, default: false }
 });
 const emit = defineEmits(['close', 'refresh']);
 
-// Data cấu trúc mới theo DonViRequest
 const formData = ref({
     tenDonVi: '',
     moTa: '',
     listIdDanhMuc: [],
-    values: [] // Chứa danh sách { giaTri: '...' }
+    values: []
 });
 
-const newValueInput = ref(''); // Biến tạm để nhập từng giá trị định lượng
+const newValueInput = ref('');
 
 // Reset form khi mở modal
 watch(() => props.isOpen, (newVal) => {
@@ -34,21 +35,18 @@ watch(() => props.isOpen, (newVal) => {
     }
 });
 
-// Thêm một giá trị định lượng vào danh sách (VD: gõ 200 rồi Enter)
 const addValue = () => {
     const val = newValueInput.value.trim();
     if (!val) return;
 
-    // Kiểm tra trùng lặp trong mảng hiện tại
     if (formData.value.values.some(v => v.giaTri === val)) {
         return Swal.fire('Chú ý', 'Giá trị này đã có trong danh sách!', 'info');
     }
 
     formData.value.values.push({ giaTri: val });
-    newValueInput.value = ''; // Clear input
+    newValueInput.value = '';
 };
 
-// Xóa một giá trị định lượng khỏi danh sách
 const removeValue = (index) => {
     formData.value.values.splice(index, 1);
 };
@@ -59,7 +57,8 @@ const handleSave = async () => {
         return Swal.fire('Chú ý', 'Vui lòng nhập tên đơn vị (VD: ml, gram)!', 'warning');
     }
 
-    if (formData.value.listIdDanhMuc.length === 0) {
+    // NẾU KHÔNG PHẢI THÊM NHANH THÌ MỚI BẮT BUỘC CHỌN DANH MỤC
+    if (!props.isQuickAddMode && formData.value.listIdDanhMuc.length === 0) {
         return Swal.fire('Chú ý', 'Vui lòng chọn ít nhất một danh mục áp dụng!', 'warning');
     }
 
@@ -80,11 +79,15 @@ const handleSave = async () => {
 
     if (result.isConfirmed) {
         try {
-            // Backend nhận DonViRequest { tenDonVi, moTa, values: [{giaTri},...], listIdDanhMuc: [...] }
-            await foodApi.createUnitType(formData.value);
+            const res = await foodApi.createUnitType(formData.value);
 
             Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
-            emit('refresh');
+
+            // LẤY ID CỦA ĐƠN VỊ VỪA TẠO TRẢ VỀ CHO FORM CHA
+            // (Phụ thuộc vào cấu trúc trả về của axios, thường là res.data.id)
+            const newUnitId = res.data?.id;
+
+            emit('refresh', newUnitId); // Gửi kèm ID về
             emit('close');
         } catch (error) {
             console.error(error);
@@ -110,7 +113,7 @@ const handleSave = async () => {
                         placeholder="Nhập tên đơn vị...">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" v-if="!isQuickAddMode">
                     <label>Áp dụng cho danh mục <span class="required">*</span></label>
                     <Multiselect v-model="formData.listIdDanhMuc" :options="categories" label="tenDanhMuc"
                         valueProp="id" mode="tags" placeholder="-- Chọn danh mục --" :searchable="true" />
@@ -151,7 +154,7 @@ const handleSave = async () => {
 </template>
 
 <style scoped>
-/* Giữ nguyên các style Modal cũ của bạn và thêm các style mới bên dưới */
+/* Giữ nguyên toàn bộ CSS cũ của bạn ở file này */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -211,7 +214,6 @@ const handleSave = async () => {
     border-radius: 6px;
 }
 
-/* Style cho phần nhập giá trị con */
 .input-with-btn {
     display: flex;
     gap: 8px;
@@ -289,5 +291,23 @@ const handleSave = async () => {
 
 :deep(.multiselect-tag) {
     background: #8B0000 !important;
+}
+
+:deep(.multiselect.is-active) {
+  /* Đổi viền thành màu đỏ rượu */
+  border-color: #8B0000 !important;
+  
+  /* Tạo hiệu ứng phát sáng (glow) viền ngoài màu đỏ trong suốt 20% */
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  
+  /* Xóa viền xanh dương mặc định của trình duyệt */
+  outline: none !important;
+}
+
+/* Kèm thêm class custom của bạn cho chắc chắn (nếu cần) */
+.custom-multiselect-theme.is-active {
+  border-color: #8B0000 !important;
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  outline: none !important;
 }
 </style>

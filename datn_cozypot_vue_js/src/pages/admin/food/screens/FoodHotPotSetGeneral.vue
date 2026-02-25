@@ -35,9 +35,9 @@ const handleEdit = (item) => {
   });
 };
 
-const handleRefreshListBtn = () =>{
+const handleRefreshListBtn = () => {
   Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
-                    setTimeout(() => emit('close'), 1000);
+  setTimeout(() => emit('close'), 1000);
   getAllHotpot();
 }
 
@@ -50,9 +50,9 @@ const getImg = (url) => {
 </script>
 
 <template>
-  
-    
-  
+
+
+
   <div class="tab-content">
     <div class="filter-box">
       <div class="filter-row">
@@ -77,9 +77,9 @@ const getImg = (url) => {
         <div class="filter-item">
           <label>Loại set lẩu</label>
           <div class="multiselect-wrapper">
-            <Multiselect v-model="typeFilter" :options="uniqueTypes" valueProp="id" label="name"
-              placeholder="-- Tất cả --" :searchable="true" :canClear="!isTypeLocked" :disabled="isTypeLocked"
-              noOptionsText="Không có dữ liệu" noResultsText="Không tìm thấy" />
+            <Multiselect v-model="typeFilter" :options="uniqueTypes" :key="uniqueTypes.length" valueProp="id"
+              label="name" placeholder="Tất cả loại lẩu" :searchable="true" :canClear="!isTypeLocked"
+              :disabled="isTypeLocked" noOptionsText="Đang tải dữ liệu..." noResultsText="Không tìm thấy kết quả" />
           </div>
         </div>
         <div class="filter-item">
@@ -124,11 +124,12 @@ const getImg = (url) => {
         <i class="fas fa-plus"></i>
       </button>
       <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
-          <i class="fas fa-file-excel"></i>
+        <i class="fas fa-file-excel"></i>
       </button>
-      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i class="fas fa-sync-alt"></i></button>
+      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i
+          class="fas fa-sync-alt"></i></button>
     </div>
-    
+
     <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
@@ -158,8 +159,6 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
-                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
-                  @click="handleViewDetail(item)"></i>
 
                 <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa set lẩu"
                   @click="handleEdit(item)"></i>
@@ -284,21 +283,21 @@ const getImg = (url) => {
 }
 
 .btn-add-only {
-    background-color: #8B0000 !important;
-    color: white !important;
-    border: none !important;
+  background-color: #8B0000 !important;
+  color: white !important;
+  border: none !important;
 }
 
 
 .btn-action-icon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    border: 1px solid #eee !important;
-    color: var(--primary-red);
-    transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #eee !important;
+  color: var(--primary-red);
+  transition: all 0.2s ease;
 }
 </style>

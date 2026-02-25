@@ -59,7 +59,7 @@ const getImg = (url) => {
                             
                             <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
                                 <label class="text-muted">Tổng giá bán lẻ tham khảo:</label>
-                                <div class="price-hint" style="font-size: 1.1rem; color: #28a745; font-weight: bold;">
+                                <div class="price-hint" style="font-size: 1.1rem; font-weight: bold;">
                                     {{ totalComponentsPrice.toLocaleString() }} ₫
                                 </div>
                             </div>
@@ -68,7 +68,7 @@ const getImg = (url) => {
                         <div class="form-group mt-3">
                             <label>Hình ảnh đại diện</label>
                             <div class="upload-container text-center p-3" style="border: 2px dashed #ddd; border-radius: 8px;" :class="{ 'invalid-border': errors.hinhAnh }">
-                                <label class="custom-file-upload btn btn-outline-primary mb-2" style="cursor: pointer;">
+                                <label class="custom-file-upload btn btn-outline-danger mb-2" style="cursor: pointer;">
                                     <input type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
                                     <i class="fas fa-cloud-upload-alt me-1"></i> Chọn ảnh từ máy
                                 </label>
@@ -95,7 +95,7 @@ const getImg = (url) => {
                             <textarea v-model.trim="formData.moTa" rows="3" class="form-control" placeholder="Mô tả hương vị, thành phần..."></textarea>
                         </div>
 
-                        <div class="form-group">
+                        <!-- <div class="form-group">
                             <label>Trạng thái kinh doanh</label>
                             <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                                 <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
@@ -105,7 +105,7 @@ const getImg = (url) => {
                                     {{ formData.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                                 </span>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -116,7 +116,8 @@ const getImg = (url) => {
                     <h3>Thêm món vào Set lẩu</h3>
 
                     <div class="filter-tools" style="margin-bottom: 1.4em;">
-                        <input v-model="searchQuery" type="text" class="search-input w-100" placeholder="🔍 Tìm tên món ăn...">
+                        <i class="fas fa-search me-1" style="align-self: center;"></i>
+                        <input v-model="searchQuery" type="text" class="search-input w-100" placeholder="Tìm tên món ăn...">
                     </div>
 
                     <div class="scroll-list-container" style="max-height: 300px; overflow-y: auto;">
@@ -132,7 +133,7 @@ const getImg = (url) => {
                                     <span class="food-unit ms-1" v-if="item.tenDinhLuong">({{ item.tenDinhLuong }})</span>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary rounded-circle"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-sm btn-outline-danger rounded-circle"><i class="fas fa-plus"></i></button>
                         </div>
 
                         <div v-if="filteredFoodList.length === 0" class="text-center p-3 text-muted">
@@ -147,7 +148,7 @@ const getImg = (url) => {
                     <div class="selected-items-container" style="max-height: 400px; overflow-y: auto;">
                         <div v-if="selectedIngredients.length === 0" class="text-center p-4 text-muted">
                             <i class="fas fa-box-open fa-2x mb-2 text-black-50"></i><br>
-                            Chưa có thành phần nào.<br>Hãy bấm dấu <i class="fas fa-plus text-primary"></i> ở trên để thêm món.
+                            Chưa có thành phần nào.<br>Hãy bấm dấu <i class="fas fa-plus text-danger"></i> ở trên để thêm món.
                         </div>
 
                         <div v-for="(item, index) in selectedIngredients" :key="item.idMonAn" class="selected-item-row"

@@ -74,11 +74,12 @@ onMounted(async () => {
             hinhAnh: data.hinhAnh || ''
         };
 
-        // Gán giá trị đang có cho Combobox
-        selectedUnit.value = data.kichCo || ''; 
-        selectedWeight.value = data.giaTriDinhLuong || ''; 
+        // GÁN GIÁ TRỊ CHO COMBOBOX (CHÚ Ý SỬA TÊN TRƯỜNG Ở ĐÂY NẾU BACKEND TRẢ VỀ KHÁC)
+        // Mình đang dự phòng các tên trường phổ biến: tenDonVi/kichCo và giaTri/giaTriDinhLuong
+        selectedUnit.value = data.tenDonVi || data.kichCo || ''; 
+        selectedWeight.value = data.giaTri || data.giaTriDinhLuong || ''; 
 
-        // Nếu món ăn đã có idDanhMuc, tự động load danh sách Kích cỡ / Đơn vị
+        // Tải danh sách Kích cỡ / Đơn vị (isResetSelection = false để không xóa mất giá trị vừa gán)
         if (formData.value.idDanhMuc) {
             await loadDataByCategory(formData.value.idDanhMuc, false);
         }
@@ -105,20 +106,34 @@ const loadDataByCategory = async (idDanhMuc, isResetSelection = true) => {
 
     unitOptions.value = [];
     weightOptions.value = [];
+    listDinhLuongDB.value = []; // Chứa dữ liệu phẳng để tra cứu ID
 
     if (!idDanhMuc) return;
 
     try {
-        const res = await foodApi.getUnitsByCategory(idDanhMuc);
-        listDinhLuongDB.value = res.data || [];
+        // Đảm bảo tên hàm gọi API đúng với cấu hình của bạn (ví dụ: getUnitTypesByCategory)
+        const res = await foodApi.getUnitTypesByCategory(idDanhMuc); 
+        const rawUnits = res.data || [];
 
         const units = new Set();
         const weights = new Set();
 
-        listDinhLuongDB.value.forEach(item => {
-            // Dựa vào JSON DB thực tế: kichCo là Đơn vị (Lon, Chai...), dinhLuong là Khối lượng (330ml...)
-            if (item.kichCo) units.add(item.kichCo.trim());
-            if (item.dinhLuong) weights.add(item.dinhLuong.trim());
+        // Xử lý dữ liệu Cha - Con từ API
+        rawUnits.forEach(unit => {
+            if (unit.values && unit.values.length > 0) {
+                unit.values.forEach(val => {
+                    // 1. Ép phẳng để dễ lấy ID (rất quan trọng cho hàm handleUpdate)
+                    listDinhLuongDB.value.push({
+                        id: val.id,             // ID định lượng con
+                        kichCo: unit.tenDonVi,  // VD: ml, gram, lon...
+                        dinhLuong: val.giaTri   // VD: 330, 500, 1.5...
+                    });
+
+                    // 2. Gom các tùy chọn không trùng lặp cho Combobox
+                    if (unit.tenDonVi) units.add(unit.tenDonVi.trim());
+                    if (val.giaTri) weights.add(val.giaTri.trim());
+                });
+            }
         });
 
         unitOptions.value = Array.from(units);
@@ -326,7 +341,7 @@ const goBack = () => router.back();
                                     placeholder="Thành phần, hương vị..."></textarea>
                             </div>
 
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label>Trạng thái kinh doanh</label>
                                 <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
                                     @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
@@ -337,7 +352,7 @@ const goBack = () => router.back();
                                         {{ formData.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                                     </span>
                                 </div>
-                            </div>
+                            </div> -->
 
                         </div>
                     </div>
@@ -370,6 +385,7 @@ const goBack = () => router.back();
                                         :disabled="isViewMode || !formData.idDanhMuc" 
                                         :searchable="true" 
                                         :create-option="false"
+                                        noResultsText="Không tìm thấy kết quả nào"
                                         placeholder="Chọn đơn vị..." 
                                         noOptionsText="Không có dữ liệu" 
                                     />
@@ -383,6 +399,7 @@ const goBack = () => router.back();
                                         :disabled="isViewMode || !formData.idDanhMuc" 
                                         :searchable="true" 
                                         :create-option="false"
+                                        noResultsText="Không tìm thấy kết quả nào"
                                         placeholder="Chọn kích cỡ..." 
                                         noOptionsText="Không có dữ liệu" 
                                     />
@@ -467,5 +484,36 @@ textarea:disabled {
 }
 :deep(.is-disabled .multiselect-single-label) {
     color: #666;
+}
+
+:deep(.multiselect-tag) {
+    background: #8B0000 !important;
+}
+
+:deep(.multiselect.is-active) {
+  /* Đổi viền thành màu đỏ rượu */
+  border-color: #8B0000 !important;
+  
+  /* Tạo hiệu ứng phát sáng (glow) viền ngoài màu đỏ trong suốt 20% */
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  
+  /* Xóa viền xanh dương mặc định của trình duyệt */
+  outline: none !important;
+}
+
+/* Kèm thêm class custom của bạn cho chắc chắn (nếu cần) */
+.custom-multiselect-theme.is-active {
+  border-color: #8B0000 !important;
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  outline: none !important;
+}
+:deep(.multiselect-option.is-selected) {
+    background: #8B0000 !important;
+    color: #ffffff !important;
+}
+
+/* Hiệu ứng khi di chuột vào option đang được chọn */
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #a00000 !important;
 }
 </style>

@@ -472,10 +472,23 @@ export function useFoodManager() {
     const fetchInitialData = async () => {
         try {
             const [resFood, resCat] = await Promise.all([ foodApi.getFoods(), foodApi.getCategories() ]);
-            mockData.value = resFood.data;
-            listCategories.value = resCat.data;
+            
+            const categories = resCat.data || [];
+            listCategories.value = categories;
+
+            mockData.value = (resFood.data || []).map(food => {
+                const category = categories.find(c => c.id === food.idDanhMuc);
+                return {
+                    ...food,
+                    maDanhMuc: category ? category.maDanhMuc : 'N/A',
+                    tenDanhMuc: category ? category.tenDanhMuc : 'Chưa phân loại'
+                };
+            });
+
             calculatePriceLimits(mockData.value);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Lỗi fetch dữ liệu:", e); 
+        }
     }
     
     onMounted(async () => {
@@ -495,7 +508,7 @@ export function useFoodManager() {
         if (statusFilter.value !== 'all') result = result.filter(i => i.trangThai === Number(statusFilter.value));
         if (categoryFilter.value) result = result.filter(i => i.idDanhMuc == categoryFilter.value);
         
-        result = result.filter(item => isPriceInRange(item)); // Lọc giá
+        result = result.filter(item => isPriceInRange(item));
 
         return result.sort((a, b) => {
             if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
@@ -740,10 +753,16 @@ export function useHotpotManager() {
 
     const fetchInitialData = async () => {
         try {
-            const [resHotpots, resTypes] = await Promise.all([ foodApi.getHotpots(), foodApi.getHotpotTypes() ]);
+            const [resHotpots, resTypes] = await Promise.all([ 
+                foodApi.getHotpots(), 
+                foodApi.getHotpotTypes() 
+            ]);
             hotpotData.value = resHotpots.data;
-            listLoaiSet.value = resTypes.data;
+            listLoaiSet.value = resTypes.data || []; // Đảm bảo không bị null
             calculatePriceLimits(hotpotData.value);
+            
+            // Log thử để kiểm tra dữ liệu thực tế từ API
+            console.log("Dữ liệu Loại Set Lẩu:", listLoaiSet.value);
         } catch (e) { console.error(e); }
     }
     
@@ -751,6 +770,7 @@ export function useHotpotManager() {
         await fetchInitialData();
         if (route.query.preType) {
             typeFilter.value = Number(route.query.preType) || route.query.preType;
+            
             isTypeLocked.value = route.query.locked === 'true';
         }
     });
@@ -768,7 +788,9 @@ export function useHotpotManager() {
             result = result.filter(i => (Number(i.trangThai) === 1 ? 1 : 0) === targetStatus);
         }
 
-        if (typeFilter.value !== 'all') result = result.filter(i => i.idLoaiSet == typeFilter.value);
+        if (typeFilter.value && typeFilter.value !== 'all') {
+            result = result.filter(i => i.idLoaiSet == typeFilter.value);
+        }
         result = result.filter(item => isPriceInRange(item)); // Lọc giá
 
         return result.sort((a, b) => {
@@ -853,10 +875,19 @@ export function useHotpotManager() {
         .catch(console.error).finally(() => isLoading.value = false);
     }
 
+    const uniqueTypes = computed(() => {
+        // Nếu API trả về listLoaiSet có dạng [{id, tenLoaiSet, ...}]
+        // Chúng ta map nó về [{id, name}] để khớp với label="name" trong template
+        return listLoaiSet.value.map(type => ({
+            id: type.id,
+            name: type.tenLoaiSet || type.name // Ưu tiên tenLoaiSet nếu có
+        }));
+    });
+
     return { 
         hotpotData, paginatedData, listLoaiSet, searchQuery, typeFilter, statusFilter, sortOption, 
         currentPage, totalPages, totalElements, visiblePages, goToPage, isTypeLocked,
-        globalMinPrice, globalMaxPrice, selectedPriceRange, itemsPerPage, getAllHotpot,
+        globalMinPrice, globalMaxPrice, selectedPriceRange, itemsPerPage, getAllHotpot, uniqueTypes,
         handleToggleStatus, exportToExcel,
         goToAdd: () => router.push({ name: 'addHotpotSet' }),
         goToEdit: (item) => router.push({ name: 'updateHotpotSet', params: { id: item.id } }),
