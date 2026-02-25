@@ -22,7 +22,8 @@ const formData = ref({
     hinhAnh: '',
     idDanhMuc: '',
 });
-
+const props = defineProps({ isModal: { type: Boolean, default: false } });
+const emit = defineEmits(['saved', 'cancel']);
 const errors = ref({});
 const listCategories = ref([]);
 const existingFoods = ref([]);
@@ -152,6 +153,25 @@ const handleSave = async () => {
         return Swal.fire({ icon: 'warning', text: 'Vui lòng chọn định lượng và nhấn "Tạo biến thể"!' });
     }
 
+    console.log("Danh sách trước khi lưu:", generatedVariants.value); // In ra để xem
+
+    const invalidPrice = generatedVariants.value.some(v => {
+        const gia = Number(v.giaBan);
+        console.log(`Đang check giá: ${gia}`); // Soi từng giá một
+        return isNaN(gia) || gia <= 0; 
+    });
+    
+    // NẾU CÓ GIÁ <= 0, BẮT BUỘC DỪNG LẠI
+    if (invalidPrice) {
+        console.log("Phát hiện lỗi giá! Đang chặn lại...");
+        return Swal.fire({ 
+            icon: 'error', 
+            title: 'Lỗi giá bán',
+            text: 'Vui lòng nhập giá bán lớn hơn 0 cho TẤT CẢ các món!',
+            customClass: { container: 'swal2-container' } // Đảm bảo không bị đè
+        });
+    }
+
     const result = await Swal.fire({
         title: 'Xác nhận lưu?',
         text: `Tạo ${generatedVariants.value.length} món ăn mới.`,
@@ -176,7 +196,12 @@ const handleSave = async () => {
             });
             await Promise.all(savePromises);
             await Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
-            router.push({ name: 'foodManager', query: { tab: 'thucdon' } });
+
+            if (props.isModal) {
+                emit('saved'); // Báo cho trang Set lẩu biết đã lưu xong để nó tự đóng Modal và tải lại dữ liệu
+            } else {
+                router.push({ name: 'foodManager', query: { tab: 'thucdon' } });
+            }
         } catch (error) {
             Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi lưu dữ liệu.' });
         }
@@ -197,6 +222,14 @@ const handleCategoryAdded = async () => { isCategoryModalOpen.value = false; awa
 const handleUnitAdded = async () => { isUnitModalOpen.value = false; await loadDataByCategory(); };
 const openQuickAddUnitValueModal = (unit) => { selectedUnitForQuickAdd.value = unit; isQuickAddUnitValueOpen.value = true; };
 const handleQuickAddUnitValueSuccess = async () => { isQuickAddUnitValueOpen.value = false; await loadDataByCategory(); };
+
+const goBack = () => {
+    if (props.isModal) {
+        emit('cancel'); // Đóng modal nếu đang ở trong HotpotAdd
+    } else {
+        router.back();  // Lùi trang nếu đang đứng độc lập
+    }
+};
 </script>
 
 <template>
@@ -205,7 +238,7 @@ const handleQuickAddUnitValueSuccess = async () => { isQuickAddUnitValueOpen.val
             <div class="header-title">
                 <h1>Thêm Món Ăn Mới</h1>
             </div>
-            <button class="btn-back" @click="router.back()"><i class="fas fa-arrow-left"></i> Quay lại</button>
+            <button class="btn-back" @click="goBack"><i class="fas fa-arrow-left"></i> Quay lại</button>
         </div>
 
         <div class="page-content">
@@ -368,7 +401,7 @@ const handleQuickAddUnitValueSuccess = async () => { isQuickAddUnitValueOpen.val
                     </div>
                 </div>
                 <div class="page-footer mt-4 text-center">
-                    <button class="btn btn-secondary me-2" @click="router.back()" style="min-width: 120px;">Hủy
+                    <button class="btn btn-secondary me-2" @click="goBack" style="min-width: 120px;">Hủy
                         bỏ</button>
                     <button class="btn btn-danger" @click="handleSave"
                         style="min-width: 120px; background-color: #d32f2f;">

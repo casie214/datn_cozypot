@@ -1,10 +1,30 @@
 <script setup>
+import { ref } from 'vue';
 import { useHotpotForm } from '../../../../../services/foodFunction';
+import FoodDetailAddModal from './FoodDetailAddModal.vue';
+import Swal from 'sweetalert2';
 
 const {
     formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode,
-    addIngredient, removeIngredient, handleFileUpload, handleSave, goBack
+    addIngredient, removeIngredient, handleFileUpload, handleSave, goBack, fetchInitialData
 } = useHotpotForm(false);
+
+const isFoodModalOpen = ref(false);
+
+const handleFoodAdded = async () => {
+    isFoodModalOpen.value = false;  
+    if (typeof fetchInitialData === 'function') {
+        await fetchInitialData();
+    }
+    Swal.fire({
+        icon: 'success',
+        title: 'Đã cập nhật danh sách món!',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000
+    });
+};
 
 const getImg = (url) => {
     if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
@@ -115,6 +135,10 @@ const getImg = (url) => {
                 <div class="card ingredient-selector mb-3">
                     <h3>Thêm món vào Set lẩu</h3>
 
+                    <button class="btn btn-sm btn-outline-danger fw-bold mb-2" @click="isFoodModalOpen = true">
+                        <i class="fas fa-plus me-1"></i> Tạo món mới
+                    </button>
+
                     <div class="filter-tools" style="margin-bottom: 1.4em;">
                         <i class="fas fa-search me-1" style="align-self: center;"></i>
                         <input v-model="searchQuery" type="text" class="search-input w-100" placeholder="Tìm tên món ăn...">
@@ -182,6 +206,20 @@ const getImg = (url) => {
                 <i class="fas fa-save me-1"></i> Lưu Set Lẩu
             </button>
         </div>
+
+        
+        <div v-if="isFoodModalOpen" class="fullscreen-modal-overlay">
+            <div class="fullscreen-modal-container">
+                <div class="modal-header-custom">
+                    <h4><i class="fas fa-magic me-2"></i> Tạo nhiều món ăn cùng lúc</h4>
+                    <button class="btn-close-modal" @click="isFoodModalOpen = false">&times;</button>
+                </div>
+                
+                <div class="modal-body-custom">
+                    <FoodDetailAddModal :is-modal="true" @saved="handleFoodAdded" @cancel="isFoodModalOpen = false" />
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -218,4 +256,70 @@ textarea.form-control {
     background: #ccc; 
     border-radius: 4px;
 }
+.fullscreen-modal-overlay {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px); 
+}
+
+.fullscreen-modal-container {
+    background: #f8f9fa; 
+    width: 95%; 
+    max-width: 1400px; 
+    height: 92vh;
+    border-radius: 12px;
+    display: flex; 
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.modal-header-custom {
+    padding: 18px 25px;
+    background: #8B0000; 
+    color: white;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.modal-header-custom h4 { 
+    margin: 0; font-size: 1.25rem; font-weight: 600; 
+}
+
+.btn-close-modal {
+    background: none; 
+    border: none; 
+    color: white;
+    font-size: 2.2rem; 
+    line-height: 1; 
+    cursor: pointer; 
+    transition: 0.2s;
+}
+.btn-close-modal:hover { 
+    color: #ffcccc; transform: scale(1.1); 
+}
+
+.modal-body-custom {
+    flex: 1;
+    overflow-y: auto;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
 </style>
+<style>
+div.swal2-container {
+    z-index: 99999 !important;
+}</style>
