@@ -49,7 +49,6 @@ const goToFoodList = (category) => {
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text"
               placeholder="Tìm kiếm danh mục (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
