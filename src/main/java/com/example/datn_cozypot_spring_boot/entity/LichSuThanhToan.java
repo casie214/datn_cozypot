@@ -24,6 +24,10 @@ public class LichSuThanhToan {
     @Column(name = "id_lich_su_thanh_toan", nullable = false)
     private Integer id;
 
+    @Size(max = 50)
+    @Column(name = "ma_lich_su_tt", length = 50, insertable = false, updatable = false)
+    private String maLichSuTt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_phuong_thuc_thanh_toan")
     private PhuongThucThanhToan idPhuongThucThanhToan;

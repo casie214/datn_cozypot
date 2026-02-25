@@ -123,8 +123,10 @@ public class HoaDonThanhToanService {
         HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(request.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
 
+        Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
+
         Instant now = Instant.now();
-        hd.setTrangThaiHoaDon(2);
+        hd.setTrangThaiHoaDon(5);
         hd.setThoiGianThanhToan(now);
         hoaDonThanhToanRepository.save(hd);
 
@@ -136,8 +138,8 @@ public class HoaDonThanhToanService {
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
         log.setHanhDong("Thanh toán");
-        log.setTrangThaiTruocDo(1);
-        log.setTrangThaiMoi(2);
+        log.setTrangThaiTruocDo(trangThaiHDCu);
+        log.setTrangThaiMoi(4);
         log.setThoiGianThucHien(now);
         System.out.println(now);
         if (request.getIdNhanVien() != null) {
@@ -163,6 +165,13 @@ public class HoaDonThanhToanService {
         if (existingBill.isPresent()) {
             // === TRƯỜNG HỢP: KHÁCH GỌI THÊM MÓN ===
             hoaDon = existingBill.get();
+            LichSuHoaDon logGoiMon = new LichSuHoaDon();
+            logGoiMon.setIdHoaDon(hoaDon);
+            logGoiMon.setHanhDong("Gọi thêm món");
+            logGoiMon.setTrangThaiMoi(2); // 2 = Gọi món
+            logGoiMon.setThoiGianThucHien(Instant.now());
+            logGoiMon.setIdNhanVien(hoaDon.getIdNhanVien());
+            lichSuHoaDonRepository.save(logGoiMon);
             if (req.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(req.getIdNhanVien()).orElse(null);
                 hoaDon.setIdNhanVien(nv);
@@ -185,11 +194,19 @@ public class HoaDonThanhToanService {
             }
 
             hoaDon.setThoiGianTao(Instant.now());
-            hoaDon.setTrangThaiHoaDon(2);
+            hoaDon.setTrangThaiHoaDon(3);
             hoaDon.setTongTienChuaGiam(BigDecimal.ZERO);
             hoaDon.setTongTienThanhToan(BigDecimal.ZERO);
 
             hoaDon = hoaDonThanhToanRepository.save(hoaDon);
+
+            LichSuHoaDon logTaoMoi = new LichSuHoaDon();
+            logTaoMoi.setIdHoaDon(hoaDon);
+            logTaoMoi.setHanhDong("Mở bàn");
+            logTaoMoi.setTrangThaiMoi(1); // 1 = Tạo HD
+            logTaoMoi.setThoiGianThucHien(Instant.now());
+            logTaoMoi.setIdNhanVien(hoaDon.getIdNhanVien());
+            lichSuHoaDonRepository.save(logTaoMoi);
 
             banAn.setTrangThai(1);
             banAnRepo.save(banAn);
@@ -228,7 +245,7 @@ public class HoaDonThanhToanService {
             chiTiet.setThanhTien(thanhTien);
 
             chiTiet.setGhiChuMon(item.getGhiChu());
-            chiTiet.setTrangThaiMon(0);
+            chiTiet.setTrangThaiMon(1);
             chiTiet.setNgayGioTao(LocalDateTime.now());
 
             chiTietHoaDonRepository.save(chiTiet);
