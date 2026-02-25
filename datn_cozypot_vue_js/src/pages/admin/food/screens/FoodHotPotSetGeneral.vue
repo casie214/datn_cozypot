@@ -101,7 +101,7 @@ const getImg = (url) => {
               </span>
             </label>
             <div class="slider-wrapper" v-if="globalMaxPrice > 0">
-              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="10000"
+              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="1000"
                 :tooltips="false" />
             </div>
             <div v-else class="loading-text">Đang tải...</div>

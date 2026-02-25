@@ -52,17 +52,23 @@ export function usePriceFilter() {
     const selectedPriceRange = ref([0, 1000000]);
 
     const calculatePriceLimits = (dataList) => {
-        if (!dataList || dataList.length === 0) return;
-        let min = Infinity, max = -Infinity;
-        dataList.forEach(item => {
-            const p = parseFloat(item.giaBan) || 0;
-            if (p < min) min = p;
-            if (p > max) max = p;
-        });
-        if (min === Infinity) min = 0;
-        if (max === -Infinity) max = 0;
-        globalMinPrice.value = Math.floor(min / 10000) * 10000;
-        globalMaxPrice.value = Math.ceil(max / 10000) * 10000 + 50000; 
+        if (!dataList || dataList.length === 0) {
+            globalMinPrice.value = 0;
+            globalMaxPrice.value = 0;
+            selectedPriceRange.value = [0, 0];
+            return;
+        }
+
+        const prices = dataList.map(item => item.giaBan || 0);
+        const rawMin = Math.min(...prices);
+        const rawMax = Math.max(...prices);
+
+        // LẤY ĐÚNG GIÁ TRỊ THỰC TẾ TRONG DATA (Ví dụ: 399000 và 599000)
+        // Dùng Math.floor và Math.ceil chia 1000 để đảm bảo số luôn tròn nghìn đồng
+        globalMinPrice.value = Math.floor(rawMin / 1000) * 1000; 
+        globalMaxPrice.value = Math.ceil(rawMax / 1000) * 1000; 
+
+        // Gán lại giá trị mặc định cho 2 đầu thanh trượt
         selectedPriceRange.value = [globalMinPrice.value, globalMaxPrice.value];
     };
 
@@ -917,7 +923,7 @@ export function useHotpotForm(isEditMode = false) {
         try {
             const [resTypes, resFoods] = await Promise.all([ foodApi.getHotpotTypes(), foodApi.getFoods() ]);
             listLoaiSet.value = resTypes.data;
-            listFoods.value = resFoods.data.filter(f => Number(f.trangThai) === 1); 
+            listFoods.value = [...resFoods.data.filter(f => Number(f.trangThai) === 1)];
 
             if ((isEditMode || isViewMode.value) && hotpotId) {
                 const resHotpot = await foodApi.getHotpotById(hotpotId);
@@ -1045,7 +1051,7 @@ export function useHotpotForm(isEditMode = false) {
     };
 
     return { 
-        formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode,
+        formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode, fetchInitialData,
         addIngredient, removeIngredient, handleFileUpload, handleUpdate: handleSave, handleSave, goBack: () => router.back() 
     };
 }

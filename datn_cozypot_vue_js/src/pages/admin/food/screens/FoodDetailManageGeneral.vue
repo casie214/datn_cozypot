@@ -79,7 +79,7 @@ const router = useRouter();
             </span>
           </div>
           <div class="slider-wrapper" v-if="globalMaxPrice > 0">
-            <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="5000"
+            <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="1000"
               :tooltips="false" />
           </div>
         </div>
