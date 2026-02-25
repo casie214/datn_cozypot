@@ -113,7 +113,6 @@ public class MonAnController {
 
     @PostMapping("/dinh-luong")
     public ResponseEntity<?> createUnitOld(@RequestBody DonViRequest request) {
-        // Tái sử dụng hàm createDonVi mới
         return ResponseEntity.ok(monAnService.createDonVi(request));
     }
 
