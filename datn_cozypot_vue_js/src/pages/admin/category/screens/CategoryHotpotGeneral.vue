@@ -41,7 +41,6 @@ const goToHotpotList = (item) => {
           <label>Tìm kiếm</label>
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text" placeholder="Tìm kiếm loại lẩu (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 

@@ -39,7 +39,6 @@ const router = useRouter();
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Nhập mã, tên món ăn" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
@@ -48,7 +47,7 @@ const router = useRouter();
           <div class="multiselect-wrapper">
             <Multiselect v-model="categoryFilter" :options="listCategories" valueProp="id" label="tenDanhMuc"
               placeholder="-- Tất cả danh mục --" :searchable="true" :canClear="!isCategoryLocked"
-              :disabled="isCategoryLocked" noOptionsText="Không có danh mục nào" noResultsText="Không tìm thấy" />
+              :disabled="isCategoryLocked" noOptionsText="Không có danh mục nào" noResultsText="Không tìm thấy kết quả" />
           </div>
         </div>
 
