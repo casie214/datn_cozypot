@@ -1,12 +1,16 @@
 <script setup>
 import {
   addBanAn,
+  createBanFull,
+  createKhuVuc,
   fetchAllBanAn,
   fetchAllKhuVuc,
   fetchTableStatusByDate,
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { provide } from "vue";
+import Multiselect from "vue-multiselect";
+import "vue-multiselect/dist/vue-multiselect.css";
 
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
@@ -51,7 +55,16 @@ const updateTime = () => {
 };
 
 // Pop up
+const listTang = computed(() => {
+  return [...new Set(listKhuVuc.value.map((kv) => kv.tang))];
+});
 
+const isTangMoi = computed(() => {
+  if (!selectedTang.value) return false;
+  return !listTang.value.includes(Number(selectedTang.value));
+});
+const selectedTang = ref(null);
+const newKhuVucName = ref("");
 const showAddModal = ref(false);
 
 const openAddModal = () => {
@@ -87,6 +100,69 @@ const khuVucTheoTang = computed(() => {
   return listKhuVuc.value.filter((kv) => kv.tang === Number(form.value.tang));
 });
 
+//Thêm tầng
+// Popup thêm tầng riêng
+const showAddTangModal = ref(false);
+
+const openAddTangModal = () => {
+  showAddTangModal.value = true;
+};
+
+const closeAddTangModal = () => {
+  showAddTangModal.value = false;
+};
+
+const tangForm = ref({
+  tang: "",
+  tenKhuVuc: "",
+  moTa: "",
+});
+
+const submitAddTang = async () => {
+  try {
+    if (!tangForm.value.tang || tangForm.value.tang <= 0) {
+      alert("Tầng phải > 0");
+      return;
+    }
+
+    if (!tangForm.value.tenKhuVuc) {
+      alert("Nhập tên khu vực");
+      return;
+    }
+
+    await createKhuVuc({
+      tang: Number(tangForm.value.tang),
+      tenKhuVuc: tangForm.value.tenKhuVuc.trim(),
+      moTa: tangForm.value.moTa,
+    });
+
+    alert("Thêm thành công");
+
+    await handleFetchAllKhuVuc();
+
+    tangForm.value = {
+      tang: "",
+      tenKhuVuc: "",
+      moTa: "",
+    };
+
+    closeAddTangModal();
+  } catch (error) {
+  console.log("FULL ERROR:", error);
+  console.log("RESPONSE:", error.response);
+  console.log("DATA:", error.response?.data);
+  alert(error.response?.data || error.message || "Có lỗi");
+}
+};
+
+watch(selectedTang, (val) => {
+  form.value.tang = Number(val);
+
+  if (isTangMoi.value) {
+    form.value.idKhuVuc = "";
+  }
+});
+
 watch(
   () => form.value.tang,
   () => {
@@ -94,16 +170,75 @@ watch(
   },
 );
 
+// const submitAddBan = async () => {
+//   try {
+//     await addBanAn(form.value);
+//     closeAddModal();
+
+//     await refreshData();
+//     // await fetchAllBan();
+//     alert("Thêm thành công!");
+//   } catch (e) {
+//     console.error("Lỗi thêm bàn", e);
+//   }
+// };
+
 const submitAddBan = async () => {
   try {
-    await addBanAn(form.value);
-    closeAddModal();
+    // 1️⃣ Validate cơ bản
+    if (!form.value.soNguoiToiDa) {
+      alert("Nhập số người tối đa");
+      return;
+    }
 
+    if (!form.value.tang) {
+      alert("Nhập tầng");
+      return;
+    }
+
+    // 2️⃣ Xử lý tên khu vực
+    let tenKhuVucFinal = null;
+
+    // Nếu đã chọn khu vực cũ
+    if (form.value.idKhuVuc) {
+      const kv = listKhuVuc.value.find((k) => k.id === form.value.idKhuVuc);
+      tenKhuVucFinal = kv?.tenKhuVuc;
+    }
+
+    // Nếu không chọn khu vực → phải nhập tên mới
+    if (!tenKhuVucFinal) {
+      if (!newKhuVucName.value) {
+        alert("Nhập tên khu vực");
+        return;
+      }
+      tenKhuVucFinal = newKhuVucName.value.trim();
+    }
+
+    // 3️⃣ Gọi API create-full
+    await createBanFull({
+      soNguoiToiDa: Number(form.value.soNguoiToiDa),
+      loaiDatBan: form.value.loaiDatBan,
+      tang: Number(form.value.tang),
+      tenKhuVuc: tenKhuVucFinal,
+    });
+
+    // 4️⃣ Reset form
+    form.value = {
+      soNguoiToiDa: null,
+      idKhuVuc: "",
+      loaiDatBan: 0,
+      tang: "",
+    };
+
+    newKhuVucName.value = "";
+
+    closeAddModal();
     await refreshData();
-    // await fetchAllBan();
+
     alert("Thêm thành công!");
-  } catch (e) {
-    console.error("Lỗi thêm bàn", e);
+  } catch (error) {
+    console.error("Lỗi thêm bàn:", error);
+    alert("Có lỗi xảy ra!");
   }
 };
 
@@ -115,11 +250,10 @@ const refreshData = async () => {
 };
 
 // ✅ Provide hàm refresh và data cho component con
-provide('refreshTableData', refreshData);
-provide('danhSachBan', danhSachBan);
+provide("refreshTableData", refreshData);
+provide("danhSachBan", danhSachBan);
 // provide('tableStatusMap', tableStatusMap);
 // provide('selectedDate', selectedDate);
-
 
 onMounted(() => {
   updateTime();
@@ -128,6 +262,8 @@ onMounted(() => {
   fetchAllBan();
   handleFetchAllKhuVuc();
 });
+
+provide("listKhuVuc", listKhuVuc);
 
 onUnmounted(() => {
   clearInterval(timer);
@@ -144,10 +280,9 @@ onUnmounted(() => {
           </h3>
         </div>
 
-        
-
         <div>
           <button class="btn" @click="openAddModal">Thêm bàn</button>
+          <button class="btn ms-2" @click="openAddTangModal">Thêm tầng</button>
         </div>
       </div>
 
@@ -203,16 +338,21 @@ onUnmounted(() => {
 
         <div class="form-group">
           <label>Tầng</label>
-          <select class="form-select" v-model="form.tang">
-            <option value="" disabled>-- Chọn tầng --</option>
-            <option
-              v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]"
-              :key="tang"
-              :value="tang"
-            >
-              Tầng {{ tang }}
-            </option>
-          </select>
+          <Multiselect
+            v-model="selectedTang"
+            :options="listTang"
+            :taggable="true"
+            placeholder="Chọn hoặc nhập tầng mới"
+            @tag="(newTag) => (selectedTang = Number(newTag))"
+          />
+        </div>
+        <div v-if="isTangMoi" class="form-group">
+          <label>Tên khu vực mới</label>
+          <input
+            type="text"
+            v-model="newKhuVucName"
+            placeholder="Nhập tên khu vực mới"
+          />
         </div>
 
         <div class="form-group">
@@ -220,7 +360,7 @@ onUnmounted(() => {
           <select
             class="form-select"
             v-model="form.idKhuVuc"
-            :disabled="!form.tang"
+            :disabled="!form.tang || isTangMoi"
           >
             <option value="" disabled>-- Chọn khu vực --</option>
             <option
@@ -259,6 +399,56 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+  <!-- POPUP THÊM TẦNG & KHU VỰC -->
+<div v-if="showAddTangModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h4>Thêm tầng & khu vực</h4>
+      <button class="close-btn" @click="closeAddTangModal">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label>Tầng</label>
+        <Multiselect
+  v-model="tangForm.tang"
+  :options="listTang"
+  :taggable="true"
+  placeholder="Chọn hoặc nhập tầng mới"
+  @tag="(newTag) => (tangForm.tang = Number(newTag))"
+/>
+      </div>
+
+      <div class="form-group">
+        <label>Tên khu vực</label>
+        <input type="text" v-model="tangForm.tenKhuVuc" />
+      </div>
+
+      <!-- ✅ Ô MÔ TẢ NẰM Ở ĐÂY -->
+      <div class="form-group">
+        <label>Mô tả</label>
+        <textarea
+          v-model="tangForm.moTa"
+          rows="3"
+          placeholder="Nhập mô tả khu vực (không bắt buộc)"
+        ></textarea>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" @click="closeAddTangModal">
+        Hủy
+      </button>
+      <button class="btn btn-active" @click="submitAddTang">
+        Lưu
+      </button>
+    </div>
+  </div>
+</div>
 </template>
 
 <style scoped>
@@ -373,5 +563,11 @@ onUnmounted(() => {
   border: none;
   font-size: 22px;
   cursor: pointer;
+}
+textarea {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  resize: none;
 }
 </style>
