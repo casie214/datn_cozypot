@@ -65,9 +65,6 @@ public class HoaDonThanhToan {
     @Column(name = "tien_hoan_tra", precision = 18)
     private BigDecimal tienHoanTra;
 
-    @Column(name = "trang_thai_hoan_tien")
-    private Integer trangThaiHoanTien;
-
     @Column(name = "tong_tien_thanh_toan", precision = 18)
     private BigDecimal tongTienThanhToan;
 

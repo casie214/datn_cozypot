@@ -55,7 +55,6 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) Integer trangThaiHoanTien,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
@@ -68,7 +67,7 @@ public class HoaDonThanhToanController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai,trangThaiHoanTien, start, end, pageable);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
     @GetMapping("/get-by-id/{id}")
