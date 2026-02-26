@@ -6,12 +6,10 @@ import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.entity.BanAn;
+import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import com.example.datn_cozypot_spring_boot.entity.KhuVuc;
 import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
-import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
-import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
-import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
-import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+import com.example.datn_cozypot_spring_boot.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -42,13 +40,20 @@ public class DatBanService {
 
     @Autowired
     private KhuVucRepository khuVucRepository;
+    @Autowired
+    private HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
     }
 
     public List<DatBanListResponse> getAllByTrangThai(){
-        return phieuDatBanRepository.findWaitingListFuture().stream().map(DatBanListResponse::new).toList();
+        LocalDateTime thoiGianTraCuu = LocalDateTime.now().minusMinutes(60);
+
+        return phieuDatBanRepository.findWaitingListFuture(thoiGianTraCuu)
+                .stream()
+                .map(DatBanListResponse::new)
+                .toList();
     }
 
     public List<BanAnResponse> getAllBanAn(){
@@ -140,29 +145,37 @@ public class DatBanService {
     }
 
     @Transactional
-    public void updateCheckIn(DatBanUpdateRequest req) {
+    public void updateCheckIn(DatBanUpdateRequest request) {
 
-        if (req.getIdBanAn() == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Thiếu ID bàn"
-            );
+        // 1. CẬP NHẬT TRẠNG THÁI BÀN ĂN
+        if (request.getIdBanAn() != null) {
+            BanAn banAn = banAnRepository.findById(request.getIdBanAn())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));
+            banAn.setTrangThai(request.getTrangThai());
+            banAnRepository.save(banAn);
         }
 
-        // Check-in khách đặt
-        if (req.getId() != null) {
-            PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
+        // 2. CẬP NHẬT TRẠNG THÁI PHIẾU ĐẶT BÀN
+        // Vì trangThaiPhieu giờ là Integer nên set thẳng vào luôn
+        if (request.getId() != null && request.getTrangThaiPhieu() != null) {
+            PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
 
-            phieu.setTrangThai(3);
+            phieu.setTrangThai(request.getTrangThaiPhieu());
             phieuDatBanRepository.save(phieu);
         }
 
-        // Update bàn bằng query
-        banAnRepository.updateTrangThaiBan(
-                req.getIdBanAn(),
-                req.getTrangThai()
-        );
+        // 3. CẬP NHẬT HÓA ĐƠN
+        // So sánh bằng == 3 (Giả sử 3 là trạng thái CHECKED_IN của phiếu đặt bàn)
+        if (request.getId() != null && request.getTrangThaiPhieu() != null && request.getTrangThaiPhieu() == 3) {
+
+            HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(request.getId());
+
+            if (hoaDon != null) {
+                hoaDon.setTrangThaiHoaDon(4); // 4 = IN_PROGRESS (Đang phục vụ)
+                hoaDonThanhToanRepository.save(hoaDon);
+            }
+        }
     }
 
     @Transactional
