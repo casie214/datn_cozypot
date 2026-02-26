@@ -21,13 +21,14 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             "OR nv.email LIKE %:keyword% " +
             "OR nv.soCccd LIKE %:keyword%) AND " +
             "(:trangThai IS NULL OR nv.trangThaiLamViec = :trangThai) AND " +
+            "(:gioiTinh IS NULL OR nv.gioiTinh = :gioiTinh) AND " + // Thêm điều kiện lọc giới tính
             "(:tuNgay IS NULL OR nv.ngayVaoLam >= :tuNgay)")
     Page<NhanVien> searchNhanVien(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
+            @Param("gioiTinh") Boolean gioiTinh, // Thêm tham số giới tính (Boolean)
             @Param("tuNgay") LocalDate tuNgay,
             Pageable pageable);
-
     // SỬA DÒNG NÀY: Từ existsBySoDienThoai thành existsBySdtNhanVien
     boolean existsByTenDangNhap(String tenDangNhap);
     boolean existsByEmail(String email);

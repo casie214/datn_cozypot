@@ -153,9 +153,9 @@ public class UserMailService {
         if (req.getDanhSachDiaChi() != null && !req.getDanhSachDiaChi().isEmpty()) {
             diaChiChon = req.getDanhSachDiaChi().stream()
                     .filter(dc -> Boolean.TRUE.equals(dc.getLaMacDinh()))
-                    .map(DiaChiRequest::getThongTinDiaChi)
+                    .map(DiaChiRequest::getDiaChiChiTiet)
                     .findFirst()
-                    .orElse(req.getDanhSachDiaChi().get(0).getThongTinDiaChi());
+                    .orElse(req.getDanhSachDiaChi().get(0).getDiaChiChiTiet());
         }
 
         return "<div style=\"background-color: #f4f4f4; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\">" +

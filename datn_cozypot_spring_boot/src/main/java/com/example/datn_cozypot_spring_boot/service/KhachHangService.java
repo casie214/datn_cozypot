@@ -4,6 +4,7 @@ import com.example.datn_cozypot_spring_boot.dto.*;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
 import com.example.datn_cozypot_spring_boot.entity.DiaChiKhachHang;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
+import com.example.datn_cozypot_spring_boot.repository.DiaChiKhachHangRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import com.example.datn_cozypot_spring_boot.service.userEmailService.UserMailService;
 import org.springframework.beans.BeanUtils;
@@ -48,6 +49,9 @@ public class KhachHangService {
     @Autowired
     private UserMailService userMailService;
 
+    @Autowired
+    private DiaChiKhachHangRepository diaChiRepo;
+
     public KhachHangService() {
         try {
             if (!Files.exists(root)) Files.createDirectories(root);
@@ -56,13 +60,14 @@ public class KhachHangService {
         }
     }
 
-    // 1. Lấy danh sách (Sửa lỗi mapping ở đây)
-    public Page<KhachHangResponse> getAll(String keyword, Integer trangThai, LocalDate tuNgay, int page, int size) {
+    // 1. Lấy danh sách (Đã thêm tham số gioiTinh)
+    public Page<KhachHangResponse> getAll(String keyword, Integer trangThai, Boolean gioiTinh, LocalDate tuNgay, int page, int size) {
         Sort sort = Sort.by(Sort.Direction.DESC, "trangThai").and(Sort.by(Sort.Direction.DESC, "id"));
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return repo.searchKhachHang(keyword, trangThai, tuNgay, pageable)
-                .map(kh -> this.convertToResponse(kh)); // Dùng Lambda để tránh lỗi Method Reference
+        // Truyền đủ 5 tham số: keyword, trangThai, gioiTinh, tuNgay, pageable
+        return repo.searchKhachHang(keyword, trangThai, gioiTinh, tuNgay, pageable)
+                .map(this::convertToResponse);
     }
 
     // 2. Chi tiết
@@ -89,7 +94,8 @@ public class KhachHangService {
 
     @Transactional
     public KhachHangResponse create(KhachHangRequest req, MultipartFile file) {
-        if (repo.existsBySoDienThoai(req.getSoDienThoai())) throw new RuntimeException("Số điện thoại đã tồn tại!");
+        if (repo.existsBySoDienThoai(req.getSoDienThoai()))
+            throw new RuntimeException("Số điện thoại đã tồn tại!");
 
         KhachHang kh = new KhachHang();
         mapRequestToEntity(req, kh);
@@ -97,9 +103,16 @@ public class KhachHangService {
         if (file != null && !file.isEmpty()) {
             kh.setAnhDaiDien(saveFile(file));
         }
+
+        // 1. Lưu khách hàng trước để lấy ID
         KhachHang savedKh = repo.save(kh);
 
-        // GỬI MAIL CHÀO MỪNG (Đã sửa request -> req)
+        // 2. XỬ LÝ LƯU ĐỊA CHỈ (Phần thêm mới)
+        if (req.getDanhSachDiaChi() != null && !req.getDanhSachDiaChi().isEmpty()) {
+            saveDanhSachDiaChi(req.getDanhSachDiaChi(), savedKh);
+        }
+
+        // 3. Gửi mail (Giữ nguyên)
         try {
             userMailService.sendClientNotificationMail(req, "CREATE");
         } catch (Exception e) {
@@ -109,38 +122,67 @@ public class KhachHangService {
         return convertToResponse(savedKh);
     }
 
-    // 5. Cập nhật
-    @Transactional
+    @Transactional // Đảm bảo có Transactional để flush hoạt động
     public KhachHangResponse update(Integer id, KhachHangRequest req, MultipartFile file) {
-        KhachHang kh = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+        // 1. Tìm khách hàng
+        KhachHang kh = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
 
-        // 1. Map thông tin text (Dùng hàm của bạn - Rất an toàn vì không có field ảnh)
+        // 2. Map thông tin cơ bản (Tên, SĐT, Email...)
         mapRequestToEntity(req, kh);
 
-        // 2. Xử lý ảnh - Đảm bảo tính duy nhất
+        // 3. Xử lý ảnh
         if (file != null && !file.isEmpty()) {
-            // CÓ FILE MỚI: Ưu tiên số 1, lưu file và lấy tên mới hoàn toàn
             kh.setAnhDaiDien(saveFile(file));
         } else {
-            // KHÔNG CÓ FILE MỚI: Lấy lại tên cũ từ Request
             String oldImage = req.getAnhDaiDien();
-
             if (oldImage != null && !oldImage.isEmpty()) {
-                // Đề phòng trường hợp Frontend gửi chuỗi bị lặp (có dấu phẩy)
-                // Ta chỉ lấy phần tử đầu tiên trước dấu phẩy
-                if (oldImage.contains(",")) {
-                    oldImage = oldImage.split(",")[0];
-                }
-                kh.setAnhDaiDien(oldImage);
+                kh.setAnhDaiDien(oldImage.contains(",") ? oldImage.split(",")[0] : oldImage);
             }
-            // Nếu cả 2 đều trống thì giữ nguyên ảnh cũ trong DB (kh.getAnhDaiDien())
         }
 
+        // 4. XỬ LÝ ĐỊA CHỈ (Sửa lỗi ObjectDeletedException)
+        if (req.getDanhSachDiaChi() != null) {
+
+            // BƯỚC QUAN TRỌNG 1: Làm rỗng danh sách trong đối tượng KhachHang trước
+            // Điều này ngắt liên kết giữa KhachHang và các địa chỉ cũ trong Persistence Context
+            if (kh.getDanhSachDiaChi() != null) {
+                kh.getDanhSachDiaChi().clear();
+            }
+
+            // BƯỚC QUAN TRỌNG 2: Xóa vật lý trong DB và ép thực hiện ngay (flush)
+            diaChiRepo.deleteByKhachHang(kh);
+            diaChiRepo.flush();
+
+            // 5. Lưu Khách hàng trước để có trạng thái Managed sạch sẽ
+            KhachHang savedKh = repo.save(kh);
+
+            // 6. Thêm mới danh sách địa chỉ
+            for (DiaChiRequest dcReq : req.getDanhSachDiaChi()) {
+                DiaChiKhachHang dc = new DiaChiKhachHang();
+
+                // Luôn để ID null để Hibernate hiểu đây là INSERT mới hoàn toàn
+                dc.setId(null);
+
+                dc.setIdTinhThanh(dcReq.getIdTinhThanh());
+                dc.setIdQuanHuyen(dcReq.getIdQuanHuyen());
+                dc.setIdPhuongXa(dcReq.getIdPhuongXa());
+                dc.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
+                dc.setHoTenNhan(dcReq.getHoTenNhan());
+                dc.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
+                dc.setLaMacDinh(dcReq.getLaMacDinh());
+
+
+                dc.setKhachHang(savedKh);
+                diaChiRepo.save(dc);
+            }
+            return convertToResponse(savedKh);
+        }
+
+        // Trường hợp không có thay đổi địa chỉ
         KhachHang savedKh = repo.save(kh);
         return convertToResponse(savedKh);
-    }
-
-    // 6. Đảo trạng thái
+    }    // 6. Đảo trạng thái
     @Transactional
     public KhachHangResponse toggleStatus(Integer id) {
         KhachHang kh = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
@@ -156,6 +198,29 @@ public class KhachHangService {
             return fileName;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi lưu file: " + e.getMessage());
+        }
+    }
+    private void saveDanhSachDiaChi(List<DiaChiRequest> danhSachRequest, KhachHang kh) {
+        for (DiaChiRequest dcReq : danhSachRequest) {
+            DiaChiKhachHang dcEntity = new DiaChiKhachHang();
+
+            // Map dữ liệu từ Request sang Entity
+            dcEntity.setIdTinhThanh(dcReq.getIdTinhThanh());
+            dcEntity.setIdQuanHuyen(dcReq.getIdQuanHuyen());
+            dcEntity.setIdPhuongXa(dcReq.getIdPhuongXa());
+            dcEntity.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
+            dcEntity.setHoTenNhan(dcReq.getHoTenNhan());
+            dcEntity.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
+            dcEntity.setLaMacDinh(dcReq.getLaMacDinh());
+
+            // Tạo chuỗi thông tin tổng hợp để hiển thị (tránh bị NULL cột thong_tin_dia_chi)
+            String fullText = String.format("%s, %s, %s, %s",
+                    dcReq.getDiaChiChiTiet(), dcReq.getIdPhuongXa(),
+                    dcReq.getIdQuanHuyen(), dcReq.getIdTinhThanh());
+            dcEntity.setDiaChiChiTiet(fullText);
+
+            dcEntity.setKhachHang(kh); // Quan trọng: Liên kết với khách hàng vừa tạo/cập nhật
+            diaChiRepo.save(dcEntity);
         }
     }
 
@@ -215,7 +280,7 @@ public class KhachHangService {
             }
 
             // Cập nhật thông tin địa chỉ
-            entity.setThongTinDiaChi(dto.getThongTinDiaChi());
+            entity.setDiaChiChiTiet(dto.getDiaChiChiTiet());
             entity.setLaMacDinh(Boolean.TRUE.equals(dto.getLaMacDinh()));
 
             // SỬA TẠI ĐÂY: Ưu tiên lấy từ DTO, nếu DTO trống mới lấy theo khách hàng
@@ -225,13 +290,13 @@ public class KhachHangService {
     }
 
     // --- EXPORT EXCEL (HÀM QUAN TRỌNG) ---
-    public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai, LocalDate tuNgay, List<Integer> listId) throws IOException {
+    public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai,Boolean gioiTinh, LocalDate tuNgay, List<Integer> listId) throws IOException {
         List<KhachHang> list;
         try {
             if (listId != null && !listId.isEmpty()) {
                 list = repo.findAllById(listId);
             } else {
-                list = repo.searchKhachHang(keyword, trangThai, tuNgay, PageRequest.of(0, 10000)).getContent();
+                list = repo.searchKhachHang(keyword, trangThai, gioiTinh, tuNgay, PageRequest.of(0, 10000)).getContent();
             }
         } catch (Exception e) {
             System.err.println("🔥 Lỗi truy vấn DB khi xuất Excel: " + e.getMessage());
@@ -269,8 +334,8 @@ public class KhachHangService {
                 row.createCell(3).setCellValue(kh.getSoDienThoai() != null ? kh.getSoDienThoai() : "");
                 row.createCell(4).setCellValue(kh.getEmail() != null ? kh.getEmail() : "");
 
-                String gioiTinh = (kh.getGioiTinh() != null) ? (kh.getGioiTinh() ? "Nam" : "Nữ") : "N/A";
-                row.createCell(5).setCellValue(gioiTinh);
+                String gioiTinhLabel = (kh.getGioiTinh() != null) ? (kh.getGioiTinh() ? "Nam" : "Nữ") : "N/A";
+                row.createCell(5).setCellValue(gioiTinhLabel);
 
                 row.createCell(6).setCellValue(kh.getNgaySinh() != null ? kh.getNgaySinh().format(formatter) : "");
                 row.createCell(7).setCellValue(kh.getDiemTichLuy() != null ? kh.getDiemTichLuy() : 0);
@@ -283,10 +348,19 @@ public class KhachHangService {
                 String diaChiMacDinh = "";
                 if (kh.getDanhSachDiaChi() != null && !kh.getDanhSachDiaChi().isEmpty()) {
                     diaChiMacDinh = kh.getDanhSachDiaChi().stream()
-                            .filter(dc -> dc.getLaMacDinh() != null && dc.getLaMacDinh())
-                            .map(dc -> dc.getThongTinDiaChi())
+                            // Lọc địa chỉ mặc định
+                            .filter(dc -> dc != null && dc.getLaMacDinh() != null && dc.getLaMacDinh())
+                            .map(dc -> dc.getDiaChiChiTiet())
+                            // Chỉ lấy nếu diaChiChiTiet không null
+                            .filter(Objects::nonNull)
                             .findFirst()
-                            .orElse(kh.getDanhSachDiaChi().get(0).getThongTinDiaChi()); // Nếu không có cái nào mặc định, lấy cái đầu tiên
+                            // Nếu không có cái nào mặc định, lấy cái đầu tiên không null
+                            .orElseGet(() -> kh.getDanhSachDiaChi().stream()
+                                    .map(dc -> dc.getDiaChiChiTiet())
+                                    .filter(Objects::nonNull)
+                                    .findFirst()
+                                    .orElse("")
+                            );
                 }
                 row.createCell(10).setCellValue(diaChiMacDinh);
             }
@@ -362,12 +436,18 @@ public class KhachHangService {
             // 2. Gán danh sách này vào Response chính
             res.setDanhSachDiaChi(listDiaChiDto);
 
-            // 3. Logic lấy chuỗi địa chỉ mặc định để hiện ở bảng ngoài (giữ nguyên)
+            // 3. Logic lấy chuỗi địa chỉ mặc định an toàn hơn
             String diaChiMacDinh = kh.getDanhSachDiaChi().stream()
                     .filter(dc -> Boolean.TRUE.equals(dc.getLaMacDinh()))
-                    .map(DiaChiKhachHang::getThongTinDiaChi)
+                    .map(dc -> dc.getDiaChiChiTiet() != null ? dc.getDiaChiChiTiet() : "Chưa có địa chỉ cụ thể")
                     .findFirst()
-                    .orElse(kh.getDanhSachDiaChi().get(0).getThongTinDiaChi());
+                    .orElseGet(() -> {
+                        if (!kh.getDanhSachDiaChi().isEmpty()) {
+                            String firstAddr = kh.getDanhSachDiaChi().get(0).getDiaChiChiTiet();
+                            return firstAddr != null ? firstAddr : "Chưa có địa chỉ";
+                        }
+                        return "Chưa có địa chỉ";
+                    });
             res.setDiaChi(diaChiMacDinh);
         } else {
             res.setDanhSachDiaChi(new ArrayList<>());

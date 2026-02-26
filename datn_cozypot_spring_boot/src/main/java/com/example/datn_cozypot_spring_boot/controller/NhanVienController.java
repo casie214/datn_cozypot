@@ -28,10 +28,11 @@ public class NhanVienController {
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) Boolean gioiTinh,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(service.getAll(keyword, trangThai, tuNgay, page, size));
+        return ResponseEntity.ok(service.getAll(keyword, trangThai, gioiTinh, tuNgay, page, size));
     }
 
     // 2. Xem chi tiết nhân viên
@@ -88,17 +89,45 @@ public class NhanVienController {
     public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) Boolean gioiTinh,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(required = false) List<Integer> listId // Nhận mảng ID từ Frontend
     ) {
         try {
             // Truyền thêm listId vào service
-            return service.exportExcel(keyword, trangThai, tuNgay, listId);
+            return service.exportExcel(keyword, trangThai, gioiTinh, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/export-template")
+    public ResponseEntity<Resource> exportTemplate(@RequestParam(required = false) String listId) {
+        try {
+            // Truyền listId nhận được từ Frontend (ví dụ: "1,2,3") vào Service
+            return service.exportTemplate(listId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 11. Nhập file Excel và báo lỗi nếu trùng dữ liệu
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> importExcel(@RequestParam("file") MultipartFile file) {
+        try {
+            service.importExcel(file);
+            return ResponseEntity.ok(Map.of("message", "Import danh sách nhân viên thành công!"));
+        } catch (RuntimeException e) {
+            // Trả về lỗi 400 kèm thông báo chi tiết các dòng bị trùng Email/SĐT
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi hệ thống khi xử lý file.");
+        }
+    }
+
     // 8. Xuất file PDF và hiển thị trên Tab mới
     @GetMapping("/print-pdf")
     public ResponseEntity<byte[]> printPdf(@RequestParam List<Integer> ids) {

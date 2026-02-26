@@ -25,9 +25,22 @@ public class DiaChiKhachHang {
     @Column(name = "so_dien_thoai_nhan")
     private String soDienThoaiNhan;
 
-    @Column(name = "thong_tin_dia_chi")
-    private String thongTinDiaChi;
 
     @Column(name = "la_mac_dinh")
     private Boolean laMacDinh;
+    // Trong file DiaChiKhachHang.java
+
+    @Column(name = "id_tinh_thanh")
+    private String idTinhThanh;
+
+    @Column(name = "id_quan_huyen")
+    private String idQuanHuyen;
+
+    @Column(name = "id_phuong_xa")
+    private String idPhuongXa;
+
+    @Column(name = "dia_chi_chi_tiet")
+    private String diaChiChiTiet;
+
+
 }

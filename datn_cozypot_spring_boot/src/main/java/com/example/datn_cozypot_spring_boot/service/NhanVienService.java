@@ -3,6 +3,7 @@ package com.example.datn_cozypot_spring_boot.service;
 import com.example.datn_cozypot_spring_boot.dto.NhanVienRequest;
 import com.example.datn_cozypot_spring_boot.dto.NhanVienResponse;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
+import com.example.datn_cozypot_spring_boot.entity.VaiTro;
 import com.example.datn_cozypot_spring_boot.repository.NhanVienRepository;
 import com.example.datn_cozypot_spring_boot.repository.VaiTroRepository;
 import com.example.datn_cozypot_spring_boot.service.userEmailService.UserMailService;
@@ -25,8 +26,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 // --- EXCEL IMPORTS ---
 import org.apache.poi.ss.usermodel.*;
@@ -48,8 +48,7 @@ import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.util.EnumMap;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class NhanVienService {
@@ -106,10 +105,10 @@ public class NhanVienService {
         }
     }
 
-    public Page<NhanVienResponse> getAll(String keyword, Integer trangThai, LocalDate tuNgay, int page, int size) {
+    public Page<NhanVienResponse> getAll(String keyword, Integer trangThai, Boolean gioiTinh, LocalDate tuNgay, int page, int size) {
         Sort sort = Sort.by(Sort.Order.asc("trangThaiLamViec"), Sort.Order.desc("id"));
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repo.searchNhanVien(keyword, trangThai, tuNgay, pageable).map(this::convertToResponse);
+        return repo.searchNhanVien(keyword, trangThai,gioiTinh, tuNgay, pageable).map(this::convertToResponse);
     }
 
     public NhanVienResponse getDetail(Integer id) {
@@ -211,12 +210,12 @@ public class NhanVienService {
         return res;
     }
 
-    public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai, LocalDate tuNgay, List<Integer> listId) throws IOException {
+    public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai, Boolean gioiTinh, LocalDate tuNgay, List<Integer> listId) throws IOException {
         List<NhanVien> list;
         if (listId != null && !listId.isEmpty()) {
             list = repo.findAllById(listId);
         } else {
-            list = repo.searchNhanVien(keyword, trangThai, tuNgay, Pageable.unpaged()).getContent();
+            list = repo.searchNhanVien(keyword, trangThai, gioiTinh, tuNgay, Pageable.unpaged()).getContent();
         }
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -272,6 +271,190 @@ public class NhanVienService {
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(new InputStreamResource(new ByteArrayInputStream(out.toByteArray())));
         }
+    }
+
+    // Sửa khai báo hàm: thêm String listId
+    public ResponseEntity<Resource> exportTemplate(String listId) throws IOException {
+
+        // 1. Logic lấy dữ liệu: Có chọn thì lọc, không chọn thì lấy hết (hoặc lấy rỗng)
+        List<NhanVien> listData;
+
+        if (listId != null && !listId.trim().isEmpty()) {
+            // Chuyển chuỗi "1,2,3" từ Frontend thành List<Integer> [1, 2, 3]
+            List<Integer> ids = Arrays.stream(listId.split(","))
+                    .map(String::trim)
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+            // Lấy đúng những người đã tích chọn
+            listData = repo.findAllById(ids);
+        } else {
+            // Nếu không truyền listId (bấm tải mẫu trống), bạn có thể lấy tất cả hoặc tạo list rỗng
+            listData = repo.findAll();
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        String[] columns = {
+                "Họ và Tên", "Vai Trò", "SĐT", "Email", "Ngày Sinh",
+                "Giới Tính (Nam/Nữ)", "Số CCCD", "Ngày Cấp", "Nơi Cấp",
+                "Ngày Vào Làm", "Địa Chỉ Thường Trú"
+        };
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Danh Sách Nhân Viên");
+
+            // --- Style cho tiêu đề (Giữ nguyên của bạn) ---
+            CellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // --- 2. Đổ dữ liệu từ danh sách ĐÃ LỌC (listData) ---
+            int rowIdx = 1;
+            for (NhanVien nv : listData) {
+                Row row = sheet.createRow(rowIdx++);
+
+                row.createCell(0).setCellValue(nv.getHoTenNhanVien() != null ? nv.getHoTenNhanVien() : "");
+                row.createCell(1).setCellValue(nv.getIdVaiTro() != null ? nv.getIdVaiTro().getTenVaiTro() : "");
+                row.createCell(2).setCellValue(nv.getSdtNhanVien() != null ? nv.getSdtNhanVien() : "");
+                row.createCell(3).setCellValue(nv.getEmail() != null ? nv.getEmail() : "");
+                row.createCell(4).setCellValue(nv.getNgaySinh() != null ? nv.getNgaySinh().format(formatter) : "");
+                row.createCell(5).setCellValue(nv.getGioiTinh() != null ? (nv.getGioiTinh() ? "Nam" : "Nữ") : "");
+                row.createCell(6).setCellValue(nv.getSoCccd() != null ? nv.getSoCccd() : "");
+                row.createCell(7).setCellValue(nv.getNgayCapCccd() != null ? nv.getNgayCapCccd().format(formatter) : "");
+                row.createCell(8).setCellValue(nv.getNoiCapCccd() != null ? nv.getNoiCapCccd() : "");
+                row.createCell(9).setCellValue(nv.getNgayVaoLam() != null ? nv.getNgayVaoLam().format(formatter) : "");
+                row.createCell(10).setCellValue(nv.getDiaChi() != null ? nv.getDiaChi() : "");
+            }
+
+            for (int i = 0; i < columns.length; i++) sheet.autoSizeColumn(i);
+
+            workbook.write(out);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Mau_Import_Nhan_Vien.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(new InputStreamResource(new ByteArrayInputStream(out.toByteArray())));
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void importExcel(MultipartFile file) throws Exception {
+        Workbook workbook = new XSSFWorkbook(file.getInputStream());
+        Sheet sheet = workbook.getSheetAt(0);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        StringBuilder errorMessages = new StringBuilder();
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null || isRowEmpty(row)) continue;
+
+            String hoTen = getCellValue(row.getCell(0));
+            String sdt = getCellValue(row.getCell(2));
+            String email = getCellValue(row.getCell(3));
+            String cccd = getCellValue(row.getCell(6));
+
+            // --- KIỂM TRA TRÙNG DỮ LIỆU ---
+            if (repo.existsByEmail(email)) {
+                errorMessages.append("Dòng ").append(i + 1).append(": Email '").append(email).append("' đã tồn tại.\n");
+            }
+            if (repo.existsBySdtNhanVien(sdt)) {
+                errorMessages.append("Dòng ").append(i + 1).append(": Số điện thoại '").append(sdt).append("' đã tồn tại.\n");
+            }
+            if (repo.existsBySoCccd(cccd)) {
+                errorMessages.append("Dòng ").append(i + 1).append(": Số CCCD '").append(cccd).append("' đã tồn tại.\n");
+            }
+
+            // Nếu đã có lỗi ở các dòng trước hoặc dòng này, không cần tạo Object nữa, chỉ quét tiếp để tìm lỗi
+            if (errorMessages.length() > 0) continue;
+
+            // --- NẾU KHÔNG CÓ LỖI THÌ TẠO ĐỐI TƯỢNG ---
+            NhanVien nv = new NhanVien();
+            nv.setHoTenNhanVien(hoTen);
+
+            // Vai trò
+            String tenVT = getCellValue(row.getCell(1));
+            VaiTro vt = vaiTroRepo.findByTenVaiTro(tenVT);
+            nv.setIdVaiTro(vt);
+
+            nv.setSdtNhanVien(sdt);
+            nv.setEmail(email);
+
+            String ns = getCellValue(row.getCell(4));
+            if(!ns.isEmpty()) nv.setNgaySinh(LocalDate.parse(ns, formatter));
+
+            nv.setGioiTinh("Nam".equalsIgnoreCase(getCellValue(row.getCell(5))));
+            nv.setSoCccd(cccd);
+
+            String nc = getCellValue(row.getCell(7));
+            if(!nc.isEmpty()) nv.setNgayCapCccd(LocalDate.parse(nc, formatter));
+
+            nv.setNoiCapCccd(getCellValue(row.getCell(8)));
+
+            String nvl = getCellValue(row.getCell(9));
+            if(!nvl.isEmpty()) nv.setNgayVaoLam(LocalDate.parse(nvl, formatter));
+
+            nv.setDiaChi(getCellValue(row.getCell(10)));
+
+            // Mặc định
+            nv.setTrangThaiLamViec(1);
+            nv.setTenDangNhap(email);
+            nv.setMatKhauDangNhap("$2a$10$8.UnVuG9HHgffUDAlk8q2OuVGkqRzVUX5aZ2qz9VvD.S9.f8qSj62"); // 123456
+
+            repo.save(nv);
+        }
+
+        workbook.close();
+
+        // Nếu có bất kỳ lỗi nào, ném ra ngoại lệ để Rollback dữ liệu
+        if (errorMessages.length() > 0) {
+            throw new RuntimeException("Dữ liệu không hợp lệ:\n" + errorMessages.toString());
+        }
+    }
+
+    // Hàm đọc dữ liệu từ Cell bất kể định dạng String hay Number
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        DataFormatter formatter = new DataFormatter();
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue().trim();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    // Riêng ngày tháng thì vẫn nên format thủ công để đảm bảo đúng dd/MM/yyyy
+                    return new java.text.SimpleDateFormat("dd/MM/yyyy").format(cell.getDateCellValue());
+                }
+                // Các số khác (SĐT, CCCD) dùng formatter này sẽ không bị 1.23E+9
+                return formatter.formatCellValue(cell).replaceAll("\\s+", "");
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA:
+                // Nếu ô là công thức, lấy giá trị kết quả sau khi tính toán
+                try {
+                    return formatter.formatCellValue(cell);
+                } catch (Exception e) {
+                    return "";
+                }
+            default:
+                return "";
+        }
+    }
+    // Hàm kiểm tra xem dòng đó có thực sự chứa dữ liệu không
+    private boolean isRowEmpty(Row row) {
+        if (row == null) return true;
+        for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+            Cell cell = row.getCell(c);
+            if (cell != null && cell.getCellType() != CellType.BLANK) return false;
+        }
+        return true;
     }
 
     public byte[] generatePdf(List<Integer> listId) throws IOException {

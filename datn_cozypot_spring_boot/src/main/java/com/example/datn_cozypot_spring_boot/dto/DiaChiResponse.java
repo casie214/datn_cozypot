@@ -9,6 +9,9 @@ public class DiaChiResponse {
     private Integer id;
     private String hoTenNhan;
     private String soDienThoaiNhan;
-    private String thongTinDiaChi;
+    private String idTinhThanh;
+    private String idQuanHuyen;
+    private String idPhuongXa;
+    private String diaChiChiTiet;
     private Boolean laMacDinh;
 }
