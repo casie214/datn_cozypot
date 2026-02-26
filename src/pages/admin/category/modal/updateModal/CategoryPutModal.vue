@@ -25,10 +25,14 @@ const {
 } = useCategoryPutModal(props, emit);
 
 // ==========================================
-// THÊM LOGIC QUẢN LÝ ĐỊNH LƯỢNG
+// THÊM LOGIC QUẢN LÝ ĐỊNH LƯỢNG VÀ THÊM NHANH (ENTER)
 // ==========================================
 const listUnits = ref([]);
 const isUnitModalOpen = ref(false);
+
+const multiselectRef = ref(null); // Ref cho component Multiselect
+const currentSearchText = ref(''); // Biến lưu text tìm kiếm
+const prefilledUnitName = ref(''); // Text gởi qua modal thêm nhanh
 
 const fetchAllUnits = async () => {
   try {
@@ -50,15 +54,54 @@ watch(() => props.isOpen, (newVal) => {
   }
 });
 
-// Xử lý khi thêm nhanh 1 đơn vị mới thành công
+// Sự kiện lưu text người dùng đang tìm kiếm
+const handleSearchChange = (query) => {
+  currentSearchText.value = query;
+};
+
+// Sự kiện bắt phím Enter
+const handleKeydown = (event) => {
+  if (event.key === 'Enter' && currentSearchText.value.trim() !== '') {
+    const text = currentSearchText.value.trim();
+
+    // Kiểm tra xem đơn vị này đã tồn tại trong danh sách thả xuống chưa
+    const exists = listUnits.value.some(
+      (unit) => unit.tenDonVi.toLowerCase() === text.toLowerCase()
+    );
+
+    // Nếu chưa tồn tại -> Mở Modal tạo mới
+    if (!exists) {
+      event.preventDefault(); // Chặn hành vi nổi bọt hoặc submit mặc định
+      event.stopPropagation();
+      
+      prefilledUnitName.value = text;
+      isUnitModalOpen.value = true;
+
+      // Đóng danh sách xổ xuống và xóa text hiện tại
+      if (multiselectRef.value) {
+        multiselectRef.value.close();
+        multiselectRef.value.clearSearch();
+      }
+    }
+  }
+};
+
+// Sự kiện khi người dùng tự bấm nút "Tạo định lượng mới" bằng chuột
+const openUnitModalNormal = () => {
+  prefilledUnitName.value = '';
+  isUnitModalOpen.value = true;
+};
+
+// Xử lý khi thêm nhanh 1 đơn vị mới thành công (Từ Modal con trả về)
 const handleUnitAdded = async (newUnitData) => {
   isUnitModalOpen.value = false;
 
   await fetchAllUnits();
-  listUnits.value = [...listUnits.value];
 
+  // newUnitData có thể trả về object (nếu code cũ bạn setup) hoặc string ID
   const idToSelect = typeof newUnitData === 'object' ? newUnitData?.id : newUnitData;
 
+  // Nếu tạo thành công, tự động thêm ID đó vào list đã chọn của Update Form
   if (idToSelect) {
     if (!formData.value.listIdDonVi) {
       formData.value.listIdDonVi = [];
@@ -107,12 +150,31 @@ const handleUnitAdded = async (newUnitData) => {
                     <div class="form-group full-width" style="margin-top: 5px;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="m-0">Định lượng / Kích cỡ áp dụng</label>
-                            <button type="button" class="btn-quick-add" @click="isUnitModalOpen = true">
+                            <button type="button" class="btn-quick-add" @click="openUnitModalNormal">
                                 <i class="fas fa-plus-circle"></i> Tạo định lượng mới
                             </button>
                         </div>
-                        <Multiselect v-model="formData.listIdDonVi" :options="listUnits" mode="tags" valueProp="id" label="tenDonVi"
-                            placeholder="-- Chọn các định lượng có sẵn --" :searchable="true" class="custom-multiselect-theme" />
+                        
+                        <Multiselect 
+                            ref="multiselectRef"
+                            v-model="formData.listIdDonVi" 
+                            :options="listUnits" 
+                            mode="tags" 
+                            valueProp="id" 
+                            label="tenDonVi"
+                            placeholder="-- Chọn các định lượng có sẵn --" 
+                            :searchable="true" 
+                            class="custom-multiselect-theme"
+                            @search-change="handleSearchChange"
+                            @keydown="handleKeydown"
+                        >
+                            <template v-slot:noresults>
+                                <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                                    Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentSearchText }}</b>"
+                                </div>
+                            </template>
+                        </Multiselect>
+
                         <small class="text-muted" style="font-size: 0.8rem; margin-top: 4px; display: block;">
                             * Có thể chọn nhiều định lượng cùng lúc (VD: ml, gram, ly...)
                         </small>
@@ -143,8 +205,14 @@ const handleUnitAdded = async (newUnitData) => {
             </div>
         </div>
 
-        <UnitAddScreen :isOpen="isUnitModalOpen" :categories="[]" :isQuickAddMode="true" @close="isUnitModalOpen = false"
-            @refresh="handleUnitAdded" />
+        <UnitAddScreen 
+            :isOpen="isUnitModalOpen" 
+            :categories="[]" 
+            :isQuickAddMode="true" 
+            :initialName="prefilledUnitName"
+            @close="isUnitModalOpen = false"
+            @refresh="handleUnitAdded" 
+        />
     </div>
 </template>
 

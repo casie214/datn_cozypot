@@ -9,6 +9,20 @@ import '@vueform/multiselect/themes/default.css';
 import CommonPagination from '@/components/commonPagination.vue';
 import Swal from 'sweetalert2';
 
+const statusOptions = [
+  { value: 'all', label: 'Tất cả' },
+  { value: '1', label: 'Đang kinh doanh' },
+  { value: '0', label: 'Ngưng kinh doanh' }
+];
+
+const sortOptions = [
+  { value: 'newest', label: 'Mới nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' },
+  { value: 'price_asc', label: 'Giá (Thấp -> Cao)' },
+  { value: 'price_desc', label: 'Giá (Cao -> Thấp)' }
+];
+
+
 const {
   mockData, paginatedData, currentPage, itemsPerPage, totalPages, totalElements,
   searchQuery, sortOption, statusFilter, categoryFilter, listCategories, isCategoryLocked,
@@ -51,23 +65,32 @@ const router = useRouter();
           </div>
         </div>
 
-        <div class="filter-item">
+         <div class="filter-item">
           <label>Trạng thái</label>
-          <select v-model="statusFilter" class="form-control">
-            <option value="all">Tất cả</option>
-            <option value="1">Đang kinh doanh</option>
-            <option value="0">Ngưng kinh doanh</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="statusFilter" 
+            :options="statusOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp theo</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="newest">Mới nhất</option>
-            <option value="name_asc">Tên (A-Z)</option>
-            <option value="price_asc">Giá (Thấp -> Cao)</option>
-            <option value="price_desc">Giá (Cao -> Thấp)</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item price-filter-item" style="width: 250px;">
@@ -183,6 +206,10 @@ const router = useRouter();
 /* CSS cho Multiselect */
 .multiselect-wrapper {
   width: 230px;
+}
+
+.multiselect-wrapper-sm {
+  width: 220px;
 }
 
 :deep(.multiselect) {
