@@ -89,6 +89,19 @@ public class HoaDonThanhToanController {
         }
     }
 
+    @PutMapping("/hoan-tat")
+    public ResponseEntity<?> hoanTatHoaDon(@RequestBody LichSuHoaDonRequest request) {
+        try {
+            hoaDonThanhToanService.hoanTatHoaDon(request);
+            return ResponseEntity.ok("Hoàn tất hóa đơn và giải phóng bàn thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/lich-su/{idHoaDon}")
     public ResponseEntity<List<LichSuHoaDonResponse>> getLichSuDonHang(@PathVariable Integer idHoaDon) {
         List<LichSuHoaDonResponse> history = lichSuHoaDonService.layLichSuDonHang(idHoaDon);

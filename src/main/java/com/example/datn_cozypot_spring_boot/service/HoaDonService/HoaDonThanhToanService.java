@@ -152,13 +152,13 @@ public class HoaDonThanhToanService {
 
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
 
-        if (trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9) {
-            throw new RuntimeException("Hóa đơn đã kết thúc, không thể thực hiện thanh toán!");
+        if (trangThaiHDCu == 6 || trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9) {
+            throw new RuntimeException("Hóa đơn đã được thanh toán hoặc đã kết thúc!");
         }
 
         Instant now = Instant.now();
 
-        hd.setTrangThaiHoaDon(7);
+        hd.setTrangThaiHoaDon(6);
         hd.setThoiGianThanhToan(now);
         hoaDonThanhToanRepository.save(hd);
 
@@ -181,6 +181,43 @@ public class HoaDonThanhToanService {
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
         log.setHanhDong("Thanh toán hóa đơn");
+        log.setTrangThaiTruocDo(trangThaiHDCu);
+        log.setTrangThaiMoi(6);
+        log.setThoiGianThucHien(now);
+
+        if (request.getIdNhanVien() != null) {
+            NhanVien nv = new NhanVien();
+            nv.setId(request.getIdNhanVien());
+            log.setIdNhanVien(nv);
+        }
+
+        lichSuHoaDonRepository.save(log);
+    }
+
+    @Transactional
+    public void hoanTatHoaDon(LichSuHoaDonRequest request) {
+        HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(request.getIdHoaDon())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
+
+        Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
+
+        if (trangThaiHDCu != 6) {
+            throw new RuntimeException("Hóa đơn chưa được thanh toán, không thể hoàn tất!");
+        }
+
+        Instant now = Instant.now();
+
+        hd.setTrangThaiHoaDon(7);
+        hoaDonThanhToanRepository.save(hd);
+
+        if (hd.getIdBanAn() != null) {
+            hd.getIdBanAn().setTrangThai(0);
+            banAnRepo.save(hd.getIdBanAn());
+        }
+
+        LichSuHoaDon log = new LichSuHoaDon();
+        log.setIdHoaDon(hd);
+        log.setHanhDong("Khách ra về - Hoàn tất hóa đơn");
         log.setTrangThaiTruocDo(trangThaiHDCu);
         log.setTrangThaiMoi(7);
         log.setThoiGianThucHien(now);
