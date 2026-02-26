@@ -16,6 +16,7 @@ import {
   BeHuyHoaDon,
   BeGetHoaDonById,
   BeGetLichSuThanhToan,
+  BeHoanTatHoaDon,
 } from "./orderService";
 
 export function useOrderManager() {
@@ -124,7 +125,7 @@ export function useOrderManager() {
   };
 
   const handlePrintOrder = async (orderId) => {
-    // 1. Lấy phần tử DOM chứa mẫu hóa đơn (chúng ta sẽ tạo ở Bước 3)
+    // 1. Lấy phần tử DOM chứa mẫu hóa đơn
     const element = document.getElementById("invoice-template");
 
     if (!element) {
@@ -134,7 +135,7 @@ export function useOrderManager() {
 
     // 2. Cấu hình cho file PDF
     const opt = {
-      margin: 5, // Căn lề (mm)
+      margin: 5, 
       filename: `HoaDon_${orderId}_${dayjs().format("DDMMYYYY")}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
@@ -580,6 +581,65 @@ export function useOrderManager() {
     }
   };
 
+  // Hoàn tất hóa đơn (Chốt sổ & Giải phóng bàn)
+  const handleHoanTatHoaDon = async (orderId) => {
+    const idToComplete = orderId || selectedOrder.value?.dbId;
+    if (!idToComplete) return;
+
+    Swal.fire({
+      title: "Khách đã ra về?",
+      text: "Hóa đơn sẽ được chuyển sang Hoàn thành và bàn sẽ được dọn trống.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#8b0000",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Đồng ý chốt",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const payload = {
+            idHoaDon: idToComplete,
+            idNhanVien: 1, // Sau này thay bằng ID user đang đăng nhập nhé
+            hanhDong: "Khách ra về - Hoàn tất hóa đơn",
+            thoiGianThucHien: new Date().toISOString(),
+          };
+
+          await BeHoanTatHoaDon(payload);
+
+          // Bắn thông báo góc phải
+          Toast.fire({
+            icon: "success",
+            title: "Thành công",
+            text: "Hóa đơn đã hoàn tất, bàn đã trống!",
+          });
+
+          // Tải lại danh sách bên ngoài
+          if (filters.value.search || filters.value.status !== "Tất cả") {
+            performSearch(false);
+          } else {
+            fetchOrders();
+          }
+
+          // Cập nhật lại màn hình chi tiết nếu đang mở
+          if (
+            selectedOrder.value &&
+            selectedOrder.value.dbId === idToComplete
+          ) {
+            await handleViewDetail(idToComplete);
+          }
+        } catch (error) {
+          console.error(error);
+          Toast.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: error.response?.data?.message || "Không thể hoàn tất hóa đơn",
+          });
+        }
+      }
+    });
+  };
+
   const closeCancelModal = () => {
     cancelModalState.value.isOpen = false;
   };
@@ -624,5 +684,6 @@ export function useOrderManager() {
     openCancelModal,
     confirmCancelOrder,
     closeCancelModal,
+    handleHoanTatHoaDon,
   };
 }

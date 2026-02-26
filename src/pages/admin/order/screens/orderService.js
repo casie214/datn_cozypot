@@ -95,6 +95,15 @@ export const BeGetLichSuHoaDon = async (idHoaDon) => {
     }
 };
 
+export const BeHoanTatHoaDon = async (payload) => {
+    try {
+        await axiosClient.put(`${PREFIX}/hoan-tat`, payload);
+        return true;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const BeUpdateMonDaLen = async (idChiTiet) => {
     try {
         await axiosClient.put(`${PREFIX}/chi-tiet-hoa-don/cap-nhat-da-len/${idChiTiet}`);

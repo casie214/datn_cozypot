@@ -28,6 +28,7 @@ const {
   paymentHistory,
   invoiceDate,
   formatDate,
+  handleHoanTatHoaDon,
 } = useOrderManager();
 
 const formatMoney = (value) => {
@@ -196,7 +197,7 @@ onMounted(async () => {
                     width: `${(visibleSteps.length - 1) * 130}px`,
                     backgroundColor: isCancelledOrRefunded
                       ? '#dc3545'
-                      : '#198754',
+                      : '#8b0000',
                   }"
                 ></div>
 
@@ -228,7 +229,7 @@ onMounted(async () => {
                     class="step-label text-uppercase fw-bold"
                     :class="{
                       'text-danger': step.isErrorStep,
-                      'text-success': !step.isErrorStep,
+                      'text-warning': !step.isErrorStep,
                     }"
                   >
                     {{ step.label }}
@@ -539,6 +540,14 @@ onMounted(async () => {
             @click="onBack"
           >
             Quay lại
+          </button>
+
+          <button
+            v-if="selectedOrder?.trangThaiCode === 6"
+            class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
+            @click="handleHoanTatHoaDon(selectedOrder?.dbId)"
+          >
+            <i class="fa-solid fa-check-double me-2"></i>Hoàn thành
           </button>
 
           <button
@@ -1049,15 +1058,15 @@ onMounted(async () => {
   transition: all 0.4s;
 }
 .step-circle.completed {
-  background-color: #198754;
-  border-color: #198754;
+  background-color: #8b0000;
+  border-color: #8b0000;
   color: white;
 }
 .step-circle.active {
-  border-color: #198754;
-  color: #198754;
+  border-color: #8b0000;
+  color: #8b0000;
   transform: scale(1.2);
-  box-shadow: 0 0 10px rgba(25, 135, 84, 0.3);
+  box-shadow: 0 0 10px rgba(139, 0, 0, 0.3);
 }
 .step-circle.error {
   background-color: #dc3545 !important;
