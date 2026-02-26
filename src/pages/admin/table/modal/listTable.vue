@@ -421,19 +421,7 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            value=""
-            v-model="form.loaiDatBan"
-            :true-value="1"
-            :false-value="0"
-          />
-          <label class="form-check-label" for="checkIndeterminate">
-            Có thể đặt online
-          </label>
-        </div>
+        
 
         <!-- <div class="form-group">
           <label>Ngày tạo</label><br>

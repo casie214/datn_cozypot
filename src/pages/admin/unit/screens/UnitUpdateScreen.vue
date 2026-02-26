@@ -9,7 +9,8 @@ import '@vueform/multiselect/themes/default.css';
 const props = defineProps({
     isOpen: Boolean,
     unitItem: Object, // Object chứa: id, tenDonVi, values: [], listIdDanhMuc: []
-    categories: Array
+    categories: Array,
+    isQuickAddMode: { type: Boolean, default: false } // Biến xác định chế độ Thêm nhanh
 });
 const emit = defineEmits(['close', 'refresh']);
 
@@ -93,7 +94,7 @@ const handleUpdate = async () => {
 
         Swal.fire({
             icon: 'success',
-            title: 'Cập nhật thành công!',
+            title: props.isQuickAddMode ? 'Đã thêm giá trị mới!' : 'Cập nhật thành công!',
             timer: 1200,
             showConfirmButton: false
         });
@@ -111,21 +112,22 @@ const handleUpdate = async () => {
     <div v-if="isOpen" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>Cập nhật đơn vị tính</h3>
+                <h3>{{ isQuickAddMode ? 'Thêm nhanh giá trị định lượng' : 'Cập nhật đơn vị tính' }}</h3>
                 <button @click="emit('close')" class="close-btn">&times;</button>
             </div>
 
             <div class="modal-body">
                 <div class="form-group">
                     <label>Tên đơn vị tính <span class="required">*</span></label>
-                    <input v-model="formData.tenDonVi" type="text" class="form-control" placeholder="VD: ml, gram...">
+                    <input v-model="formData.tenDonVi" type="text" class="form-control" placeholder="VD: ml, gram..." :disabled="isQuickAddMode">
                 </div>
 
                 <div class="form-group">
                     <label>Áp dụng cho danh mục <span class="required">*</span></label>
                     <div class="multiselect-container">
                         <Multiselect v-model="formData.listIdDanhMuc" mode="tags" :options="categories"
-                            label="tenDanhMuc" valueProp="id" placeholder="-- Chọn danh mục --" :searchable="true" />
+                            label="tenDanhMuc" valueProp="id" placeholder="-- Chọn danh mục --" :searchable="true" 
+                            :disabled="isQuickAddMode" />
                     </div>
                 </div>
 
@@ -142,19 +144,18 @@ const handleUpdate = async () => {
                         <div v-for="(v, index) in formData.values" :key="index" class="value-tag"
                             :class="{ 'is-new': !v.id }">
                             {{ v.giaTri }}
-                            <span @click="removeValue(index)" class="remove-tag">&times;</span>
+                            <span v-if="!(isQuickAddMode && v.id)" @click="removeValue(index)" class="remove-tag">&times;</span>
                         </div>
                         <div v-if="formData.values.length === 0" class="empty-hint">
                             Danh sách trống. Vui lòng thêm giá trị.
                         </div>
                     </div>
-                    <small class="text-muted" style="font-size: 0.8rem;">* Các thẻ màu xanh lá là giá trị mới
-                        thêm.</small>
+                    
                 </div>
 
                 <div class="form-group">
                     <label>Mô tả</label>
-                    <textarea v-model="formData.moTa" class="form-control" rows="2"></textarea>
+                    <textarea v-model="formData.moTa" class="form-control" rows="2" :disabled="isQuickAddMode"></textarea>
                 </div>
             </div>
 
@@ -241,6 +242,11 @@ const handleUpdate = async () => {
     width: 100%;
 }
 
+.form-control:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
 /* Style input thêm giá trị */
 .input-with-btn {
     display: flex;
@@ -323,5 +329,10 @@ const handleUpdate = async () => {
 
 :deep(.multiselect-tag) {
     background: #8B0000 !important;
+}
+
+:deep(.multiselect-container.is-disabled) {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 </style>

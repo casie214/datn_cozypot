@@ -131,7 +131,6 @@ const handleEditValue = async (valItem, parentUnit) => {
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text"
               placeholder="Nhập tên hiển thị, kích cỡ..." />
-            <button class="search-btn"><i class="fas fa-search"></i></button>
           </div>
         </div>
 
@@ -139,7 +138,7 @@ const handleEditValue = async (valItem, parentUnit) => {
           <label>Lọc theo danh mục</label>
           <div class="multiselect-wrapper" style="width: 220px;">
             <Multiselect v-model="categoryFilter" :options="listCategories" label="tenDanhMuc" valueProp="id"
-              placeholder="-- Tất cả --" :searchable="true" :can-clear="true" />
+              placeholder="-- Tất cả --" :searchable="true" :can-clear="true" no-results-text="Không tìm thấy kết quả" />
           </div>
         </div>
 
@@ -198,7 +197,7 @@ const handleEditValue = async (valItem, parentUnit) => {
                 <i class="fas fa-chevron-right arrow-icon"></i>
               </td>
               <td class="text-center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-              <td class="" style="font-size: 1.05rem;">
+              <td class="" style="font-size: 14px;">
                 {{ unit.tenDonVi }}
                 <span class="badge-count">{{ unit.values ? unit.values.length : 0 }} size</span>
               </td>
