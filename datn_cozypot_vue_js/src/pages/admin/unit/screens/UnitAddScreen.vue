@@ -6,11 +6,14 @@ import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 
 const props = defineProps({
-    isOpen: Boolean,
-    categories: Array,
-    // THÊM BIẾN NÀY ĐỂ XÁC ĐỊNH CHẾ ĐỘ THÊM NHANH TỪ MODAL DANH MỤC
-    isQuickAddMode: { type: Boolean, default: false }
+  isOpen: Boolean,
+  isQuickAddMode: Boolean,
+  initialName: {
+    type: String,
+    default: ''
+  }
 });
+
 const emit = defineEmits(['close', 'refresh']);
 
 const formData = ref({
@@ -32,6 +35,9 @@ watch(() => props.isOpen, (newVal) => {
             values: []
         };
         newValueInput.value = '';
+    }
+    if (props.initialName) {
+      formData.value.tenDonVi = props.initialName; 
     }
 });
 

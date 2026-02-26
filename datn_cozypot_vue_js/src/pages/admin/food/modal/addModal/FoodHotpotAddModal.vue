@@ -1,15 +1,17 @@
 <script setup>
 import { ref } from 'vue';
-import { useHotpotForm } from '../../../../../services/foodFunction';
+import { useHotpotCategoryAddModal, useHotpotForm } from '../../../../../services/foodFunction';
 import FoodDetailAddModal from './FoodDetailAddModal.vue';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
+import CategoryHotpotAddModal from '@/pages/admin/category/modal/addModal/CategoryHotpotAddModal.vue';
 
 const {
     formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode,
     addIngredient, removeIngredient, handleFileUpload, handleSave, goBack, fetchInitialData
 } = useHotpotForm(false);
-
+const loaiSetMultiselectRef = ref(null);
+const currentLoaiSetSearch = ref('');
 const isFoodModalOpen = ref(false);
 
 const handleFoodAdded = async () => {
@@ -33,6 +35,89 @@ const getImg = (url) => {
     }
     return 'https://placehold.co/100x100?text=No+Img';
 }
+
+// ==========================================
+const isLoaiSetModalOpen = ref(false);
+const prefilledLoaiSetName = ref('');
+
+const handleLoaiSetSearchChange = (query) => {
+    currentLoaiSetSearch.value = query;
+};
+
+const handleLoaiSetKeydown = async (event) => {
+    if (event.key === 'Enter' && currentLoaiSetSearch.value.trim() !== '') {
+        const text = currentLoaiSetSearch.value.trim();
+        const exists = listLoaiSet.value.some(ls => ls.tenLoaiSet?.toLowerCase() === text.toLowerCase());
+
+        if (!exists) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Đóng dropdown hiện tại
+            if (loaiSetMultiselectRef.value) {
+                loaiSetMultiselectRef.value.close();
+                loaiSetMultiselectRef.value.clearSearch();
+            }
+
+            // Mở Modal và truyền chữ sang
+            prefilledLoaiSetName.value = text;
+            isLoaiSetModalOpen.value = true;
+        }
+    }
+};
+
+// Hàm xử lý sau khi Modal lưu thành công
+const handleLoaiSetAdded = async (newData) => {
+    isLoaiSetModalOpen.value = false;
+    
+    // Tải lại danh sách
+    await fetchInitialData(); 
+    
+    let idToSelect = null;
+    if (newData) {
+        idToSelect = typeof newData === 'object' ? newData.id : newData;
+    }
+    
+    // Tự động tìm ID nếu component con không trả về
+    if (!idToSelect && prefilledLoaiSetName.value) {
+        const newlyAdded = listLoaiSet.value.find(
+            (ls) => ls.tenLoaiSet?.toLowerCase() === prefilledLoaiSetName.value.toLowerCase()
+        );
+        if (newlyAdded) idToSelect = newlyAdded.id;
+    }
+
+    // Tự động chọn trong Multiselect
+    if (idToSelect) formData.value.idLoaiSet = idToSelect;
+    
+    prefilledLoaiSetName.value = '';
+};
+
+// ==========================================
+// THÊM LOGIC TẠO NHANH CHO "MÓN ĂN"
+// ==========================================
+const prefilledFoodName = ref('');
+
+const handleFoodEnter = (event) => {
+    // Nếu bấm Enter, ô tìm kiếm có chữ, và không tìm thấy món nào trong list
+    if (event.key === 'Enter' && searchQuery.value.trim() !== '') {
+        if (filteredFoodList.value.length === 0) {
+            event.preventDefault();
+            
+            // Mở modal tạo món ăn và truyền chữ đang gõ vào
+            prefilledFoodName.value = searchQuery.value.trim();
+            isFoodModalOpen.value = true;
+            
+            // Xóa bộ lọc đi cho sạch sẽ
+            searchQuery.value = ''; 
+        }
+    }
+};
+
+// Hàm mở Modal Món ăn bằng nút bấm thủ công
+const openFoodModalNormal = () => {
+    prefilledFoodName.value = '';
+    isFoodModalOpen.value = true;
+};
 </script>
 
 <template>
@@ -61,11 +146,27 @@ const getImg = (url) => {
 
                             <div class="form-group">
                                 <label>Loại Set <span class="required">*</span></label>
-                                <Multiselect v-model="formData.idLoaiSet" :options="listLoaiSet" mode="single"
-                                    valueProp="id" label="tenLoaiSet" :searchable="true"
-                                    :class="{ 'invalid-border': errors.idLoaiSet }" class="custom-multiselect-theme"
-                                    @change="errors.idLoaiSet = ''" placeholder="-- Chọn loại lẩu --"
-                                    noResultsText="Không tìm thấy loại lẩu nào" noOptionsText="Không có dữ liệu" />
+                                <Multiselect 
+                                    ref="loaiSetMultiselectRef"
+                                    v-model="formData.idLoaiSet" 
+                                    :options="listLoaiSet" 
+                                    mode="single"
+                                    valueProp="id" 
+                                    label="tenLoaiSet" 
+                                    :searchable="true"
+                                    :class="{ 'invalid-border': errors.idLoaiSet }" 
+                                    class="custom-multiselect-theme"
+                                    @change="errors.idLoaiSet = ''" 
+                                    placeholder="-- Chọn loại lẩu --"
+                                    @search-change="handleLoaiSetSearchChange"
+                                    @keydown="handleLoaiSetKeydown"
+                                >
+                                    <template v-slot:noresults>
+                                        <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                                            Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentLoaiSetSearch }}</b>"
+                                        </div>
+                                    </template>
+                                </Multiselect>
                                 <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
                             </div>
 
@@ -131,17 +232,24 @@ const getImg = (url) => {
                     <div class="card ingredient-selector mb-3">
                         <h3>Thêm món vào Set lẩu</h3>
 
-                        <button class="btn btn-sm btn-outline-danger fw-bold mb-2" @click="isFoodModalOpen = true">
+                        <button class="btn btn-sm btn-outline-danger fw-bold mb-2" @click="openFoodModalNormal">
                             <i class="fas fa-plus me-1"></i> Tạo món mới
                         </button>
 
                         <div class="filter-tools" style="margin-bottom: 1.4em;">
                             <i class="fas fa-search me-1" style="align-self: center;"></i>
                             <input v-model="searchQuery" type="text" class="search-input w-100"
-                                placeholder="Tìm tên món ăn...">
+                                placeholder="Tìm tên món ăn..." @keydown="handleFoodEnter">
                         </div>
 
                         <div class="scroll-list-container" style="max-height: 300px; overflow-y: auto;">
+                            <div v-if="filteredFoodList.length === 0" class="text-center p-3 text-muted">
+                                <span v-if="searchQuery">
+                                    Không tìm thấy món "<b>{{ searchQuery }}</b>".<br>
+                                    <div class="mt-2">Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px; color: #8B0000;">Enter ↵</kbd> để tạo món này.</div>
+                                </span>
+                                <span v-else>Không tìm thấy món ăn nào.</span>
+                            </div>
                             <div v-for="item in filteredFoodList" :key="item.id" class="food-item-card"
                                 @click="addIngredient(item)"
                                 style="cursor: pointer; display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
@@ -224,10 +332,22 @@ const getImg = (url) => {
                 </div>
 
                 <div class="modal-body-custom">
-                    <FoodDetailAddModal :is-modal="true" @saved="handleFoodAdded" @cancel="isFoodModalOpen = false" />
-                </div>
+            <FoodDetailAddModal 
+                :is-modal="true" 
+                :initial-name="prefilledFoodName" 
+                @saved="handleFoodAdded" 
+                @cancel="isFoodModalOpen = false" 
+            />
+        </div>
             </div>
         </div>
+
+        <CategoryHotpotAddModal 
+            :isOpen="isLoaiSetModalOpen" 
+            :initialName="prefilledLoaiSetName"
+            @close="isLoaiSetModalOpen = false" 
+            @refresh="handleLoaiSetAdded" 
+        />
     </div>
 </template>
 

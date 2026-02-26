@@ -6,7 +6,13 @@ import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 import UnitAddScreen from '@/pages/admin/unit/screens/UnitAddScreen.vue';
 
-const props = defineProps(['isOpen', 'formData']);
+const props = defineProps({
+  isOpen: Boolean,
+  initialName: {
+    type: String,
+    default: ''
+  }
+});
 const emit = defineEmits(['close', 'save', 'refresh']);
 
 const {
@@ -25,6 +31,50 @@ if (formData.value && !formData.value.listIdDonVi) {
   formData.value.listIdDonVi = [];
 }
 
+const multiselectRef = ref(null); // Để thao tác đóng/xóa text của Multiselect
+const currentSearchText = ref(''); // Lưu lại text đang gõ
+const prefilledUnitName = ref(''); // Text sẽ truyền sang modal con
+
+// Lắng nghe mỗi khi gõ phím vào ô tìm kiếm
+const handleSearchChange = (query) => {
+  currentSearchText.value = query;
+};
+
+// Bắt sự kiện phím bấm trong Multiselect
+const handleKeydown = (event) => {
+  // Nếu bấm phím Enter và ô tìm kiếm đang có chữ
+  if (event.key === 'Enter' && currentSearchText.value.trim() !== '') {
+    const text = currentSearchText.value.trim();
+    
+    // Kiểm tra xem chữ vừa nhập có trùng với đơn vị nào đã có không
+    const exists = listUnits.value.some(
+      (unit) => unit.tenDonVi.toLowerCase() === text.toLowerCase()
+    );
+
+    // NẾU CHƯA CÓ TRONG DATA -> MỞ MODAL THÊM MỚI
+    if (!exists) {
+      event.preventDefault(); // Chặn hành động submit mặc định
+      event.stopPropagation();
+      
+      // Mở modal và truyền text vào
+      prefilledUnitName.value = text;
+      isUnitModalOpen.value = true;
+
+      // Đóng dropdown và xóa trắng ô tìm kiếm cho gọn
+      if (multiselectRef.value) {
+        multiselectRef.value.close();
+        multiselectRef.value.clearSearch();
+      }
+    }
+  }
+};
+
+// Nút bấm "Tạo định lượng mới" bằng tay thì không truyền text
+const openUnitModalNormal = () => {
+  prefilledUnitName.value = '';
+  isUnitModalOpen.value = true;
+};
+
 const fetchAllUnits = async () => {
   try {
     const res = await foodApi.getUnitTypes();
@@ -38,6 +88,9 @@ watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     fetchAllUnits();
     if (formData.value) formData.value.listIdDonVi = [];
+    if (props.initialName && formData.value) {
+      formData.value.tenDanhMuc = props.initialName;
+    }
   }
 });
 
@@ -84,12 +137,29 @@ const handleUnitAdded = async (newUnitId) => {
           <div class="form-group full-width" style="margin-top: 5px;">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <label class="m-0">Định lượng / Kích cỡ áp dụng</label>
-              <button type="button" class="btn-quick-add" @click="isUnitModalOpen = true">
+              <button type="button" class="btn-quick-add" @click="openUnitModalNormal">
                 <i class="fas fa-plus-circle"></i> Tạo định lượng mới
               </button>
             </div>
-            <Multiselect v-model="formData.listIdDonVi" :options="listUnits" mode="tags" valueProp="id" label="tenDonVi"
-              placeholder="-- Chọn các định lượng có sẵn --" :searchable="true" class="custom-multiselect-theme" />
+            <Multiselect 
+              ref="multiselectRef"
+              v-model="formData.listIdDonVi" 
+              :options="listUnits" 
+              mode="tags" 
+              valueProp="id" 
+              label="tenDonVi"
+              placeholder="-- Chọn các định lượng có sẵn --" 
+              :searchable="true" 
+              class="custom-multiselect-theme"
+              @search-change="handleSearchChange"
+              @keydown="handleKeydown"
+            >
+              <template v-slot:noresults>
+                <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                  Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentSearchText }}</b>"
+                </div>
+              </template>
+            </Multiselect>
             <small class="text-muted" style="font-size: 0.8rem; margin-top: 4px; display: block;">
               * Có thể chọn nhiều định lượng cùng lúc (VD: ml, gram, ly...)
             </small>
@@ -120,8 +190,14 @@ const handleUnitAdded = async (newUnitId) => {
       </div>
     </div>
 
-    <UnitAddScreen :isOpen="isUnitModalOpen" :categories="[]" :isQuickAddMode="true" @close="isUnitModalOpen = false"
-      @refresh="handleUnitAdded" />
+    <UnitAddScreen 
+      :isOpen="isUnitModalOpen" 
+      :categories="[]" 
+      :isQuickAddMode="true" 
+      :initialName="prefilledUnitName"
+      @close="isUnitModalOpen = false"
+      @refresh="handleUnitAdded" 
+    />
   </div>
 </template>
 
