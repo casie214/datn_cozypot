@@ -22,7 +22,10 @@ const formData = ref({
     hinhAnh: '',
     idDanhMuc: '',
 });
-const props = defineProps({ isModal: { type: Boolean, default: false } });
+const props = defineProps({ 
+    isModal: { type: Boolean, default: false },
+    initialName: { type: String, default: '' } // Thêm dòng này để hứng tên món
+});
 const emit = defineEmits(['saved', 'cancel']);
 const errors = ref({});
 const listCategories = ref([]);
@@ -36,6 +39,83 @@ const isCategoryModalOpen = ref(false);
 const isUnitModalOpen = ref(false);
 const isQuickAddUnitValueOpen = ref(false);
 const selectedUnitForQuickAdd = ref(null);
+
+const categoryMultiselectRef = ref(null); // Để móc vào DOM của Multiselect
+const currentCategorySearchText = ref('');
+const prefilledCategoryName = ref('');
+
+// Theo dõi text đang gõ
+const handleCategorySearchChange = (query) => {
+    currentCategorySearchText.value = query;
+};
+
+// Bắt phím Enter
+const handleCategoryKeydown = (event) => {
+    if (event.key === 'Enter' && currentCategorySearchText.value.trim() !== '') {
+        const text = currentCategorySearchText.value.trim();
+
+        // Kiểm tra trùng
+        const exists = listCategories.value.some(
+            (cat) => cat.tenDanhMuc.toLowerCase() === text.toLowerCase()
+        );
+
+        // Nếu chưa có -> Mở Modal tạo danh mục
+        if (!exists) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            prefilledCategoryName.value = text;
+            isCategoryModalOpen.value = true;
+
+            // Đóng danh sách và xóa text
+            if (categoryMultiselectRef.value) {
+                categoryMultiselectRef.value.close();
+                categoryMultiselectRef.value.clearSearch();
+            }
+        }
+    }
+};
+
+// Hàm mở Modal Danh mục bằng tay (nút "Thêm nhanh")
+const openCategoryModalNormal = () => { 
+    prefilledCategoryName.value = '';
+    isCategoryModalOpen.value = true; 
+};
+
+// Cập nhật hàm xử lý sau khi tạo thành công Danh mục
+// Cập nhật hàm xử lý sau khi tạo thành công Danh mục
+const handleCategoryAdded = async (newCategoryData) => { 
+    isCategoryModalOpen.value = false; 
+    
+    // 1. Chờ tải lại danh sách danh mục mới nhất từ DB
+    await fetchInitialData(); 
+    
+    let idToSelect = null;
+
+    // Trường hợp 1: Nếu Modal con có trả về ID hoặc Object
+    if (newCategoryData) {
+        idToSelect = typeof newCategoryData === 'object' ? newCategoryData.id : newCategoryData;
+    }
+    
+    // Trường hợp 2: Nếu Modal con KHÔNG trả về gì, ta quét trong danh sách mới tải về
+    // Tìm cái danh mục có tên khớp với tên mình vừa gõ (prefilledCategoryName)
+    if (!idToSelect && prefilledCategoryName.value) {
+        const newlyAdded = listCategories.value.find(
+            (cat) => cat.tenDanhMuc.toLowerCase() === prefilledCategoryName.value.toLowerCase()
+        );
+        if (newlyAdded) {
+            idToSelect = newlyAdded.id;
+        }
+    }
+
+    // 2. Tự động gán ID tìm được vào Multiselect
+    if (idToSelect) {
+        formData.value.idDanhMuc = idToSelect;
+    }
+    
+    // Xóa bộ nhớ đệm text
+    prefilledCategoryName.value = '';
+};
 
 // ==========================================
 // 2. KHỞI TẠO & TẢI DỮ LIỆU
@@ -77,7 +157,14 @@ watch(() => formData.value.idDanhMuc, (newVal, oldVal) => {
         selectedDinhLuongIds.value = [];
         generatedVariants.value = [];
     }
-});
+}); // Bỏ chữ {immediate: true} ở đây đi cho an toàn
+
+// THÊM ĐOẠN NÀY VÀO DƯỚI ĐỂ HỨNG TÊN MÓN:
+watch(() => props.initialName, (newVal) => {
+    if (newVal) {
+        formData.value.baseName = newVal;
+    }
+}, { immediate: true });
 
 const toggleDinhLuong = (id) => {
     if (selectedDinhLuongIds.value.includes(id)) {
@@ -218,7 +305,6 @@ const handleFileUpload = (event) => {
     event.target.value = '';
 };
 
-const handleCategoryAdded = async () => { isCategoryModalOpen.value = false; await fetchInitialData(); };
 const handleUnitAdded = async () => { isUnitModalOpen.value = false; await loadDataByCategory(); };
 const openQuickAddUnitValueModal = (unit) => { selectedUnitForQuickAdd.value = unit; isQuickAddUnitValueOpen.value = true; };
 const handleQuickAddUnitValueSuccess = async () => { isQuickAddUnitValueOpen.value = false; await loadDataByCategory(); };
@@ -260,14 +346,31 @@ const goBack = () => {
                                             title="Tải lại danh sách" style="font-size: 0.9rem;"></i>
                                     </div>
                                 </div>
-                                <Multiselect v-model="formData.idDanhMuc" :options="listCategories" mode="single"
-                                    valueProp="id" label="tenDanhMuc" placeholder="-- Bắt buộc chọn --" :searchable="true"
-                                    :canClear="true" class="custom-multiselect-theme" />
+                                <Multiselect 
+                                    ref="categoryMultiselectRef"
+                                    v-model="formData.idDanhMuc" 
+                                    :options="listCategories" 
+                                    mode="single"
+                                    valueProp="id" 
+                                    label="tenDanhMuc" 
+                                    placeholder="-- Bắt buộc chọn --" 
+                                    :searchable="true"
+                                    :canClear="true" 
+                                    class="custom-multiselect-theme" 
+                                    @search-change="handleCategorySearchChange"
+                                    @keydown="handleCategoryKeydown"
+                                >
+                                    <template v-slot:noresults>
+                                        <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                                            Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentCategorySearchText }}</b>"
+                                        </div>
+                                    </template>
+                                </Multiselect>
                             </div>
                             <div class="form-group" style="margin-top: 5.5px;">
                                 <label>Tên sản phẩm gốc <span class="required">*</span></label>
                                 <input v-model="formData.baseName" type="text" placeholder="VD: Nước ngọt Coca, Bò Mỹ..."
-                                    :disabled="!formData.idDanhMuc" :class="{ 'invalid-border': errors.baseName }">
+                                    :class="{ 'invalid-border': errors.baseName }">
                                 <span class="error-message" v-if="errors.baseName">{{ errors.baseName }}</span>
                             </div>
                         </div>
@@ -414,8 +517,12 @@ const goBack = () => {
             </button>
         </div>
 
-        <CategoryAddModal :isOpen="isCategoryModalOpen" @close="isCategoryModalOpen = false"
-            @refresh="handleCategoryAdded" />
+        <CategoryAddModal 
+            :isOpen="isCategoryModalOpen" 
+            :initialName="prefilledCategoryName"
+            @close="isCategoryModalOpen = false"
+            @refresh="handleCategoryAdded" 
+        />
 
         <UnitAddScreen :isOpen="isUnitModalOpen" :categories="listCategories" @close="isUnitModalOpen = false"
             @refresh="handleUnitAdded" />
