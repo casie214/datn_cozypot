@@ -1,10 +1,17 @@
 <script setup>
 import { useHotpotCategoryAddModal } from '../../../../../services/foodFunction';
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, watch } from 'vue';
 // 1. Import GlobalDialogue
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
-const props = defineProps(['isOpen', 'formData']);
+const props = defineProps({
+  isOpen: Boolean,
+  formData: Object,
+  initialName: {
+    type: String,
+    default: ''
+  }
+});
 const emit = defineEmits(['close', 'save', 'refresh']);
 
 const { 
@@ -16,6 +23,14 @@ const {
     handleDialogConfirm,
     handleDialogClose
 } = useHotpotCategoryAddModal(props, emit);
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal && props.initialName) {
+    if (formData.value) {
+      formData.value.tenLoaiSet = props.initialName;
+    }
+  }
+});
 </script>
 
 <template>
@@ -33,7 +48,7 @@ const {
       />
 
       <div class="modal-header">
-        <h2 style="color: white !important;">Thêm Loại Set Lẩu Mới</h2>
+        <h2>Thêm Loại Set Lẩu Mới</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
@@ -49,7 +64,7 @@ const {
                 <textarea v-model="formData.moTa" rows="3" placeholder="Nhập mô tả chi tiết..."></textarea>
             </div>
 
-            <div class="form-group full-width">
+            <!-- <div class="form-group full-width">
                 <label>Trạng thái</label>
                 <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
                     <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
@@ -59,7 +74,7 @@ const {
                         {{ formData.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
                     </span>
                 </div>
-            </div>
+            </div> -->
         </div>
       </div>
 
