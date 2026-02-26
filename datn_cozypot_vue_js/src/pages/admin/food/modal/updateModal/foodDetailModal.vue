@@ -19,8 +19,8 @@ const errors = ref({});
 // ==========================================
 // 2. DỮ LIỆU FORM & API
 // ==========================================
-const originalInfo = ref(null); 
-const listCategories = ref([]); 
+const originalInfo = ref(null);
+const listCategories = ref([]);
 const listDinhLuongDB = ref([]); // Chứa danh sách định lượng gốc từ DB
 
 const formData = ref({
@@ -50,7 +50,7 @@ onMounted(async () => {
 
     try {
         isLoading.value = true;
-        
+
         // Gọi API lấy Chi tiết món và Danh sách Danh mục
         const [resFood, resCat] = await Promise.all([
             foodApi.getFoodById(id),
@@ -74,11 +74,12 @@ onMounted(async () => {
             hinhAnh: data.hinhAnh || ''
         };
 
-        // Gán giá trị đang có cho Combobox
-        selectedUnit.value = data.kichCo || ''; 
-        selectedWeight.value = data.giaTriDinhLuong || ''; 
+        // GÁN GIÁ TRỊ CHO COMBOBOX (CHÚ Ý SỬA TÊN TRƯỜNG Ở ĐÂY NẾU BACKEND TRẢ VỀ KHÁC)
+        // Mình đang dự phòng các tên trường phổ biến: tenDonVi/kichCo và giaTri/giaTriDinhLuong
+        selectedUnit.value = data.tenDonVi || data.kichCo || '';
+        selectedWeight.value = data.giaTri || data.giaTriDinhLuong || '';
 
-        // Nếu món ăn đã có idDanhMuc, tự động load danh sách Kích cỡ / Đơn vị
+        // Tải danh sách Kích cỡ / Đơn vị (isResetSelection = false để không xóa mất giá trị vừa gán)
         if (formData.value.idDanhMuc) {
             await loadDataByCategory(formData.value.idDanhMuc, false);
         }
@@ -96,7 +97,7 @@ onMounted(async () => {
 // ==========================================
 const loadDataByCategory = async (idDanhMuc, isResetSelection = true) => {
     errors.value.idDanhMuc = '';
-    
+
     // Nếu user chủ động đổi danh mục khác, reset trắng 2 ô combobox
     if (isResetSelection) {
         selectedUnit.value = '';
@@ -105,20 +106,34 @@ const loadDataByCategory = async (idDanhMuc, isResetSelection = true) => {
 
     unitOptions.value = [];
     weightOptions.value = [];
+    listDinhLuongDB.value = []; // Chứa dữ liệu phẳng để tra cứu ID
 
     if (!idDanhMuc) return;
 
     try {
-        const res = await foodApi.getUnitsByCategory(idDanhMuc);
-        listDinhLuongDB.value = res.data || [];
+        // Đảm bảo tên hàm gọi API đúng với cấu hình của bạn (ví dụ: getUnitTypesByCategory)
+        const res = await foodApi.getUnitTypesByCategory(idDanhMuc);
+        const rawUnits = res.data || [];
 
         const units = new Set();
         const weights = new Set();
 
-        listDinhLuongDB.value.forEach(item => {
-            // Dựa vào JSON DB thực tế: kichCo là Đơn vị (Lon, Chai...), dinhLuong là Khối lượng (330ml...)
-            if (item.kichCo) units.add(item.kichCo.trim());
-            if (item.dinhLuong) weights.add(item.dinhLuong.trim());
+        // Xử lý dữ liệu Cha - Con từ API
+        rawUnits.forEach(unit => {
+            if (unit.values && unit.values.length > 0) {
+                unit.values.forEach(val => {
+                    // 1. Ép phẳng để dễ lấy ID (rất quan trọng cho hàm handleUpdate)
+                    listDinhLuongDB.value.push({
+                        id: val.id,             // ID định lượng con
+                        kichCo: unit.tenDonVi,  // VD: ml, gram, lon...
+                        dinhLuong: val.giaTri   // VD: 330, 500, 1.5...
+                    });
+
+                    // 2. Gom các tùy chọn không trùng lặp cho Combobox
+                    if (unit.tenDonVi) units.add(unit.tenDonVi.trim());
+                    if (val.giaTri) weights.add(val.giaTri.trim());
+                });
+            }
         });
 
         unitOptions.value = Array.from(units);
@@ -162,7 +177,7 @@ const handleFileUpload = async (event) => {
     try {
         formData.value.hinhAnh = await resizeImage(file);
         errors.value.hinhAnh = '';
-    } catch (e) {}
+    } catch (e) { }
     event.target.value = '';
 };
 
@@ -194,17 +209,17 @@ const handleUpdate = async () => {
     // TÌM idDinhLuong TỪ 2 COMBOBOX
     const u = selectedUnit.value || '';
     const w = selectedWeight.value || '';
-    
-    const matchedDB = listDinhLuongDB.value.find(dbItem => 
-        (dbItem.kichCo || '').toLowerCase() === u.toLowerCase() && 
+
+    const matchedDB = listDinhLuongDB.value.find(dbItem =>
+        (dbItem.kichCo || '').toLowerCase() === u.toLowerCase() &&
         (dbItem.dinhLuong || '').toLowerCase() === w.toLowerCase()
     );
 
     if (!matchedDB) {
-        return Swal.fire({ 
-            icon: 'error', 
-            title: 'Lỗi Kích cỡ / Đơn vị', 
-            text: 'Tổ hợp Đơn vị và Kích cỡ này chưa tồn tại trong danh mục đã chọn. Vui lòng chọn tổ hợp khác hoặc tạo mới trong bảng Định Lượng.' 
+        return Swal.fire({
+            icon: 'error',
+            title: 'Lỗi Kích cỡ / Đơn vị',
+            text: 'Tổ hợp Đơn vị và Kích cỡ này chưa tồn tại trong danh mục đã chọn. Vui lòng chọn tổ hợp khác hoặc tạo mới trong bảng Định Lượng.'
         });
     }
 
@@ -245,7 +260,7 @@ const goBack = () => router.back();
 </script>
 
 <template>
-    <div class="main-content">
+    <div class="main-content d-flex flex-column h-100">
         <div class="page-header">
             <div class="header-title">
                 <h1>{{ isViewMode ? 'Chi tiết món ăn' : 'Cập nhật món ăn' }}</h1>
@@ -261,193 +276,211 @@ const goBack = () => router.back();
             <p class="mt-2">Đang tải dữ liệu...</p>
         </div>
 
-        <div v-else class="page-content-wrapper">
-            <div class="info-hero-card" v-if="originalInfo">
-                <div class="hero-image">
-                    <img :src="getImg(originalInfo.hinhAnh)" alt="Ảnh món ăn">
-                </div>
-                <div class="hero-details">
-                    <div class="hero-header">
-                        <h2 class="hero-title">
-                            {{ originalInfo.tenMon }}
-                            <span class="code-badge">#{{ originalInfo.maMon }}</span>
-                        </h2>
-                        <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
-                            {{ originalInfo.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
-                        </span>
+        <div v-else class="page-content-wrapper d-flex flex-column" style="flex: 1; overflow: hidden;">
+
+            <div class="content-scroll-wrapper" style="flex: 1; overflow-y: auto; padding-bottom: 20px;">
+                <div class="info-hero-card" v-if="originalInfo" style="margin-bottom: 20px;">
+                    <div class="hero-image">
+                        <img :src="getImg(originalInfo.hinhAnh)" alt="Ảnh món ăn">
                     </div>
-                    <div class="hero-meta-grid">
-                        <div class="meta-item">
-                            <span class="label">Danh mục:</span>
-                            <span class="value" style="color: #d32f2f; font-weight: bold;">
-                                <i class="fas fa-tags me-1"></i> {{ categoryName }}
+                    <div class="hero-details">
+                        <div class="hero-header">
+                            <h2 class="hero-title">
+                                {{ originalInfo.tenMon }}
+                                <span class="code-badge">#{{ originalInfo.maMon }}</span>
+                            </h2>
+                            <span :class="['status-badge', originalInfo.trangThai === 1 ? 'active' : 'inactive']">
+                                {{ originalInfo.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
                             </span>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="page-content" :class="{ 'view-mode': isViewMode }">
-
-                <div class="section-left" style="flex: 1.5;">
-                    <div class="card">
-                        <h3>Thông tin cơ bản</h3>
-                        <div class="form-container">
-
-                            <div class="form-group">
-                                <label>Mã hệ thống</label>
-                                <input v-model="formData.maMon" type="text" disabled style="background: #f8f9fa; font-weight: bold; color: #555;">
+                        <div class="hero-meta-grid">
+                            <div class="meta-item">
+                                <span class="label">Danh mục:</span>
+                                <span class="value" style="color: #d32f2f; font-weight: bold;">
+                                    <i class="fas fa-tags me-1"></i> {{ categoryName }}
+                                </span>
                             </div>
-
-                            <div class="form-group">
-                                <label>Tên món ăn <span class="required" v-if="!isViewMode">*</span></label>
-                                <input v-model="formData.tenMon" type="text" :disabled="isViewMode"
-                                    :class="{ 'invalid-border': errors.tenMon }"
-                                    @input="errors.tenMon = ''" placeholder="VD: Ba chỉ bò Mỹ...">
-                                <span class="error-message" v-if="errors.tenMon">{{ errors.tenMon }}</span>
-                            </div>
-
-                            <div class="form-row-2">
-                                <div class="form-group">
-                                    <label>Giá vốn (VNĐ)</label>
-                                    <input v-model="formData.giaVon" type="number" :disabled="isViewMode">
-                                </div>
-                                <div class="form-group">
-                                    <label>Giá bán (VNĐ) <span class="required" v-if="!isViewMode">*</span></label>
-                                    <input v-model="formData.giaBan" type="number" :disabled="isViewMode"
-                                        :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
-                                    <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Mô tả chi tiết</label>
-                                <textarea v-model="formData.moTa" rows="4" :disabled="isViewMode" 
-                                    placeholder="Thành phần, hương vị..."></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Trạng thái kinh doanh</label>
-                                <div class="toggle-wrapper" :class="{ 'disabled': isViewMode }"
-                                    @click="!isViewMode && (formData.trangThai = formData.trangThai === 1 ? 0 : 1)">
-                                    <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
-                                        <div class="toggle-knob"></div>
-                                    </div>
-                                    <span :class="formData.trangThai === 1 ? 'text-success fw-bold' : 'text-danger fw-bold'">
-                                        {{ formData.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
-                                    </span>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
 
-                <div class="section-right" style="flex: 1;">
-                    <div class="card full-height-card">
-                        <h3>Phân loại & Hình ảnh</h3>
-                        <div class="form-container">
+                <div class="page-content" :class="{ 'view-mode': isViewMode }">
+                    <div class="section-left" style="flex: 1.5;">
+                        <div class="card">
+                            <h3>Thông tin cơ bản</h3>
+                            <div class="form-container">
 
-                            <div class="form-group">
-                                <label>Thuộc danh mục <span class="required" v-if="!isViewMode">*</span></label>
-                                <select v-model="formData.idDanhMuc" class="form-control" :disabled="isViewMode"
-                                    :class="{ 'invalid-border': errors.idDanhMuc }" 
-                                    @change="loadDataByCategory(formData.idDanhMuc, true)">
-                                    <option value="" disabled>-- Chọn danh mục --</option>
-                                    <option v-for="cat in listCategories" :key="cat.id" :value="cat.id">
-                                        {{ cat.tenDanhMuc }}
-                                    </option>
-                                </select>
-                                <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
-                            </div>
-
-                            <div class="form-row-2 mt-3">
                                 <div class="form-group">
-                                    <label>Đơn vị tính</label>
-                                    <Multiselect 
-                                        v-model="selectedUnit" 
-                                        :options="unitOptions"
-                                        :disabled="isViewMode || !formData.idDanhMuc" 
-                                        :searchable="true" 
-                                        :create-option="false"
-                                        placeholder="Chọn đơn vị..." 
-                                        noOptionsText="Không có dữ liệu" 
-                                    />
-                                    <small v-if="!formData.idDanhMuc" class="text-muted mt-1 d-block">Vui lòng chọn Danh mục</small>
+                                    <label>Mã hệ thống</label>
+                                    <input v-model="formData.maMon" type="text" disabled
+                                        style="background: #f8f9fa; font-weight: bold; color: #555;">
                                 </div>
+
                                 <div class="form-group">
-                                    <label>Khối lượng / Kích cỡ</label>
-                                    <Multiselect 
-                                        v-model="selectedWeight" 
-                                        :options="weightOptions"
-                                        :disabled="isViewMode || !formData.idDanhMuc" 
-                                        :searchable="true" 
-                                        :create-option="false"
-                                        placeholder="Chọn kích cỡ..." 
-                                        noOptionsText="Không có dữ liệu" 
-                                    />
+                                    <label>Tên món ăn <span class="required" v-if="!isViewMode">*</span></label>
+                                    <input v-model="formData.tenMon" type="text" :disabled="isViewMode"
+                                        :class="{ 'invalid-border': errors.tenMon }" @input="errors.tenMon = ''"
+                                        placeholder="VD: Ba chỉ bò Mỹ...">
+                                    <span class="error-message" v-if="errors.tenMon">{{ errors.tenMon }}</span>
+                                </div>
+
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label>Giá vốn (VNĐ)</label>
+                                        <input v-model="formData.giaVon" type="number" :disabled="isViewMode">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Giá bán (VNĐ) <span class="required" v-if="!isViewMode">*</span></label>
+                                        <input v-model="formData.giaBan" type="number" :disabled="isViewMode"
+                                            :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+                                        <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Mô tả chi tiết</label>
+                                    <textarea v-model="formData.moTa" rows="4" :disabled="isViewMode"
+                                        placeholder="Thành phần, hương vị..."></textarea>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="form-group mt-4">
-                                <label>Hình ảnh đại diện</label>
-                                <div class="upload-box-wrapper text-center">
-                                    <div class="upload-container" v-if="!isViewMode"
-                                        :class="{ 'invalid-border': errors.hinhAnh }">
-                                        <input type="file" accept="image/*" @change="handleFileUpload" style="display: none;" id="file-upload" />
-                                        
-                                        <div v-if="!formData.hinhAnh" class="empty-upload" onclick="document.getElementById('file-upload').click()" 
-                                             style="padding: 20px; border: 2px dashed #ccc; cursor: pointer; border-radius: 8px;">
-                                            <i class="fas fa-image" style="font-size: 2rem; color: #888;"></i>
-                                            <p class="mt-2 mb-0">Bấm để tải ảnh lên</p>
-                                        </div>
+                    <div class="section-right" style="flex: 1;">
+                        <div class="card full-height-card">
+                            <h3>Phân loại & Hình ảnh</h3>
+                            <div class="form-container">
 
-                                        <div v-else class="preview-mode">
-                                            <img :src="formData.hinhAnh" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
-                                            <div class="mt-2 d-flex justify-content-between">
-                                                <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('file-upload').click()">Đổi ảnh</button>
-                                                <button class="btn btn-sm btn-outline-danger" @click="formData.hinhAnh = ''">Xóa ảnh</button>
+                                <div class="form-group">
+                                    <label>Thuộc danh mục <span class="required" v-if="!isViewMode">*</span></label>
+                                    <Multiselect v-model="formData.idDanhMuc" :options="listCategories" mode="single"
+                                        valueProp="id" label="tenDanhMuc" :disabled="isViewMode" :searchable="true"
+                                        :class="{ 'invalid-border': errors.idDanhMuc }" class="custom-multiselect-theme"
+                                        @change="(val) => loadDataByCategory(val, true)"
+                                        placeholder="-- Chọn danh mục --" noResultsText="Không tìm thấy danh mục nào"
+                                        noOptionsText="Không có dữ liệu" />
+                                    <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
+                                </div>
+
+                                <div class="form-row-2 mt-3">
+                                    <div class="form-group">
+                                        <label>Đơn vị tính</label>
+                                        <Multiselect v-model="selectedUnit" :options="unitOptions"
+                                            :disabled="isViewMode || !formData.idDanhMuc" :searchable="true"
+                                            :create-option="false" noResultsText="Không tìm thấy kết quả nào"
+                                            placeholder="Chọn đơn vị..." noOptionsText="Không có dữ liệu" />
+                                        <small v-if="!formData.idDanhMuc" class="text-muted mt-1 d-block">Vui lòng chọn
+                                            Danh mục</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Khối lượng / Kích cỡ</label>
+                                        <Multiselect v-model="selectedWeight" :options="weightOptions"
+                                            :disabled="isViewMode || !formData.idDanhMuc" :searchable="true"
+                                            :create-option="false" noResultsText="Không tìm thấy kết quả nào"
+                                            placeholder="Chọn kích cỡ..." noOptionsText="Không có dữ liệu" />
+                                    </div>
+                                </div>
+
+                                <div class="form-group mt-4">
+                                    <label>Hình ảnh đại diện</label>
+                                    <div class="upload-box-wrapper text-center">
+                                        <div class="upload-container" v-if="!isViewMode"
+                                            :class="{ 'invalid-border': errors.hinhAnh }">
+                                            <input type="file" accept="image/*" @change="handleFileUpload"
+                                                style="display: none;" id="file-upload" />
+
+                                            <div v-if="!formData.hinhAnh" class="empty-upload"
+                                                onclick="document.getElementById('file-upload').click()"
+                                                style="padding: 20px; border: 2px dashed #ccc; cursor: pointer; border-radius: 8px;">
+                                                <i class="fas fa-image" style="font-size: 2rem; color: #888;"></i>
+                                                <p class="mt-2 mb-0">Bấm để tải ảnh lên</p>
+                                            </div>
+
+                                            <div v-else class="preview-mode">
+                                                <img :src="formData.hinhAnh"
+                                                    style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
+                                                <div class="mt-2 d-flex justify-content-between">
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                        onclick="document.getElementById('file-upload').click()">Đổi
+                                                        ảnh</button>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                        @click="formData.hinhAnh = ''">Xóa ảnh</button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="large-preview-container" v-else>
-                                        <img :src="getImg(formData.hinhAnh)" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                        <div class="large-preview-container" v-else>
+                                            <img :src="getImg(formData.hinhAnh)"
+                                                style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
+                            </div>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <div class="page-footer" v-if="!isViewMode" style="display: flex;">
-                <button class="btn-large btn-cancel" @click="goBack">Hủy bỏ</button>
-                <button class="btn-large btn-save full-width bg-danger text-white border-0" @click="handleUpdate">
+            <div class="page-footer-sticky" v-if="!isViewMode"
+                style="border-top: 1px solid #ddd; background: #fff; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; padding: 15px 20px; display: flex; justify-content: flex-end; align-items: center; width: 100%; gap: 15px;">
+                <button class="btn btn-secondary" @click="goBack"
+                    style="min-width: 120px; padding: 10px 20px; border-radius: 6px;">Hủy bỏ</button>
+                <button class="btn btn-danger" @click="handleUpdate"
+                    style="min-width: 180px; padding: 10px 20px; background-color: #d32f2f; border: none; color: white; border-radius: 6px;">
                     <i class="fas fa-save me-1"></i> Lưu thông tin món
                 </button>
             </div>
 
-            <div class="page-footer" v-else style="display: flex;">
-                <button class="btn-large btn-cancel w-100" @click="goBack">Quay lại danh sách</button>
+            <div class="page-footer-sticky" v-else
+                style="border-top: 1px solid #ddd; background: #fff; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; padding: 15px 20px; display: flex; justify-content: center; width: 100%;">
+                <button class="btn btn-secondary w-100" @click="goBack" style="padding: 10px; border-radius: 6px;">Quay
+                    lại danh sách</button>
             </div>
-        </div>
 
+        </div>
     </div>
 </template>
 
 <style scoped>
 @import url("/src/assets/foodModalManager.css");
 
-.invalid-border { border: 1px solid #dc3545 !important; }
-.error-message { color: #dc3545; font-size: 0.85em; margin-top: 4px; display: block; }
-.text-gray { color: #888; }
-.italic { font-style: italic; }
+.invalid-border {
+    border: 1px solid #dc3545 !important;
+}
 
-.view-mode .toggle-wrapper.disabled { cursor: default; opacity: 0.7; }
-.btn-primary { background-color: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 500; }
-.btn-primary:hover { background-color: #0056b3; }
+.error-message {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 4px;
+    display: block;
+}
+
+.text-gray {
+    color: #888;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.view-mode .toggle-wrapper.disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
 
 textarea {
     width: 100%;
@@ -456,6 +489,7 @@ textarea {
     border-radius: 4px;
     resize: vertical;
 }
+
 textarea:disabled {
     background-color: #f8f9fa;
     color: #555;
@@ -465,7 +499,40 @@ textarea:disabled {
 :deep(.multiselect) {
     min-height: 40px;
 }
+
 :deep(.is-disabled .multiselect-single-label) {
     color: #666;
+}
+
+:deep(.multiselect-tag) {
+    background: #8B0000 !important;
+}
+
+:deep(.multiselect.is-active) {
+    /* Đổi viền thành màu đỏ rượu */
+    border-color: #8B0000 !important;
+
+    /* Tạo hiệu ứng phát sáng (glow) viền ngoài màu đỏ trong suốt 20% */
+    box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+
+    /* Xóa viền xanh dương mặc định của trình duyệt */
+    outline: none !important;
+}
+
+/* Kèm thêm class custom của bạn cho chắc chắn (nếu cần) */
+.custom-multiselect-theme.is-active {
+    border-color: #8B0000 !important;
+    box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+    outline: none !important;
+}
+
+:deep(.multiselect-option.is-selected) {
+    background: #8B0000 !important;
+    color: #ffffff !important;
+}
+
+/* Hiệu ứng khi di chuột vào option đang được chọn */
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #a00000 !important;
 }
 </style>
