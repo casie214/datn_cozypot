@@ -464,12 +464,7 @@ button:disabled {
     display: block;
 }
 
-.filter-box input {
-    padding: 7px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    min-width: 350px;
-}
+
 
 .filter-box input:focus {
     outline: none;
@@ -568,7 +563,7 @@ table {
 th,
 td {
     padding: 12px 10px;
-    text-align: center;
+    text-align: left;
 }
 
 th {
@@ -627,3 +622,11 @@ td a:hover {
     color: white;
 }
 </style>
+
+<style scoped>
+.filter-box input {
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    min-width: 350px;
+}</style>

@@ -21,6 +21,7 @@ import com.example.datn_cozypot_spring_boot.repository.monAnRepository.DonViRepo
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -45,6 +46,7 @@ public class MonAnServiceImplementation implements MonAnService {
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.ChiTietSetLauRepository chiTietSetLauRepository;
     private final DonViRepository donViRepository; // Repository mới cho bảng Cha
+    private final ModelMapper modelMapper;
 
     // --- UTILS ---
     private String generatePrefixFromData(String name) {
@@ -102,29 +104,80 @@ public class MonAnServiceImplementation implements MonAnService {
     }
 
     @Override
+    @Transactional // Bắt buộc có để đảm bảo tính toàn vẹn dữ liệu khi lưu nhiều bảng
     public DanhMucResponse createDanhMuc(DanhMucRequest request) {
+        // 1. Tạo và map dữ liệu cơ bản cho Danh Mục
         DanhMuc d = new DanhMuc();
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setMoTa(request.getMoTa());
         d.setTrangThai(1);
         d.setMaDanhMuc(generateNextCode(request.getTenDanhMuc(), "DANH_MUC"));
         d.setNgayTao(Instant.now());
-        danhMucRepository.save(d);
 
+        // Lưu Danh Mục xuống DB trước để Hibernate cấp phát ID (ID này cần để tạo liên kết)
+        DanhMuc savedDanhMuc = danhMucRepository.save(d);
+
+        // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU VỚI BẢNG ĐƠN VỊ
+        if (request.getListIdDonVi() != null && !request.getListIdDonVi().isEmpty()) {
+            // Tìm tất cả các Đơn vị có ID nằm trong mảng Frontend gửi lên
+            List<DonVi> donVis = donViRepository.findAllById(request.getListIdDonVi());
+
+            for (DonVi dv : donVis) {
+                // Thêm danh mục vừa tạo vào danh sách danh mục của đơn vị đó
+                dv.getListDanhMuc().add(savedDanhMuc);
+            }
+
+            // Lưu lại danh sách đơn vị (Hibernate sẽ tự động chèn dữ liệu vào bảng trung gian)
+            donViRepository.saveAll(donVis);
+        }
+
+        // 3. Map dữ liệu trả về cho Frontend
         DanhMucResponse res = new DanhMucResponse();
-        res.setId(d.getId());
-        res.setTenDanhMuc(d.getTenDanhMuc());
-        res.setMoTa(d.getMoTa());
+        res.setId(savedDanhMuc.getId());
+        res.setTenDanhMuc(savedDanhMuc.getTenDanhMuc());
+        res.setMoTa(savedDanhMuc.getMoTa());
+
         return res;
     }
 
     @Override
+    @Transactional // Bắt buộc có
     public DanhMucResponse updateDanhMuc(Integer id, DanhMucRequest request) {
+        // 1. Lấy danh mục cần sửa
         DanhMuc d = danhMucRepository.findById(id).orElseThrow();
+
+        // Cập nhật thông tin cơ bản
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setTrangThai(request.getTrangThai());
         d.setMoTa(request.getMoTa());
+
+        // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU (THAO TÁC TỪ PHÍA ĐƠN VỊ)
+
+        // Bước A: Gỡ bỏ danh mục này khỏi TẤT CẢ các đơn vị cũ đang chứa nó
+        if (d.getListDonVi() != null) {
+            for (DonVi dv : d.getListDonVi()) {
+                dv.getListDanhMuc().remove(d);
+            }
+        }
+
+        // Bước B: Thêm danh mục này vào các đơn vị MỚI mà Frontend gửi lên
+        if (request.getListIdDonVi() != null && !request.getListIdDonVi().isEmpty()) {
+            List<DonVi> donVisMoi = donViRepository.findAllById(request.getListIdDonVi());
+
+            for (DonVi dv : donVisMoi) {
+                // Thêm danh mục vào đơn vị (Nếu chưa có thì mới thêm để tránh trùng)
+                if (!dv.getListDanhMuc().contains(d)) {
+                    dv.getListDanhMuc().add(d);
+                }
+            }
+
+            // Bắt buộc phải lưu danh sách Đơn vị thì Hibernate mới ghi bảng trung gian
+            donViRepository.saveAll(donVisMoi);
+        }
+
+        // 3. Lưu thông tin cơ bản của Danh mục
         danhMucRepository.save(d);
+
         return new DanhMucResponse();
     }
 
@@ -288,6 +341,11 @@ public class MonAnServiceImplementation implements MonAnService {
         dinhLuongRepository.save(dl);
     }
 
+    @Override
+    public DanhMucResponse getDanhMucById(Integer id) {
+        return danhMucRepository.findById(id).map(danhMuc -> modelMapper.map(danhMuc, DanhMucResponse.class)).orElse(null);
+    }
+
     // Helper: Logic xử lý list con (để hàm updateDonVi đỡ dài)
     private void updateDinhLuongChilds(DonVi donVi, List<DinhLuongItemRequest> incomingValues) {
         if (incomingValues == null) incomingValues = new ArrayList<>();
@@ -303,6 +361,7 @@ public class MonAnServiceImplementation implements MonAnService {
             if (dto.getId() == null) {
                 DinhLuong newDl = new DinhLuong();
                 newDl.setGiaTri(dto.getGiaTri());
+                newDl.setTrangThai(1);
                 newDl.setTenHienThi(dto.getGiaTri() + " " + donVi.getTenDonVi());
                 newDl.setDonVi(donVi);
                 currentValues.add(newDl);
@@ -388,8 +447,9 @@ public class MonAnServiceImplementation implements MonAnService {
         mon.setTenMon(request.getTenMon());
         mon.setGiaBan(request.getGiaBan());
         mon.setGiaVon(request.getGiaVon());
+        mon.setHinhAnh(request.getHinhAnh());
         mon.setTrangThai(1);
-        mon.setNgayTao(LocalDateTime.now()); // Set ngày tạo nếu cần
+        mon.setNgayTao(LocalDateTime.now());
 
         // 2. Sinh mã tự động (Có check trùng trong DB)
         String baseCode = generateNextCode(request.getTenMon(), "MON_AN");
@@ -453,6 +513,7 @@ public class MonAnServiceImplementation implements MonAnService {
         mon.setGiaVon(request.getGiaVon());
         mon.setTrangThai(request.getTrangThai());
         mon.setMoTa(request.getMoTa());
+        mon.setHinhAnh(request.getHinhAnh());
         mon.setNgaySua(LocalDateTime.now()); // Update ngày sửa
 
         if (request.getHinhAnh() != null) {
@@ -622,6 +683,7 @@ public class MonAnServiceImplementation implements MonAnService {
         set.setMoTa(request.getMoTa());
         set.setHinhAnh(request.getHinhAnh());
         set.setTrangThai(1);
+        set.setMoTaChiTiet(request.getMoTaChiTiet());
         set.setMaSetLau(generateNextCode(request.getTenSetLau(), "SET_LAU"));
 
         if (request.getIdLoaiSet() != null) {
@@ -648,10 +710,13 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional
     public SetLauResponse updateSetLau(Integer id, SetLauRequest request) {
+        System.out.println(request.getMoTaChiTiet());
         SetLau set = setLauRepository.findById(id).orElseThrow();
         set.setTenSetLau(request.getTenSetLau());
         set.setGiaBan(request.getGiaBan());
         set.setMoTa(request.getMoTa());
+        set.setMoTaChiTiet(request.getMoTaChiTiet());
+        set.setHinhAnh(request.getHinhAnh());
         if(request.getHinhAnh() != null) set.setHinhAnh(request.getHinhAnh());
 
         if (request.getIdLoaiSet() != null) {

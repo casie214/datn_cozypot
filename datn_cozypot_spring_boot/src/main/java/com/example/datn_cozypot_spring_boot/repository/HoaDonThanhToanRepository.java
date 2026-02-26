@@ -89,10 +89,9 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1")
     Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
 
-    @Query("""
-    SELECT h FROM HoaDonThanhToan h 
-    WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1 
-    ORDER BY h.thoiGianTao DESC
-""")
-    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") int idBanAn);
+    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
+    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
+
+
+    HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
 }
