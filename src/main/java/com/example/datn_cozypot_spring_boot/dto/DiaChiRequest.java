@@ -5,16 +5,17 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-
 @Getter
 @Setter
 public class DiaChiRequest {
-
     private Integer id;
     private String hoTenNhan;
     private String soDienThoaiNhan;
-    @NotBlank(message = "Địa chỉ không được để trống")
-    private String thongTinDiaChi;
 
+    // Thêm các trường này để hứng dữ liệu từ Select2
+    private String idTinhThanh;
+    private String idQuanHuyen;
+    private String idPhuongXa;
+    private String diaChiChiTiet; // Đây là số nhà/tên đường
     private Boolean laMacDinh;
 }
