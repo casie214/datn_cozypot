@@ -99,7 +99,7 @@ public class HoaDonThanhToan {
     @OneToMany(mappedBy = "idHoaDon")
     private Set<LichSuHoaDon> lichSuHoaDons = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "idHoaDon")
+    @OneToMany(mappedBy = "HoaDon")
     private Set<LichSuThanhToan> lichSuThanhToans = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idHoaDonThanhToan")

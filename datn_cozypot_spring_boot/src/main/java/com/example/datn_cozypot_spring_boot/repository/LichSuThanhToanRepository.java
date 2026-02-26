@@ -18,7 +18,7 @@ public interface LichSuThanhToanRepository extends JpaRepository<LichSuThanhToan
             "lstt.ngayThanhToan, " +
             "lstt.trangThai, lstt.loaiGiaoDich, lstt.ghiChu) " +
             "FROM LichSuThanhToan lstt " +
-            "WHERE lstt.idHoaDon.id = :idHoaDon " +
+            "WHERE lstt.HoaDon.id = :idHoaDon " +
             "ORDER BY lstt.ngayThanhToan DESC")
     List<LichSuThanhToanResponse> getLichSuByIdHoaDon(@Param("idHoaDon") Integer idHoaDon);
 }
