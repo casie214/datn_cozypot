@@ -74,7 +74,6 @@ export function useOrderManager() {
   const filters = ref({
     search: "",
     status: "Tất cả",
-    refundStatus: "Tất cả",
     fromDate: today,
     toDate: "",
   });
@@ -110,22 +109,16 @@ export function useOrderManager() {
 
   const mapStatus = (statusInt) => {
     const statuses = {
-      0: "Đã hủy",
+      0: "Vừa tạo",
       1: "Chờ cọc",
-      2: "Chờ nhận bàn", // Hoặc "Đã cọc"
-      3: "Đang phục vụ",
-      4: "Chờ thanh toán",
-      5: "Hoàn thành",
-    };
-    return statuses[statusInt] || "Không xác định";
-  };
-
-  const mapStatusRefund = (statusInt) => {
-    const statuses = {
-      0: "Không cần hoàn",
-      1: "Chờ hoàn",
-      2: "Đã hoàn",
-      3: "Không hoàn tiền",
+      2: "Đã cọc",
+      3: "Đã xác nhận",
+      4: "Khách đã đến",
+      5: "Chờ thanh toán",
+      6: "Đã thanh toán",
+      7: "Hoàn thành",
+      8: "Đã hủy",
+      9: "Đã hoàn tiền",
     };
     return statuses[statusInt] || "Không xác định";
   };
@@ -184,8 +177,8 @@ export function useOrderManager() {
         tienCoc: formatCurrency(item.tienCoc),
         tienCocRaw: item.tienCoc || 0,
         tienHoanTra: formatCurrency(item.tienHoanTra),
-        trangThaiHoanTien: mapStatusRefund(item.trangThaiHoanTien),
         trangThai: mapStatus(item.trangThaiHoaDon),
+        trangThaiCode: item.trangThaiHoaDon,
         ngayTao: formatDate(item.thoiGianTao),
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
@@ -229,29 +222,21 @@ export function useOrderManager() {
       }
 
       const statusMap = {
-        "Đã hủy": 0,
+        "Vừa tạo": 0,
         "Chờ cọc": 1,
-        "Chờ nhận bàn": 2,
-        "Đang phục vụ": 3,
-        "Chờ thanh toán": 4,
-        "Hoàn thành": 5,
-      };
-
-      const refundStatusMap = {
-        "Không cần hoàn": 0,
-        "Chờ hoàn": 1,
-        "Đã hoàn": 2,
-        "Không hoàn tiền": 3,
+        "Đã cọc": 2,
+        "Đã xác nhận": 3,
+        "Khách đã đến": 4,
+        "Chờ thanh toán": 5,
+        "Đã thanh toán": 6,
+        "Hoàn thành": 7,
+        "Đã hủy": 8,
+        "Đã hoàn tiền": 9,
       };
 
       const trangThaiInt =
         filters.value.status !== "Tất cả"
           ? statusMap[filters.value.status]
-          : null;
-
-      const trangThaiHoanTienInt =
-        filters.value.refundStatus !== "Tất cả"
-          ? refundStatusMap[filters.value.refundStatus]
           : null;
 
       const tuNgayISO = filters.value.fromDate
@@ -264,7 +249,6 @@ export function useOrderManager() {
       const response = await BeSearchHoaDon(
         filters.value.search,
         trangThaiInt,
-        trangThaiHoanTienInt,
         tuNgayISO,
         denNgayISO,
         currentPage.value,
@@ -288,7 +272,6 @@ export function useOrderManager() {
     const hasFilters =
       filters.value.search ||
       filters.value.status !== "Tất cả" ||
-      filters.value.refundStatus !== "Tất cả" ||
       filters.value.fromDate ||
       filters.value.toDate;
 
@@ -303,7 +286,6 @@ export function useOrderManager() {
     filters.value = {
       search: "",
       status: "Tất cả",
-      refundStatus: "Tất cả",
       fromDate: today,
       toDate: "",
     };
@@ -322,7 +304,8 @@ export function useOrderManager() {
         const act = (item.hanhDong || "").toLowerCase();
         if (act.includes("tạo")) type = "create";
         else if (act.includes("hủy") || act.includes("xóa")) type = "delete";
-        else if (act.includes("thanh toán")) type = "payment";
+        else if (act.includes("thanh toán") || act.includes("hoàn tiền"))
+          type = "payment";
 
         return {
           id: item.idLog || item.idChiTietHD,
@@ -334,6 +317,8 @@ export function useOrderManager() {
             (item.idNhanVien ? item.idNhanVien.hoTen : "Hệ thống"),
           detail: item.lyDoThucHien || item.lyDo || item.chiTietMon,
           type: type,
+          trangThaiMoi: item.trangThaiMoi,
+          trangThaiTruocDo: item.trangThaiTruocDo,
         };
       });
       historyEvents.value = events;
@@ -366,8 +351,8 @@ export function useOrderManager() {
           tienCoc: formatCurrency(invoiceInfo.tienCoc),
           tienCocRaw: invoiceInfo.tienCoc || 0,
           tienHoanTra: formatCurrency(invoiceInfo.tienHoanTra),
-          trangThaiHoanTien: mapStatusRefund(invoiceInfo.trangThaiHoanTien),
           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
+          trangThaiCode: invoiceInfo.trangThaiHoaDon,
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
           thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao,

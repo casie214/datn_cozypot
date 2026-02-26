@@ -90,29 +90,16 @@ const visiblePages = computed(() => {
                 class="form-select"
               >
                 <option>Tất cả</option>
+                <option>Vừa tạo</option>
                 <option>Chờ cọc</option>
-                <option>Chờ nhận bàn</option>
-                <option>Đang phục vụ</option>
+                <option>Đã cọc</option>
+                <option>Đã xác nhận</option>
+                <option>Khách đã đến</option>
                 <option>Chờ thanh toán</option>
+                <option>Đã thanh toán</option>
                 <option>Hoàn thành</option>
                 <option>Đã hủy</option>
-              </select>
-            </div>
-
-            <div class="col-md-2">
-              <label class="form-label text-muted small fw-bold"
-                >Trạng thái hoàn tiền</label
-              >
-              <select
-                v-model="filters.refundStatus"
-                @change="handleSearch"
-                class="form-select"
-              >
-                <option>Tất cả</option>
-                <option>Không cần hoàn</option>
-                <option>Chờ hoàn</option>
-                <option>Đã hoàn</option>
-                <option>Không hoàn tiền</option>
+                <option>Đã hoàn tiền</option>
               </select>
             </div>
 

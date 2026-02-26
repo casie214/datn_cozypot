@@ -34,6 +34,9 @@ public class HoaDonThanhToanService {
     LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @Autowired
+    LichSuThanhToanRepository lichSuThanhToanRepository;
+
+    @Autowired
     BanAnRepository banAnRepo;
 
     @Autowired
@@ -49,8 +52,8 @@ public class HoaDonThanhToanService {
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
     }
 
-    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Integer trangThaiHoanTien, Instant tuNgay, Instant denNgay, Pageable pageable){
-        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, trangThaiHoanTien, tuNgay, denNgay, pageable);
+    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgay, Instant denNgay, Pageable pageable){
+        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, tuNgay, denNgay, pageable);
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
@@ -67,47 +70,71 @@ public class HoaDonThanhToanService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
 
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
-        hd.setTrangThaiHoaDon(0);
 
-        //  XỬ LÝ LOGIC HOÀN TIỀN CỌC ---
-        BigDecimal tienCoc = hd.getTienCoc();
-        if (tienCoc != null && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
-            if (Boolean.TRUE.equals(request.getIsLoiDoQuan())) {
-                // Lỗi do QUÁN: Chờ hoàn tiền (1), Hoàn trả = Tiền cọc
-                hd.setTrangThaiHoanTien(1);
-                hd.setTienHoanTra(tienCoc);
-            } else {
-                // Lỗi do KHÁCH (hoặc hủy sát giờ): Không hoàn (3), Hoàn trả = 0
-                hd.setTrangThaiHoanTien(3);
-                hd.setTienHoanTra(BigDecimal.ZERO);
-            }
-        } else {
-            hd.setTrangThaiHoanTien(0);
-            hd.setTienHoanTra(BigDecimal.ZERO);
+        if (trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9) {
+            throw new RuntimeException("Hóa đơn đã ở trạng thái kết thúc, không thể hủy!");
         }
 
+        BigDecimal tienCoc = hd.getTienCoc() != null ? hd.getTienCoc() : BigDecimal.ZERO;
+        int trangThaiMoi;
+
+        if (tienCoc.compareTo(BigDecimal.ZERO) > 0 && Boolean.TRUE.equals(request.getIsLoiDoQuan())) {
+            // TRƯỜNG HỢP 1: Có cọc và Lỗi do quán -> Hoàn tiền
+            hd.setTienHoanTra(tienCoc);
+            trangThaiMoi = 9;
+            hd.setTrangThaiHoaDon(trangThaiMoi);
+
+            LichSuThanhToan lsThanhToan = new LichSuThanhToan();
+            lsThanhToan.setIdHoaDon(hd);
+            lsThanhToan.setSoTienThanhToan(tienCoc);
+            lsThanhToan.setLoaiGiaoDich(3);
+            lsThanhToan.setGhiChu("Hoàn trả cọc do hủy hóa đơn: " + request.getLyDoThucHien());
+            lsThanhToan.setNgayThanhToan(Instant.now());
+            lsThanhToan.setTrangThai(1);
+            lsThanhToan.setTenPhuongThuc("Chuyển khoản");
+
+            // TẠO MÃ GIAO DỊCH FAKE GIỐNG THẬT
+            // Ví dụ kết quả: REFUND_HD00015_1708945672341
+            String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
+            String fakeMaGiaoDich = "REFUND_" + maHoaDonStr + "_" + System.currentTimeMillis();
+            lsThanhToan.setMaGiaoDich(fakeMaGiaoDich);
+
+            lichSuThanhToanRepository.save(lsThanhToan);
+
+        } else {
+            // TRƯỜNG HỢP 2: Không cọc hoặc Lỗi do khách -> Hủy luôn, mất cọc
+            hd.setTienHoanTra(BigDecimal.ZERO);
+            trangThaiMoi = 8;
+            hd.setTrangThaiHoaDon(trangThaiMoi);
+        }
+
+        // === CẬP NHẬT CÁC BẢNG LIÊN QUAN ===
         List<ChiTietHoaDon> listgetAllMonAn = chiTietHoaDonRepository.findByIdHoaDon(hd.getId());
         for (ChiTietHoaDon chiTietHoaDon : listgetAllMonAn){
             chiTietHoaDon.setTrangThaiMon(0);
         }
         chiTietHoaDonRepository.saveAll(listgetAllMonAn);
-        hoaDonThanhToanRepository.save(hd);
+
         if (hd.getIdBanAn()!= null){
             hd.getIdBanAn().setTrangThai(0);
             banAnRepo.save(hd.getIdBanAn());
         }
+
+        hoaDonThanhToanRepository.save(hd);
+
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong("Hủy hóa đơn");
+        log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Hoàn tiền" : "Hủy hóa đơn");
+
         String prefixLyDo = "";
-        if (tienCoc != null && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
-            prefixLyDo = Boolean.TRUE.equals(request.getIsLoiDoQuan()) ? "[Hoàn cọc] " : "[Mất cọc] ";
+        if (tienCoc.compareTo(BigDecimal.ZERO) > 0) {
+            prefixLyDo = Boolean.TRUE.equals(request.getIsLoiDoQuan()) ? "[Đã hoàn cọc] " : "[Mất cọc] ";
         }
         log.setLyDoThucHien(prefixLyDo + request.getLyDoThucHien());
 
         log.setThoiGianThucHien(Instant.now());
         log.setTrangThaiTruocDo(trangThaiHDCu);
-        log.setTrangThaiMoi(0);
+        log.setTrangThaiMoi(trangThaiMoi);
 
         if (request.getIdNhanVien() != null) {
             NhanVien nv = new NhanVien();
@@ -125,23 +152,39 @@ public class HoaDonThanhToanService {
 
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
 
+        if (trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9) {
+            throw new RuntimeException("Hóa đơn đã kết thúc, không thể thực hiện thanh toán!");
+        }
+
         Instant now = Instant.now();
-        hd.setTrangThaiHoaDon(5);
+
+        hd.setTrangThaiHoaDon(7);
         hd.setThoiGianThanhToan(now);
         hoaDonThanhToanRepository.save(hd);
 
-        if (hd.getIdBanAn()!= null){
+        if (hd.getIdBanAn() != null){
             hd.getIdBanAn().setTrangThai(3);
             banAnRepo.save(hd.getIdBanAn());
         }
 
+        LichSuThanhToan lsThanhToan = new LichSuThanhToan();
+        lsThanhToan.setIdHoaDon(hd);
+        lsThanhToan.setSoTienThanhToan(hd.getTongTienThanhToan());
+        lsThanhToan.setLoaiGiaoDich(1);
+        lsThanhToan.setGhiChu("Khách thanh toán tại quầy");
+        lsThanhToan.setNgayThanhToan(now);
+        lsThanhToan.setTrangThai(1);
+        lsThanhToan.setTenPhuongThuc("Tiền mặt");
+        lsThanhToan.setMaGiaoDich("CASH_" + hd.getMaHoaDon() + "_" + System.currentTimeMillis());
+        lichSuThanhToanRepository.save(lsThanhToan);
+
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong("Thanh toán");
+        log.setHanhDong("Thanh toán hóa đơn");
         log.setTrangThaiTruocDo(trangThaiHDCu);
-        log.setTrangThaiMoi(4);
+        log.setTrangThaiMoi(7);
         log.setThoiGianThucHien(now);
-        System.out.println(now);
+
         if (request.getIdNhanVien() != null) {
             NhanVien nv = new NhanVien();
             nv.setId(request.getIdNhanVien());
@@ -157,7 +200,7 @@ public class HoaDonThanhToanService {
         BanAn banAn = banAnRepo.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Bàn ăn không tồn tại với ID: " + req.getIdBanAn()));
 
-        // 2. Tìm xem bàn này đang có hóa đơn nào chưa thanh toán không (Trạng thái = 1)
+        // 2. Tìm xem bàn này đang có hóa đơn nào chưa thanh toán không (Trạng thái 4 hoặc 5)
         Optional<HoaDonThanhToan> existingBill = hoaDonThanhToanRepository.findActiveBillByBanAn(req.getIdBanAn());
 
         HoaDonThanhToan hoaDon;
@@ -168,16 +211,17 @@ public class HoaDonThanhToanService {
             LichSuHoaDon logGoiMon = new LichSuHoaDon();
             logGoiMon.setIdHoaDon(hoaDon);
             logGoiMon.setHanhDong("Gọi thêm món");
-            logGoiMon.setTrangThaiMoi(2); // 2 = Gọi món
+            logGoiMon.setTrangThaiTruocDo(4);
+            logGoiMon.setTrangThaiMoi(4);
             logGoiMon.setThoiGianThucHien(Instant.now());
-            logGoiMon.setIdNhanVien(hoaDon.getIdNhanVien());
-            lichSuHoaDonRepository.save(logGoiMon);
             if (req.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(req.getIdNhanVien()).orElse(null);
-                hoaDon.setIdNhanVien(nv);
+                logGoiMon.setIdNhanVien(nv);
             }
+            lichSuHoaDonRepository.save(logGoiMon);
+
         } else {
-            // === TRƯỜNG HỢP: KHÁCH MỚI (TẠO HÓA ĐƠN MỚI) ===
+            // === TRƯỜNG HỢP: KHÁCH MỚI (TẠO HÓA ĐƠN MỚI / MỞ BÀN) ===
             hoaDon = new HoaDonThanhToan();
             hoaDon.setIdBanAn(banAn);
 
@@ -194,7 +238,7 @@ public class HoaDonThanhToanService {
             }
 
             hoaDon.setThoiGianTao(Instant.now());
-            hoaDon.setTrangThaiHoaDon(3);
+            hoaDon.setTrangThaiHoaDon(4);
             hoaDon.setTongTienChuaGiam(BigDecimal.ZERO);
             hoaDon.setTongTienThanhToan(BigDecimal.ZERO);
 
@@ -203,7 +247,7 @@ public class HoaDonThanhToanService {
             LichSuHoaDon logTaoMoi = new LichSuHoaDon();
             logTaoMoi.setIdHoaDon(hoaDon);
             logTaoMoi.setHanhDong("Mở bàn");
-            logTaoMoi.setTrangThaiMoi(1); // 1 = Tạo HD
+            logTaoMoi.setTrangThaiMoi(4);
             logTaoMoi.setThoiGianThucHien(Instant.now());
             logTaoMoi.setIdNhanVien(hoaDon.getIdNhanVien());
             lichSuHoaDonRepository.save(logTaoMoi);
@@ -263,6 +307,5 @@ public class HoaDonThanhToanService {
 
         hoaDonThanhToanRepository.save(hoaDon);
     }
-
 
 }

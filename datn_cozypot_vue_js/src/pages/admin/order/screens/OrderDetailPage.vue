@@ -71,11 +71,10 @@ const taxAmount = computed(() => {
   return finalTotal.value + deposit.value + discount.value - subTotal.value;
 });
 
-const isReadOnly = computed(
-  () =>
-    selectedOrder.value?.trangThai === "Đã hủy" ||
-    selectedOrder.value?.trangThai === "Hoàn thành",
-);
+const isReadOnly = computed(() => {
+  const code = selectedOrder.value?.trangThaiCode;
+  return code === 7 || code === 8 || code === 9;
+});
 
 const hasServedDish = computed(() =>
   orderDetails.value?.some((item) => item.trangThaiCode === 2),
@@ -98,68 +97,63 @@ const getPaymentTypeInfo = (type) => {
   }
 };
 
-//Logic hien thi trang thai
-const currentStatusInfo = computed(() => {
-  const status = selectedOrder.value?.trangThai;
-  switch (status) {
-    case "Đã hủy":
-      return {
-        icon: "fa-xmark",
-        bgColor: "bg-danger", // ĐỎ
-        textColor: "text-danger",
-        text: "Đã Hủy",
-        desc: "Hóa đơn này đã bị hủy và đóng lại.",
-      };
-    case "Chờ cọc":
-      return {
-        icon: "fa-money-bill-wave",
-        bgColor: "bg-secondary", // XÁM
-        textColor: "text-secondary",
-        text: "Chờ Cọc",
-        desc: "Khách đã đặt bàn, đang chờ thanh toán tiền cọc.",
-      };
-    case "Chờ nhận bàn":
-      return {
-        icon: "fa-clock",
-        bgColor: "bg-warning text-dark", // VÀNG
-        textColor: "text-warning",
-        text: "Chờ Nhận Bàn",
-        desc: "Đã xác nhận cọc, chờ khách đến quán.",
-      };
-    case "Đang phục vụ":
-      return {
-        icon: "fa-utensils",
-        bgColor: "bg-warning text-dark", // VÀNG
-        textColor: "text-warning",
-        text: "Đang Phục Vụ",
-        desc: "Khách đang dùng bữa tại quán.",
-      };
-    case "Chờ thanh toán":
-      return {
-        icon: "fa-file-invoice-dollar",
-        bgColor: "bg-warning text-dark", // VÀNG
-        textColor: "text-warning",
-        text: "Chờ Thanh Toán",
-        desc: "Khách đã yêu cầu tính tiền.",
-      };
-    case "Hoàn thành":
-      return {
-        icon: "fa-check",
-        bgColor: "bg-success", // XANH LÁ (Mặc định cho thành công)
-        textColor: "text-success",
-        text: "Hoàn Thành",
-        desc: "Hóa đơn đã thanh toán xong xuôi.",
-      };
-    default:
-      return {
-        icon: "fa-circle-question",
-        bgColor: "bg-dark",
-        textColor: "text-dark",
-        text: "Đang tải...",
-        desc: "Đang lấy thông tin trạng thái.",
-      };
+// --- LOGIC STEPPER MỚI (XỬ LÝ BỎ QUA CỌC & LẤY LỊCH SỬ HỦY) ---
+const currentStatusCode = computed(
+  () => selectedOrder.value?.trangThaiCode ?? -1,
+);
+const isCancelledOrRefunded = computed(
+  () => currentStatusCode.value === 8 || currentStatusCode.value === 9,
+);
+
+const visibleSteps = computed(() => {
+  if (!selectedOrder.value || currentStatusCode.value === -1) return [];
+
+  // 1. Định nghĩa gốc (8 bước)
+  let baseSteps = [
+    { code: 0, label: "Vừa tạo", icon: "fa-file-pen" },
+    { code: 1, label: "Chờ cọc", icon: "fa-clock" },
+    { code: 2, label: "Đã cọc", icon: "fa-money-bill-transfer" },
+    { code: 3, label: "Xác nhận", icon: "fa-circle-check" },
+    { code: 4, label: "Khách đến", icon: "fa-utensils" },
+    { code: 5, label: "Chờ TT", icon: "fa-file-invoice-dollar" },
+    { code: 6, label: "Đã TT", icon: "fa-hand-holding-dollar" },
+    { code: 7, label: "Hoàn thành", icon: "fa-flag-checkered" },
+  ];
+
+  // 2. LOGIC BỎ QUA CỌC: Nếu không có tiền cọc, lọc bỏ code 1 và 2
+  if (!selectedOrder.value.tienCocRaw || selectedOrder.value.tienCocRaw === 0) {
+    baseSteps = baseSteps.filter((step) => step.code !== 1 && step.code !== 2);
   }
+
+  // 3. TÌM TRẠNG THÁI CUỐI CÙNG TRƯỚC KHI HỦY (Quét toàn bộ lịch sử)
+  let targetCode = currentStatusCode.value;
+  if (isCancelledOrRefunded.value) {
+    // Tìm mã trạng thái lớn nhất nhỏ hơn 8 trong lịch sử
+    const historyCodes = historyEvents.value
+      .map((e) => e.trangThaiMoi)
+      .filter((code) => code !== null && code !== undefined && code < 8);
+
+    targetCode = historyCodes.length > 0 ? Math.max(...historyCodes) : 0;
+  }
+
+  // 4. LẤY CÁC BƯỚC ĐÃ ĐI QUA
+  const stepsToRender = baseSteps
+    .filter((step) => step.code <= targetCode)
+    .map((step) => ({ ...step, isErrorStep: false }));
+
+  // 5. NẾU BỊ HỦY -> NỐI CỤC ĐỎ VÀO CUỐI CÙNG
+  if (isCancelledOrRefunded.value) {
+    stepsToRender.push({
+      code: currentStatusCode.value,
+      label: currentStatusCode.value === 9 ? "Đã hoàn tiền" : "Đã hủy",
+      icon: currentStatusCode.value === 9 ? "fa-arrow-rotate-left" : "fa-ban",
+      isErrorStep: true,
+    });
+  }
+
+  return stepsToRender;
 });
+// --------------------------------------------------------------
 
 const onBack = () => router.push({ name: "orderManager" });
 
@@ -189,37 +183,71 @@ onMounted(async () => {
               selectedOrder?.id
             }}</span>
           </div>
-          <div
-            class="card-body py-4 d-flex flex-column align-items-center justify-content-center"
-          >
-            <div
-              class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm"
-              :class="currentStatusInfo.bgColor"
-              style="width: 80px; height: 80px"
-            >
-              <i
-                class="fa-solid fs-1"
-                :class="[
-                  currentStatusInfo.icon,
-                  currentStatusInfo.bgColor.includes('text-dark')
-                    ? 'text-dark'
-                    : 'text-white',
-                ]"
-              ></i>
+          <div class="card-body py-5">
+            <div class="stepper-scroll-container">
+              <div class="stepper-wrapper d-flex position-relative">
+                <div
+                  class="stepper-line-background"
+                  :style="{ width: `${(visibleSteps.length - 1) * 130}px` }"
+                ></div>
+                <div
+                  class="stepper-line-progress"
+                  :style="{
+                    width: `${(visibleSteps.length - 1) * 130}px`,
+                    backgroundColor: isCancelledOrRefunded
+                      ? '#dc3545'
+                      : '#198754',
+                  }"
+                ></div>
+
+                <div
+                  v-for="(step, index) in visibleSteps"
+                  :key="index"
+                  class="step-item d-flex flex-column align-items-center position-relative"
+                >
+                  <div
+                    class="step-circle d-flex align-items-center justify-content-center rounded-circle mb-2 shadow-sm"
+                    :class="{
+                      error: step.isErrorStep,
+                      active:
+                        index === visibleSteps.length - 1 && !step.isErrorStep,
+                      completed:
+                        index < visibleSteps.length - 1 && !step.isErrorStep,
+                    }"
+                  >
+                    <i
+                      v-if="
+                        index < visibleSteps.length - 1 && !step.isErrorStep
+                      "
+                      class="fa-solid fa-check fw-bold"
+                    ></i>
+                    <i v-else class="fa-solid" :class="step.icon"></i>
+                  </div>
+
+                  <div
+                    class="step-label text-uppercase fw-bold"
+                    :class="{
+                      'text-danger': step.isErrorStep,
+                      'text-success': !step.isErrorStep,
+                    }"
+                  >
+                    {{ step.label }}
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <h3
-              class="fw-bold text-uppercase mb-1"
-              :class="currentStatusInfo.textColor"
-            >
-              {{ currentStatusInfo.text }}
-            </h3>
-
-            <p class="text-muted small mb-0">{{ currentStatusInfo.desc }}</p>
           </div>
         </div>
         <div class="card-body">
           <div class="row g-4">
+            <div class="col-md">
+              <label class="d-block text-muted small mb-1"
+                >Trạng thái hóa đơn</label
+              >
+              <p class="mb-0 fw-bold">
+                {{ selectedOrder?.trangThai }}
+              </p>
+            </div>
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Khách hàng</label>
               <p class="mb-0 fw-medium">
@@ -237,14 +265,6 @@ onMounted(async () => {
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Tiền cọc</label>
               <p class="mb-0 fw-bold">{{ selectedOrder?.tienCoc }}</p>
-            </div>
-            <div class="col-md">
-              <label class="d-block text-muted small mb-1"
-                >Trạng thái hoàn tiền</label
-              >
-              <p class="mb-0 fw-bold">
-                {{ selectedOrder?.trangThaiHoanTien }}
-              </p>
             </div>
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Thời gian tạo</label>
@@ -524,7 +544,10 @@ onMounted(async () => {
           <button
             class="btn btn-print px-4 py-2 fw-medium text-white"
             @click="handlePrintOrder(selectedOrder?.id)"
-            :disabled="selectedOrder?.trangThai === 'Đã hủy'"
+            :disabled="
+              selectedOrder?.trangThaiCode === 8 ||
+              selectedOrder?.trangThaiCode === 9
+            "
           >
             In hóa đơn
           </button>
@@ -984,5 +1007,68 @@ onMounted(async () => {
 }
 .table-bordered > :not(caption) > * {
   border-width: 1px;
+}
+
+/* --- CẬP NHẬT CSS CHO STEPPER --- */
+.stepper-scroll-container {
+  overflow-x: auto;
+  padding: 10px 20px;
+}
+.stepper-wrapper {
+  position: relative;
+  display: flex;
+}
+.step-item {
+  width: 130px; /* Cố định khoảng cách giữa các khối */
+  z-index: 3;
+}
+.stepper-line-background,
+.stepper-line-progress {
+  position: absolute;
+  top: 17px;
+  left: 65px; /* Xuất phát từ giữa hình tròn đầu tiên (130 / 2) */
+  height: 4px;
+}
+.stepper-line-background {
+  background-color: #e9ecef;
+  z-index: 1;
+}
+.stepper-line-progress {
+  z-index: 2;
+  transition: width 0.5s ease-in-out;
+}
+
+/* Style cho các vòng tròn */
+.step-circle {
+  width: 38px;
+  height: 38px;
+  font-size: 0.9rem;
+  background-color: #fff;
+  border: 3px solid #e9ecef;
+  color: #adb5bd;
+  transition: all 0.4s;
+}
+.step-circle.completed {
+  background-color: #198754;
+  border-color: #198754;
+  color: white;
+}
+.step-circle.active {
+  border-color: #198754;
+  color: #198754;
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(25, 135, 84, 0.3);
+}
+.step-circle.error {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: white !important;
+  transform: scale(1.3);
+  box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
+}
+.step-label {
+  font-size: 11px;
+  text-align: center;
+  letter-spacing: 0.5px;
 }
 </style>
