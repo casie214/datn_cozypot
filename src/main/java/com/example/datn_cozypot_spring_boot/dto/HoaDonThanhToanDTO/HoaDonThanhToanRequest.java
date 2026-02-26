@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class HoaDonThanhToanRequest {
+    private Integer idHoaDon;
     private Integer idBanAn;
     private Integer idNhanVien;
 
