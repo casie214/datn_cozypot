@@ -321,3 +321,17 @@
 .custom-input {
     height: 42px !important; 
 }
+
+/* Xóa viền thừa của table để không bị trùng với viền container */
+.custom-table {
+    border: none !important;
+    margin-bottom: 0 !important;
+}
+
+/* Bo góc cho dòng đầu tiên (Header) và dòng cuối cùng */
+.custom-table thead tr:first-child th:first-child {
+    border-top-left-radius: 12px;
+}
+.custom-table thead tr:first-child th:last-child {
+    border-top-right-radius: 12px;
+}
