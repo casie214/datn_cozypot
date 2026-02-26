@@ -1,9 +1,6 @@
 package com.example.datn_cozypot_spring_boot.service;
 
-import com.example.datn_cozypot_spring_boot.dto.request.AddBanAnRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.DatBanSearchRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.DatBanUpdateRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.UpdateBanAnRequest;
+import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
@@ -26,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DatBanService {
@@ -280,6 +278,76 @@ public class DatBanService {
                 .toList();
     }
 
+
+    @Transactional
+    public void createFull(CreateBanFullRequest req) {
+
+        KhuVuc kv = khuVucRepository
+                .findByTenKhuVucAndTang(req.getTenKhuVuc(), req.getTang())
+                .orElse(null);
+
+        if (kv == null) {
+            kv = new KhuVuc();
+            kv.setTenKhuVuc(req.getTenKhuVuc());
+            kv.setTang(req.getTang());
+
+            // TẠM set để qua validate
+            kv.setMaKhuVuc("TEMP");
+
+            kv = khuVucRepository.save(kv);
+
+            // Sau khi có ID mới generate mã chuẩn
+            String ma = "KV" + String.format("%03d", kv.getId());
+            kv.setMaKhuVuc(ma);
+
+            khuVucRepository.save(kv);
+        }
+
+        BanAn ban = new BanAn();
+        ban.setIdKhuVuc(kv);
+        ban.setSoNguoiToiDa(req.getSoNguoiToiDa());
+        ban.setLoaiDatBan(req.getLoaiDatBan());
+
+        banAnRepository.save(ban);
+    }
+
+    public KhuVuc create(KhuVucRequest request) {
+
+        if (request.getTang() == null || request.getTang() <= 0) {
+            throw new RuntimeException("Tầng không hợp lệ");
+        }
+
+        if (khuVucRepository.existsByTangAndTenKhuVucAndTrangThai(
+                request.getTang(),
+                request.getTenKhuVuc().trim(),
+                1)) {
+            throw new RuntimeException("Khu vực đã tồn tại");
+        }
+
+        KhuVuc kv = new KhuVuc();
+        kv.setTang(request.getTang());
+        kv.setTenKhuVuc(request.getTenKhuVuc().trim());
+        kv.setMoTa(request.getMoTa());
+        kv.setTrangThai(1);
+
+        return khuVucRepository.save(kv);
+    }
+
+    public List<KhuVuc> getAllActive() {
+        return khuVucRepository.findByTrangThai(1);
+    }
+
+    public List<KhuVuc> getByTang(Integer tang) {
+        return khuVucRepository.findByTangAndTrangThai(tang, 1);
+    }
+
+    // Soft delete
+    public void delete(Integer id) {
+        KhuVuc kv = khuVucRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+        kv.setTrangThai(0);
+        khuVucRepository.save(kv);
+    }
 
 
 }
