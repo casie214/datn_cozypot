@@ -85,7 +85,7 @@
 }
 
 .smallest {
-    font-size: 11px;
+    font-size: 14px;
 }
 
 /* Hộp chứa danh sách sản phẩm */
@@ -362,7 +362,37 @@
  
 box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
+/* Ô select */
+.select2-container--default .select2-selection--single {
+    background-color: #fff !important;
+    border: 1px solid #8B0000 !important;
+}
 
+/* Text hiển thị */
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #8B0000 !important;
+}
+
+/* Mũi tên */
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #8B0000 transparent transparent transparent !important;
+}
+
+/* Option đang được chọn (bỏ nền xanh) */
+.select2-container--default .select2-results__option--highlighted {
+    background-color: #8B0000 !important;
+    color: white !important;
+        border-color: #8B0000 transparent transparent transparent !important;
+
+}
+
+/* Option được chọn */
+.select2-container--default .select2-results__option--selected {
+    background-color: #8B0000 !important;
+    color: white !important;
+        border-color: #8B0000 transparent transparent transparent !important;
+
+}
 .filter-label {
   font-size: 13px;
   color: #888;
@@ -487,13 +517,7 @@ font-weight: bold;
   background-color: #8b0000;
 }
 
-/* Table styling */
-.table-container {
-  background: var(--white);
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-}
+
 
 .custom-table thead {
   background-color: #8b0000;
@@ -575,7 +599,7 @@ font-weight: bold;
 
 .custom-table th {
   padding: 15px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   border: none;
   text-transform: uppercase;
@@ -626,18 +650,7 @@ font-weight: bold;
   white-space: nowrap; /* Giúp bảng to ra, không bị xuống dòng chữ */
 }
 
-.custom-table th {
-  background-color: #8b0000 !important;
-  color: #fff !important;
-  text-align: center;
-  font-size: 12px; /* Chữ nhỏ lại một chút cho chuyên nghiệp */
-}
 
-.custom-table td {
-  text-align: center;
-  font-size: 13px;
-  border-bottom: 1px solid #f0f0f0;
-}
 
 /* Định dạng icon trong cột Chi tiết */
 .action-group {
@@ -666,9 +679,15 @@ font-weight: bold;
   width: 100%;
   overflow-x: auto; /* Cho phép cuộn ngang nếu màn hình quá nhỏ */
   background: #fff;
-  border-radius: 8px;
+  border-radius: 25px;
 }
 
+/* Table styling */
+.table-container {
+  background: var(--white);
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
 .text-muted {
     color: #6c757d !important;
 }
@@ -834,7 +853,9 @@ font-weight: bold;
     right: 30px;
     z-index: 9999;
 }
-
+.rounded {
+    border-radius: 20px !important;
+}
 .custom-toast {
     display: flex;
     align-items: center;
@@ -933,11 +954,62 @@ font-weight: bold;
     color: #800000;
     /* Màu đỏ sẫm tiêu đề */
 }
+/* ===== SELECT2 FILTER STYLE ===== */
 
+.select2-container--default .select2-selection--single {
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    padding: 6px 12px;
+}
+
+.select2-container--default.select2-container--focus 
+.select2-selection--single {
+    border-color: #8b0000;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.15);
+}
+
+.select2-dropdown {
+    border-radius: 10px;
+}
+
+.select2-container--default 
+.select2-results__option--highlighted {
+    background-color: #8b0000;
+}
+.global-loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-box {
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease;
+}
+
+.loading-box i {
+    color: #800000;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
 .badge-neutral {
     background-color: #F1F3F4;
     color: #444;
     font-weight: 500;
+    font-size: 14px;
 }
 .fw-bold {
     font-weight: 400 !important;

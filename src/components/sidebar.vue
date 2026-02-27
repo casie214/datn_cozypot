@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 
 const menuItems = ref([
     { name: 'Tổng quan', icon: "fa-solid fa-house", path: '/admin/dashboard' },
-    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics' },
+    { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics', roles: ['ADMIN'] },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/tables' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
     { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
@@ -41,7 +41,7 @@ const menuItems = ref([
         query: { tab: 'dinhluong' },
         isOpen: false
     },
-    
+
     { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
 
@@ -159,7 +159,6 @@ watch(() => route.query, () => {
         <nav class="container menu-list">
             <hr>
             <div v-for="(item, index) in menuItems" :key="index">
-
                 <div class="menu-item" :class="{ 'active': isActive(item) }" @click="handleItemClick(item)">
                     <i :class="item.icon" class="icon"></i>
                     <span class="label">{{ item.name }}</span>
@@ -308,7 +307,14 @@ watch(() => route.query, () => {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
