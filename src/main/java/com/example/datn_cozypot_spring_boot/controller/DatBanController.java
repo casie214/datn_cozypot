@@ -5,10 +5,11 @@ import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
-import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
-import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
-import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
-import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
+import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
+import com.example.datn_cozypot_spring_boot.entity.NhanVien;
+import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -40,6 +42,12 @@ public class DatBanController {
     KhuVucRepository khuVucRepository;
     @Autowired
     private HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    @Autowired
+    private ChiTietHoaDonRepository chiTietHoaDonRepository;
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
+    @Autowired
+    private LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -106,6 +114,72 @@ public Page<DatBanListResponse> searchDatBan(
     @PutMapping("/update-trang-thai-ban")
     public void updateTrangThaiBan(@RequestBody @Valid DatBanUpdateRequest datBanUpdateRequest){
         datBanService.updateCheckIn(datBanUpdateRequest);
+    }
+
+    @PutMapping("/chi-tiet-hoa-don/{id}/trang-thai")
+    public ResponseEntity<?> updateTrangThaiMon(@PathVariable Integer id, @RequestParam Integer trangThai, @RequestParam(required = false) Integer idNhanVien) {
+        ChiTietHoaDon chiTiet = chiTietHoaDonRepository.findById(id).orElse(null);
+        if (chiTiet == null) {
+            return ResponseEntity.badRequest().body("Không tìm thấy chi tiết hóa đơn");
+        }
+
+        // 2. Lưu lại thông tin trước khi cập nhật để ghi log
+        Integer trangThaiCuCuaMon = chiTiet.getTrangThaiMon();
+        HoaDonThanhToan hoaDon = chiTiet.getIdHoaDon();
+        Integer trangThaiBillHienTai = hoaDon.getTrangThaiHoaDon();
+        String tenMon = getTenMonFromEntity(chiTiet);
+
+        // 3. Cập nhật trạng thái mới
+        chiTiet.setTrangThaiMon(trangThai);
+        chiTietHoaDonRepository.save(chiTiet);
+
+        // 4. LOGIC GHI LỊCH SỬ HÓA ĐƠN
+        String hanhDong = "";
+        String lyDo = "Cập nhật trạng thái món ăn";
+
+        if (trangThai == 2) {
+            hanhDong = "Lên món: " + tenMon + " x" + chiTiet.getSoLuong();
+            lyDo = "Đã phục vụ tại bàn";
+        } else if (trangThai == 0) {
+            hanhDong = "Hủy món: " + tenMon + " x" + chiTiet.getSoLuong();
+            lyDo = "Nhân viên xóa trực tiếp";
+        } else if (trangThai == 1 && trangThaiCuCuaMon == 2) {
+            hanhDong = "Hoàn tác lên món: " + tenMon;
+            lyDo = "Trả lại trạng thái chờ cung ứng";
+        }
+
+        if (!hanhDong.isEmpty()) {
+            // Gọi hàm ghi log đã viết ở các bước trước
+            // Lưu ý: trangThaiTruocDo và trangThaiMoi ở đây là trạng thái của HÓA ĐƠN (vẫn là 4 - Đang phục vụ)
+            ghiLichSu(hoaDon, idNhanVien, hanhDong, lyDo, trangThaiBillHienTai, trangThaiBillHienTai);
+        }
+
+        return ResponseEntity.ok("Cập nhật thành công");
+    }
+
+    private String getTenMonFromEntity(ChiTietHoaDon ct) {
+        if (ct.getIdChiTietMonAn() != null) return ct.getIdChiTietMonAn().getTenMon();
+        if (ct.getIdSetLau() != null) return ct.getIdSetLau().getTenSetLau();
+        return "Món không xác định";
+    }
+
+    private void ghiLichSu(HoaDonThanhToan hoaDon, Integer idNhanVien, String hanhDong, String lyDo, Integer trangThaiCu, Integer trangThaiMoi) {
+        LichSuHoaDon lichSu = new LichSuHoaDon();
+        lichSu.setIdHoaDon(hoaDon);
+
+        // Tìm nhân viên thực hiện (nếu có idNhanVien truyền lên từ FE)
+        if (idNhanVien != null) {
+            NhanVien nv = nhanVienRepository.findById(idNhanVien).orElse(null);
+            lichSu.setIdNhanVien(nv);
+        }
+
+        lichSu.setHanhDong(hanhDong);
+        lichSu.setLyDoThucHien(lyDo);
+        lichSu.setThoiGianThucHien(Instant.now());
+        lichSu.setTrangThaiTruocDo(trangThaiCu);
+        lichSu.setTrangThaiMoi(trangThaiMoi);
+
+        lichSuHoaDonRepository.save(lichSu);
     }
 
     @PutMapping("/update-trang-thai-phieu")

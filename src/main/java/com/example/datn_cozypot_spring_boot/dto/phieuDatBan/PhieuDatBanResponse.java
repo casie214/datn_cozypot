@@ -33,15 +33,17 @@ public class PhieuDatBanResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ChiTietMonResponse {
+        private Integer idChiTietHd; // THÊM TRƯỜNG NÀY ĐỂ LƯU KHÓA CHÍNH (SỐ 12, 13...)
         private Integer id; // Đây là originalId (ID của món lẻ hoặc set lẩu)
         private String tenMon;
+        private Integer trangThaiMon;
         private Integer soLuong;
         private BigDecimal donGia;
         private BigDecimal thanhTien;
 
-        // Thêm các trường này để Frontend "nhận người thân" trong FoodList
         private String type; // "FOOD" hoặc "SET"
         private Integer idChiTietMonAn;
         private Integer idSetLau;
+
     }
 }
