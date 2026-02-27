@@ -1,142 +1,91 @@
 <script setup>
-import { getAllCategoryDetailActive, getAllCategoryGeneralActive, getAllFoodGeneralActive, getAllHotpotGeneralActive } from '@/services/tableManageService';
+import { 
+    getAllCategoryDetailActive, 
+    getAllCategoryGeneralActive, 
+    getAllHotpotGeneralActive,
+    getAllLoaiSetLauActive // Đảm bảo service này trả về danh sách loại set
+} from '@/services/tableManageService';
 import Multiselect from '@vueform/multiselect';
-import { watch } from 'vue';
-import { ref, computed, onMounted } from 'vue';
+import '@vueform/multiselect/themes/default.css';
+import { watch, ref, computed, onMounted } from 'vue';
 
 const isLoading = ref(false);
-
 const props = defineProps({
-    initialItems: {
-        type: Array,
-        default: () => []
-    }
+    initialItems: { type: Array, default: () => [] }
 });
-
-const initSelectedItems = () => {
-    selectedItems.value = {};
-
-    if (props.initialItems && props.initialItems.length > 0) {
-        props.initialItems.forEach(item => {
-            let key = item.uniqueId;
-
-            if (!key && item.originalId && item.type) {
-                key = item.type === 'FOOD' 
-                      ? `food_${item.originalId}` 
-                      : `set_${item.originalId}`;
-                
-                item.uniqueId = key;
-            }
-
-            if (key) {
-                selectedItems.value[key] = { ...item };
-            }
-        });
-    }
-};
-
-const fullMenuList = ref([]);
-const categories = ref([]);
-const subCategories = ref([]);
-
-const searchQuery = ref('');
-const filterType = ref(null);
-const filterCategory = ref(null);
-const filterSubCategory = ref(null);
-const selectedItems = ref({});
 
 const emit = defineEmits(['close', 'save']);
 
-const getImg = (url) => {
-    if (url && (url.startsWith('http') || url.startsWith('data:image'))) {
-        return url;
+// --- STATE DỮ LIỆU ---
+const fullMenuList = ref([]);
+const categories = ref([]);     // Danh mục cho Món lẻ (Thịt, Nước, Rau...)
+const setCategories = ref([]);  // Danh mục cho Set lẩu (Lẩu 2 người, Lẩu Thái...)
+const selectedItems = ref({});
+
+// --- BỘ LỌC ---
+const searchQuery = ref('');
+const filterType = ref('ALL');
+const filterCategory = ref(null);
+const filterSetCategory = ref(null);
+
+const initSelectedItems = () => {
+    selectedItems.value = {};
+    if (props.initialItems && props.initialItems.length > 0) {
+        props.initialItems.forEach(item => {
+            const key = item.uniqueId;
+            if (key) {
+                selectedItems.value[key] = { 
+                    ...item,
+                    tenMonAn: item.tenMonAn || item.name || item.tenMon 
+                };
+            }
+        });
     }
-    return 'https://placehold.co/150x150?text=No+Img';
-}
-
-const typeOptions = [
-    { value: 'ALL', label: 'Tất cả loại' },
-    { value: 'FOOD', label: 'Món ăn lẻ' },
-    { value: 'SET', label: 'Set Lẩu' }
-];
-
-const categoryOptions = computed(() => {
-    return categories.value.map(c => ({
-        value: c.id,
-        label: c.tenDanhMuc
-    }));
-});
-
-const subCategoryOptions = computed(() => {
-    if (!filterCategory.value) return [];
-
-    const filtered = subCategories.value.filter(sub => {
-        const parentId = sub.idDanhMuc || (sub.danhMuc ? sub.danhMuc.id : null);
-
-        return String(parentId) === String(filterCategory.value);
-    });
-
-    return filtered.map(s => ({
-        value: s.id,
-        label: s.tenDanhMucChiTiet
-    }));
-});
-
-const handleCategoryChange = () => {
-    filterSubCategory.value = null;
 };
 
 const fetchAllData = async () => {
     isLoading.value = true;
     try {
-        const [resFood, resSet, resCat, resSubCat] = await Promise.all([
-            getAllFoodGeneralActive(),
+        // GỌI 4 API SONG SONG ĐỂ LẤY ĐỦ DỮ LIỆU BỘ LỌC VÀ MENU
+        const [resSet, resCat, resDetail, resLoaiSet] = await Promise.all([
             getAllHotpotGeneralActive(),
             getAllCategoryGeneralActive(),
-            getAllCategoryDetailActive()
+            getAllCategoryDetailActive(),
+            getAllLoaiSetLauActive() // Gọi trực tiếp API lấy Loại Set
         ]);
 
+        // 1. Gán dữ liệu cho các bộ lọc
         categories.value = resCat.data || [];
-        subCategories.value = resSubCat.data || [];
-        
-        const subToCatMap = {};
-        subCategories.value.forEach(sub => {
-            const parentId = sub.idDanhMuc || (sub.danhMuc ? sub.danhMuc.id : null);
-            if (sub.id && parentId) {
-                subToCatMap[sub.id] = parentId;
-            }
-        });
+        setCategories.value = (resLoaiSet.data || []).map(ls => ({
+            value: ls.id,
+            label: ls.tenLoaiSet
+        }));
 
-        const foods = (resFood.data || []).map(item => {
-            const subId = item.danhMucChiTiet?.id || item.idDanhMucChiTiet;
-            
-            let catId = item.danhMuc?.id || item.idDanhMuc;
-            if (!catId && subId) {
-                catId = subToCatMap[subId];
-            }
+        // 2. Map dữ liệu MÓN LẺ
+        const foods = (resDetail.data || []).map(item => ({
+            ...item,
+            id: item.id || item.idDanhMucChiTiet,
+            type: 'FOOD',
+            uniqueId: `food_${item.id || item.idDanhMucChiTiet}`,
+            tenMonAn: item.tenDanhMucChiTiet, // Tên hiển thị chính
+            catId: item.idDanhMuc || (item.danhMuc ? item.danhMuc.id : null),
+            donVi: item.dinhLuong?.tenDinhLuong || 'Phần'
+        }));
 
-            return {
-                ...item,
-                type: 'FOOD',
-                uniqueId: `food_${item.id}`,
-                catId: catId,    
-                subCatId: subId   
-            };
-        });
-
+        // 3. Map dữ liệu SET LẨU
         const sets = (resSet.data || []).map(item => ({
             ...item,
-            tenMonAn: item.tenSetLau,
+            id: item.id || item.idSetLau,
             type: 'SET',
-            uniqueId: `set_${item.id}`,
-            catId: item.loaiSet?.id || item.idLoaiSet,
-            subCatId: null 
+            uniqueId: `set_${item.id || item.idSetLau}`,
+            tenMonAn: item.tenSetLau, // Tên hiển thị chính
+            setCatId: item.loaiSet?.id || item.idLoaiSet,
+            donVi: 'Set' 
         }));
 
         fullMenuList.value = [...sets, ...foods];
-
     } catch (e) {
-        console.error("Lỗi tải dữ liệu:", e);
+        console.error("Lỗi tải dữ liệu Menu:", e);
     } finally {
         isLoading.value = false;
     }
@@ -145,33 +94,32 @@ const fetchAllData = async () => {
 onMounted(() => {
     fetchAllData();
     initSelectedItems();
-})
+});
 
-watch(() => props.initialItems, () => {
-    initSelectedItems();
-}, { deep: true });
+watch(() => props.initialItems, () => initSelectedItems(), { deep: true });
 
+// --- LOGIC LỌC MENU ---
 const filteredMenu = computed(() => {
     return fullMenuList.value.filter(item => {
-        const name = (item.tenMonAn || item.tenChiTietMonAn || '').toLowerCase();
+        const name = (item.tenMonAn || '').toLowerCase();
         const matchesSearch = name.includes(searchQuery.value.toLowerCase().trim());
 
-        let matchesType = true;
-        if (filterType.value && filterType.value !== 'ALL') {
-            matchesType = item.type === filterType.value;
-        }
+        // Lọc theo Loại (Food/Set)
+        const matchesType = (filterType.value === 'ALL') || (item.type === filterType.value);
 
+        // Lọc theo Danh mục món lẻ
         let matchesCat = true;
         if (filterCategory.value) {
-            matchesCat = item.catId == filterCategory.value;
+            matchesCat = item.type === 'FOOD' && String(item.catId) === String(filterCategory.value);
         }
 
-        let matchesSubCat = true;
-        if (filterSubCategory.value) {
-            matchesSubCat = item.subCatId == filterSubCategory.value;
+        // Lọc theo Loại Set lẩu
+        let matchesSetCat = true;
+        if (filterSetCategory.value) {
+            matchesSetCat = item.type === 'SET' && String(item.setCatId) === String(filterSetCategory.value);
         }
 
-        return matchesSearch && matchesType && matchesCat && matchesSubCat;
+        return matchesSearch && matchesType && matchesCat && matchesSetCat;
     });
 });
 
@@ -182,10 +130,11 @@ const addItem = (item) => {
             uniqueId: id,
             originalId: item.id,
             type: item.type,
-            name: item.tenMonAn || item.tenChiTietMonAn,
+            name: item.tenMonAn, // Đồng bộ key cho modal cha
+            tenMonAn: item.tenMonAn,
             price: item.giaBan,
             img: item.hinhAnh,
-            unit: item.donVi || 'Suất',
+            unit: item.donVi,
             quantity: 1
         };
     } else {
@@ -196,9 +145,7 @@ const addItem = (item) => {
 const decreaseItem = (uniqueId) => {
     if (selectedItems.value[uniqueId]) {
         selectedItems.value[uniqueId].quantity--;
-        if (selectedItems.value[uniqueId].quantity <= 0) {
-            delete selectedItems.value[uniqueId];
-        }
+        if (selectedItems.value[uniqueId].quantity <= 0) delete selectedItems.value[uniqueId];
     }
 };
 
@@ -207,12 +154,22 @@ const totalAmount = computed(() => {
 });
 
 const handleSave = () => {
-    const itemsArray = Object.values(selectedItems.value);
-    emit('save', itemsArray);
-
+    emit('save', Object.values(selectedItems.value));
 };
 
+const getImg = (url) => {
+    if (url && (url.startsWith('http') || url.startsWith('data:image'))) return url;
+    return 'https://placehold.co/150x150?text=No+Img';
+};
 
+const typeOptions = [
+    { value: 'ALL', label: 'Tất cả loại' },
+    { value: 'FOOD', label: 'Món ăn lẻ' },
+    { value: 'SET', label: 'Set Lẩu' }
+];
+
+const categoryOptions = computed(() => categories.value.map(c => ({ value: c.id, label: c.tenDanhMuc })));
+const setCategoryOptions = computed(() => setCategories.value); // Sử dụng ref trực tiếp từ API
 </script>
 
 <template>
@@ -220,25 +177,21 @@ const handleSave = () => {
 
         <div class="toolbar">
             <div class="search-box">
-                <input v-model="searchQuery" type="text" placeholder="Tìm tên món..." />
+                <input v-model="searchQuery" type="text" placeholder="Tìm tên món/set lẩu..." />
                 <i class="fas fa-search search-icon"></i>
             </div>
 
             <div class="filters-row">
-
                 <div class="filter-item">
-                    <Multiselect v-model="filterType" :options="typeOptions" placeholder="Loại món" :searchable="true"
-                        class="custom-multiselect" />
+                    <Multiselect v-model="filterType" :options="typeOptions" placeholder="Loại món" />
                 </div>
 
-                <div class="filter-item">
-                    <Multiselect v-model="filterCategory" :options="categoryOptions" placeholder="Danh mục"
-                        :searchable="true" class="custom-multiselect" @change="handleCategoryChange" />
+                <div class="filter-item" v-if="filterType !== 'SET'">
+                    <Multiselect v-model="filterCategory" :options="categoryOptions" placeholder="Danh mục món lẻ" :searchable="true" />
                 </div>
 
-                <div class="filter-item">
-                    <Multiselect v-model="filterSubCategory" :options="subCategoryOptions" placeholder="Chi tiết"
-                        :searchable="true" class="custom-multiselect" :disabled="!filterCategory" />
+                <div class="filter-item" v-if="filterType !== 'FOOD'">
+                    <Multiselect v-model="filterSetCategory" :options="setCategoryOptions" placeholder="Loại Set lẩu" :searchable="true" />
                 </div>
             </div>
         </div>
@@ -268,7 +221,7 @@ const handleSave = () => {
                     </div>
 
                     <div class="card-body">
-                        <div class="card-title" :title="item.tenMonAn">{{ item.tenMonAn }}</div>
+                        <div class="card-title" :title="item.tenMon">{{ item.tenMonAn || item.tenMon }}</div>
                         <div class="card-meta">
                             <span class="card-unit">{{ item.donVi || 'Phần' }}</span>
                             <span class="card-price">{{ item.giaBan?.toLocaleString() }}đ</span>
@@ -350,18 +303,12 @@ const handleSave = () => {
 .filters-row {
     display: flex;
     gap: 10px;
+    align-items: center;
 }
 
-.filter-select {
+.filter-item {
     flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    background: white;
-    min-width: 0;
-    /* Tránh tràn layout flex */
+    min-width: 150px;
 }
 
 /* --- GRID LAYOUT --- */
@@ -373,7 +320,7 @@ const handleSave = () => {
 
 .menu-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Chỉnh nhỏ lại để list trông vừa vặn hơn trên Modal */
     gap: 15px;
 }
 
@@ -420,7 +367,7 @@ const handleSave = () => {
 }
 
 .card-img {
-    height: 100px;
+    height: 120px;
     width: 100%;
     position: relative;
     background: #fafafa;
@@ -471,7 +418,6 @@ const handleSave = () => {
     color: #333;
     margin-bottom: 5px;
     line-height: 1.3;
-    /* Cắt dòng nếu dài quá */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -490,7 +436,7 @@ const handleSave = () => {
 }
 
 .card-price {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
     color: #d32f2f;
 }
@@ -539,7 +485,7 @@ const handleSave = () => {
 
 /* Footer */
 .footer-actions {
-    padding: 5px;
+    padding: 10px 15px;
     background: white;
     border-top: 1px solid #ddd;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
@@ -605,18 +551,6 @@ const handleSave = () => {
     color: #ddd;
 }
 
-.filters-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.filter-item {
-    flex: 1;
-    min-width: 150px;
-    max-width: 200px;
-}
-
 :deep(.multiselect.is-disabled) {
     background-color: #e9ecef;
     cursor: not-allowed;
@@ -652,7 +586,6 @@ const handleSave = () => {
     align-items: center;
     justify-content: center;
     height: 100%;
-    /* Căn giữa màn hình */
     color: #666;
     padding-top: 50px;
 }
@@ -661,21 +594,14 @@ const handleSave = () => {
     width: 40px;
     height: 40px;
     border: 4px solid #f3f3f3;
-    /* Màu xám nhạt */
     border-top: 4px solid #7d161a;
-    /* Màu đỏ chủ đạo */
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 15px;
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>

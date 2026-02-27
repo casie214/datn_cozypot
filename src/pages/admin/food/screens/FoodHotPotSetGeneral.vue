@@ -10,6 +10,20 @@ import Swal from 'sweetalert2';
 
 const router = useRouter();
 
+const statusOptions = [
+  { value: 'all', label: 'Tất cả' },
+  { value: '1', label: 'Đang kinh doanh' },
+  { value: '0', label: 'Ngưng kinh doanh' }
+];
+
+const sortOptions = [
+  { value: 'newest', label: 'Mới nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' },
+  { value: 'price_asc', label: 'Giá (Thấp -> Cao)' },
+  { value: 'price_desc', label: 'Giá (Cao -> Thấp)' }
+];
+
+
 const {
   getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages,
   visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes,
@@ -61,17 +75,22 @@ const getImg = (url) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
+            
           </div>
         </div>
 
         <div class="filter-item">
           <label>Trạng thái</label>
-          <select v-model="statusFilter" class="form-control">
-            <option value="all">Tất cả</option>
-            <option value="1">Đang kinh doanh</option>
-            <option value="0">Ngưng kinh doanh</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="statusFilter" 
+            :options="statusOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item">
@@ -84,12 +103,16 @@ const getImg = (url) => {
         </div>
         <div class="filter-item">
           <label>Sắp xếp theo</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="newest">Mới nhất</option>
-            <option value="name_asc">Tên (A-Z)</option>
-            <option value="price_asc">Giá tăng dần</option>
-            <option value="price_desc">Giá giảm dần</option>
-          </select>
+           <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item price-filter-item">
@@ -268,6 +291,10 @@ const getImg = (url) => {
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+.multiselect-wrapper-sm {
+  width: 220px;
 }
 
 .status-badge.active {

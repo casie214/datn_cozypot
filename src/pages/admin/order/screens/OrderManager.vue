@@ -2,6 +2,8 @@
 import { computed } from "vue";
 import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
+import Multiselect from "@vueform/multiselect";
+import "@vueform/multiselect/themes/default.css";
 
 const router = useRouter();
 
@@ -17,6 +19,20 @@ const {
   pageSize,
   totalElements,
 } = useOrderManager();
+
+const statusOptions = [
+  "Tất cả",
+  "Vừa tạo",
+  "Chờ cọc",
+  "Đã cọc",
+  "Đã xác nhận",
+  "Khách đã đến",
+  "Chờ thanh toán",
+  "Đã thanh toán",
+  "Hoàn thành",
+  "Đã hủy",
+  "Đã hoàn tiền",
+];
 
 const updatePageSize = (value) => {
   pageSize.value = parseInt(value);
@@ -84,34 +100,20 @@ const visiblePages = computed(() => {
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái hóa đơn</label
               >
-              <select
+              <Multiselect
                 v-model="filters.status"
-                @change="handleSearch"
-                class="form-select"
-              >
-                <option>Tất cả</option>
-                <option>Chờ nhận bàn</option>
-                <option>Đang phục vụ</option>
-                <option>Hoàn thành</option>
-                <option>Đã hủy</option>
-              </select>
-            </div>
-
-            <div class="col-md-2">
-              <label class="form-label text-muted small fw-bold"
-                >Trạng thái hoàn tiền</label
-              >
-              <select
-                v-model="filters.refundStatus"
-                @change="handleSearch"
-                class="form-select"
-              >
-                <option>Tất cả</option>
-                <option>Không cần hoàn</option>
-                <option>Chờ hoàn</option>
-                <option>Đã hoàn</option>
-                <option>Không hoàn tiền</option>
-              </select>
+                :options="statusOptions"
+                :searchable="true"
+                mode="single"
+                placeholder="Chọn trạng thái"
+                class="custom-multiselect-theme"
+                @change="
+                  (val) => {
+                    filters.status = val;
+                    handleSearch();
+                  }
+                "
+              />
             </div>
 
             <div class="col-md-2">
@@ -373,5 +375,21 @@ const visiblePages = computed(() => {
   color: #ccc;
   pointer-events: none;
   background-color: #fff;
+}
+.custom-multiselect-theme {
+  --ms-border-color: #ddd;
+  --ms-border-color-active: #8b0000;
+  --ms-ring-color: rgba(139, 0, 0, 0.1);
+  --ms-option-bg-pointed: #fdf2f2;
+  --ms-option-color-pointed: #8b0000;
+  --ms-option-bg-selected: #8b0000;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #720e1e;
+  border-radius: 4px;
+  --ms-max-height: 200px;
+}
+.custom-multiselect-theme :global(.multiselect-is-active) {
+  box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1) !important;
+  border-color: #8b0000 !important;
 }
 </style>

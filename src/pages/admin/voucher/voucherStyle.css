@@ -385,7 +385,13 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
         border-color: #8B0000 transparent transparent transparent !important;
 
 }
-
+.custom-multiselect-theme {
+  --ms-border-color: #ced4da;
+  --ms-ring-color: rgba(128, 0, 0, 0.2);
+  --ms-option-bg-selected: #800000;
+  --ms-option-color-selected: #fff;
+  --ms-tag-bg: #800000;
+}
 /* Option được chọn */
 .select2-container--default .select2-results__option--selected {
     background-color: #8B0000 !important;
