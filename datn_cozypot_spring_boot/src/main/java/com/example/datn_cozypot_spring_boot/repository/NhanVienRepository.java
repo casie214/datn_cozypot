@@ -40,4 +40,6 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
     boolean existsBySoCccdAndIdNot(String cccd, Integer id);
 
     Optional<NhanVien> findNhanVienByTenDangNhap(String identifier);
+
+    NhanVien findNhanVienById(Integer idNhanVien);
 }
