@@ -1,20 +1,13 @@
 package com.example.datn_cozypot_spring_boot.service;
 
-import com.example.datn_cozypot_spring_boot.dto.request.AddBanAnRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.DatBanSearchRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.DatBanUpdateRequest;
-import com.example.datn_cozypot_spring_boot.dto.request.UpdateBanAnRequest;
+import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
-import com.example.datn_cozypot_spring_boot.entity.BanAn;
-import com.example.datn_cozypot_spring_boot.entity.KhuVuc;
-import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
-import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
-import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
-import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
-import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.*;
+import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.PhuongThucThanhToanRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -30,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DatBanService {
@@ -44,13 +38,24 @@ public class DatBanService {
 
     @Autowired
     private KhuVucRepository khuVucRepository;
+    @Autowired
+    private HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    @Autowired
+    private PhuongThucThanhToanRepository phuongThucThanhToanRepository;
+    @Autowired
+    private LichSuThanhToanRepository lichSuThanhToanRepository;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
     }
 
     public List<DatBanListResponse> getAllByTrangThai(){
-        return phieuDatBanRepository.findWaitingListFuture().stream().map(DatBanListResponse::new).toList();
+        LocalDateTime thoiGianTraCuu = LocalDateTime.now().minusMinutes(60);
+
+        return phieuDatBanRepository.findWaitingListFuture(thoiGianTraCuu)
+                .stream()
+                .map(DatBanListResponse::new)
+                .toList();
     }
 
     public List<BanAnResponse> getAllBanAn(){
@@ -142,29 +147,82 @@ public class DatBanService {
     }
 
     @Transactional
-    public void updateCheckIn(DatBanUpdateRequest req) {
+    public void updateCheckIn(DatBanUpdateRequest request) {
 
-        if (req.getIdBanAn() == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Thiếu ID bàn"
-            );
+        // 1. CẬP NHẬT TRẠNG THÁI BÀN ĂN
+        if (request.getIdBanAn() != null) {
+            BanAn banAn = banAnRepository.findById(request.getIdBanAn())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));
+            banAn.setTrangThai(request.getTrangThai());
+            banAnRepository.save(banAn);
         }
 
-        // Check-in khách đặt
-        if (req.getId() != null) {
-            PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
+        // 2. CẬP NHẬT TRẠNG THÁI PHIẾU ĐẶT BÀN
+        if (request.getId() != null && request.getTrangThaiPhieu() != null) {
+            PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
 
-            phieu.setTrangThai(3);
+            phieu.setTrangThai(request.getTrangThaiPhieu());
             phieuDatBanRepository.save(phieu);
         }
 
-        // Update bàn bằng query
-        banAnRepository.updateTrangThaiBan(
-                req.getIdBanAn(),
-                req.getTrangThai()
-        );
+        // 3. CẬP NHẬT ĐỒNG BỘ TRẠNG THÁI HÓA ĐƠN
+        if (request.getId() != null) {
+            // Tìm hóa đơn dựa theo id của Phiếu Đặt Bàn
+            HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(request.getId());
+
+            if (hoaDon != null) {
+                // ƯU TIÊN 1: Nếu Frontend truyền rõ trạng thái Hóa Đơn (Ví dụ truyền 5 lúc bấm Thanh toán)
+                if (request.getTrangThaiHoaDon() != null) {
+                    hoaDon.setTrangThaiHoaDon(request.getTrangThaiHoaDon());
+
+                    // Nếu hoàn tất thanh toán 100% bằng tiền mặt (Trạng thái 6) thì chốt thời gian
+                    if (request.getTrangThaiHoaDon() == 6) {
+                        hoaDon.setThoiGianThanhToan(java.time.Instant.now());
+                    }
+                }
+                // ƯU TIÊN 2: Dùng logic suy luận mặc định cho các trường hợp check-in thông thường
+                else if (request.getTrangThaiPhieu() != null) {
+                    if (request.getTrangThaiPhieu() == 3) {
+                        hoaDon.setTrangThaiHoaDon(4); // Đang phục vụ
+                    } else if (request.getTrangThaiPhieu() == 0) {
+                        hoaDon.setTrangThaiHoaDon(0); // Hủy
+                    }
+                }
+
+                // ==========================================
+                // 4. XỬ LÝ LƯU LỊCH SỬ TIỀN MẶT (NẾU CÓ)
+                // ==========================================
+                if (request.getTienMat() != null && request.getTienMat().compareTo(java.math.BigDecimal.ZERO) > 0) {
+
+                    // 4.1. Cộng dồn số tiền mặt khách đưa vào Hóa Đơn
+                    java.math.BigDecimal tienHienTai = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : java.math.BigDecimal.ZERO;
+                    hoaDon.setTienKhachDua(tienHienTai.add(request.getTienMat()));
+
+                    // 4.2. Lưu vào bảng LichSuThanhToan
+                    try {
+                        PhuongThucThanhToan ptCash = phuongThucThanhToanRepository.findByMaPhuongThuc("PT02");
+
+                        LichSuThanhToan lichSuCash = new LichSuThanhToan();
+                        lichSuCash.setPhuongThucThanhToan(ptCash);
+                        lichSuCash.setHoaDon(hoaDon);
+                        lichSuCash.setTenPhuongThuc(ptCash != null ? ptCash.getTenPhuongThuc() : "Tiền mặt");
+                        lichSuCash.setMaGiaoDich("CASH_" + System.currentTimeMillis());
+                        lichSuCash.setSoTienThanhToan(request.getTienMat());
+                        lichSuCash.setLoaiGiaoDich(1); // 1 = Giao dịch Thu Tiền
+                        lichSuCash.setNgayThanhToan(java.time.Instant.now());
+                        lichSuCash.setTrangThai(1); // 1 = Thành công
+
+                        lichSuThanhToanRepository.save(lichSuCash);
+                    } catch (Exception e) {
+                        System.out.println("❌ Lỗi lưu lịch sử thanh toán Tiền mặt: " + e.getMessage());
+                    }
+                }
+
+                // Cuối cùng: Lưu tất cả thay đổi của Hóa Đơn xuống DB
+                hoaDonThanhToanRepository.save(hoaDon);
+            }
+        }
     }
 
     @Transactional
@@ -220,6 +278,76 @@ public class DatBanService {
                 .toList();
     }
 
+
+    @Transactional
+    public void createFull(CreateBanFullRequest req) {
+
+        KhuVuc kv = khuVucRepository
+                .findByTenKhuVucAndTang(req.getTenKhuVuc(), req.getTang())
+                .orElse(null);
+
+        if (kv == null) {
+            kv = new KhuVuc();
+            kv.setTenKhuVuc(req.getTenKhuVuc());
+            kv.setTang(req.getTang());
+
+            // TẠM set để qua validate
+            kv.setMaKhuVuc("TEMP");
+
+            kv = khuVucRepository.save(kv);
+
+            // Sau khi có ID mới generate mã chuẩn
+            String ma = "KV" + String.format("%03d", kv.getId());
+            kv.setMaKhuVuc(ma);
+
+            khuVucRepository.save(kv);
+        }
+
+        BanAn ban = new BanAn();
+        ban.setIdKhuVuc(kv);
+        ban.setSoNguoiToiDa(req.getSoNguoiToiDa());
+        ban.setLoaiDatBan(req.getLoaiDatBan());
+
+        banAnRepository.save(ban);
+    }
+
+    public KhuVuc create(KhuVucRequest request) {
+
+        if (request.getTang() == null || request.getTang() <= 0) {
+            throw new RuntimeException("Tầng không hợp lệ");
+        }
+
+        if (khuVucRepository.existsByTangAndTenKhuVucAndTrangThai(
+                request.getTang(),
+                request.getTenKhuVuc().trim(),
+                1)) {
+            throw new RuntimeException("Khu vực đã tồn tại");
+        }
+
+        KhuVuc kv = new KhuVuc();
+        kv.setTang(request.getTang());
+        kv.setTenKhuVuc(request.getTenKhuVuc().trim());
+        kv.setMoTa(request.getMoTa());
+        kv.setTrangThai(1);
+
+        return khuVucRepository.save(kv);
+    }
+
+    public List<KhuVuc> getAllActive() {
+        return khuVucRepository.findByTrangThai(1);
+    }
+
+    public List<KhuVuc> getByTang(Integer tang) {
+        return khuVucRepository.findByTangAndTrangThai(tang, 1);
+    }
+
+    // Soft delete
+    public void delete(Integer id) {
+        KhuVuc kv = khuVucRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+        kv.setTrangThai(0);
+        khuVucRepository.save(kv);
+    }
 
 
 }

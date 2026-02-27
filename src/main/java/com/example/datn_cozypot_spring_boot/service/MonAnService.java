@@ -64,4 +64,6 @@ public interface MonAnService {
     List<DonViResponse> getDonViByCategoryId(Integer id);
 
     void updateDinhLuongSingle(Integer id, DinhLuongItemRequest req);
+
+    DanhMucResponse getDanhMucById(Integer id);
 }

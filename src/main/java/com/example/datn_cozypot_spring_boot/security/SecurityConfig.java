@@ -57,6 +57,8 @@ public class SecurityConfig {
                   .requestMatchers("/api/thong-ke/**").permitAll()
                   .requestMatchers("/api/mon-an-di-kem/**").permitAll()
                   .requestMatchers("/api/set-lau/**").permitAll()
+                  .requestMatchers("/api/vnpay/vnpay-return").permitAll()
+                  .requestMatchers("/api/vnpay/create-payment/**").authenticated()
                   .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

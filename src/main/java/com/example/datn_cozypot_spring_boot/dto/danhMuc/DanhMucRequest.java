@@ -2,9 +2,13 @@ package com.example.datn_cozypot_spring_boot.dto.danhMuc;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
+@Data
 @Getter
 @Setter
 public class DanhMucRequest {
@@ -18,4 +22,6 @@ public class DanhMucRequest {
 
     @NotNull(message = "Trạng thái không được để trống")
     private Integer trangThai;
+
+    private List<Integer> listIdDonVi;
 }
