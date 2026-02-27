@@ -1,6 +1,7 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
+import com.example.datn_cozypot_spring_boot.dto.thongKe.KenhDatResponse;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -95,4 +97,25 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     ORDER BY h.thoiGianTao DESC
 """)
     List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") int idBanAn);
+
+    @Query("""
+    SELECT new com.example.datn_cozypot_spring_boot.dto.thongKe.KenhDatResponse(
+        CASE 
+            WHEN pdb.hinhThucDat = 1 THEN 'Online'
+            WHEN pdb.hinhThucDat = 2 THEN 'Offline'
+            ELSE 'Khác'
+        END,
+        COUNT(h)
+    )
+    FROM HoaDonThanhToan h
+    LEFT JOIN h.idPhieuDatBan pdb
+    WHERE pdb.hinhThucDat IS NOT NULL
+    GROUP BY pdb.hinhThucDat
+""")
+    List<KenhDatResponse> thongKeKenhDat();
+
+    List<HoaDonThanhToan> findByThoiGianTaoBetween(
+            LocalDateTime start,
+            LocalDateTime end
+    );
 }
