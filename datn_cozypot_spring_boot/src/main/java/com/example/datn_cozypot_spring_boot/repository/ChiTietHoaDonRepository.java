@@ -47,4 +47,6 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
             "GROUP BY c.idSetLau " +
             "ORDER BY SUM(c.soLuong) DESC")
     List<TopSetLauResponse> findTopSellingSetLau(Pageable pageable);
+
+    List<ChiTietHoaDon> findByIdHoaDon_Id(Integer id);
 }

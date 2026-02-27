@@ -138,6 +138,10 @@ export function getAllHotpotGeneralActive() {
     return axiosClient.get('/guest/hotpot/active');
 }
 
+export function getAllLoaiSetLauActive() {
+    return axiosClient.get('/guest/hotpot-type/active');
+}
+
 export function getAllCategoryGeneralActive() {
     return axiosClient.get('/guest/category/active');
 }

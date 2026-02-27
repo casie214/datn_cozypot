@@ -26,12 +26,12 @@ public class LichSuThanhToan {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_phuong_thuc_thanh_toan")
-    private PhuongThucThanhToan idPhuongThucThanhToan;
+    private PhuongThucThanhToan phuongThucThanhToan;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_hoa_don")
     @JsonIgnore
-    private HoaDonThanhToan idHoaDon;
+    private HoaDonThanhToan HoaDon;
 
     @Size(max = 100)
     @Nationalized

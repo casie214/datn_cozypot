@@ -31,11 +31,17 @@ public class PhieuDatBanResponse {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class ChiTietMonResponse {
-        private Integer id;
-        private String tenMon; // "Lẩu Thái", "Bò Mỹ"...
+        private Integer id; // Đây là originalId (ID của món lẻ hoặc set lẩu)
+        private String tenMon;
         private Integer soLuong;
         private BigDecimal donGia;
         private BigDecimal thanhTien;
+
+        // Thêm các trường này để Frontend "nhận người thân" trong FoodList
+        private String type; // "FOOD" hoặc "SET"
+        private Integer idChiTietMonAn;
+        private Integer idSetLau;
     }
 }
