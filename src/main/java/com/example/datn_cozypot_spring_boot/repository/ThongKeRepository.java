@@ -1,95 +1,185 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
-import com.example.datn_cozypot_spring_boot.dto.thongKe.ThongKeNgayDTO;
-import com.example.datn_cozypot_spring_boot.dto.thongKe.ThongKeThanhToanDTO;
-import com.example.datn_cozypot_spring_boot.dto.thongKe.ThongKeTongDTO;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+
 @Repository
-public interface ThongKeRepository
-        extends JpaRepository<HoaDonThanhToan, Long> {
+public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Integer> {
 
-    // ================= TỔNG DASHBOARD =================
     @Query(value = """
-    SELECT
-        COUNT(*) AS tongDon,
-        SUM(hd.tong_tien_thanh_toan) AS tongDoanhThu,
-        SUM(hd.so_tien_da_giam) AS tongGiam,
-        AVG(hd.tong_tien_thanh_toan) AS doanhThuTrungBinh
-    FROM hoa_don_thanh_toan hd
-    WHERE hd.trang_thai_hoa_don = 2
-    AND CAST(hd.thoi_gian_thanh_toan AS DATE)
-        BETWEEN :from AND :to
+        SELECT 
+            -- DOANH THU (Lọc theo trạng thái 7: COMPLETED)
+            ISNULL(SUM(CASE WHEN CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE) AND trang_thai_hoa_don = 7 THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuHomNay,
+            ISNULL(SUM(CASE WHEN thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE()) AND trang_thai_hoa_don = 7 THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuTuanNay,
+            ISNULL(SUM(CASE WHEN MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()) AND trang_thai_hoa_don = 7 THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuThangNay,
+            ISNULL(SUM(CASE WHEN YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()) AND trang_thai_hoa_don = 7 THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuNamNay,
+            
+            -- SỐ LƯỢNG HÓA ĐƠN THÀNH CÔNG
+            COUNT(CASE WHEN CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE) AND trang_thai_hoa_don = 7 THEN 1 END) AS soDonHomNay,
+            COUNT(CASE WHEN thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE()) AND trang_thai_hoa_don = 7 THEN 1 END) AS soDonTuanNay,
+            COUNT(CASE WHEN MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()) AND trang_thai_hoa_don = 7 THEN 1 END) AS soDonThangNay,
+            COUNT(CASE WHEN YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()) AND trang_thai_hoa_don = 7 THEN 1 END) AS soDonNamNay,
+
+            -- TỔNG HÓA ĐƠN THEO BỘ LỌC
+            COUNT(CASE WHEN trang_thai_hoa_don = 7 AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+            ) THEN 1 END) AS tongHoaDon,
+
+            -- GIÁ TRỊ TRUNG BÌNH ĐƠN
+            ISNULL(AVG(CASE WHEN trang_thai_hoa_don = 7 AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+            ) THEN tong_tien_thanh_toan END), 0) AS giaTriTrungBinhDon,
+
+            -- TỔNG TIỀN CỌC (Lấy từ các đơn đã cọc hoặc đã xong: 2, 3, 4, 5, 6, 7)
+            ISNULL(SUM(CASE WHEN trang_thai_hoa_don IN (2,3,4,5,6,7) AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_tao AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_tao >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_tao) = MONTH(GETDATE()) AND YEAR(thoi_gian_tao) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_tao) = YEAR(GETDATE()))
+            ) THEN tien_coc ELSE 0 END), 0) AS tongTienCoc,
+
+            -- TỔNG GIẢM GIÁ (Chỉ tính trên đơn thành công 7)
+            ISNULL(SUM(CASE WHEN trang_thai_hoa_don = 7 AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+            ) THEN so_tien_da_giam ELSE 0 END), 0) AS tongGiamGia,
+
+            -- TỔNG HÓA ĐƠN HỦY (Theo SQL của bạn là trạng thái 8)
+            COUNT(CASE WHEN trang_thai_hoa_don = 8 AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_tao AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_tao >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_tao) = MONTH(GETDATE()) AND YEAR(thoi_gian_tao) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_tao) = YEAR(GETDATE()))
+            ) THEN 1 END) AS tongHoaDonHuy,
+
+            -- DOANH THU THỰC NHẬN
+            ISNULL(SUM(CASE WHEN trang_thai_hoa_don = 7 AND (
+                (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
+                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+            ) THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuThucNhan
+        FROM hoa_don_thanh_toan
+        """, nativeQuery = true)
+    Map<String, Object> layDuLieuThongKeChiTiet(@Param("loai") String loai);
+
+    @Query(value = """
+    SELECT 
+        m.thang,
+        ISNULL(SUM(h.tong_tien_thanh_toan), 0) AS doanhThu
+    FROM (
+        SELECT 1 AS thang UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 
+        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+    ) m
+    LEFT JOIN hoa_don_thanh_toan h ON MONTH(h.thoi_gian_thanh_toan) = m.thang 
+        AND YEAR(h.thoi_gian_thanh_toan) = YEAR(GETDATE()) 
+        AND h.trang_thai_hoa_don = 7
+    GROUP BY m.thang
+    ORDER BY m.thang
     """, nativeQuery = true)
-    ThongKeTongDTO thongKeTong(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to
-    );
+    List<Map<String, Object>> layDoanhThu12Thang();
 
-
-    // ================= ONLINE / OFFLINE =================
     @Query(value = """
-    SELECT
-        CASE
-            WHEN pt.ten_phuong_thuc = N'Tiền mặt'
-            THEN N'Offline'
-            ELSE N'Online'
-        END AS hinhThuc,
+    SELECT TOP 5 
+        s.hinh_anh AS anh, 
+        s.ten_set_lau AS tenSet, 
+        s.gia_ban AS gia, 
+        SUM(ct.so_luong) AS soLuongBan
+    FROM chi_tiet_hoa_don ct
+    INNER JOIN set_lau s ON ct.id_set_lau = s.id_set_lau
+    INNER JOIN hoa_don_thanh_toan h ON ct.id_hoa_don = h.id_hoa_don
+    WHERE h.trang_thai_hoa_don = 7 
+      AND ct.id_set_lau IS NOT NULL
+    GROUP BY s.hinh_anh, s.ten_set_lau, s.gia_ban
+    ORDER BY soLuongBan DESC
+""", nativeQuery = true)
+    List<Map<String, Object>> layTopSetLauBanChay();
 
-        SUM(ls.so_tien_thanh_toan) AS tongTien
+    @Query(value = """
+        SELECT ISNULL(SUM(tong_tien_thanh_toan), 0) 
+        FROM hoa_don_thanh_toan 
+        WHERE trang_thai_hoa_don = 7 
+          AND MONTH(thoi_gian_thanh_toan) = MONTH(DATEADD(MONTH, -1, GETDATE()))
+          AND YEAR(thoi_gian_thanh_toan) = YEAR(DATEADD(MONTH, -1, GETDATE()))
+    """, nativeQuery = true)
+    BigDecimal layDoanhThuThangTruoc();
 
-    FROM lich_su_thanh_toan ls
-    JOIN phuong_thuc_thanh_toan pt
-        ON ls.id_phuong_thuc_thanh_toan = pt.id_phuong_thuc
-    JOIN hoa_don_thanh_toan hd
-        ON ls.id_hoa_don = hd.id_hoa_don
+    @Query(value = """
+    SELECT 
+        COUNT(DISTINCT id_khach_hang) AS tongKhachHang,
+        COUNT(*) AS khachMoi
+    FROM (
+        SELECT id_khach_hang
+        FROM hoa_don_thanh_toan
+        WHERE trang_thai_hoa_don = 7
+        GROUP BY id_khach_hang
+        HAVING COUNT(id_hoa_don) = 1
+    ) x
+""", nativeQuery = true)
+    Map<String, Object> thongKeKhachHang();
 
-    WHERE hd.trang_thai_hoa_don = 2
-    AND CAST(ls.ngay_thanh_toan AS DATE)
-        BETWEEN :from AND :to
+    @Query(value = """
+    SELECT 
+        COUNT(*) AS khachQuayLai
+    FROM (
+        SELECT id_khach_hang
+        FROM hoa_don_thanh_toan
+        WHERE trang_thai_hoa_don = 7
+        GROUP BY id_khach_hang
+        HAVING COUNT(id_hoa_don) > 1
+    ) x
+""", nativeQuery = true)
+    Long demKhachQuayLai();
 
-    GROUP BY
-        CASE
-            WHEN pt.ten_phuong_thuc = N'Tiền mặt'
-            THEN N'Offline'
-            ELSE N'Online'
+    @Query(value = """
+    SELECT 
+        CASE 
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 10 AND 11 THEN '10-12h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 12 AND 13 THEN '12-14h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 14 AND 15 THEN '14-16h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 16 AND 17 THEN '16-18h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 18 AND 19 THEN '18-20h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 20 AND 21 THEN '20-22h'
+        END AS khungGio,
+        COUNT(*) AS soLuong
+    FROM hoa_don_thanh_toan
+    WHERE trang_thai_hoa_don = 7
+    GROUP BY 
+        CASE 
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 10 AND 11 THEN '10-12h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 12 AND 13 THEN '12-14h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 14 AND 15 THEN '14-16h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 16 AND 17 THEN '16-18h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 18 AND 19 THEN '18-20h'
+            WHEN DATEPART(HOUR, thoi_gian_thanh_toan) BETWEEN 20 AND 21 THEN '20-22h'
         END
-    """, nativeQuery = true)
-    List<ThongKeThanhToanDTO> thongKeThanhToan(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to
-    );
+    ORDER BY khungGio
+""", nativeQuery = true)
+    List<Map<String, Object>> thongKeTheoKhungGio();
 
-
-    // ================= THEO NGÀY =================
     @Query(value = """
-    SELECT
-        CAST(hd.thoi_gian_thanh_toan AS DATE) AS ngay,
-
-        COUNT(*) AS soDon,
-
-        SUM(hd.tong_tien_thanh_toan) AS doanhThu,
-
-        SUM(hd.so_tien_da_giam) AS daGiam
-
-    FROM hoa_don_thanh_toan hd
-
-    WHERE hd.trang_thai_hoa_don = 2
-    AND CAST(hd.thoi_gian_thanh_toan AS DATE)
-        BETWEEN :from AND :to
-
-    GROUP BY CAST(hd.thoi_gian_thanh_toan AS DATE)
-
-    ORDER BY ngay DESC
-    """, nativeQuery = true)
-    List<ThongKeNgayDTO> thongKeTheoNgay(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to
-    );
+    SELECT 
+        trang_thai_hoa_don AS trangThai,
+        COUNT(*) AS soLuong
+    FROM hoa_don_thanh_toan
+    GROUP BY trang_thai_hoa_don
+    ORDER BY trang_thai_hoa_don
+""", nativeQuery = true)
+    List<Map<String, Object>> thongKeTrangThaiDonHang();
 }
