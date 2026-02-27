@@ -63,7 +63,6 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) Integer trangThaiHoanTien,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
@@ -76,7 +75,7 @@ public class HoaDonThanhToanController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai,trangThaiHoanTien, start, end, pageable);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
     @GetMapping("/get-by-id/{id}")
@@ -95,6 +94,19 @@ public class HoaDonThanhToanController {
             return ResponseEntity.ok("Thanh toán thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/hoan-tat")
+    public ResponseEntity<?> hoanTatHoaDon(@RequestBody LichSuHoaDonRequest request) {
+        try {
+            hoaDonThanhToanService.hoanTatHoaDon(request);
+            return ResponseEntity.ok("Hoàn tất hóa đơn và giải phóng bàn thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 

@@ -20,7 +20,6 @@ public class HoaDonThanhToanResponse {
     private BigDecimal tongTienThanhToan;
     private BigDecimal tienCoc;
     private BigDecimal tienHoanTra;
-    private Integer trangThaiHoanTien;
     private Integer trangThaiHoaDon;
 
     // thoiGianTao giữ nguyên Instant (vì Entity HoaDonThanhToan dùng Instant)
@@ -45,7 +44,6 @@ public class HoaDonThanhToanResponse {
             BigDecimal tongTienThanhToan,
             BigDecimal tienCoc,
             BigDecimal tienHoanTra,
-            Integer trangThaiHoanTien,
             Integer trangThaiHoaDon,
             Instant thoiGianTao,
             Integer hinhThucDat,
@@ -64,7 +62,6 @@ public class HoaDonThanhToanResponse {
         this.tongTienThanhToan = tongTienThanhToan;
         this.tienCoc = tienCoc;
         this.tienHoanTra = tienHoanTra;
-        this.trangThaiHoanTien = trangThaiHoanTien;
         this.trangThaiHoaDon = trangThaiHoaDon;
         this.thoiGianTao = thoiGianTao;
         this.hinhThucDat = hinhThucDat;

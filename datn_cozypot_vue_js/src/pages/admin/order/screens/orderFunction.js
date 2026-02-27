@@ -16,6 +16,7 @@ import {
   BeHuyHoaDon,
   BeGetHoaDonById,
   BeGetLichSuThanhToan,
+  BeHoanTatHoaDon,
 } from "./orderService";
 
 export function useOrderManager() {
@@ -49,7 +50,7 @@ export function useOrderManager() {
     },
   });
 
-const invoiceDate = computed(() => {
+  const invoiceDate = computed(() => {
     if (
       selectedOrder.value?.trangThai === "Hoàn thành" &&
       paymentHistory.value &&
@@ -74,7 +75,6 @@ const invoiceDate = computed(() => {
   const filters = ref({
     search: "",
     status: "Tất cả",
-    refundStatus: "Tất cả",
     fromDate: today,
     toDate: "",
   });
@@ -110,26 +110,22 @@ const invoiceDate = computed(() => {
 
   const mapStatus = (statusInt) => {
     const statuses = {
-      0: "Đã hủy",
-      1: "Đang phục vụ",
-      2: "Hoàn thành",
-      3: "Chờ nhận bàn",
-    };
-    return statuses[statusInt] || "Không xác định";
-  };
-
-  const mapStatusRefund = (statusInt) => {
-    const statuses = {
-      0: "Không cần hoàn",
-      1: "Chờ hoàn",
-      2: "Đã hoàn",
-      3: "Không hoàn tiền",
+      0: "Vừa tạo",
+      1: "Chờ cọc",
+      2: "Đã cọc",
+      3: "Đã xác nhận",
+      4: "Khách đã đến",
+      5: "Chờ thanh toán",
+      6: "Đã thanh toán",
+      7: "Hoàn thành",
+      8: "Đã hủy",
+      9: "Đã hoàn tiền",
     };
     return statuses[statusInt] || "Không xác định";
   };
 
   const handlePrintOrder = async (orderId) => {
-    // 1. Lấy phần tử DOM chứa mẫu hóa đơn (chúng ta sẽ tạo ở Bước 3)
+    // 1. Lấy phần tử DOM chứa mẫu hóa đơn
     const element = document.getElementById("invoice-template");
 
     if (!element) {
@@ -139,7 +135,7 @@ const invoiceDate = computed(() => {
 
     // 2. Cấu hình cho file PDF
     const opt = {
-      margin: 5, // Căn lề (mm)
+      margin: 5, 
       filename: `HoaDon_${orderId}_${dayjs().format("DDMMYYYY")}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
@@ -182,8 +178,8 @@ const invoiceDate = computed(() => {
         tienCoc: formatCurrency(item.tienCoc),
         tienCocRaw: item.tienCoc || 0,
         tienHoanTra: formatCurrency(item.tienHoanTra),
-        trangThaiHoanTien: mapStatusRefund(item.trangThaiHoanTien),
         trangThai: mapStatus(item.trangThaiHoaDon),
+        trangThaiCode: item.trangThaiHoaDon,
         ngayTao: formatDate(item.thoiGianTao),
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
@@ -227,27 +223,21 @@ const invoiceDate = computed(() => {
       }
 
       const statusMap = {
-        "Đã hủy": 0,
-        "Đang phục vụ": 1,
-        "Hoàn thành": 2,
-        "Chờ nhận bàn": 3,
-      };
-
-      const refundStatusMap = {
-        "Không cần hoàn": 0,
-        "Chờ hoàn": 1,
-        "Đã hoàn": 2,
-        "Không hoàn tiền": 3,
+        "Vừa tạo": 0,
+        "Chờ cọc": 1,
+        "Đã cọc": 2,
+        "Đã xác nhận": 3,
+        "Khách đã đến": 4,
+        "Chờ thanh toán": 5,
+        "Đã thanh toán": 6,
+        "Hoàn thành": 7,
+        "Đã hủy": 8,
+        "Đã hoàn tiền": 9,
       };
 
       const trangThaiInt =
         filters.value.status !== "Tất cả"
           ? statusMap[filters.value.status]
-          : null;
-
-      const trangThaiHoanTienInt =
-        filters.value.refundStatus !== "Tất cả"
-          ? refundStatusMap[filters.value.refundStatus]
           : null;
 
       const tuNgayISO = filters.value.fromDate
@@ -260,7 +250,6 @@ const invoiceDate = computed(() => {
       const response = await BeSearchHoaDon(
         filters.value.search,
         trangThaiInt,
-        trangThaiHoanTienInt,
         tuNgayISO,
         denNgayISO,
         currentPage.value,
@@ -284,7 +273,6 @@ const invoiceDate = computed(() => {
     const hasFilters =
       filters.value.search ||
       filters.value.status !== "Tất cả" ||
-      filters.value.refundStatus !== "Tất cả" ||
       filters.value.fromDate ||
       filters.value.toDate;
 
@@ -299,7 +287,6 @@ const invoiceDate = computed(() => {
     filters.value = {
       search: "",
       status: "Tất cả",
-      refundStatus: "Tất cả",
       fromDate: today,
       toDate: "",
     };
@@ -318,7 +305,8 @@ const invoiceDate = computed(() => {
         const act = (item.hanhDong || "").toLowerCase();
         if (act.includes("tạo")) type = "create";
         else if (act.includes("hủy") || act.includes("xóa")) type = "delete";
-        else if (act.includes("thanh toán")) type = "payment";
+        else if (act.includes("thanh toán") || act.includes("hoàn tiền"))
+          type = "payment";
 
         return {
           id: item.idLog || item.idChiTietHD,
@@ -330,6 +318,8 @@ const invoiceDate = computed(() => {
             (item.idNhanVien ? item.idNhanVien.hoTen : "Hệ thống"),
           detail: item.lyDoThucHien || item.lyDo || item.chiTietMon,
           type: type,
+          trangThaiMoi: item.trangThaiMoi,
+          trangThaiTruocDo: item.trangThaiTruocDo,
         };
       });
       historyEvents.value = events;
@@ -362,8 +352,8 @@ const invoiceDate = computed(() => {
           tienCoc: formatCurrency(invoiceInfo.tienCoc),
           tienCocRaw: invoiceInfo.tienCoc || 0,
           tienHoanTra: formatCurrency(invoiceInfo.tienHoanTra),
-          trangThaiHoanTien: mapStatusRefund(invoiceInfo.trangThaiHoanTien),
           trangThai: mapStatus(invoiceInfo.trangThaiHoaDon),
+          trangThaiCode: invoiceInfo.trangThaiHoaDon,
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
           thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao,
@@ -494,7 +484,7 @@ const invoiceDate = computed(() => {
     let isWarning = false;
     let message = "";
 
-    const holdTimeHours = configHoldTime.value / 60; 
+    const holdTimeHours = configHoldTime.value / 60;
     const cancelLimitHours = configCancelLimit.value;
 
     // LOGIC CẢNH BÁO
@@ -591,6 +581,65 @@ const invoiceDate = computed(() => {
     }
   };
 
+  // Hoàn tất hóa đơn (Chốt sổ & Giải phóng bàn)
+  const handleHoanTatHoaDon = async (orderId) => {
+    const idToComplete = orderId || selectedOrder.value?.dbId;
+    if (!idToComplete) return;
+
+    Swal.fire({
+      title: "Khách đã ra về?",
+      text: "Hóa đơn sẽ được chuyển sang Hoàn thành và bàn sẽ được dọn trống.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#8b0000",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Đồng ý chốt",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const payload = {
+            idHoaDon: idToComplete,
+            idNhanVien: 1, // Sau này thay bằng ID user đang đăng nhập nhé
+            hanhDong: "Khách ra về - Hoàn tất hóa đơn",
+            thoiGianThucHien: new Date().toISOString(),
+          };
+
+          await BeHoanTatHoaDon(payload);
+
+          // Bắn thông báo góc phải
+          Toast.fire({
+            icon: "success",
+            title: "Thành công",
+            text: "Hóa đơn đã hoàn tất, bàn đã trống!",
+          });
+
+          // Tải lại danh sách bên ngoài
+          if (filters.value.search || filters.value.status !== "Tất cả") {
+            performSearch(false);
+          } else {
+            fetchOrders();
+          }
+
+          // Cập nhật lại màn hình chi tiết nếu đang mở
+          if (
+            selectedOrder.value &&
+            selectedOrder.value.dbId === idToComplete
+          ) {
+            await handleViewDetail(idToComplete);
+          }
+        } catch (error) {
+          console.error(error);
+          Toast.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: error.response?.data?.message || "Không thể hoàn tất hóa đơn",
+          });
+        }
+      }
+    });
+  };
+
   const closeCancelModal = () => {
     cancelModalState.value.isOpen = false;
   };
@@ -613,7 +662,7 @@ const invoiceDate = computed(() => {
     selectedOrder,
     orderDetails,
     currentVAT,
-    configHoldTime,   
+    configHoldTime,
     configCancelLimit,
     isHistoryModalOpen,
     selectedHistoryOrder,
@@ -635,5 +684,6 @@ const invoiceDate = computed(() => {
     openCancelModal,
     confirmCancelOrder,
     closeCancelModal,
+    handleHoanTatHoaDon,
   };
 }

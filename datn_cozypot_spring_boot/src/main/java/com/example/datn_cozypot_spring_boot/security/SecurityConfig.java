@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(unauthorizedHandler))
           .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
+                  .requestMatchers("/api/payment/**").permitAll()
                   .requestMatchers("/api/auth/refresh-token").permitAll()
                   .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                   .requestMatchers(
