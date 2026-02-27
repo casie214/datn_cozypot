@@ -28,7 +28,6 @@ public class ThongKeController {
 
     @Autowired
     private ThongKeService thongKeService;
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/doanh-thu")
     public ThongKeDoanhThuDTO layDoanhThu(@RequestParam(name = "loai", defaultValue = "Tháng này") String loai) {
         // Gọi hàm xử lý chung và truyền tham số "loai" vào
