@@ -5,7 +5,7 @@ import {
   fetchTableStatusByDate,
   updateTrangThaiBan,
   createOrder,
-  fetchActiveBillByBan,
+  // fetchActiveBillByBan, <-- Có thể xóa nếu không dùng tới nữa
 } from "../../../../services/tableManageService";
 import { computed, onMounted, ref, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
@@ -14,11 +14,24 @@ import { useRoute, useRouter } from "vue-router";
 import FoodList from "../modal/innerComponents/foodList.vue";
 import Swal from "sweetalert2";
 import { BeGetChiTietHoaDon } from "../../order/screens/orderService";
+import axiosClient from "@/services/axiosClient";
 
 const activeFloor = ref(1);
 const danhSachBan = ref([]);
 const selectedItems = ref({});
 
+const checkTimeStatus = (dbTime) => {
+  if (!dbTime) return { isEarly: false, minutes: 0 };
+  
+  const now = dayjs(currentTime.value);
+  const target = dayjs(dbTime);
+  const minutesLeft = target.diff(now, "minute");
+
+  if (minutesLeft > 10) {
+    return { isEarly: true, minutes: minutesLeft };
+  }
+  return { isEarly: false, minutes: minutesLeft };
+};
 
 const fetchAllBan = async () => {
   try {
@@ -50,38 +63,47 @@ const thongKeTang = computed(() => {
   const free = banTheoTang.value.filter((ban) => {
     const trangThai = getTrangThaiTheoNgay(ban.idBanAn);
     return Number(trangThai) === 0;
-    // 0 = Trống
   }).length;
   return { total, free };
 });
 
-/**
- * Map trạng thái bàn theo ngày
- * key: idBan
- * value: status
- */
 const tableStatusMap = ref({});
 
-// Thêm vào script setup
 const getTrangThaiTheoNgay = (banId) => {
   return Number(tableStatusMap.value[banId] ?? 0);
 };
 
 const selectedDate = ref(
-  new Date().toISOString().slice(0, 10), // yyyy-MM-dd
+  new Date().toISOString().slice(0, 10), 
 );
+
 const fetchTableStatus = async () => {
   try {
-    const data = await fetchTableStatusByDate(selectedDate.value);
+    // Lấy song song cả 2 dữ liệu để đối chiếu
+    const [dataStatus, dataBan] = await Promise.all([
+      fetchTableStatusByDate(selectedDate.value),
+      fetchAllBanAn()
+    ]);
 
     const newMap = {};
-    data.forEach((item) => {
-      newMap[item.banId] = item.trangThai;
+
+    // 1. ƯU TIÊN SỐ 1: Lấy trạng thái gốc của Bàn Ăn từ SQL (Vì bạn bảo SQL đã update đúng)
+    dataBan.forEach((ban) => {
+      newMap[ban.id] = ban.trangThai; 
+    });
+
+    // 2. ƯU TIÊN SỐ 2: Ghi đè trạng thái đặt bàn theo ngày
+    dataStatus.forEach((item) => {
+      // Logic cốt lõi: Nếu bàn đang có khách (1), TUYỆT ĐỐI KHÔNG để API ngày ghi đè thành 0.
+      // Chỉ cập nhật trạng thái "Đã đặt" (2) nếu bàn đó đang thực sự trống (0).
+      if (newMap[item.banId] === 0 || newMap[item.banId] === undefined) {
+        newMap[item.banId] = item.trangThai;
+      }
     });
 
     tableStatusMap.value = newMap;
   } catch (error) {
-    tableStatusMap.value = {};
+    console.error("Lỗi đồng bộ trạng thái bàn:", error);
   }
 };
 
@@ -98,44 +120,81 @@ const handleFetchAllCheckIn = async () => {
   }
 };
 
+const handleTableClick = (ban) => {
+  const trangThaiBan = getTrangThaiTheoNgay(ban.id);
+  
+  // Nếu bàn đang có khách (trạng thái 1), cho phép mở modal để tương tác
+  if (trangThaiBan === 1) {
+    openManageModal(ban);
+  } 
+  // Nếu bàn trống (0), không làm gì cả (giữ đúng yêu cầu khóa click bàn trống của bạn)
+  else {
+    console.log("Bàn trống, vui lòng check-in từ danh sách phiếu đặt.");
+  }
+};
+
+const handleCheckInGuest = async (khach) => {
+  const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
+  
+  if (!ban) {
+    return Swal.fire('Lỗi', 'Không tìm thấy thông tin bàn của khách này!', 'error');
+  }
+
+  // Cảnh báo nếu đến sớm
+  const timeInfo = checkTimeStatus(khach.thoiGianDat);
+  if (timeInfo.isEarly) {
+    const confirm = await Swal.fire({
+      title: 'Khách đến sớm!',
+      text: `Khách đang đến sớm hơn lịch hẹn ${timeInfo.minutes} phút. Mở thông tin bàn?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7d161a',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+    if (!confirm.isConfirmed) return;
+  }
+
+  // CHỈ MỞ MODAL - KHÔNG GỌI API CẬP NHẬT Ở ĐÂY NỮA
+  selectedPhieu.value = khach; 
+  await openManageModal(ban); 
+};
+
 const danhSachLoc = computed(() => {
   return danhSachCho.value.filter((khach) => {
     if (!khach.maBan && !khach.idBanAn) return false;
 
     const thoiGianDat = dayjs(khach.thoiGianDat);
     const hienTai = dayjs(currentTime.value);
+    const phutConLai = thoiGianDat.diff(hienTai, "minute");
 
-    const matchSearch =
-      khach.soDienThoai?.includes(searchQuery.value) ||
-      khach.tenKhachHang
-        ?.toLowerCase()
-        .includes(searchQuery.value.toLowerCase());
+    // --- LOGIC MỚI ---
+    // 1. Nếu phiếu đã Check-in (trạng thái 3) hoặc Chờ thanh toán (5): LUÔN HIỆN
+    if ([3, 5].includes(khach.trangThai)) return true;
 
-    //  Cho phép check-in tới +10 phút
-    //  Hiển thị nếu: Chưa tới giờ HOẶC quá giờ dưới 10 phút
-    const phutChenh = hienTai.diff(thoiGianDat, "minute");
-    const trongThoiGianCheckIn = phutChenh <= 10;
-
-    //  Lọc theo ngày
+    // 2. Nếu phiếu đang chờ (trạng thái 2): Lọc theo thời gian (10p trước và 60p sau)
+    const matchTime = phutConLai <= 10 && phutConLai >= -60;
+    
+    // 3. Kết hợp tìm kiếm và ngày tháng
+    const matchSearch = khach.soDienThoai?.includes(searchQuery.value) ||
+                        khach.tenKhachHang?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    
     let matchDate = true;
     if (filterDate.value) {
       matchDate = thoiGianDat.format("YYYY-MM-DD") === filterDate.value;
     }
 
-    return matchSearch && trongThoiGianCheckIn && matchDate;
+    return matchSearch && matchTime && matchDate;
   });
 });
 
-// Cập nhật currentTime mỗi giây để trigger toàn bộ hàm getCountdown trên giao diện
 const currentTime = ref(new Date());
 let timer;
-
 const currentStaffName = ref("");
 
 onMounted(() => {
   fetchAllBan();
   handleFetchAllCheckIn();
-  // Cứ mỗi 1 giây, giá trị currentTime thay đổi -> Vue tự động vẽ lại những chỗ dùng getCountdown
   timer = setInterval(() => {
     currentTime.value = new Date();
   }, 1000);
@@ -146,30 +205,33 @@ onMounted(() => {
 
 onUnmounted(() => clearInterval(timer));
 
-// Hàm này sẽ được gọi trực tiếp từ Template
 const getCountdown = (dbTime) => {
   if (!dbTime) return "00:00:00";
 
+  // Xử lý an toàn định dạng ngày (tránh lỗi mảng hoặc chuỗi)
+  let target = null;
+  if (Array.isArray(dbTime)) {
+    const [y, m, d, h, min, s] = dbTime;
+    target = dayjs(new Date(y, m - 1, d, h || 0, min || 0, s || 0));
+  } else {
+    target = dayjs(dbTime);
+  }
+
   const now = dayjs(currentTime.value);
-  const target = dayjs(dbTime);
-  const diff = target.diff(now);
+  const diff = target.diff(now); // Đơn vị là mili-giây
+  
+  // Xác định xem đã quá giờ chưa
+  const isNegative = diff < 0;
+  const absDiff = Math.abs(diff);
 
-  if (diff <= 0) return "00:00:00";
+  // Tính Toán Giờ, Phút, Giây
+  const h = Math.floor(absDiff / 3600000).toString().padStart(2, "0");
+  const m = Math.floor((absDiff % 3600000) / 60000).toString().padStart(2, "0");
+  const s = Math.floor((absDiff % 60000) / 1000).toString().padStart(2, "0");
 
-  const h = Math.floor(diff / 3600000)
-    .toString()
-    .padStart(2, "0");
-  const m = Math.floor((diff % 3600000) / 60000)
-    .toString()
-    .padStart(2, "0");
-  const s = Math.floor((diff % 60000) / 1000)
-    .toString()
-    .padStart(2, "0");
-
-  return `${h}:${m}:${s}`;
+  return isNegative ? `-${h}:${m}:${s}` : `${h}:${m}:${s}`;
 };
 
-// --- HELPER UI ---
 const getStatusText = (trangThai) => {
   const status = String(trangThai).trim();
   if (status === "0") return "Trống";
@@ -188,60 +250,66 @@ const getStatusClass = (trangThai) => {
 const isShowModal = ref(false);
 const selectedBan = ref(null);
 const selectedPhieu = ref(null);
-const draftOrders = ref({});
 const activeHoaDonId = ref(null);
 
-const openManageModal = async (ban) => {
-  selectedBan.value = { ...ban };
+const openManageModal = async (ban, forceStatus = null) => {
+  const bId = ban.id || ban.idBanAn;
+  
+  selectedBan.value = { 
+    ...ban,
+    trangThai: forceStatus !== null ? forceStatus : getTrangThaiTheoNgay(bId) 
+  };
+  
   modalView.value = 'info';
   activeHoaDonId.value = null;
   listMonDaChon.value = []; 
   selectedPhieu.value = null;
 
-   
-    try {
-      const resHd = await fetchActiveBillByBan(ban.id);
+  try {
+    const resPhieu = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${bId}`);
+    
+    if (resPhieu.data) {
+      const data = resPhieu.data;
       
-      if (resHd) {
-        activeHoaDonId.value = resHd.id;
-        console.log("🔥 Đã tìm thấy hóa đơn ID:", resHd.id);
+      selectedPhieu.value = {
+        // Sử dụng data.id (là ID phiếu) để mở khóa các nút chức năng
+        id: data.id, 
+        idHoaDon: data.idHoaDon || data.id, 
+        maDatBan: data.maPhieu || 'N/A',
+        tenKhachHang: data.tenKhachHang || 'Khách tại quán',
+        idKhachHang: data.idKhachHang, 
+        thoiGianDat: data.thoiGianDat 
+      };
 
-        selectedPhieu.value = {
-          maDatBan: resHd.maHoaDon || 'N/A',
-          tenKhachHang: resHd.tenKhachHang || 'Khách lẻ',
-          idKhachHang: resHd.idKhachHang, 
-          thoiGianDat: resHd.thoiGianTao
-        };
+      // SỬA TẠI ĐÂY: Thêm data.chiTiet vào chuỗi kiểm tra
+      const listFromApi = data.chiTiet || data.chiTietHoaDon || data.chiTietMonAn || [];
+      
+      if (listFromApi.length > 0) {
+        listMonDaChon.value = listFromApi.map((mon) => {
+            // Kiểm tra type từ Backend hoặc dựa vào ID có sẵn
+            const isSet = mon.type === 'SET' || mon.idSetLau != null;
+            
+            // Lấy originalId (ID món ăn hoặc ID set lẩu)
+            const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
 
-        const items = await BeGetChiTietHoaDon(resHd.id);
-        console.log("🍱 Danh sách chi tiết món từ DB:", items);
-
-        if (items && items.length > 0) {
-          listMonDaChon.value = items.map(dbItem => {
-            // LƯU Ý QUAN TRỌNG: Kiểm tra tên trường từ log Console để sửa dbItem.xxxx cho đúng
-            const isFood = dbItem.idChiTietMonAn !== null;
             return {
-              uniqueId: isFood ? `food_${dbItem.idChiTietMonAn}` : `set_${dbItem.idSetLau}`,
-              originalId: isFood ? dbItem.idChiTietMonAn : dbItem.idSetLau,
-              dbDetailId: dbItem.id, // ID này dùng để Backend biết dòng nào cần hủy/sửa
-              type: isFood ? 'FOOD' : 'SET',
-              name: dbItem.tenMonAn || dbItem.tenSetLau || dbItem.tenMon || "Không tên",
-              price: dbItem.donGia,
-              quantity: dbItem.soLuong,
-              note: dbItem.ghiChu || ''
+                dbDetailId: mon.id, 
+                originalId: originalId,
+                type: isSet ? 'SET' : 'FOOD', 
+                // Quan trọng: Phải tạo uniqueId để FoodList có thể "tick xanh" món đã chọn
+                uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
+                name: mon.tenMon,
+                quantity: mon.soLuong,
+                price: mon.donGia || 0,
+                note: mon.ghiChu || ''
             };
-          });
-          console.log("✅ Đã map thành công vào listMonDaChon:", listMonDaChon.value);
-        }
+        });
       }
-    } catch (e) {
-      console.error("❌ Lỗi khi lấy thông tin món ăn:", e);
     }
+  } catch (e) {
+    console.log("Bàn này trống hoặc chưa có phiếu:", e.message);
+  }
   
-    // Bàn trống thì lấy từ nháp
-    listMonDaChon.value = draftOrders.value[ban.id] || [];
-  
-
   isShowModal.value = true;
 };
 
@@ -249,29 +317,72 @@ const closeModal = () => {
   isShowModal.value = false;
   selectedBan.value = null;
   selectedPhieu.value = null;
+  listMonDaChon.value = [];
+};
+
+const hoveredTableId = ref(null);
+
+const onHoverCustomerCard = (khach) => {
+  // Tìm thông tin bàn từ danh sách bàn đã load
+  const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
+  
+  if (ban) {
+    hoveredTableId.value = ban.id;
+    
+    // TỰ ĐỘNG CHUYỂN TẦNG:
+    // Nếu bàn ở tầng khác với tầng đang xem thì chuyển sang tầng đó
+    if (Number(ban.soTang) !== activeFloor.value) {
+      activeFloor.value = Number(ban.soTang);
+    }
+  }
+};
+
+const onLeaveCustomerCard = () => {
+  hoveredTableId.value = null;
+};
+
+const tinhPhut = (thoiGianDat) => {
+  const hienTai = dayjs();
+  const gioHen = dayjs(thoiGianDat);
+  return gioHen.diff(hienTai, 'minute');
 };
 
 const updateStatus = async () => {
   if (!selectedBan.value) return;
 
+  let trangThaiPhieuUpdate = null;
+  if (selectedPhieu.value?.id) {
+    if (selectedBan.value.trangThai === 1) trangThaiPhieuUpdate = 3; // 3 là Checked-in
+    if (selectedBan.value.trangThai === 0) trangThaiPhieuUpdate = 4; 
+  }
+
+  const bId = selectedBan.value.id;
   const payload = {
-    id: selectedPhieu.value?.id || null,
-    idBanAn: selectedBan.value.id, // ID Bàn
+    idBanAn: bId, 
     trangThai: Number(selectedBan.value.trangThai),
+    id: selectedPhieu.value?.id || null, 
+    trangThaiPhieu: trangThaiPhieuUpdate 
   };
-  console.log(selectedBan.value);
 
-  console.log("Dữ liệu gửi đi:", payload);
   try {
+    // 1. Gọi API lưu
     await updateTrangThaiBan(payload);
+    
+    // 2. ÉP ĐỔI MÀU BÀN NGAY LẬP TỨC
+    tableStatusMap.value = {
+      ...tableStatusMap.value,
+      [bId]: Number(selectedBan.value.trangThai)
+    };
 
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: `Cập nhật bàn ${selectedBan.value.maBan} thành công!`, timer: 1500, showConfirmButton: false });
-    closeModal();
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
+    
+    // KHÔNG gọi closeModal() ở đây để nhân viên có thể Thêm món luôn
+    
     await fetchAllBan();
+    await fetchTableStatus();
     await handleFetchAllCheckIn();
   } catch (err) {
-    console.error(err);
-    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Cập nhật thất bại!' + err.message });
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Cập nhật thất bại!' });
   }
 };
 
@@ -281,17 +392,12 @@ const formatDate = (time) => {
 };
 
 const modalView = ref("info");
-
 const switchToAddFood = () => {
   modalView.value = "addFood";
 };
 
-// Phần xử lí thêm món ăn
-// Cái này là array các món/set đã chọn nhé, dùng thì lấy từ đây ra
-
 const listMonDaChon = ref([]);
 
-// Tính tổng giá của mấy món đã thêm
 const totalTempPrice = computed(() => {
   return listMonDaChon.value.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -300,11 +406,12 @@ const totalTempPrice = computed(() => {
 });
 
 const handleSaveFood = async (itemsArray) => {
-  listMonDaChon.value = itemsArray;
-  
-  if (selectedBan.value) {
-    draftOrders.value[selectedBan.value.id] = itemsArray;
+  if (!selectedPhieu.value?.id) {
+    Swal.fire('Lưu ý', 'Bàn này chưa có Phiếu đặt trước. Hệ thống không hỗ trợ thêm món cho khách vãng lai!', 'warning');
+    return;
   }
+
+  listMonDaChon.value = itemsArray;
 
   if (itemsArray.length === 0) {
     Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn ít nhất 1 món' });
@@ -319,39 +426,29 @@ const handleSaveFood = async (itemsArray) => {
       if (user.id) currentStaffId = user.id;
     }
 
-    let customerId = null;
-    let phieuDatId = null;
-    if (selectedPhieu.value) {
-      const sp = selectedPhieu.value;
-      customerId = sp.idKhachHang?.id || sp.idKhachHang || (sp.khachHang ? sp.khachHang.id : null);
-      phieuDatId = sp.idDatBan || sp.id;
-    }
+    // LẤY RA ID HÓA ĐƠN ĐỂ THÊM MÓN
+    // (Hãy đảm bảo hàm openManageModal trước đó đã lưu idHoaDon vào selectedPhieu nhé)
+    const idHoaDonThucTe = selectedPhieu.value.idHoaDon;
 
+    // TẠO PAYLOAD CHUẨN VỚI SƠ ĐỒ DATABASE
     const payload = {
+      // BẮT BUỘC PHẢI THÊM DÒNG NÀY ĐỂ BE BIẾT ĐANG SỬA HÓA ĐƠN NÀO
+      idHoaDon: selectedPhieu.value?.idHoaDon || null, 
+      
       idBanAn: selectedBan.value.id,
       idNhanVien: currentStaffId,
-      idKhachHang: customerId,
-      idPhieuDatBan: phieuDatId,
-
+      idKhachHang: selectedPhieu.value?.idKhachHang || null,
       chiTietHoaDon: itemsArray.map(item => ({
-        // 👈 Gửi ID cũ lên. Nếu ID này có mà SL thay đổi, Backend sẽ hủy dòng cũ và tạo dòng mới
-        idChiTietHoaDonCu: item.dbDetailId || null, 
         idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
         idSetLau: item.type === 'SET' ? item.originalId : null,
         soLuong: item.quantity,
-        donGia: item.price,
-        thanhTien: item.price * item.quantity,
-        ghiChu: item.note || ''
-      })),
-
-      tongTien: totalTempPrice.value
+        ghiChu: item.note || '' 
+      }))
     };
+    
 
-    // Gọi API lưu
+    // GỌI API THÊM MÓN
     await createOrder(payload);
-
-    // Xóa nháp sau khi lưu thành công
-    delete draftOrders.value[selectedBan.value.id];
 
     await Swal.fire({
       icon: 'success',
@@ -361,32 +458,263 @@ const handleSaveFood = async (itemsArray) => {
       showConfirmButton: false
     });
 
-    await fetchAllBan();
     modalView.value = 'info';
 
   } catch (e) {
-    console.error(e);
+    console.error("Lỗi khi thêm món:", e);
     Swal.fire({
       icon: 'error',
       title: 'Lỗi',
-      text: "Lỗi khi lưu hóa đơn: " + (e.response?.data?.message || e.message)
+      text: "Lỗi khi lưu món: " + (e.response?.data?.message || e.message)
     });
   }
 };
 
-///
+const handlePaymentVNPay = async () => {
+  // Kiểm tra xem bàn đã có phiếu/hóa đơn chưa
+  if (!selectedPhieu.value?.idHoaDon) {
+    return Swal.fire('Lưu ý', 'Không tìm thấy hóa đơn để thanh toán!', 'warning');
+  }
+
+  try {
+    // Hiện thông báo đang xử lý để khóa màn hình
+    Swal.fire({ 
+      title: 'Đang kết nối VNPay...', 
+      text: 'Vui lòng không đóng trình duyệt',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Gọi API bạn vừa viết bên Backend
+    const response = await axiosClient.get(`/vnpay/create-payment/${selectedPhieu.value.idHoaDon}`);
+    
+    // Đóng Swal và chuyển hướng sang trang thanh toán của VNPay
+    if (response.data && response.data.url) {
+      window.location.href = response.data.url;
+    } else {
+      Swal.fire('Lỗi', 'Không lấy được link thanh toán', 'error');
+    }
+
+  } catch (error) {
+    console.error("Lỗi tạo VNPay:", error);
+    Swal.fire('Lỗi', 'Có lỗi xảy ra khi kết nối cổng thanh toán', 'error');
+  }
+};
+
+const handlePaymentCash = async () => {
+  const totalAmount = totalTempPrice.value; // Lấy tổng tiền hiện tại trong modal
+
+  const confirm = await Swal.fire({
+    title: 'Xác nhận thanh toán tiền mặt?',
+    text: `Tổng tiền: ${totalAmount.toLocaleString()}đ. Bàn sẽ được giải phóng ngay lập tức.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  const payload = {
+    idBanAn: selectedBan.value.id,
+    trangThai: 0,        
+    id: selectedPhieu.value.id,
+    trangThaiPhieu: 4,   
+    trangThaiHoaDon: 6,  
+    tienMat: totalAmount, // <--- QUAN TRỌNG: Gửi số tiền mặt để Backend lưu Lịch sử
+    ghiChu: "Thanh toán 100% tiền mặt tại quầy"
+  };
+
+  await executeApiUpdate(payload, 'Đã hoàn tất thanh toán tiền mặt!');
+};
+
 const canCheckIn = (dbTime) => {
   if (!dbTime) return false;
-
   const now = dayjs(currentTime.value);
   const target = dayjs(dbTime);
-
   const minutesLeft = target.diff(now, "minute");
-
-  console.log("Minutes left:", minutesLeft); // 👈 debug
-
   return minutesLeft <= 10;
 };
+
+const executeApiUpdate = async (payload, successMsg) => {
+  try {
+    await updateTrangThaiBan(payload);
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: successMsg, timer: 1500, showConfirmButton: false });
+    closeModal();
+    await fetchAllBan();
+    await fetchTableStatus();
+    await handleFetchAllCheckIn();
+  } catch (err) {
+    console.error("Lỗi API:", err);
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Thao tác thất bại! Vui lòng thử lại.' });
+  }
+};
+
+const handlePaymentVNPayFull = async () => {
+  if (!selectedPhieu.value?.idHoaDon) {
+    return Swal.fire('Lưu ý', 'Bàn này chưa có hóa đơn để thanh toán!', 'warning');
+  }
+
+  const confirm = await Swal.fire({
+    title: 'Thanh toán qua VNPay?',
+    text: 'Hóa đơn sẽ chuyển sang trạng thái chờ thanh toán và hệ thống sẽ chuyển sang cổng VNPay. Bạn đồng ý chứ?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#e67e22',
+    confirmButtonText: 'Đồng ý & Thanh toán',
+    cancelButtonText: 'Quay lại'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  const bId = selectedBan.value.id;
+  
+  // 1. LƯU TRỮ ID HÓA ĐƠN VÀO BIẾN CỤC BỘ TRƯỚC KHI BỊ XÓA BỞI closeModal()
+  const idHoaDonThanhToan = selectedPhieu.value.idHoaDon; 
+
+  const payload = {
+    idBanAn: bId,
+    trangThai: 1, 
+    id: selectedPhieu.value.id,
+    trangThaiPhieu: 3, 
+    trangThaiHoaDon: 5,
+    tienMat: 0, // <--- Bổ sung cái này để gửi xuống Backend không bị lỗi
+    ghiChu: "Thanh toán 100% qua VNPay"
+  };
+
+  try {
+    Swal.fire({ 
+      title: 'Đang xử lý...', 
+      text: 'Vui lòng không đóng trình duyệt',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // 2. Cập nhật trạng thái xuống DB
+    await updateTrangThaiBan(payload);
+    
+    // 3. Đóng modal
+    closeModal();
+    
+    Swal.update({ title: 'Đang kết nối VNPay...' });
+
+    // 4. Gọi API lấy link bằng biến đã lưu (Đã sửa idHoaDon thành idHoaDonThanhToan và bỏ remaining)
+    const vnpayRes = await axiosClient.get(`/vnpay/create-payment/${idHoaDonThanhToan}`);
+    
+    if (vnpayRes.data && vnpayRes.data.url) {
+      window.location.href = vnpayRes.data.url;
+    } else {
+      Swal.fire('Lỗi', 'Không lấy được link thanh toán từ hệ thống', 'error');
+      await fetchAllBan(); 
+    }
+
+  } catch (err) {
+    console.error("Lỗi quy trình thanh toán:", err);
+    Swal.fire('Lỗi', 'Thao tác thất bại! Vui lòng thử lại.', 'error');
+    await fetchAllBan();
+  }
+};
+
+const handlePaymentMixed = async () => {
+  const totalInvoice = totalTempPrice.value;
+
+  const { value: cashAmountStr } = await Swal.fire({
+    title: 'Thanh toán hỗn hợp',
+    input: 'number',
+    inputLabel: `Tổng hóa đơn: ${totalInvoice.toLocaleString()}đ`,
+    inputPlaceholder: 'Nhập số tiền mặt khách trả trước...',
+    showCancelButton: true,
+    confirmButtonText: 'Tiếp tục sang VNPay',
+    inputValidator: (value) => {
+      if (!value || value <= 0) return 'Vui lòng nhập số tiền hợp lệ!';
+      if (value >= totalInvoice) return 'Tiền mặt phải nhỏ hơn tổng hóa đơn!';
+    }
+  });
+
+  if (cashAmountStr) {
+    const cashAmount = Number(cashAmountStr);
+    const remaining = totalInvoice - cashAmount;
+
+    try {
+      Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      // BƯỚC 1: Lưu lịch sử Tiền mặt vào DB trước
+      const payload = {
+        idBanAn: selectedBan.value.id,
+        trangThai: 1, // Vẫn giữ khách tại bàn cho đến khi VNPay xong
+        id: selectedPhieu.value.id,
+        trangThaiPhieu: 3, 
+        trangThaiHoaDon: 5, // Chuyển sang trạng thái "Chờ thanh toán"
+        tienMat: cashAmount, // <--- Gửi số tiền mặt khách vừa đưa
+        ghiChu: `Thanh toán hỗn hợp: Đã thu ${cashAmount.toLocaleString()}đ tiền mặt.`
+      };
+      
+      await updateTrangThaiBan(payload); // Gọi API backend để lưu Lịch sử CASH
+
+      // BƯỚC 2: Chuyển hướng sang VNPay cho phần tiền còn lại
+      const idHoaDon = selectedPhieu.value.idHoaDon;
+      const vnpayRes = await axiosClient.get(`/api/vnpay/create-payment/${idHoaDon}?amount=${remaining}`);
+      
+      if (vnpayRes.data && vnpayRes.data.url) {
+        window.location.href = vnpayRes.data.url;
+      }
+    } catch (error) {
+      Swal.fire('Lỗi', 'Không thể khởi tạo thanh toán hỗn hợp', 'error');
+    }
+  }
+};
+
+const handleCancelTicket = async () => {
+  if (!selectedPhieu.value?.id) {
+    return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
+  }
+
+  const confirm = await Swal.fire({
+    title: 'Hủy phiếu đặt bàn?',
+    text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    confirmButtonText: 'Đồng ý hủy',
+    cancelButtonText: 'Quay lại'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  const bId = selectedBan.value.id;
+  const payload = {
+    idBanAn: bId,
+    trangThai: 0, 
+    id: selectedPhieu.value.id,
+    trangThaiPhieu: 0 
+  };
+
+  // ÉP GIAO DIỆN CHUYỂN VỀ TRỐNG KHI HỦY PHIẾU
+  tableStatusMap.value = {
+    ...tableStatusMap.value,
+    [bId]: 0
+  };
+
+  await executeApiUpdate(payload, 'Hủy phiếu thành công. Đã giải phóng bàn!');
+};
+
+const activeBookingTableIds = computed(() => {
+  // Lấy ID của bàn từ các phiếu đang chờ ở danh sách bên phải
+  const bookingIds = danhSachLoc.value.map(khach => {
+    const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
+    return ban ? ban.id : null;
+  });
+
+  // Lấy thêm ID của tất cả các bàn đang có trạng thái "Có khách" (1) trên sơ đồ
+  const occupiedIds = danhSachBan.value
+    .filter(ban => getTrangThaiTheoNgay(ban.id) === 1)
+    .map(ban => ban.id);
+
+  return [...new Set([...bookingIds, ...occupiedIds])].filter(id => id !== null);
+});
 
 watch(
   selectedDate,
@@ -395,6 +723,7 @@ watch(
   },
   { immediate: true },
 );
+
 const props = defineProps({
     initialItems: {
         type: Array,
@@ -414,9 +743,7 @@ const initSelectedItems = () => {
     }
 };
 
-
 watch(() => props.initialItems, (newItems) => {
-    console.log("🔄 FoodList nhận dữ liệu mới từ cha:", newItems);
     initSelectedItems();
 }, { deep: true, immediate: true });
 </script>
@@ -431,8 +758,6 @@ watch(() => props.initialItems, (newItems) => {
       <div class="search-form">
         <div>
           <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
-
-          <!-- Button chọn tầng -->
           <div class="mb-3">
             <div class="d-inline-block">
               <div class="d-inline-block me-2">
@@ -456,15 +781,11 @@ watch(() => props.initialItems, (newItems) => {
             </div>
 
             <div class="floor-info mt-2">
-              Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{
-                thongKeTang.total
-              }}
-              bàn
+              Tầng {{ activeFloor }} - Trống {{ thongKeTang.free }}/{{ thongKeTang.total }} bàn
             </div>
           </div>
         </div>
         <div>
-          <!-- //Trạng thái bàn theo ngày ở đây -->
           <div class="filter-date px-3">
             <label>📅 Lọc theo ngày</label>
             <input type="date" v-model="selectedDate" class="form-control" />
@@ -473,51 +794,39 @@ watch(() => props.initialItems, (newItems) => {
       </div>
 
       <div class="contain-frame mt-3">
-        <!-- FRAME CHUNG -->
         <div class="floor-frame">
-          <!-- Sơ đồ tầng 1 -->
-          <div v-show="activeFloor === 1" class="floor-map">
+          <div class="floor-map">
             <div class="floor-plan-layout">
+              
               <div class="floor-plan-section">
                 <div class="floor-header"></div>
                 <div class="grid-container">
-                  <div
-                    class="grid-canvas"
-                    @dragover.prevent
-                    @drop="onDrop"
-                    :class="{ 'editing-mode': isEditing }"
-                  >
+                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
                     <div
                       v-for="ban in banTheoTang"
                       :key="ban.id"
                       class="table-card"
-                      :class="{
-                        'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
+                      :class="{ 
+                        'highlight-red': getTrangThaiTheoNgay(ban.id) === 0,
+                        'is-hovered': hoveredTableId === ban.id,
+                        'is-dimmed': !activeBookingTableIds.includes(ban.id) && hoveredTableId !== ban.id
                       }"
-                      @click="openManageModal(ban)"
                       :style="{
                         gridColumnStart: ban.column,
                         gridRowStart: ban.row,
                         gridColumnEnd: 'span 3',
                         gridRowEnd: 'span 2',
                       }"
+                      @click="handleTableClick(ban)"
                     >
                       <div class="table-content">
                         <strong>{{ ban.maBan }}</strong>
                         <div class="small">({{ ban.soCho }} chỗ)</div>
                         <div class="small">Khu vực: {{ ban.tenKhuVuc }}</div>
-                        <div
-                          :class="[
-                            'status-tag',
-                            getStatusClass(getTrangThaiTheoNgay(ban.id)),
-                          ]"
-                        >
+                        <div :class="['status-tag', getStatusClass(getTrangThaiTheoNgay(ban.id))]">
                           {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                         </div>
-                        <div class="small">
-                          ID: {{ ban.id }} | Status:
-                          {{ getTrangThaiTheoNgay(ban.id) }}
-                        </div>
+                        <div class="small">ID: {{ ban.id }} | Status: {{ getTrangThaiTheoNgay(ban.id) }}</div>
                       </div>
                     </div>
                   </div>
@@ -527,220 +836,55 @@ watch(() => props.initialItems, (newItems) => {
               <div class="list-section">
                 <div class="list-card">
                   <div class="checkin-container">
-                    <h5 style="font-weight: bold; font-size: 16px">
-                      Khách chờ check-in
-                    </h5>
-
+                    <h5 style="font-weight: bold; font-size: 16px">Khách chờ check-in</h5>
                     <div class="filter-section">
                       <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
-                        </label>
+                        <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="text"
-                            v-model="searchQuery"
-                            placeholder="SĐT khách hàng"
-                          />
+                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
                         </div>
                       </div>
-
                       <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fa-solid fa-calendar-days"></i> Lọc theo
-                          ngày đến
-                        </label>
+                        <label class="filter-label"><i class="fa-solid fa-calendar-days"></i> Lọc theo ngày đến</label>
                         <div class="filter-input-wrapper">
-                          <input
-                            type="date"
-                            v-model="filterDate"
-                            class="date-input"
-                          />
+                          <input type="date" v-model="filterDate" class="date-input" />
                         </div>
                       </div>
                     </div>
 
                     <div class="list-waiting">
-                      <p
-                        v-if="danhSachLoc.length === 0"
-                        class="text-center text-muted mt-3"
-                      >
+                      <p v-if="danhSachLoc.length === 0" class="text-center text-muted mt-3">
                         Không có khách nào thỏa mãn tìm kiếm
                       </p>
-
-                      <div
-                        v-for="khach in danhSachLoc"
-                        :key="khach.id"
-                        class="customer-card"
-                      >
+                      <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card" @mouseenter="onHoverCustomerCard(khach)" @mouseleave="onLeaveCustomerCard">
                         <div class="card-header">
-                          <span class="customer-name">{{
-                            khach.tenKhachHang
-                          }}</span>
+                          <span class="customer-name">{{ khach.tenKhachHang }}</span>
                           <span class="table-badge">{{ khach.maBan }}</span>
                         </div>
-
                         <div class="card-body">
-                          <p class="time-info">
-                            {{ formatDate(khach.thoiGianDat) }}
-                          </p>
-                          <div class="card-footer">
+                          <p class="time-info"><i class="fa-regular fa-calendar me-2"></i>{{ formatDate(khach.thoiGianDat) }}</p>
+                          
+                          <div class="card-footer mb-3">
                             <button
-                              class="btn btn-checkable"
-                              :disabled="!canCheckIn(khach.thoiGianDat)"
+                              class="btn btn-checkable w-100"
+                              :style="checkTimeStatus(khach.thoiGianDat).isEarly ? 'background-color: #e67e22 !important;' : ''"
+                              @click="handleCheckInGuest(khach)"
                             >
-                              {{
-                                canCheckIn(khach.thoiGianDat)
-                                  ? "Có thể check-in"
-                                  : "Chưa tới giờ"
-                              }}
+                              <i class="fa-solid fa-check me-1"></i>
+                              {{ checkTimeStatus(khach.thoiGianDat).isEarly ? "Khách đến sớm (Vào ngay)" : "Check-in ngay" }}
                             </button>
                           </div>
-                          <div class="countdown-layout">
-                            <div>
-                              <p class="arrival-note">Khách hàng sẽ tới sau</p>
-                            </div>
-                            <div class="countdown-timer">
-                              {{ getCountdown(khach.thoiGianDat) }}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Sơ đồ tầng 2 -->
-          <div v-show="activeFloor === 2" class="floor-map">
-            <div class="floor-plan-layout">
-              <div class="floor-plan-section">
-                <div class="floor-header"></div>
-
-                <div class="grid-container">
-                  <div
-                    class="grid-canvas"
-                    @dragover.prevent
-                    @drop="onDrop"
-                    :class="{ 'editing-mode': isEditing }"
-                  >
-                    <div
-                      v-for="ban in banTheoTang"
-                      :key="ban.id"
-                      class="table-card"
-                      :class="{
-                        'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
-                      }"
-                      @click="openManageModal(ban)"
-                      :style="{
-                        gridColumnStart: ban.column,
-                        gridRowStart: ban.row,
-                        gridColumnEnd: 'span 3',
-                        gridRowEnd: 'span 2',
-                      }"
-                    >
-                      <div class="table-content">
-                        <strong>{{ ban.maBan }}</strong>
-                        <div class="small">({{ ban.soCho }} chỗ)</div>
-                        <div class="small">Khu vực: {{ ban.tenKhuVuc }}</div>
-                        <div
-                          :class="[
-                            'status-tag',
-                            getStatusClass(getTrangThaiTheoNgay(ban.id)),
-                          ]"
-                        >
-                          {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
-                        </div>
-                        <div class="small">
-                          ID: {{ ban.id }} | Status:
-                          {{ getTrangThaiTheoNgay(ban.id) }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="list-section">
-                <div class="list-card">
-                  <div class="checkin-container">
-                    <h5 style="font-weight: bold; font-size: 16px">
-                      Khách chờ check-in
-                    </h5>
-                    <div class="filter-section">
-                      <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
-                        </label>
-                        <div class="filter-input-wrapper">
-                          <input
-                            type="text"
-                            v-model="searchQuery"
-                            placeholder="SĐT khách hàng"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="filter-group">
-                        <label class="filter-label">
-                          <i class="fa-solid fa-calendar-days"></i> Lọc theo
-                          ngày đến
-                        </label>
-                        <div class="filter-input-wrapper">
-                          <input
-                            type="date"
-                            v-model="filterDate"
-                            class="date-input"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="list-waiting">
-                      <p
-                        v-if="danhSachLoc.length === 0"
-                        class="text-center text-muted mt-3"
-                      >
-                        Không có khách nào thỏa mãn tìm kiếm
-                      </p>
-
-                      <div
-                        v-for="khach in danhSachLoc"
-                        :key="khach.id"
-                        class="customer-card"
-                      >
-                        <div class="card-header">
-                          <span class="customer-name">{{
-                            khach.tenKhachHang
-                          }}</span>
-                          <span class="table-badge">{{ khach.maBan }}</span>
-                        </div>
-
-                        <div class="card-body">
-                          <p class="time-info">
-                            {{ formatDate(khach.thoiGianDat) }}
-                          </p>
-                          <div class="card-footer">
-                            <button
-                              class="btn btn-checkable"
-                              :disabled="!canCheckIn(khach.thoiGianDat)"
-                            >
-                              {{
-                                canCheckIn(khach.thoiGianDat)
-                                  ? "Có thể check-in"
-                                  : "Chưa tới giờ"
-                              }}
-                            </button>
-                          </div>
-                          <div class="countdown-layout">
-                            <div>
-                              <p class="arrival-note">Khách hàng sẽ tới sau</p>
-                            </div>
-                            <div class="countdown-timer">
-                              {{ getCountdown(khach.thoiGianDat) }}
-                            </div>
+                          <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                            <span class="fw-bold" :class="getCountdown(khach.thoiGianDat).startsWith('-') ? 'text-danger' : 'text-danger'">
+                              <i class="fa-regular fa-clock me-1"></i>
+                              {{ getCountdown(khach.thoiGianDat).startsWith('-') ? 'Đã trễ hẹn:' : 'Sắp đến sau:' }}
+                            </span>
+                            
+                            <span class="badge px-2 py-1 fs-6" 
+                                  :class="getCountdown(khach.thoiGianDat).startsWith('-') ? 'bg-danger' : 'bg-danger'">
+                              {{ getCountdown(khach.thoiGianDat).replace('-', '') }}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -756,36 +900,25 @@ watch(() => props.initialItems, (newItems) => {
   </div>
 
   <div v-if="isShowModal" class="modal-overlay">
-    <div
-      class="modal-box"
-      :class="{ 'modal-fullscreen': modalView === 'addFood' }"
-    >
+    <div class="modal-box" :class="{ 'modal-fullscreen': modalView === 'addFood' }">
       <div class="modal-header-custom">
         <h4 class="modal-title-custom">
-          {{
-            modalView === "info"
-              ? `Check-in bàn ${selectedBan?.maBan}`
-              : "Thêm món ăn"
-          }}
+          {{ modalView === "info" ? `Check-in bàn ${selectedBan?.maBan}` : "Thêm món ăn" }}
         </h4>
         <button class="close-btn" @click="closeModal">✕</button>
       </div>
 
       <div class="modal-body-custom">
         <div v-if="modalView === 'info'">
-          <div v-if="selectedPhieu || Number(selectedBan?.trangThai) === 1"
-            class="alert alert-danger p-3 mb-3 border-0 shadow-sm"
-            style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
+          
+          <div v-if="selectedPhieu" class="alert alert-danger p-3 mb-3 border-0 shadow-sm" style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{
-                  selectedPhieu?.maDatBan || 'N/A' }}</div>
-                <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{
-                  selectedPhieu?.tenKhachHang || 'Khách lẻ' }}</div>
-                <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{
-                  formatDate(selectedPhieu?.thoiGianDat) || '---' }}</div>
+                <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{ selectedPhieu?.maDatBan || 'N/A' }}</div>
+                <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{ selectedPhieu?.tenKhachHang }}</div>
+                <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{ formatDate(selectedPhieu?.thoiGianDat) }}</div>
               </div>
-              <span class="badge bg-danger p-2">ĐANG PHỤC VỤ</span>
+              <span class="badge bg-danger p-2">ĐÃ ĐẶT CHỖ</span>
             </div>
           </div>
 
@@ -800,9 +933,7 @@ watch(() => props.initialItems, (newItems) => {
           </div>
           <div class="info-row align-items-center">
             <span>Trạng thái:</span>
-            <span class="badge-status">{{
-              getStatusText(selectedBan?.trangThai)
-            }}</span>
+            <span class="badge-status">{{ getStatusText(selectedBan?.trangThai) }}</span>
           </div>
           <div class="info-row">
             <span>Vị trí:</span>
@@ -815,10 +946,8 @@ watch(() => props.initialItems, (newItems) => {
 
           <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3">
             <div class="d-flex justify-content-between">
-              <span class="text-success fw-bold">Món vừa thêm:</span>
-              <span class="text-danger fw-bold"
-                >{{ totalTempPrice.toLocaleString() }}đ</span
-              >
+              <span class="text-success fw-bold">Các món đã chọn:</span>
+              <span class="text-danger fw-bold">{{ totalTempPrice.toLocaleString() }}đ</span>
             </div>
             <ul class="summary-list">
               <li v-for="item in listMonDaChon" :key="item.id">
@@ -829,18 +958,9 @@ watch(() => props.initialItems, (newItems) => {
 
           <hr class="my-3" />
 
-          <div class="action-buttons">
-            <button
-              class="btn-action"
-              :class="{ 'has-items': listMonDaChon.length > 0 }"
-              @click="switchToAddFood"
-            >
-              <i
-                class="fa-solid"
-                :class="
-                  listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'
-                "
-              ></i>
+          <div v-if="selectedPhieu?.id" class="action-buttons">
+            <button class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood">
+              <i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i>
               <span v-if="listMonDaChon.length === 0">Thêm món</span>
               <span v-else> Đã chọn {{ listMonDaChon.length }} món </span>
             </button>
@@ -848,57 +968,66 @@ watch(() => props.initialItems, (newItems) => {
             <button class="btn-action">Xem đơn hàng</button>
             <button class="btn-action">Đổi bàn</button>
           </div>
+          <div v-else class="text-center text-muted mb-3">
+            <small><i>Bàn trống. Cần Check-in phiếu đặt để thực hiện các thao tác thêm món.</i></small>
+          </div>
 
           <hr class="my-3" />
-
-          <h6 class="section-title">Tùy chỉnh trạng thái bàn</h6>
-          <div class="status-options">
-            <div
-              class="status-item"
-              :class="{ 'active-border': selectedBan?.trangThai === 0 }"
-              @click="() => (selectedBan.trangThai = 0)"
-            >
-              <label>
-                <i
-                  :class="
-                    selectedBan?.trangThai === 0
-                      ? 'fa-solid fa-circle-dot'
-                      : 'fa-regular fa-circle'
-                  "
-                ></i>
-                Trống
-              </label>
+<h6 class="section-title">Tùy chỉnh trạng thái bàn</h6>
+          
+          <div class="status-options" :class="{ 'disabled-section': getTrangThaiTheoNgay(selectedBan?.id) === 1 }">
+            
+            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 0 }" 
+                 @click="() => { if(getTrangThaiTheoNgay(selectedBan?.id) !== 1) selectedBan.trangThai = 0 }">
+              <label><i :class="selectedBan?.trangThai === 0 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i> Trống</label>
             </div>
+            
+            <div class="status-item" :class="{ 'active-border': selectedBan?.trangThai === 1 }" 
+                 @click="() => { if(getTrangThaiTheoNgay(selectedBan?.id) !== 1) selectedBan.trangThai = 1 }">
+              <label><i :class="selectedBan?.trangThai === 1 ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle'"></i> Checked-in</label>
+            </div>
+            
+          </div>
 
-            <div
-              class="status-item"
-              :class="{ 'active-border': selectedBan?.trangThai === 1 }"
-              @click="() => (selectedBan.trangThai = 1)"
-            >
-              <label>
-                <i
-                  :class="
-                    selectedBan?.trangThai === 1
-                      ? 'fa-solid fa-circle-dot'
-                      : 'fa-regular fa-circle'
-                  "
-                ></i>
-                Checked-in
-              </label>
+          <button v-if="getTrangThaiTheoNgay(selectedBan?.id) !== 1" class="btn btn-update-status mt-4" @click="updateStatus">
+            Cập nhật trạng thái bàn
+          </button>
+          
+          <div v-else class="alert alert-success mt-4 p-2 text-center" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px;">
+            <i class="fa-solid fa-check-circle me-1"></i> Bàn đã được Check-in thành công
+          </div>
+
+          <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="payment-group mt-3 pt-3 border-top">
+          <h6 class="section-title mb-2">Quyết toán hóa đơn</h6>
+          
+          <div class="payment-grid">
+            <button class="btn-pay cash-btn" @click="handlePaymentCash">
+              <i class="fa-solid fa-money-bill-1-wave"></i>
+              <span>Tiền mặt</span>
+            </button>
+            
+            <div class="d-flex gap-2">
+              <button class="btn-pay vnpay-btn" @click="handlePaymentVNPayFull">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>VNPay</span>
+              </button>
+
+              <button class="btn-pay mixed-btn" @click="handlePaymentMixed">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Hỗn hợp</span>
+              </button>
             </div>
           </div>
 
-          <button class="btn btn-update-status mt-4" @click="updateStatus">
-            Cập nhật trạng thái bàn
+          <button class="btn-cancel-ticket mt-3" @click="handleCancelTicket">
+            <i class="fa-solid fa-ban me-1"></i> Hủy phiếu đặt
           </button>
         </div>
 
+        </div>
+
         <div v-else class="h-100 full-modal-content">
-          <FoodList
-            :initial-items="listMonDaChon"
-            @close="modalView = 'info'"
-            @save="handleSaveFood"
-          />
+          <FoodList :initial-items="listMonDaChon" @close="modalView = 'info'" @save="handleSaveFood" />
         </div>
       </div>
     </div>
@@ -1591,5 +1720,139 @@ hr {
 :global(.swal2-container) {
   z-index: 20000 !important;
   /* Cao hơn 9999 của .modal-overlay */
+}
+
+.table-card {
+  transition: all 0.3s ease;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  /* cursor: pointer; <--- ĐẢM BẢO ĐÃ XÓA DÒNG NÀY */
+}
+
+/* HIỆU ỨNG HIGHLIGHT KHI HOVER TỪ BÊN PHẢI */
+.table-card.is-hovered {
+  transform: scale(1.08) !important; /* Phóng to bàn lên một chút */
+  border: 2px solid #7d161a !important; /* Đổi viền sang màu đỏ đậm của quán */
+  box-shadow: 0 0 20px rgba(125, 22, 26, 0.5) !important; /* Phát sáng tỏa ra ngoài */
+  z-index: 10; /* Đẩy bàn nổi lên trên các bàn khác */
+  background-color: #fff9f9; /* Đổi nhẹ màu nền */
+}
+
+/* Thêm hiệu ứng cho Card khách hàng bên phải để nhân viên biết có thể tương tác */
+.customer-card {
+  transition: all 0.2s ease;
+}
+.customer-card:hover {
+  border-color: #7d161a;
+  box-shadow: 0 4px 12px rgba(125, 22, 26, 0.15);
+}
+
+.table-card.is-dimmed {
+  opacity: 0.6; /* Làm mờ hẳn đi */
+  filter: grayscale(80%); /* Chuyển sang tông xám */
+  pointer-events: none; /* Không cho tương tác để tránh nhầm lẫn */
+  transition: all 0.4s ease;
+}
+
+/* Khi bàn được hover từ phiếu đặt bàn, nó phải rõ nét trở lại */
+.table-card.is-hovered {
+  opacity: 1 !important;
+  filter: grayscale(0%) !important;
+  transform: scale(1.1) !important;
+  border: 2px solid #7d161a !important;
+  box-shadow: 0 0 25px rgba(125, 22, 26, 0.6) !important;
+  z-index: 100;
+  background-color: #ffffff !important;
+}
+
+/* Hiệu ứng mượt khi chuyển đổi */
+.table-card {
+  transition: opacity 0.3s, transform 0.3s, filter 0.3s;
+}
+
+.disabled-section {
+  opacity: 0.6;
+  pointer-events: none; /* Chặn hoàn toàn click chuột */
+  filter: grayscale(30%);
+}
+
+.payment-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Style chung cho các nút thanh toán */
+.btn-pay {
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+  color: white;
+  flex: 1; /* Để các nút trong d-flex bằng nhau */
+}
+
+.btn-pay:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-pay:active {
+  transform: translateY(0);
+}
+
+/* Màu sắc riêng từng loại */
+.cash-btn {
+  background-color: #28a745; /* Xanh lá */
+  width: 100%;
+}
+
+.vnpay-btn {
+  background-color: #007bff; /* Xanh dương */
+}
+
+.mixed-btn {
+  background-color: #ffc107; /* Vàng */
+  color: #333;
+}
+
+/* Nút hủy phiếu nhỏ gọn */
+.btn-cancel-ticket {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.btn-cancel-ticket:hover {
+  background: #fff5f5;
+}
+
+/* Section Title trong Modal */
+.section-title {
+  font-size: 13px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
 }
 </style>

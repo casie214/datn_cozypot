@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.Set;
 @Entity
 @Table(name = "hoa_don_thanh_toan")
 @DynamicUpdate
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class HoaDonThanhToan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,14 +67,17 @@ public class HoaDonThanhToan {
     @Column(name = "tien_hoan_tra", precision = 18)
     private BigDecimal tienHoanTra;
 
-    @Column(name = "trang_thai_hoan_tien")
-    private Integer trangThaiHoanTien;
-
     @Column(name = "tong_tien_thanh_toan", precision = 18)
     private BigDecimal tongTienThanhToan;
 
     @Column(name = "vat_ap_dung", precision = 18)
     private Float vatApDung;
+
+    @Column(name = "diem_su_dung")
+    private Integer diemSuDung;
+
+    @Column(name = "diem_cong_them")
+    private Integer diemCongThem;
 
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;
@@ -97,7 +102,7 @@ public class HoaDonThanhToan {
     @OneToMany(mappedBy = "idHoaDon")
     private Set<LichSuHoaDon> lichSuHoaDons = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "idHoaDon")
+    @OneToMany(mappedBy = "HoaDon")
     private Set<LichSuThanhToan> lichSuThanhToans = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idHoaDonThanhToan")

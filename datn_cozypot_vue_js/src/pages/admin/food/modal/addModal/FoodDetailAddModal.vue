@@ -22,7 +22,10 @@ const formData = ref({
     hinhAnh: '',
     idDanhMuc: '',
 });
-const props = defineProps({ isModal: { type: Boolean, default: false } });
+const props = defineProps({ 
+    isModal: { type: Boolean, default: false },
+    initialName: { type: String, default: '' } // Thêm dòng này để hứng tên món
+});
 const emit = defineEmits(['saved', 'cancel']);
 const errors = ref({});
 const listCategories = ref([]);
@@ -36,6 +39,83 @@ const isCategoryModalOpen = ref(false);
 const isUnitModalOpen = ref(false);
 const isQuickAddUnitValueOpen = ref(false);
 const selectedUnitForQuickAdd = ref(null);
+
+const categoryMultiselectRef = ref(null); // Để móc vào DOM của Multiselect
+const currentCategorySearchText = ref('');
+const prefilledCategoryName = ref('');
+
+// Theo dõi text đang gõ
+const handleCategorySearchChange = (query) => {
+    currentCategorySearchText.value = query;
+};
+
+// Bắt phím Enter
+const handleCategoryKeydown = (event) => {
+    if (event.key === 'Enter' && currentCategorySearchText.value.trim() !== '') {
+        const text = currentCategorySearchText.value.trim();
+
+        // Kiểm tra trùng
+        const exists = listCategories.value.some(
+            (cat) => cat.tenDanhMuc.toLowerCase() === text.toLowerCase()
+        );
+
+        // Nếu chưa có -> Mở Modal tạo danh mục
+        if (!exists) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            prefilledCategoryName.value = text;
+            isCategoryModalOpen.value = true;
+
+            // Đóng danh sách và xóa text
+            if (categoryMultiselectRef.value) {
+                categoryMultiselectRef.value.close();
+                categoryMultiselectRef.value.clearSearch();
+            }
+        }
+    }
+};
+
+// Hàm mở Modal Danh mục bằng tay (nút "Thêm nhanh")
+const openCategoryModalNormal = () => { 
+    prefilledCategoryName.value = '';
+    isCategoryModalOpen.value = true; 
+};
+
+// Cập nhật hàm xử lý sau khi tạo thành công Danh mục
+// Cập nhật hàm xử lý sau khi tạo thành công Danh mục
+const handleCategoryAdded = async (newCategoryData) => { 
+    isCategoryModalOpen.value = false; 
+    
+    // 1. Chờ tải lại danh sách danh mục mới nhất từ DB
+    await fetchInitialData(); 
+    
+    let idToSelect = null;
+
+    // Trường hợp 1: Nếu Modal con có trả về ID hoặc Object
+    if (newCategoryData) {
+        idToSelect = typeof newCategoryData === 'object' ? newCategoryData.id : newCategoryData;
+    }
+    
+    // Trường hợp 2: Nếu Modal con KHÔNG trả về gì, ta quét trong danh sách mới tải về
+    // Tìm cái danh mục có tên khớp với tên mình vừa gõ (prefilledCategoryName)
+    if (!idToSelect && prefilledCategoryName.value) {
+        const newlyAdded = listCategories.value.find(
+            (cat) => cat.tenDanhMuc.toLowerCase() === prefilledCategoryName.value.toLowerCase()
+        );
+        if (newlyAdded) {
+            idToSelect = newlyAdded.id;
+        }
+    }
+
+    // 2. Tự động gán ID tìm được vào Multiselect
+    if (idToSelect) {
+        formData.value.idDanhMuc = idToSelect;
+    }
+    
+    // Xóa bộ nhớ đệm text
+    prefilledCategoryName.value = '';
+};
 
 // ==========================================
 // 2. KHỞI TẠO & TẢI DỮ LIỆU
@@ -77,7 +157,14 @@ watch(() => formData.value.idDanhMuc, (newVal, oldVal) => {
         selectedDinhLuongIds.value = [];
         generatedVariants.value = [];
     }
-});
+}); // Bỏ chữ {immediate: true} ở đây đi cho an toàn
+
+// THÊM ĐOẠN NÀY VÀO DƯỚI ĐỂ HỨNG TÊN MÓN:
+watch(() => props.initialName, (newVal) => {
+    if (newVal) {
+        formData.value.baseName = newVal;
+    }
+}, { immediate: true });
 
 const toggleDinhLuong = (id) => {
     if (selectedDinhLuongIds.value.includes(id)) {
@@ -158,14 +245,14 @@ const handleSave = async () => {
     const invalidPrice = generatedVariants.value.some(v => {
         const gia = Number(v.giaBan);
         console.log(`Đang check giá: ${gia}`); // Soi từng giá một
-        return isNaN(gia) || gia <= 0; 
+        return isNaN(gia) || gia <= 0;
     });
-    
+
     // NẾU CÓ GIÁ <= 0, BẮT BUỘC DỪNG LẠI
     if (invalidPrice) {
         console.log("Phát hiện lỗi giá! Đang chặn lại...");
-        return Swal.fire({ 
-            icon: 'error', 
+        return Swal.fire({
+            icon: 'error',
             title: 'Lỗi giá bán',
             text: 'Vui lòng nhập giá bán lớn hơn 0 cho TẤT CẢ các món!',
             customClass: { container: 'swal2-container' } // Đảm bảo không bị đè
@@ -218,7 +305,6 @@ const handleFileUpload = (event) => {
     event.target.value = '';
 };
 
-const handleCategoryAdded = async () => { isCategoryModalOpen.value = false; await fetchInitialData(); };
 const handleUnitAdded = async () => { isUnitModalOpen.value = false; await loadDataByCategory(); };
 const openQuickAddUnitValueModal = (unit) => { selectedUnitForQuickAdd.value = unit; isQuickAddUnitValueOpen.value = true; };
 const handleQuickAddUnitValueSuccess = async () => { isQuickAddUnitValueOpen.value = false; await loadDataByCategory(); };
@@ -233,7 +319,7 @@ const goBack = () => {
 </script>
 
 <template>
-    <div class="main-content">
+    <div class="main-content d-flex flex-column h-100">
         <div class="page-header">
             <div class="header-title">
                 <h1>Thêm Món Ăn Mới</h1>
@@ -241,178 +327,202 @@ const goBack = () => {
             <button class="btn-back" @click="goBack"><i class="fas fa-arrow-left"></i> Quay lại</button>
         </div>
 
-        <div class="page-content">
-            <div class="section-left" style="flex: 2;">
-                <div class="card mb-3" style="background-color: #fcfcfc; border: 1px solid #eee;">
-                    <h3 class="text-danger"><i class="fas fa-filter"></i> Bước 1: Chọn Danh mục & Sản phẩm</h3>
-                    <div class="form-container form-row-2">
-                        <div class="form-group">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="m-0">Danh mục <span class="required">*</span></label>
+        <div class="content-scroll-wrapper" style="flex: 1; overflow-y: auto;">
+            <div class="page-content" style="display: flex; gap: 20px; padding-bottom: 20px;">
+                <div class="section-left" style="flex: 2;">
+                    <div class="card mb-3" style="background-color: #fcfcfc; border: 1px solid #eee;">
+                        <h3 class="text-danger"><i class="fas fa-filter"></i> Bước 1: Chọn Danh mục & Sản phẩm</h3>
+                        <div class="form-container form-row-2">
+                            <div class="form-group">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="m-0">Danh mục <span class="required">*</span></label>
 
-                                <div class="d-flex align-items-center">
-                                    <button class="btn-quick-add me-2" @click="openCategoryModal"
-                                        title="Thêm danh mục mới">
-                                        <i class="fas fa-plus-circle"></i> Thêm nhanh
-                                    </button>
-                                    <i class="fas fa-sync-alt cursor-pointer text-muted" @click="fetchCategories"
-                                        title="Tải lại danh sách" style="font-size: 0.9rem;"></i>
+                                    <div class="d-flex align-items-center">
+                                        <button class="btn-quick-add me-2" @click="openCategoryModal"
+                                            title="Thêm danh mục mới">
+                                            <i class="fas fa-plus-circle"></i> Thêm nhanh
+                                        </button>
+                                        <i class="fas fa-sync-alt cursor-pointer text-muted" @click="fetchCategories"
+                                            title="Tải lại danh sách" style="font-size: 0.9rem;"></i>
+                                    </div>
                                 </div>
+                                <Multiselect 
+                                    ref="categoryMultiselectRef"
+                                    v-model="formData.idDanhMuc" 
+                                    :options="listCategories" 
+                                    mode="single"
+                                    valueProp="id" 
+                                    label="tenDanhMuc" 
+                                    placeholder="-- Bắt buộc chọn --" 
+                                    :searchable="true"
+                                    :canClear="true" 
+                                    class="custom-multiselect-theme" 
+                                    @search-change="handleCategorySearchChange"
+                                    @keydown="handleCategoryKeydown"
+                                >
+                                    <template v-slot:noresults>
+                                        <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                                            Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentCategorySearchText }}</b>"
+                                        </div>
+                                    </template>
+                                </Multiselect>
                             </div>
-                            <Multiselect v-model="formData.idDanhMuc" :options="listCategories" mode="single"
-                                valueProp="id" label="tenDanhMuc" placeholder="-- Bắt buộc chọn --" :searchable="true"
-                                :canClear="true" class="custom-multiselect-theme" />
-                        </div>
-                        <div class="form-group" style="margin-top: 5.5px;">
-                            <label>Tên sản phẩm gốc <span class="required">*</span></label>
-                            <input v-model="formData.baseName" type="text" placeholder="VD: Nước ngọt Coca, Bò Mỹ..."
-                                :disabled="!formData.idDanhMuc" :class="{ 'invalid-border': errors.baseName }">
-                            <span class="error-message" v-if="errors.baseName">{{ errors.baseName }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="m-0"><i class="fas fa-layer-group"></i> Bước 2: Chọn Định Lượng / Kích Cỡ</h3>
-                        <button v-if="formData.idDanhMuc" class="btn-quick-add" @click="openUnitModal"
-                            title="Tạo mới 1 đơn vị cho danh mục này">
-                            <i class="fas fa-cog"></i> Cấu hình định lượng mới
-                        </button>
-                    </div>
-
-                    <div v-if="!formData.idDanhMuc" class="text-muted text-center p-4">
-                        Vui lòng chọn Danh mục ở Bước 1 trước.
-                    </div>
-
-                    <div v-else class="unit-selection-container">
-                        <div v-if="availableUnits.length === 0" class="empty-units">
-                            <i class="fas fa-box-open"></i> Không tìm thấy định lượng nào cho danh mục này.
-                        </div>
-
-                        <div v-for="unit in availableUnits" :key="unit.id" class="unit-group">
-                            <div class="unit-header d-flex align-items-center mb-2">
-                                <span class="unit-name">{{ unit.tenDonVi }}</span>
-
-                                <button class="btn btn-sm btn-outline-danger ms-3 py-0 px-2 rounded-pill"
-                                    style="font-size: 0.75rem;" @click="openQuickAddUnitValueModal(unit)">
-                                    <i class="fas fa-plus"></i> Thêm giá trị
-                                </button>
-
-                                <span class="unit-desc text-muted ms-2" style="font-size: 0.8rem; font-weight: normal;">
-                                    {{ unit.moTa }}
-                                </span>
-                            </div>
-
-                            <div class="unit-values">
-                                <button v-for="val in unit.values" :key="val.id" class="btn-option"
-                                    :class="{ 'active': selectedDinhLuongIds.includes(val.id) }"
-                                    @click="toggleDinhLuong(val.id)">
-                                    {{ val.giaTri }}
-                                    <i v-if="selectedDinhLuongIds.includes(val.id)"
-                                        class="fas fa-check-circle ms-1"></i>
-                                </button>
+                            <div class="form-group" style="margin-top: 5.5px;">
+                                <label>Tên sản phẩm gốc <span class="required">*</span></label>
+                                <input v-model="formData.baseName" type="text" placeholder="VD: Nước ngọt Coca, Bò Mỹ..."
+                                    :class="{ 'invalid-border': errors.baseName }">
+                                <span class="error-message" v-if="errors.baseName">{{ errors.baseName }}</span>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="text-left mt-4 border-top pt-3">
-                            <button class="btn btn-danger fw-bold" @click="handleGenerateVariants"
-                                :disabled="selectedDinhLuongIds.length === 0">
-                                <i class="fas fa-magic"></i> Tạo {{ selectedDinhLuongIds.length }} biến thể
+                    <div class="card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="m-0"><i class="fas fa-layer-group"></i> Bước 2: Chọn Định Lượng / Kích Cỡ</h3>
+                            <button v-if="formData.idDanhMuc" class="btn-quick-add" @click="openUnitModal"
+                                title="Tạo mới 1 đơn vị cho danh mục này">
+                                <i class="fas fa-cog"></i> Cấu hình định lượng mới
                             </button>
                         </div>
-                    </div>
-                </div>
 
-                <div class="card mt-3" v-if="generatedVariants.length > 0">
-                    <h3>Bước 3: Chi tiết món ăn (Nhập giá)</h3>
-                    <div class="table-responsive">
-                        <table class="table variants-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">STT</th>
-                                    <th>Tên món sẽ tạo</th>
-                                    <th>Kích cỡ</th>
-                                    <th style="width: 150px;">Giá bán <span class="text-danger">*</span></th>
-                                    <th style="width: 50px;">Xóa</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(v, idx) in generatedVariants" :key="idx">
-                                    <td class="text-center">{{ idx + 1 }}</td>
-                                    <td class="fw-bold">{{ v.tenMon }}</td>
-                                    <td>
-                                        <span class="badge bg-light text-dark border">
-                                            {{ v.tenHienThiDinhLuong }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="input-group input-group-sm" style="flex-direction: row !important;">
-                                            <input v-model="v.giaBan" type="number" class="form-control"
-                                                style="width: 80% !important;" placeholder="0">
-                                            <span class="input-group-text">đ</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <button class="btn-clear-img text-danger" @click="generatedVariants.splice(idx, 1)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section-right" style="flex: 1;">
-                <div class="card full-height-card">
-                    <h3>Thông tin phụ</h3>
-                    <div class="form-container">
-                        <div class="form-group">
-                            <label>Mô tả chung</label>
-                            <textarea v-model="formData.moTa" rows="3" class="form-control"
-                                placeholder="Áp dụng cho mọi biến thể..."></textarea>
+                        <div v-if="!formData.idDanhMuc" class="text-muted text-center p-4">
+                            Vui lòng chọn Danh mục ở Bước 1 trước.
                         </div>
-                        <div class="form-group mt-3">
-                            <label>Hình đại diện chung <span class="required">*</span></label>
-                            <div class="upload-box-wrapper text-center">
-                                <div class="upload-container" :class="{ 'invalid-border': errors.hinhAnh }">
-                                    <input type="file" accept="image/*" ref="fileInputRef" style="display: none"
-                                        @change="handleFileUpload" />
-                                    <div v-if="!formData.hinhAnh" class="empty-upload" @click="triggerFileInput"
-                                        style="padding: 20px; border: 2px dashed #ccc; cursor: pointer; border-radius: 8px;">
-                                        <i class="fas fa-image" style="font-size: 2rem; color: #888;"></i>
-                                        <p class="mt-2 mb-0">Bấm để tải ảnh lên</p>
-                                    </div>
-                                    <div v-else class="preview-mode">
-                                        <img :src="formData.hinhAnh"
-                                            style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px;">
-                                        <div class="mt-2 d-flex justify-content-between">
-                                            <button class="btn btn-sm btn-outline-primary" @click="triggerFileInput">Đổi
-                                                ảnh</button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                @click="formData.hinhAnh = ''">Xóa</button>
+
+                        <div v-else class="unit-selection-container">
+                            <div v-if="availableUnits.length === 0" class="empty-units">
+                                <i class="fas fa-box-open"></i> Không tìm thấy định lượng nào cho danh mục này.
+                            </div>
+
+                            <div v-for="unit in availableUnits" :key="unit.id" class="unit-group">
+                                <div class="unit-header d-flex align-items-center mb-2">
+                                    <span class="unit-name">{{ unit.tenDonVi }}</span>
+
+                                    <button class="btn btn-sm btn-outline-danger ms-3 py-0 px-2 rounded-pill"
+                                        style="font-size: 0.75rem;" @click="openQuickAddUnitValueModal(unit)">
+                                        <i class="fas fa-plus"></i> Thêm giá trị
+                                    </button>
+
+                                    <span class="unit-desc text-muted ms-2" style="font-size: 0.8rem; font-weight: normal;">
+                                        {{ unit.moTa }}
+                                    </span>
+                                </div>
+
+                                <div class="unit-values">
+                                    <button v-for="val in unit.values" :key="val.id" class="btn-option"
+                                        :class="{ 'active': selectedDinhLuongIds.includes(val.id) }"
+                                        @click="toggleDinhLuong(val.id)">
+                                        {{ val.giaTri }}
+                                        <i v-if="selectedDinhLuongIds.includes(val.id)"
+                                            class="fas fa-check-circle ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="text-left mt-4 border-top pt-3">
+                                <button class="btn btn-danger fw-bold" @click="handleGenerateVariants"
+                                    :disabled="selectedDinhLuongIds.length === 0">
+                                    <i class="fas fa-magic"></i> Tạo {{ selectedDinhLuongIds.length }} biến thể
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3" v-if="generatedVariants.length > 0">
+                        <h3>Bước 3: Chi tiết món ăn (Nhập giá)</h3>
+                        <div class="table-responsive">
+                            <table class="table variants-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">STT</th>
+                                        <th>Tên món sẽ tạo</th>
+                                        <th>Kích cỡ</th>
+                                        <th style="width: 150px;">Giá bán <span class="text-danger">*</span></th>
+                                        <th style="width: 50px;">Xóa</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(v, idx) in generatedVariants" :key="idx">
+                                        <td class="text-center">{{ idx + 1 }}</td>
+                                        <td class="fw-bold">{{ v.tenMon }}</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                {{ v.tenHienThiDinhLuong }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-group-sm" style="flex-direction: row !important;">
+                                                <input v-model="v.giaBan" type="number" class="form-control"
+                                                    style="width: 80% !important;" placeholder="0">
+                                                <span class="input-group-text">đ</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <button class="btn-clear-img text-danger"
+                                                @click="generatedVariants.splice(idx, 1)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-right" style="flex: 1;">
+                    <div class="card full-height-card">
+                        <h3>Thông tin phụ</h3>
+                        <div class="form-container">
+                            <div class="form-group">
+                                <label>Mô tả chung</label>
+                                <textarea v-model="formData.moTa" rows="3" class="form-control"
+                                    placeholder="Áp dụng cho mọi biến thể..."></textarea>
+                            </div>
+                            <div class="form-group mt-3">
+                                <label>Hình đại diện chung <span class="required">*</span></label>
+                                <div class="upload-box-wrapper text-center">
+                                    <div class="upload-container" :class="{ 'invalid-border': errors.hinhAnh }">
+                                        <input type="file" accept="image/*" ref="fileInputRef" style="display: none"
+                                            @change="handleFileUpload" />
+                                        <div v-if="!formData.hinhAnh" class="empty-upload" @click="triggerFileInput"
+                                            style="padding: 20px; border: 2px dashed #ccc; cursor: pointer; border-radius: 8px;">
+                                            <i class="fas fa-image" style="font-size: 2rem; color: #888;"></i>
+                                            <p class="mt-2 mb-0">Bấm để tải ảnh lên</p>
+                                        </div>
+                                        <div v-else class="preview-mode">
+                                            <img :src="formData.hinhAnh"
+                                                style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px;">
+                                            <div class="mt-2 d-flex justify-content-between">
+                                                <button class="btn btn-sm btn-outline-primary" @click="triggerFileInput">Đổi
+                                                    ảnh</button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                    @click="formData.hinhAnh = ''">Xóa</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="page-footer mt-4 text-center">
-                    <button class="btn btn-secondary me-2" @click="goBack" style="min-width: 120px;">Hủy
-                        bỏ</button>
-                    <button class="btn btn-danger" @click="handleSave"
-                        style="min-width: 120px; background-color: #d32f2f;">
-                        Lưu hàng loạt
-                    </button>
                 </div>
             </div>
         </div>
 
-        <CategoryAddModal :isOpen="isCategoryModalOpen" @close="isCategoryModalOpen = false"
-            @refresh="handleCategoryAdded" />
+        <div class="page-footer-sticky"
+            style="border-top: 1px solid #ddd; background: #fff; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; padding: 15px 20px; display: flex; justify-content: flex-end; align-items: center; width: 100%;">
+            <button class="btn btn-secondary me-2" @click="goBack" style="min-width: 120px;">Hủy bỏ</button>
+            <button class="btn btn-danger" @click="handleSave" style="min-width: 120px; background-color: #d32f2f;">
+                Lưu hàng loạt
+            </button>
+        </div>
+
+        <CategoryAddModal 
+            :isOpen="isCategoryModalOpen" 
+            :initialName="prefilledCategoryName"
+            @close="isCategoryModalOpen = false"
+            @refresh="handleCategoryAdded" 
+        />
 
         <UnitAddScreen :isOpen="isUnitModalOpen" :categories="listCategories" @close="isUnitModalOpen = false"
             @refresh="handleUnitAdded" />

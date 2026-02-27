@@ -5,6 +5,8 @@ import TableCalendar from "./pages/admin/table/modal/tableCalendar.vue";
 import CardTable from "./pages/admin/table/modal/cardTable.vue";
 import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
+import PaymentFailed from "./pages/guest/payment-processor/PaymentFailed.vue";
+import PaymentSuccess from "./pages/guest/payment-processor/PaymentSuccess.vue";
 
 const routes = [
     {
@@ -294,6 +296,16 @@ const routes = [
         component: () => import("./pages/admin/unit/screens/UnitManagerAll.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
+    {
+        path: '/payment-success',
+        name: 'PaymentSuccess',
+        component: PaymentSuccess
+    },
+    {
+        path: '/payment-failed',
+        name: 'PaymentFailed',
+        component: PaymentFailed
+    }
 ];
 
 const router = createRouter({

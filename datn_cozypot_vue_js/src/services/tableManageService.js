@@ -138,6 +138,10 @@ export function getAllHotpotGeneralActive() {
     return axiosClient.get('/guest/hotpot/active');
 }
 
+export function getAllLoaiSetLauActive() {
+    return axiosClient.get('/guest/hotpot-type/active');
+}
+
 export function getAllCategoryGeneralActive() {
     return axiosClient.get('/guest/category/active');
 }
@@ -162,5 +166,43 @@ export const fetchActiveBillByBan = async (idBanAn) => {
         console.error("Lỗi khi lấy hóa đơn hoạt động:", error);
         throw error;
     }
+};
+
+export const createBanFull = async (payload) => {
+    try {
+        const response = await axiosClient.post(
+            `${PREFIX}/create-full`, 
+            payload
+        );
+        return response.data;
+    } catch (error) {
+        console.error("🔥 Lỗi khi tạo tầng + khu vực + bàn:", error.response);
+        throw error;
+    }
+};
+
+
+export const fetchKhuVucByTang = async (tang) => {
+  try {
+    const response = await axiosClient.get(
+      `${PREFIX}/khu-vuc/tang/${tang}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createKhuVuc = async (data) => {
+  try {
+    const response = await axiosClient.post(
+      `${PREFIX}/khu-vuc`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi tạo khu vực:", error.response);
+    throw error;
+  }
 };
 

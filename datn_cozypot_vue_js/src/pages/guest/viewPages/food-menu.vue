@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axiosClient from '@/services/axiosClient';
+import Swal from 'sweetalert2';
 
 // --- 1. STATE QUẢN LÝ DỮ LIỆU ---
 const categories = ref([]);
@@ -30,12 +31,11 @@ const getImg = (url) => {
 };
 
 // ==========================================
-// A. PHẦN XỬ LÝ DỮ LIỆU (FETCH, FLAT TO GROUP)
+// A. PHẦN XỬ LÝ DỮ LIỆU (THUẬT TOÁN GOM NHÓM THÔNG MINH)
 // ==========================================
 const fetchData = async () => {
     isLoading.value = true;
     try {
-        // GỌI 4 API MỚI NHẤT TỪ BACKEND
         const [resDanhMuc, resMonAn, resSetLau, resLoaiSet] = await Promise.all([
             axiosClient.get('/guest/category/active'),
             axiosClient.get('/guest/food/active'),
@@ -48,30 +48,48 @@ const fetchData = async () => {
         const listSetLau = resSetLau.data || [];
         const listLoaiSet = resLoaiSet.data || [];
 
-        // 1. THUẬT TOÁN GOM NHÓM MÓN ĂN LẺ
-        // Vì DB giờ là Flat (Coca - 330ml, Coca - 500ml là 2 dòng riêng), 
-        // ta sẽ gom chúng lại thành 1 Group (Coca) dựa vào Tên và ID Danh Mục
         const groupedFoods = {};
         const vMap = {};
 
+        // 1. THUẬT TOÁN GOM NHÓM MÓN LẺ (ĐÃ FIX LỖI TÁCH CHUỖI)
         listMonAn.forEach(m => {
-            let baseName = m.tenMon || "Món chưa đặt tên";
-            let variantName = m.tenDinhLuong || m.giaTriDinhLuong || 'Tiêu chuẩn';
-
-            // Cắt tên nếu có dấu " - " (Ví dụ: "Coca Cola - 330ml" -> Base: "Coca Cola", Variant: "330ml")
-            if (m.tenMon && m.tenMon.includes(' - ')) {
-                const parts = m.tenMon.split(' - ');
-                variantName = parts.pop().trim(); // Lấy khúc cuối làm Size
-                baseName = parts.join(' - ').trim(); // Phần còn lại là tên gốc
+            let baseName = (m.tenMon || "Món chưa đặt tên").trim();
+            
+            // Lấy kích cỡ từ DB (nếu có)
+            let variantName = m.tenDinhLuong || m.kichCo || m.giaTriDinhLuong || m.dinhLuong || '';
+            if (m.donViTinh || m.tenDonVi) {
+                variantName = `${variantName} ${m.donViTinh || m.tenDonVi}`.trim();
             }
 
-            const catId = m.idDanhMuc || m.danhMuc?.id;
-            const groupKey = `cat_${catId}_name_${baseName}`; // Tạo ID Nhóm ảo
+            // SỬA LỖI Ở ĐÂY: Bắt buộc phải tách đuôi khỏi baseName
+            if (baseName.includes(' - ')) {
+                const parts = baseName.split(' - ');
+                const extractedSize = parts.pop().trim(); // Luôn lấy phần đuôi ra
+                
+                // Gán tên gốc là phần còn lại
+                baseName = parts.join(' - ').trim();
+                
+                // Nếu DB không trả về size, thì lấy phần đuôi vừa cắt làm size
+                if (!variantName) variantName = extractedSize;
+                
+            } else if (baseName.includes('(') && baseName.endsWith(')')) {
+                const match = baseName.match(/(.*)\((.*?)\)$/);
+                if (match) {
+                    baseName = match[1].trim();
+                    if (!variantName) variantName = match[2].trim();
+                }
+            }
+
+            if (!variantName) variantName = 'Tiêu chuẩn';
+
+            // Tạo Key Nhóm (Dùng .toLowerCase() để gom chính xác)
+            const catId = m.idDanhMuc || m.danhMuc?.id || 'unknown';
+            const groupKey = `cat_${catId}_name_${baseName.toLowerCase()}`;
 
             if (!groupedFoods[groupKey]) {
                 groupedFoods[groupKey] = {
                     groupKey: groupKey,
-                    name: baseName,
+                    name: baseName, // Hiển thị "ÁDASDASDSADASD" (đã mất đuôi)
                     image: m.hinhAnh,
                     desc: m.moTa,
                     idDanhMuc: catId
@@ -79,17 +97,16 @@ const fetchData = async () => {
                 vMap[groupKey] = [];
             }
 
-            // Đẩy món này vào mảng biến thể của Nhóm
             vMap[groupKey].push({
-                id: m.id, // ID thật trong Database
-                name: variantName,
-                price: m.giaBan || 0,
-                originalName: m.tenMon, // Tên thật gửi xuống Backend lúc tính tiền
+                id: m.id, 
+                name: variantName, // Hiển thị "100 gram", "3 kg"
+                price: parseFloat(m.giaBan) || 0,
+                fullName: variantName === 'Tiêu chuẩn' ? baseName : `${baseName} (${variantName})`, 
                 image: m.hinhAnh
             });
         });
 
-        // Sắp xếp các biến thể (size) theo giá tăng dần
+        // Sắp xếp các biến thể theo giá từ thấp đến cao
         Object.keys(vMap).forEach(key => {
             vMap[key].sort((a, b) => a.price - b.price);
         });
@@ -98,7 +115,7 @@ const fetchData = async () => {
         // 2. XÂY DỰNG MENU HIỂN THỊ
         const processedMenu = [];
 
-        // --- NHÓM SET LẨU (Giữ nguyên) ---
+        // --- NHÓM SET LẨU ---
         if (listSetLau.length > 0) {
             const hotpotFilters = [
                 { id: 'all', name: 'Tất cả' },
@@ -110,7 +127,7 @@ const fetchData = async () => {
                 activeFilter: 'all',
                 filters: hotpotFilters,
                 items: listSetLau.map(item => ({
-                    id: item.id, // ID thật của Set Lẩu
+                    id: item.id,
                     name: item.tenSetLau,
                     price: item.giaBan,
                     image: getImg(item.hinhAnh),
@@ -123,7 +140,7 @@ const fetchData = async () => {
             });
         }
 
-        // --- NHÓM MÓN LẺ (Đã gom nhóm) ---
+        // --- NHÓM MÓN LẺ ---
         listDanhMuc.forEach(dm => {
             const groupsInCat = Object.values(groupedFoods).filter(g => String(g.idDanhMuc) === String(dm.id));
 
@@ -132,13 +149,12 @@ const fetchData = async () => {
                     categoryId: `cat-${dm.id}`,
                     categoryName: dm.tenDanhMuc.toUpperCase(),
                     activeFilter: 'all',
-                    filters: [], // Không còn danh mục con nên bỏ filter
+                    filters: [], 
                     items: groupsInCat.map(group => {
                         const variants = vMap[group.groupKey] || [];
                         let displayPrice = variants.length > 0 ? variants[0].price : 0;
                         let isRange = false;
 
-                        // Nếu có nhiều size khác giá, hiển thị khoảng giá "Min - Max"
                         if (variants.length > 1) {
                             const minP = variants[0].price;
                             const maxP = variants[variants.length - 1].price;
@@ -149,7 +165,7 @@ const fetchData = async () => {
                         }
 
                         return {
-                            id: group.groupKey, // Lưu ID Ảo để map với variantsMap lúc click
+                            id: group.groupKey, 
                             name: group.name,
                             price: displayPrice,
                             image: getImg(group.image),
@@ -164,8 +180,6 @@ const fetchData = async () => {
         });
 
         menuData.value = processedMenu;
-
-        // Tạo Nav Scroll Spy bên trái
         categories.value = processedMenu.map(s => ({ id: s.categoryId, name: s.categoryName }));
         if (categories.value.length) activeCategory.value = categories.value[0].id;
 
@@ -180,10 +194,9 @@ const fetchData = async () => {
 // B. LOGIC CHỌN MÓN & MODAL SẢN PHẨM
 // ==========================================
 const handleItemClick = (item) => {
-    // 1. Bấm vào SET LẨU -> Bỏ thẳng giỏ hàng (Không có Modal)
     if (item.type === 'SET') {
         pushToCart({
-            id: item.id, // ID Set Lẩu thật
+            id: item.id,
             name: item.name,
             price: item.price,
             image: item.image,
@@ -193,22 +206,21 @@ const handleItemClick = (item) => {
         return;
     }
 
-    // 2. Bấm vào MÓN LẺ -> Lấy mảng biến thể ra
     const variants = variantsMap.value[item.id] || [];
 
     if (variants.length <= 1) {
-        // Nếu món lẻ chỉ có 1 kích cỡ (hoặc ko có) -> Bỏ thẳng vào giỏ hàng
-        const variant = variants.length === 1 ? variants[0] : { id: item.id, price: item.price, originalName: item.name };
+        // Món chỉ có 1 dung tích -> Bỏ thẳng giỏ hàng
+        const variant = variants.length === 1 ? variants[0] : { id: item.id, price: item.price, fullName: item.name };
         pushToCart({
-            id: variant.id, // ID Món ăn thật
-            name: variant.originalName || item.name,
+            id: variant.id, 
+            name: variant.fullName, // Hiển thị tên đầy đủ
             price: variant.price,
             image: item.image,
             type: 'MON',
             quantity: 1
         });
     } else {
-        // Món có nhiều Size (VD: Size M, Size L) -> Bật Modal
+        // Có nhiều lựa chọn -> Bật Modal
         openProductModal(item, variants);
     }
 };
@@ -232,8 +244,8 @@ const confirmAddToCart = () => {
     const variant = currentVariants.value.find(v => v.id === selectedVariantId.value);
 
     pushToCart({
-        id: variant.id, // ID Món ăn thật tương ứng Size
-        name: variant.originalName, // VD: "Coca Cola - 330ml"
+        id: variant.id, 
+        name: variant.fullName, // Chỗ này sẽ hiện "Coca (3L)" rất đẹp
         price: variant.price,
         image: variant.image ? getImg(variant.image) : selectedProduct.value.image,
         type: 'MON',
@@ -246,9 +258,7 @@ const confirmAddToCart = () => {
 // C. LOGIC GIỎ HÀNG
 // ==========================================
 const pushToCart = (newItem) => {
-    // Vì Database mới mỗi Size là 1 dòng riêng biệt => id là Unique
     const existingIndex = cart.value.findIndex(i => i.id === newItem.id && i.type === newItem.type);
-
     if (existingIndex !== -1) {
         cart.value[existingIndex].quantity += newItem.quantity;
     } else {
@@ -289,7 +299,6 @@ const getFilteredItems = (section) => {
 };
 const selectFilter = (section, filterId) => { section.activeFilter = filterId; };
 
-// Search
 const allSearchItem = computed(() => menuData.value ? menuData.value.flatMap(s => s.items) : []);
 const searchResult = computed(() => {
     if (!searchQuery.value.trim()) return [];
@@ -298,7 +307,6 @@ const searchResult = computed(() => {
 });
 const clearSearch = () => searchQuery.value = '';
 
-// Scroll Spy
 const pageContainer = ref(null);
 const scrollToCategory = (id) => {
     activeCategory.value = id;
@@ -332,26 +340,21 @@ onUnmounted(() => {
 });
 
 // ==========================================
-// E. LOGIC MODAL XÁC NHẬN ĐẶT BÀN (CHECKOUT)
+// E. LOGIC XÁC NHẬN ĐẶT BÀN (CHECKOUT)
 // ==========================================
-import Swal from 'sweetalert2';
-
 const isCheckoutOpen = ref(false);
 const isSubmitting = ref(false);
-
 const tables = ref([]); 
 
-// Hàm lấy danh sách bàn
 const fetchTables = async () => {
     try {
-        const res = await axiosClient.get('/guest/table/active'); // URL API lấy bàn của bạn
+        const res = await axiosClient.get('/guest/table/active'); 
         tables.value = res.data || [];
     } catch (error) {
         console.error("Lỗi lấy danh sách bàn:", error);
     }
 };
 
-// Form lưu trữ thông tin đặt bàn
 const checkoutForm = ref({
     tenKhachHang: '',
     soDienThoai: '',
@@ -361,12 +364,12 @@ const checkoutForm = ref({
     soNguoi: 2,
     ghiChu: '',
     idKhachHang: null,
-    idBanAn: null // Thêm idBanAn
+    idBanAn: null 
 });
+
 const openCheckoutModal = () => {
     if (cart.value.length === 0) return;
-
-    fetchTables(); // Gọi lấy danh sách bàn khi mở modal
+    fetchTables(); 
 
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -376,7 +379,7 @@ const openCheckoutModal = () => {
             checkoutForm.value.tenKhachHang = userObj.tenKhachHang || userObj.hoTen || '';
             checkoutForm.value.soDienThoai = userObj.soDienThoai || userObj.sdt || userObj.phone || userObj.dienThoai || '';
             checkoutForm.value.email = userObj.email || '';
-        } catch (e) { console.error("Lỗi parse user:", e); }
+        } catch (e) {}
     }
 
     const now = new Date();
@@ -388,19 +391,13 @@ const openCheckoutModal = () => {
     isCheckoutOpen.value = true;
 };
 
-const closeCheckoutModal = () => {
-    isCheckoutOpen.value = false;
-};
-
+const closeCheckoutModal = () => isCheckoutOpen.value = false;
 const quayLaiGioHang = () => {
     isCheckoutOpen.value = false;
     isCartOpen.value = true;
 };
 
-// Gọi API Xác nhận đặt bàn
 const submitOrder = async () => {
-
-    
     const ten = checkoutForm.value.tenKhachHang ? checkoutForm.value.tenKhachHang.toString().trim() : '';
     const sdt = checkoutForm.value.soDienThoai ? checkoutForm.value.soDienThoai.toString().trim() : '';
     const ngay = checkoutForm.value.ngayDat;
@@ -408,34 +405,17 @@ const submitOrder = async () => {
     const soNguoi = checkoutForm.value.soNguoi;
     const idBan = checkoutForm.value.idBanAn;
 
-    // 2. Kiểm tra rỗng tất cả các trường (Trừ ô ghi chú)
     if (!ten || !sdt || !ngay || !gio || !soNguoi) {
-        Swal.fire('Thiếu thông tin', 'Vui lòng điền đầy đủ Tên, SĐT, Ngày đến, Giờ đến và Số người!', 'warning');
-        return;
+        return Swal.fire('Thiếu thông tin', 'Vui lòng điền đầy đủ Tên, SĐT, Ngày đến, Giờ đến và Số người!', 'warning');
     }
+    if (!idBan) return Swal.fire('Lưu ý', 'Vui lòng chọn bàn bạn muốn ngồi!', 'warning');
 
-    // 3. Kiểm tra chọn bàn
-    if (!idBan) {
-        Swal.fire('Lưu ý', 'Vui lòng chọn bàn bạn muốn ngồi!', 'warning');
-        return;
-    }
-
-    // 4. Kiểm tra logic giờ đặt (Giả sử nhà hàng mở từ 09:00 đến 22:00)
     const hour = parseInt(gio.split(':')[0]);
-    if (hour < 9 || hour > 22) {
-        Swal.fire('Lưu ý', 'Nhà hàng chỉ nhận đặt bàn từ 09:00 đến 22:00', 'warning');
-        return;
-    }
-
-    // 5. Kiểm tra số người hợp lệ (Phải lớn hơn 0)
-    if (soNguoi <= 0) {
-        Swal.fire('Lưu ý', 'Số người tối thiểu phải là 1!', 'warning');
-        return;
-    }
+    if (hour < 9 || hour > 22) return Swal.fire('Lưu ý', 'Nhà hàng chỉ nhận đặt bàn từ 09:00 đến 22:00', 'warning');
+    if (soNguoi <= 0) return Swal.fire('Lưu ý', 'Số người tối thiểu phải là 1!', 'warning');
 
     try {
         isSubmitting.value = true;
-
         const payload = {
             idKhachHang: checkoutForm.value.idKhachHang,
             idBanAn: checkoutForm.value.idBanAn,
@@ -453,11 +433,8 @@ const submitOrder = async () => {
             }))
         };
 
-        // Gọi API
         await axiosClient.post('/guest/reservation/create', payload);
-
         await Swal.fire('Thành công', 'Đơn đặt bàn của bạn đã được ghi nhận. Vui lòng chờ nhân viên xác nhận!', 'success');
-
         cart.value = [];
         closeCheckoutModal();
 
@@ -545,7 +522,7 @@ const submitOrder = async () => {
                     <TransitionGroup name="filter-list" tag="div" class="row g-3">
                         <div v-for="item in getFilteredItems(section)" :key="item.id"
                             :class="section.categoryId === 'combo-set' ? 'col-md-4 col-lg-3 col-6' : 'col-md-3 col-lg-2 col-6'">
-                            <div class="food-card">
+                            <div class="food-card" @click="handleItemClick(item)">
                                 <div class="card-img-wrapper"
                                     :class="{ 'square-ratio': section.categoryId !== 'combo-set' }">
                                     <img :src="item.image" :alt="item.name" loading="lazy" />
@@ -580,7 +557,7 @@ const submitOrder = async () => {
             @mouseleave="isCartHover = false">
             <Transition name="fade-up">
                 <div v-if="isCartHover" class="cart-preview-popup">
-                    <div class="preview-header">Đang chọn {{ totalCount }}món</div>
+                    <div class="preview-header">Đang chọn {{ totalCount }} món</div>
                     <div class="preview-list">
                         <div v-for="(item, index) in cart.slice().reverse().slice(0, 3)" :key="index"
                             class="preview-item">
@@ -677,6 +654,11 @@ const submitOrder = async () => {
                     </div>
                 </div>
             </div>
+        </Transition>
+
+        <Transition name="modal-fade">
+            <div v-if="isCheckoutOpen" class="cart-modal-overlay" @click.self="closeCheckoutModal">
+                </div>
         </Transition>
 
         <Transition name="modal-fade">
@@ -793,6 +775,8 @@ const submitOrder = async () => {
             </div>
         </Transition>
     </div>
+
+    
 </template>
 
 <style scoped>

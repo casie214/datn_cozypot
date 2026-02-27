@@ -12,6 +12,7 @@ const API_BASE = "/manage/food";
 
 export const foodApi = {
     getCategories: () => axiosClient.get(`${API_BASE}/category`),
+    getCategoryById: (id) => axiosClient.get(`${API_BASE}/category/${id}`),
     createCategory: (data) => axiosClient.post(`${API_BASE}/category`, data),
     updateCategory: (id, data) => axiosClient.put(`${API_BASE}/category/${id}`, data),
     
@@ -263,10 +264,47 @@ export function useCategoryAddModal(props, emit) {
 }
 
 export function useCategoryPutModal(props, emit) {
-    const formData = ref({ id: null, maDanhMuc: '', tenDanhMuc: '', moTa: '', trangThai: 1 });
+    // 1. Thêm listIdDonVi: [] vào form mặc định
+    const formData = ref({ 
+        id: null, 
+        maDanhMuc: '', 
+        tenDanhMuc: '', 
+        moTa: '', 
+        trangThai: 1,
+        listIdDonVi: [] 
+    });
 
-    watch(() => props.itemList, (newItem) => {
-        if (newItem) formData.value = { ...newItem };
+    // 2. Xử lý map dữ liệu khi nhận item từ prop
+    watch(() => props.itemList, async (newItem) => {
+        if (newItem && newItem.id) {
+            // 1. Gán các thông tin cơ bản có sẵn từ bảng vào form
+            formData.value = { ...newItem, listIdDonVi: [] };
+
+            try {
+                // 2. GỌI API CHUYÊN DỤNG LẤY ĐỊNH LƯỢNG CỦA DANH MỤC NÀY
+                // (Giống hệt cách bạn đã làm ở màn hình Thêm Món Ăn)
+                const resUnits = await foodApi.getUnitTypesByCategory(newItem.id); 
+                
+                const arrDonVi = resUnits.data || [];
+
+                // 3. MAP LẤY ID ĐỂ NHÉT VÀO MULTISELECT
+                // Tùy thuộc vào việc arrDonVi trả về array id hay array object
+                if (arrDonVi.length > 0) {
+                    // Kiểm tra xem phần tử đầu tiên là Object hay là Số
+                    if (typeof arrDonVi[0] === 'object') {
+                        formData.value.listIdDonVi = arrDonVi.map(item => item.id);
+                    } else {
+                        // Nếu nó trả sẵn mảng [1, 2, 3] thì gán thẳng luôn
+                        formData.value.listIdDonVi = [...arrDonVi];
+                    }
+                }
+
+                console.log("👉 ĐÃ TẢI THÀNH CÔNG ĐỊNH LƯỢNG CŨ:", formData.value.listIdDonVi);
+
+            } catch (e) {
+                console.error("Lỗi lấy danh sách định lượng của danh mục:", e);
+            }
+        }
     }, { immediate: true });
 
     const handleSave = () => {
@@ -276,22 +314,29 @@ export function useCategoryPutModal(props, emit) {
         if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
             return Swal.fire({ icon: 'warning', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
         }
+        
         Swal.fire({
-            title: 'Cập nhật', text: 'Lưu các thay đổi này?', icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Lưu'
+            title: 'Cập nhật', 
+            text: 'Lưu các thay đổi này?', 
+            icon: 'question',
+            showCancelButton: true, 
+            confirmButtonColor: '#8B0000', 
+            confirmButtonText: 'Lưu'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    // Loại bỏ ID ra khỏi payload gửi xuống body (nếu Backend không nhận id trong body)
+                    // 3. THÊM listIdDonVi VÀO PAYLOAD GỬI XUỐNG BACKEND
                     const payload = {
                         maDanhMuc: formData.value.maDanhMuc,
                         tenDanhMuc: formData.value.tenDanhMuc,
                         moTa: formData.value.moTa || '',
-                        trangThai: formData.value.trangThai
+                        trangThai: formData.value.trangThai,
+                        listIdDonVi: formData.value.listIdDonVi || [] // << Thêm dòng này
                     };
 
                     await foodApi.updateCategory(formData.value.id, payload);
                     Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
                 } catch (error) { 
@@ -301,7 +346,12 @@ export function useCategoryPutModal(props, emit) {
             }
         });
     };
-    return { formData, handleSave, closeModal: () => emit('close') };
+
+    return { 
+        formData, 
+        handleSave, 
+        closeModal: () => emit('close') 
+    };
 }
 
 // ============================================================================

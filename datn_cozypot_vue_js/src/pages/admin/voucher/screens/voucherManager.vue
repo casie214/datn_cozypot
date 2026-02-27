@@ -56,32 +56,24 @@
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Đối tượng</label>
-                        <select id="doiTuongSelect" class="form-select custom-input select2-filter">
-                            <option value="">Tất cả đối tượng</option>
-                            <option value="0">Công khai</option>
-                            <option value="1">Cá nhân</option>
-                        </select>
-                        
+                        <Multiselect v-model="filters.doiTuong" :options="doiTuongOptions" mode="single"
+                            :searchable="true" placeholder="Tất cả đối tượng" class="custom-multiselect-theme"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
+
                     </div>
-                    
+
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Loại giảm giá</label>
-                        <select id="loaiGiamGiaSelect" class="form-select custom-input select2-filter">
-                            <option value="">Tất cả loại</option>
-                            <option value="1">Giảm theo %</option>
-                            <option value="2">Giảm theo tiền</option>
-                        </select>
+                        <Multiselect v-model="filters.loaiGiamGia" :options="loaiGiamGiaOptions" mode="single"
+                            :searchable="true" placeholder="Tất cả loại" class="custom-multiselect-theme"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Trạng thái</label>
-                        <select id="trangThaiSelect" class="form-select custom-input select2-filter">
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="1">Đang hoạt động</option>
-                            <option value="3">Sắp diễn ra</option>
-                            <option value="2">Hết hạn</option>
-                            <option value="0">Ngừng hoạt động</option>
-                        </select>
+                        <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" mode="single"
+                            :searchable="true" placeholder="Tất cả trạng thái" class="custom-multiselect-theme"
+                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
                     </div>
                     <div class="col-md-3 d-flex align-items-end gap-2">
                         <button class="btn-reset-filter w-100" @click="resetFilters">
@@ -646,7 +638,8 @@
 
 <script setup>
 import { ref, onMounted, reactive, computed, watch, nextTick } from 'vue';
-
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
@@ -654,7 +647,22 @@ const formatCurrency = (value) => {
     if (!value) return '0 đ'
     return value.toLocaleString('vi-VN') + ' đ'
 }
+const doiTuongOptions = [
+    { value: 0, label: 'Công khai' },
+    { value: 1, label: 'Cá nhân' }
+]
 
+const loaiGiamGiaOptions = [
+    { value: 1, label: 'Giảm theo %' },
+    { value: 2, label: 'Giảm theo tiền' }
+]
+
+const trangThaiOptions = [
+    { value: 1, label: 'Đang hoạt động' },
+    { value: 3, label: 'Sắp diễn ra' },
+    { value: 2, label: 'Hết hạn' },
+    { value: 0, label: 'Ngừng hoạt động' }
+]
 const formatDateTime = (value) => {
     return new Date(value).toLocaleString('vi-VN')
 }
@@ -1248,7 +1256,7 @@ const triggerSubmit = () => {
                     errors.codeGiamGia = "Mã code đã tồn tại";
                 }
 
-                    showToast("Lỗi", message, "error");
+                showToast("Lỗi", message, "error");
 
 
             }
@@ -1371,11 +1379,6 @@ const resetFilters = async () => {
     pagination.currentPage = 1;
 
     await nextTick();
-
-    // 🔥 Reset Select2 về option đầu tiên
-    $('#doiTuongSelect').val('').trigger('change');
-    $('#loaiGiamGiaSelect').val('').trigger('change');
-    $('#trangThaiSelect').val('').trigger('change');
 
     handleSearch();
 };

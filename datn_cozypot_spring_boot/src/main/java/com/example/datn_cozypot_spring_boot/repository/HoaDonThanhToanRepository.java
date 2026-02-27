@@ -29,10 +29,9 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "hd.tongTienThanhToan, " +
             "hd.tienCoc, " +
             "hd.tienHoanTra, " +
-            "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat,pdb.thoiGianDat , pdb.soLuongKhach, hd.vatApDung) " +
+            "pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
@@ -50,16 +49,14 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "hd.tongTienThanhToan, " +
             "hd.tienCoc, " +
             "hd.tienHoanTra, " +
-            "hd.trangThaiHoanTien, " +
             "hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, " +
-            "pdb.hinhThucDat,pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idBanAn b " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
-            "AND (:trangThaiHoanTien IS NULL OR hd.trangThaiHoanTien = :trangThaiHoanTien) " +
             "AND (CAST(:tuNgay AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgay) " +
             "AND (CAST(:denNgay AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgay) " +
             "AND (:keyword IS NULL OR :keyword = '' " +
@@ -70,7 +67,6 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
-            @Param("trangThaiHoanTien") Integer trangThaiHoanTien,
             @Param("tuNgay") Instant tuNgay,
             @Param("denNgay") Instant denNgay,
             Pageable pageable
@@ -79,7 +75,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, " +
-            "hd.tienCoc, hd.tienHoanTra, hd.trangThaiHoanTien, hd.trangThaiHoaDon, " +
+            "hd.tienCoc, hd.tienHoanTra, hd.trangThaiHoaDon, " +
             "hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
@@ -88,7 +84,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 
-    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1")
+    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
     Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
 
     @Query("""
@@ -118,4 +114,9 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             LocalDateTime start,
             LocalDateTime end
     );
+    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
+    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
+
+
+    HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
 }

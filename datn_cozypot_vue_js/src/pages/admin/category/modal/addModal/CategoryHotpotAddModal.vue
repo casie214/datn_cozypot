@@ -1,10 +1,17 @@
 <script setup>
 import { useHotpotCategoryAddModal } from '../../../../../services/foodFunction';
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, watch } from 'vue';
 // 1. Import GlobalDialogue
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 
-const props = defineProps(['isOpen', 'formData']);
+const props = defineProps({
+  isOpen: Boolean,
+  formData: Object,
+  initialName: {
+    type: String,
+    default: ''
+  }
+});
 const emit = defineEmits(['close', 'save', 'refresh']);
 
 const { 
@@ -16,6 +23,14 @@ const {
     handleDialogConfirm,
     handleDialogClose
 } = useHotpotCategoryAddModal(props, emit);
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal && props.initialName) {
+    if (formData.value) {
+      formData.value.tenLoaiSet = props.initialName;
+    }
+  }
+});
 </script>
 
 <template>

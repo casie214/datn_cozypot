@@ -45,6 +45,11 @@ public class MonAnController {
         return ResponseEntity.ok(monAnService.getAllDanhMuc());
     }
 
+    @GetMapping("/category/{id}")
+    public ResponseEntity<DanhMucResponse> getDanhMucById(@PathVariable Integer id) {
+        return ResponseEntity.ok(monAnService.getDanhMucById(id));
+    }
+
     @PostMapping("/category")
     public ResponseEntity<DanhMucResponse> createDanhMuc(@RequestBody @Valid DanhMucRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(monAnService.createDanhMuc(request));

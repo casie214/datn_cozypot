@@ -133,5 +133,21 @@ public Page<DatBanListResponse> searchDatBan(
     }
 
 
+    @PostMapping("/create-full")
+    public ResponseEntity<?> createFull(@RequestBody CreateBanFullRequest request) {
+        datBanService.createFull(request);
+        return ResponseEntity.ok("Tạo thành công");
+    }
+
+    @PostMapping("/khu-vuc")
+    public ResponseEntity<?> create(@RequestBody KhuVucRequest request) {
+        return ResponseEntity.ok(datBanService.create(request));
+    }
+
+
+    @GetMapping("/khu-vuc/tang/{tang}")
+    public ResponseEntity<?> getByTang(@PathVariable Integer tang) {
+        return ResponseEntity.ok(datBanService.getByTang(tang));
+    }
 
 }

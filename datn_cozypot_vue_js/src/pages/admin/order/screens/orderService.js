@@ -30,20 +30,14 @@ export const BeGetHoaDonById = async (id) => {
     }
 };
 
-export const BeSearchHoaDon = async (key, trangThai, trangThaiHoanTien, tuNgay, denNgay, page = 0, size = 5) => {
+export const BeSearchHoaDon = async (key, trangThai, tuNgay, denNgay, page = 0, size = 5) => {
     try {
         const params = { page, size };
-
-        // Kiểm tra hợp lệ (giữ logic của HEAD: bỏ qua null, undefined và chuỗi rỗng "")
-        // Lưu ý: Không dùng if(trangThai) vì nếu trạng thái = 0 sẽ bị coi là false
         if (key !== null && key !== undefined && key !== "") {
             params.key = key;
         }
         if (trangThai !== null && trangThai !== undefined && trangThai !== "") {
             params.trangThai = trangThai;
-        }
-        if (trangThaiHoanTien !== null && trangThaiHoanTien !== undefined && trangThaiHoanTien !== "") {
-            params.trangThaiHoanTien = trangThaiHoanTien;
         }
         if (tuNgay) params.tuNgay = tuNgay;
         if (denNgay) params.denNgay = denNgay;
@@ -96,6 +90,15 @@ export const BeGetLichSuHoaDon = async (idHoaDon) => {
     try {
         const response = await axiosClient.get(`${PREFIX}/lich-su/${idHoaDon}`);
         return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const BeHoanTatHoaDon = async (payload) => {
+    try {
+        await axiosClient.put(`${PREFIX}/hoan-tat`, payload);
+        return true;
     } catch (error) {
         throw error;
     }
