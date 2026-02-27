@@ -6,13 +6,26 @@ import CategoryHotpotPutModal from '../modal/updateModal/CategoryHotpotPutModal.
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
+import Multiselect from '@vueform/multiselect';
 const { 
     hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllHotpotType,
     paginatedData, searchQuery, statusFilter, sortOption, totalElements, exportToExcel,
     currentPage, totalPages, visiblePages, itemsPerPage, changePage
 } = useHotpotSetTypeManager();
 const router = useRouter();
+const statusOptions = [
+  { value: 'all', label: 'Tất cả' },
+  { value: '1', label: 'Đang kinh doanh' },
+  { value: '0', label: 'Ngưng kinh doanh' }
+];
 
+const sortOptions = [
+  { value: 'id_desc', label: 'Mới nhất' },
+  { value: 'id_asc', label: 'Cũ nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' },
+  { value: 'status_active', label: 'Đang hoạt động trước' },
+  { value: 'status_inactive', label: 'Ngưng hoạt động trước' }
+];
 const handleRefreshListBtn = () => {
   Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
                     setTimeout(() => emit('close'), 1000);
@@ -41,30 +54,37 @@ const goToHotpotList = (item) => {
           <label>Tìm kiếm</label>
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text" placeholder="Tìm kiếm loại lẩu (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
         <div class="filter-item">
           <label>Trạng thái</label>
-          <select v-model="statusFilter" class="form-control">
-            <option value="all">Tất cả</option>
-            <option value="1">Đang kinh doanh</option>
-            <option value="0">Ngưng kinh doanh</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="statusFilter" 
+            :options="statusOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item">
           <label>Lọc theo</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="id_desc">Mới nhất</option>
-            <option value="id_asc">Cũ nhất</option>
-            <option value="name_asc">Tên (A-Z)</option>
-            <option value="status_active">Trạng thái: Đang hoạt động</option>
-            <option value="status_inactive">Trạng thái: Ngưng hoạt động</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
-
+  
         <button class="btn-clear" @click="searchQuery = ''; statusFilter = 'all'; sortOption = 'id_desc'">
             Xóa bộ lọc
         </button>
@@ -183,6 +203,10 @@ const goToHotpotList = (item) => {
   background-color: whitesmoke;
   color: black;
   border: 1px solid lightgray;
+}
+
+.multiselect-wrapper-sm {
+  width: 220px;
 }
 
 .btn-add-only {

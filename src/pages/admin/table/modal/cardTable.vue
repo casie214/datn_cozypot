@@ -4,10 +4,9 @@ import {
   fetchTableStatusByDate,
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { inject } from 'vue';
+import { inject } from "vue";
 
-
-const danhSachBanFromParent = inject('danhSachBan', ref([]));
+const danhSachBanFromParent = inject("danhSachBan", ref([]));
 // const tableStatusMapFromParent = inject('tableStatusMap', ref({}));
 // const selectedDateFromParent = inject('selectedDate', ref(''));
 
@@ -61,10 +60,44 @@ const getStatusClass = (trangThai) => {
 // Lọc danh sách bàn theo tầng đang chọn
 const banTheoTang = computed(() => {
   if (!danhSachBan.value.length) return [];
-  return danhSachBan.value.filter(
-    (ban) => Number(ban.soTang) === Number(activeFloor.value),
-  );
+
+  return danhSachBan.value
+    .filter((ban) => Number(ban.soTang) === Number(activeFloor.value))
+    .sort((a, b) => {
+      const rowA = Number(a.row) || 0;
+      const rowB = Number(b.row) || 0;
+      const colA = Number(a.column) || 0;
+      const colB = Number(b.column) || 0;
+
+      if (rowA !== rowB) return rowA - rowB;
+      return colA - colB;
+    });
 });
+
+// Sửa lại banTheoTungTang - bỏ normalizedRow, dùng row trực tiếp
+const banTheoTungTang = computed(() => {
+  const result = {};
+
+  listTang.value.forEach((tang) => {
+    result[tang] = danhSachBan.value
+      .filter((ban) => Number(ban.soTang) === tang)
+      .sort((a, b) => {
+        const rowDiff = (Number(a.row) || 0) - (Number(b.row) || 0);
+        return rowDiff !== 0
+          ? rowDiff
+          : (Number(a.column) || 0) - (Number(b.column) || 0);
+      });
+  });
+
+  return result;
+});
+
+// const banTheoTang = computed(() => {
+//   if (!danhSachBan.value.length) return [];
+//   return danhSachBan.value.filter(
+//     (ban) => Number(ban.soTang) === Number(activeFloor.value),
+//   );
+// });
 
 // Thống kê số lượng bàn trống của tầng hiện tại
 // const thongKeTang = computed(() => {
@@ -77,11 +110,10 @@ const banTheoTang = computed(() => {
 // });
 // Thống kê số lượng bàn trống theo ngày đã chọn
 const thongKeTang = computed(() => {
-  const total = banTheoTang.value.length;
-  const free = banTheoTang.value.filter((ban) => {
-    const trangThai = getTrangThaiTheoNgay(ban.idBanAn);
-    return Number(trangThai) === 0;
- // 0 = Trống
+  const banCuaTang = banTheoTungTang.value[activeFloor.value] || [];
+  const total = banCuaTang.length;
+  const free = banCuaTang.filter((ban) => {
+    return Number(getTrangThaiTheoNgay(ban.idBanAn)) === 0;
   }).length;
   return { total, free };
 });
@@ -97,9 +129,8 @@ const onDrop = (event) => {
   const canvas = event.currentTarget;
   const rect = canvas.getBoundingClientRect();
 
-  // Tính toán kích thước ô dựa trên lưới 12 cột
   const cellWidth = canvas.offsetWidth / 12;
-  const cellHeight = 100; // Chiều cao hàng cố định cho grid để dễ tính toán
+  const cellHeight = 100; // mỗi grid row = 100px (khớp với gridTemplateRows)
 
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
@@ -107,17 +138,33 @@ const onDrop = (event) => {
   let newCol = Math.floor(x / cellWidth) + 1;
   let newRow = Math.floor(y / cellHeight) + 1;
 
-  const table = danhSachBan.value.find(
-    (b) => b.idBanAn === draggingTable.value.idBanAn,
+  newCol = Math.min(Math.max(newCol, 1), 10);
+  newRow = Math.max(newRow, 1);
+
+  const oldRow = draggingTable.value.row;
+  const oldCol = draggingTable.value.column;
+
+  // Tìm bàn đang ở vị trí mới (cùng tầng)
+  const banBiDe = danhSachBan.value.find(
+    (ban) =>
+      ban.idBanAn !== draggingTable.value.idBanAn &&
+      Number(ban.soTang) === Number(draggingTable.value.soTang) &&
+      Number(ban.row) === newRow &&
+      Number(ban.column) === newCol,
   );
 
-  if (table) {
-    table.column = Math.min(Math.max(newCol, 1), 9); // Giới hạn cột trong lưới 12
-    table.row = Math.max(newRow, 1);
+  if (banBiDe) {
+    // Swap vị trí: bàn bị đè lấy vị trí cũ của bàn đang kéo
+    banBiDe.row = oldRow;
+    banBiDe.column = oldCol;
   }
+
+  // Bàn đang kéo di chuyển đến vị trí mới
+  draggingTable.value.row = newRow;
+  draggingTable.value.column = newCol;
+
   draggingTable.value = null;
 };
-
 const currentTime = ref("");
 
 let timer = null;
@@ -143,13 +190,12 @@ const getTrangThaiTheoNgay = (banId) => {
   return Number(tableStatusMap.value[banId] ?? 0);
 };
 
-
 const fetchTableStatus = async () => {
   try {
     const data = await fetchTableStatusByDate(selectedDate.value);
 
     const newMap = {};
-    data.forEach(item => {
+    data.forEach((item) => {
       newMap[item.banId] = item.trangThai;
     });
 
@@ -159,19 +205,73 @@ const fetchTableStatus = async () => {
   }
 };
 
+// Tự động xếp bàn theo lưới 3 cột nếu chưa có tọa độ hợp lệ
+const autoLayoutBan = () => {
+  if (!danhSachBan.value.length) return;
+
+  // Group theo tầng
+  const banTheoTangMap = {};
+  danhSachBan.value.forEach((ban) => {
+    const tang = Number(ban.soTang);
+    if (!banTheoTangMap[tang]) banTheoTangMap[tang] = [];
+    banTheoTangMap[tang].push(ban);
+  });
+
+  // Xếp lại tọa độ cho từng tầng độc lập
+  Object.values(banTheoTangMap).forEach((dsBan) => {
+    dsBan.forEach((ban, index) => {
+      ban.column = (index % 3) * 4 + 1; // 3 bàn mỗi hàng, mỗi bàn span 3 + gap 1
+      ban.row = Math.floor(index / 3) * 2 + 1; // mỗi hàng cách nhau 2
+    });
+  });
+};
+
+// Gọi khi danhSachBan có data
+watch(
+  danhSachBan,
+  (newVal) => {
+    if (newVal.length) {
+      autoLayoutBan();
+    }
+  },
+  { immediate: true },
+);
+
+const listKhuVucFromParent = inject("listKhuVuc", ref([]));
+const listKhuVuc = listKhuVucFromParent;
+
+const listTang = computed(() => {
+  if (!listKhuVuc.value.length) return [];
+
+  return [...new Set(
+    listKhuVuc.value.map((kv) => Number(kv.tang))
+  )].sort((a, b) => a - b);
+});
+
+watch(
+  listTang,
+  (newList) => {
+    if (newList.length && !newList.includes(activeFloor.value)) {
+      activeFloor.value = newList[0];
+    }
+  },
+  { immediate: true },
+);
 
 watch(
   selectedDate,
   async () => {
     await fetchTableStatus();
   },
-  { immediate: true }
+  { immediate: true },
 );
-watch(tableStatusMap, (val) => {
-  console.log("Table status map updated:", val);
-}, { deep: true });
-
-
+watch(
+  tableStatusMap,
+  (val) => {
+    console.log("Table status map updated:", val);
+  },
+  { deep: true },
+);
 
 onMounted(() => {
   updateTime();
@@ -193,18 +293,13 @@ onUnmounted(() => {
       <h5 style="font-size: 1rem; font-weight: bold">Khu vực</h5>
       <div class="mb-3">
         <button
+          v-for="tang in listTang"
+          :key="tang"
           class="btn me-2"
-          :class="activeFloor === 1 ? 'btn-active' : 'btn-outline'"
-          @click="activeFloor = 1"
+          :class="activeFloor === tang ? 'btn-active' : 'btn-outline'"
+          @click="activeFloor = tang"
         >
-          Tầng 1
-        </button>
-        <button
-          class="btn"
-          :class="activeFloor === 2 ? 'btn-active' : 'btn-outline'"
-          @click="activeFloor = 2"
-        >
-          Tầng 2
+          Tầng {{ tang }}
         </button>
 
         <div class="floor-info mt-2">
@@ -225,7 +320,6 @@ onUnmounted(() => {
   </div>
 
   <div class="notice-contain gap-2">
-    
     <div
       class="notice-item notice mt-3"
       style="border: #7d161a 1px solid; background-color: #efe3e4"
@@ -313,10 +407,11 @@ onUnmounted(() => {
               @dragover.prevent
               @drop="onDrop"
               :class="{ 'editing-mode': isEditing }"
+              :style="{ gridTemplateRows: `repeat(${maxRow}, 100px)` }"
             >
               <div
-                v-for="ban in banTheoTang"
-                :key="ban.id"
+                v-for="ban in banTheoTungTang[activeFloor]"
+                :key="ban.idBanAn"
                 class="table-card"
                 :class="{
                   'highlight-red': getTrangThaiTheoNgay(ban.id) === 0, // ✅ Dùng trạng thái theo ngày
@@ -350,10 +445,9 @@ onUnmounted(() => {
                     {{ getStatusText(getTrangThaiTheoNgay(ban.id)) }}
                   </div>
                   <div class="small">
-  ID: {{ ban.id }} | Status: {{ getTrangThaiTheoNgay(ban.id) }}
-</div>
-
-
+                    ID: {{ ban.id }} | Status:
+                    {{ getTrangThaiTheoNgay(ban.id) }}
+                  </div>
                 </div>
               </div>
             </div>

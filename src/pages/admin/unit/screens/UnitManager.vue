@@ -7,6 +7,12 @@ import UnitAddScreen from './UnitAddScreen.vue';
 import UnitUpdateScreen from './UnitUpdateScreen.vue';
 import Multiselect from '@vueform/multiselect';
 
+const sortOptions = [
+  { value: 'id_desc', label: 'Mới nhất' },
+  { value: 'id_asc', label: 'Cũ nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' }
+];
+
 const expandedRows = ref([]); // Chứa danh sách ID của các hàng đang mở
 
 const toggleRow = (id) => {
@@ -131,7 +137,6 @@ const handleEditValue = async (valItem, parentUnit) => {
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text"
               placeholder="Nhập tên hiển thị, kích cỡ..." />
-            <button class="search-btn"><i class="fas fa-search"></i></button>
           </div>
         </div>
 
@@ -139,17 +144,22 @@ const handleEditValue = async (valItem, parentUnit) => {
           <label>Lọc theo danh mục</label>
           <div class="multiselect-wrapper" style="width: 220px;">
             <Multiselect v-model="categoryFilter" :options="listCategories" label="tenDanhMuc" valueProp="id"
-              placeholder="-- Tất cả --" :searchable="true" :can-clear="true" />
+              placeholder="-- Tất cả --" :searchable="true" :can-clear="true" no-results-text="Không tìm thấy kết quả" />
           </div>
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="id_desc">Mới nhất</option>
-            <option value="id_asc">Cũ nhất</option>
-            <option value="name_asc">Tên hiển thị (A-Z)</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <button class="btn-clear" @click="searchQuery = ''; sortOption = 'id_desc'; categoryFilter = null">
@@ -198,7 +208,7 @@ const handleEditValue = async (valItem, parentUnit) => {
                 <i class="fas fa-chevron-right arrow-icon"></i>
               </td>
               <td class="text-center">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-              <td class="" style="font-size: 1.05rem;">
+              <td class="" style="font-size: 14px;">
                 {{ unit.tenDonVi }}
                 <span class="badge-count">{{ unit.values ? unit.values.length : 0 }} size</span>
               </td>
@@ -388,6 +398,10 @@ const handleEditValue = async (valItem, parentUnit) => {
   font-weight: 700;
   color: #444;
   margin-bottom: 10px;
+}
+
+.multiselect-wrapper-sm {
+  width: 220px;
 }
 
 /* Badge Custom */

@@ -1,15 +1,16 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue'; // THÊM nextTick VÀO ĐÂY
 import { foodApi } from '@/services/foodFunction';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
+import CategoryAddModal from '../../category/modal/addModal/CategoryAddModal.vue';
 
-// Nhận prop unitItem từ màn hình cha
 const props = defineProps({
     isOpen: Boolean,
-    unitItem: Object, // Object chứa: id, tenDonVi, values: [], listIdDanhMuc: []
-    categories: Array
+    unitItem: Object,
+    categories: Array,
+    isQuickAddMode: { type: Boolean, default: false }
 });
 const emit = defineEmits(['close', 'refresh']);
 
@@ -18,64 +19,123 @@ const formData = ref({
     tenDonVi: '',
     moTa: '',
     listIdDanhMuc: [],
-    values: [] // Mảng chứa { id: 1, giaTri: '200' }
+    values: []
 });
 
 const newValueInput = ref('');
+const categoriesList = ref([]);
 
-// Khi mở modal, copy dữ liệu từ props vào formData
+// 1. LUÔN LẮNG NGHE CHA TRUYỀN VÀO NHƯNG DÙNG BIẾN CỤC BỘ ĐỂ HIỂN THỊ
+watch(() => props.categories, (newVal) => {
+    categoriesList.value = newVal ? [...newVal] : [];
+}, { immediate: true, deep: true });
+
+const isCategoryModalOpen = ref(false);
+const prefilledCategoryName = ref('');
+const categoryMultiselectRef = ref(null);
+const currentCategorySearch = ref('');
+
+const handleCategorySearchChange = (query) => {
+    currentCategorySearch.value = query;
+};
+
+const handleCategoryKeydown = (event) => {
+    if (props.isQuickAddMode) return; 
+
+    if (event.key === 'Enter' && currentCategorySearch.value.trim() !== '') {
+        const text = currentCategorySearch.value.trim();
+        const exists = categoriesList.value.some(c => c.tenDanhMuc?.toLowerCase() === text.toLowerCase());
+
+        if (!exists) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            if (categoryMultiselectRef.value) {
+                categoryMultiselectRef.value.close();
+                categoryMultiselectRef.value.clearSearch();
+            }
+
+            prefilledCategoryName.value = text;
+            isCategoryModalOpen.value = true;
+        }
+    }
+};
+
+// 2. XỬ LÝ ĐỒNG BỘ TRIỆT ĐỂ BẰNG NEXTTICK
+const handleCategoryAdded = async (newCategoryData) => {
+    isCategoryModalOpen.value = false;
+    
+    try {
+        // Tự tải API và gán ngay lập tức vào options
+        const res = await foodApi.getCategories();
+        categoriesList.value = res.data ? [...res.data] : [];
+        
+        // CHỜ VUE CẬP NHẬT DANH SÁCH MỚI VÀO TRONG DOM CỦA MULTISELECT
+        await nextTick();
+        
+        let idToSelect = null;
+        if (newCategoryData) {
+            idToSelect = typeof newCategoryData === 'object' ? newCategoryData.id : newCategoryData;
+        }
+        
+        if (!idToSelect && prefilledCategoryName.value) {
+            const newlyAdded = categoriesList.value.find(
+                (c) => c.tenDanhMuc?.toLowerCase() === prefilledCategoryName.value.toLowerCase()
+            );
+            if (newlyAdded) idToSelect = newlyAdded.id;
+        }
+
+        // TẠO MẢNG MỚI ĐỂ ÉP VUE NHẬN DIỆN SỰ THAY ĐỔI CỦA V-MODEL
+        if (idToSelect) {
+            const currentList = [...formData.value.listIdDanhMuc];
+            if (!currentList.includes(idToSelect)) {
+                currentList.push(idToSelect);
+                formData.value.listIdDanhMuc = currentList;
+            }
+        }
+    } catch (e) {
+        console.error("Lỗi lấy danh mục:", e);
+    } finally {
+        prefilledCategoryName.value = '';
+        // Phát tín hiệu cho Component cha ngầm tải lại mà không ảnh hưởng UI hiện tại
+    }
+};
+
+// Map dữ liệu khi form sửa được mở lên
 watch(() => props.isOpen, (newVal) => {
     if (newVal && props.unitItem) {
-        console.log("Dữ liệu nhận được từ cha:", props.unitItem); // Debug xem có dữ liệu không
-
-        // Map dữ liệu vào Form
         formData.value = {
             id: props.unitItem.id,
             tenDonVi: props.unitItem.tenDonVi || '',
             moTa: props.unitItem.moTa || '',
-            
-            // 1. Map danh mục (Xử lý trường hợp null hoặc rỗng)
             listIdDanhMuc: props.unitItem.listIdDanhMuc 
-                ? [...props.unitItem.listIdDanhMuc] // Copy mảng để tránh tham chiếu
+                ? [...props.unitItem.listIdDanhMuc] 
                 : [],
-
-            // 2. Map giá trị con (Deep copy để không sửa trực tiếp vào props)
             values: props.unitItem.values 
-                ? props.unitItem.values.map(v => ({ 
-                    id: v.id, 
-                    giaTri: v.giaTri 
-                  }))
+                ? props.unitItem.values.map(v => ({ id: v.id, giaTri: v.giaTri }))
                 : []
         };
-        
-        // Reset ô nhập liệu tạm
         newValueInput.value = '';
     }
 }, { immediate: true });
 
-// Thêm giá trị mới vào list
 const addValue = () => {
     const val = newValueInput.value.trim();
     if (!val) return;
 
-    // Check trùng
     if (formData.value.values.some(v => v.giaTri === val)) {
         return Swal.fire('Thông báo', 'Giá trị này đã tồn tại!', 'info');
     }
 
-    // Push item mới (id = null để Backend biết là Insert)
     formData.value.values.push({ id: null, giaTri: val });
     newValueInput.value = '';
 };
 
-// Xóa giá trị khỏi list
 const removeValue = (index) => {
-    // Chỉ xóa trên giao diện, khi bấm Lưu thì Backend sẽ tự xử lý (xóa những ID không có trong list gửi lên)
     formData.value.values.splice(index, 1);
 };
 
 const handleUpdate = async () => {
-    // 1. Validate
     if (!formData.value.tenDonVi.trim()) {
         return Swal.fire('Lỗi', 'Tên đơn vị không được để trống!', 'warning');
     }
@@ -86,14 +146,12 @@ const handleUpdate = async () => {
         return Swal.fire('Lỗi', 'Phải có ít nhất 1 giá trị định lượng!', 'warning');
     }
 
-    // 2. Gọi API Update
     try {
-        // Gọi endpoint PUT /unit-types/{id}
         await foodApi.updateUnitType(formData.value.id, formData.value);
 
         Swal.fire({
             icon: 'success',
-            title: 'Cập nhật thành công!',
+            title: props.isQuickAddMode ? 'Đã thêm giá trị mới!' : 'Cập nhật thành công!',
             timer: 1200,
             showConfirmButton: false
         });
@@ -106,26 +164,42 @@ const handleUpdate = async () => {
     }
 };
 </script>
-
 <template>
     <div v-if="isOpen" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>Cập nhật đơn vị tính</h3>
+                <h3>{{ isQuickAddMode ? 'Thêm nhanh giá trị định lượng' : 'Cập nhật đơn vị tính' }}</h3>
                 <button @click="emit('close')" class="close-btn">&times;</button>
             </div>
 
             <div class="modal-body">
                 <div class="form-group">
                     <label>Tên đơn vị tính <span class="required">*</span></label>
-                    <input v-model="formData.tenDonVi" type="text" class="form-control" placeholder="VD: ml, gram...">
+                    <input v-model="formData.tenDonVi" type="text" class="form-control" placeholder="VD: ml, gram..." :disabled="isQuickAddMode">
                 </div>
 
                 <div class="form-group">
                     <label>Áp dụng cho danh mục <span class="required">*</span></label>
                     <div class="multiselect-container">
-                        <Multiselect v-model="formData.listIdDanhMuc" mode="tags" :options="categories"
-                            label="tenDanhMuc" valueProp="id" placeholder="-- Chọn danh mục --" :searchable="true" />
+                        <Multiselect 
+                            ref="categoryMultiselectRef"
+                            v-model="formData.listIdDanhMuc" 
+                            mode="tags" 
+                            :options="categoriesList"
+                            label="tenDanhMuc" 
+                            valueProp="id" 
+                            placeholder="-- Chọn danh mục --" 
+                            :searchable="true" 
+                            :disabled="isQuickAddMode"
+                            @search-change="handleCategorySearchChange"
+                            @keydown="handleCategoryKeydown"
+                        >
+                            <template v-slot:noresults>
+                                <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;" v-if="!isQuickAddMode">
+                                    Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentCategorySearch }}</b>"
+                                </div>
+                            </template>
+                        </Multiselect>
                     </div>
                 </div>
 
@@ -142,19 +216,18 @@ const handleUpdate = async () => {
                         <div v-for="(v, index) in formData.values" :key="index" class="value-tag"
                             :class="{ 'is-new': !v.id }">
                             {{ v.giaTri }}
-                            <span @click="removeValue(index)" class="remove-tag">&times;</span>
+                            <span v-if="!(isQuickAddMode && v.id)" @click="removeValue(index)" class="remove-tag">&times;</span>
                         </div>
                         <div v-if="formData.values.length === 0" class="empty-hint">
                             Danh sách trống. Vui lòng thêm giá trị.
                         </div>
                     </div>
-                    <small class="text-muted" style="font-size: 0.8rem;">* Các thẻ màu xanh lá là giá trị mới
-                        thêm.</small>
+                    
                 </div>
 
                 <div class="form-group">
                     <label>Mô tả</label>
-                    <textarea v-model="formData.moTa" class="form-control" rows="2"></textarea>
+                    <textarea v-model="formData.moTa" class="form-control" rows="2" :disabled="isQuickAddMode"></textarea>
                 </div>
             </div>
 
@@ -163,6 +236,12 @@ const handleUpdate = async () => {
                 <button @click="handleUpdate" class="btn-primary">Lưu thay đổi</button>
             </div>
         </div>
+        <CategoryAddModal 
+            :isOpen="isCategoryModalOpen" 
+            :initialName="prefilledCategoryName"
+            @close="isCategoryModalOpen = false"
+            @refresh="handleCategoryAdded" 
+        />
     </div>
 </template>
 
@@ -239,6 +318,11 @@ const handleUpdate = async () => {
     border: 1px solid #ccc;
     border-radius: 6px;
     width: 100%;
+}
+
+.form-control:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
 }
 
 /* Style input thêm giá trị */
@@ -323,5 +407,10 @@ const handleUpdate = async () => {
 
 :deep(.multiselect-tag) {
     background: #8B0000 !important;
+}
+
+:deep(.multiselect-container.is-disabled) {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 </style>
