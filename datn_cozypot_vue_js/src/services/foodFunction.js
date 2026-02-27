@@ -12,6 +12,7 @@ const API_BASE = "/manage/food";
 
 export const foodApi = {
     getCategories: () => axiosClient.get(`${API_BASE}/category`),
+    getCategoryById: (id) => axiosClient.get(`${API_BASE}/category/${id}`),
     createCategory: (data) => axiosClient.post(`${API_BASE}/category`, data),
     updateCategory: (id, data) => axiosClient.put(`${API_BASE}/category/${id}`, data),
     
@@ -52,17 +53,23 @@ export function usePriceFilter() {
     const selectedPriceRange = ref([0, 1000000]);
 
     const calculatePriceLimits = (dataList) => {
-        if (!dataList || dataList.length === 0) return;
-        let min = Infinity, max = -Infinity;
-        dataList.forEach(item => {
-            const p = parseFloat(item.giaBan) || 0;
-            if (p < min) min = p;
-            if (p > max) max = p;
-        });
-        if (min === Infinity) min = 0;
-        if (max === -Infinity) max = 0;
-        globalMinPrice.value = Math.floor(min / 10000) * 10000;
-        globalMaxPrice.value = Math.ceil(max / 10000) * 10000 + 50000; 
+        if (!dataList || dataList.length === 0) {
+            globalMinPrice.value = 0;
+            globalMaxPrice.value = 0;
+            selectedPriceRange.value = [0, 0];
+            return;
+        }
+
+        const prices = dataList.map(item => item.giaBan || 0);
+        const rawMin = Math.min(...prices);
+        const rawMax = Math.max(...prices);
+
+        // LẤY ĐÚNG GIÁ TRỊ THỰC TẾ TRONG DATA (Ví dụ: 399000 và 599000)
+        // Dùng Math.floor và Math.ceil chia 1000 để đảm bảo số luôn tròn nghìn đồng
+        globalMinPrice.value = Math.floor(rawMin / 1000) * 1000; 
+        globalMaxPrice.value = Math.ceil(rawMax / 1000) * 1000; 
+
+        // Gán lại giá trị mặc định cho 2 đầu thanh trượt
         selectedPriceRange.value = [globalMinPrice.value, globalMaxPrice.value];
     };
 
@@ -257,10 +264,47 @@ export function useCategoryAddModal(props, emit) {
 }
 
 export function useCategoryPutModal(props, emit) {
-    const formData = ref({ id: null, maDanhMuc: '', tenDanhMuc: '', moTa: '', trangThai: 1 });
+    // 1. Thêm listIdDonVi: [] vào form mặc định
+    const formData = ref({ 
+        id: null, 
+        maDanhMuc: '', 
+        tenDanhMuc: '', 
+        moTa: '', 
+        trangThai: 1,
+        listIdDonVi: [] 
+    });
 
-    watch(() => props.itemList, (newItem) => {
-        if (newItem) formData.value = { ...newItem };
+    // 2. Xử lý map dữ liệu khi nhận item từ prop
+    watch(() => props.itemList, async (newItem) => {
+        if (newItem && newItem.id) {
+            // 1. Gán các thông tin cơ bản có sẵn từ bảng vào form
+            formData.value = { ...newItem, listIdDonVi: [] };
+
+            try {
+                // 2. GỌI API CHUYÊN DỤNG LẤY ĐỊNH LƯỢNG CỦA DANH MỤC NÀY
+                // (Giống hệt cách bạn đã làm ở màn hình Thêm Món Ăn)
+                const resUnits = await foodApi.getUnitTypesByCategory(newItem.id); 
+                
+                const arrDonVi = resUnits.data || [];
+
+                // 3. MAP LẤY ID ĐỂ NHÉT VÀO MULTISELECT
+                // Tùy thuộc vào việc arrDonVi trả về array id hay array object
+                if (arrDonVi.length > 0) {
+                    // Kiểm tra xem phần tử đầu tiên là Object hay là Số
+                    if (typeof arrDonVi[0] === 'object') {
+                        formData.value.listIdDonVi = arrDonVi.map(item => item.id);
+                    } else {
+                        // Nếu nó trả sẵn mảng [1, 2, 3] thì gán thẳng luôn
+                        formData.value.listIdDonVi = [...arrDonVi];
+                    }
+                }
+
+                console.log("👉 ĐÃ TẢI THÀNH CÔNG ĐỊNH LƯỢNG CŨ:", formData.value.listIdDonVi);
+
+            } catch (e) {
+                console.error("Lỗi lấy danh sách định lượng của danh mục:", e);
+            }
+        }
     }, { immediate: true });
 
     const handleSave = () => {
@@ -270,22 +314,29 @@ export function useCategoryPutModal(props, emit) {
         if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
             return Swal.fire({ icon: 'warning', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
         }
+        
         Swal.fire({
-            title: 'Cập nhật', text: 'Lưu các thay đổi này?', icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Lưu'
+            title: 'Cập nhật', 
+            text: 'Lưu các thay đổi này?', 
+            icon: 'question',
+            showCancelButton: true, 
+            confirmButtonColor: '#8B0000', 
+            confirmButtonText: 'Lưu'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    // Loại bỏ ID ra khỏi payload gửi xuống body (nếu Backend không nhận id trong body)
+                    // 3. THÊM listIdDonVi VÀO PAYLOAD GỬI XUỐNG BACKEND
                     const payload = {
                         maDanhMuc: formData.value.maDanhMuc,
                         tenDanhMuc: formData.value.tenDanhMuc,
                         moTa: formData.value.moTa || '',
-                        trangThai: formData.value.trangThai
+                        trangThai: formData.value.trangThai,
+                        listIdDonVi: formData.value.listIdDonVi || [] // << Thêm dòng này
                     };
 
                     await foodApi.updateCategory(formData.value.id, payload);
                     Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
                 } catch (error) { 
@@ -295,7 +346,12 @@ export function useCategoryPutModal(props, emit) {
             }
         });
     };
-    return { formData, handleSave, closeModal: () => emit('close') };
+
+    return { 
+        formData, 
+        handleSave, 
+        closeModal: () => emit('close') 
+    };
 }
 
 // ============================================================================
@@ -472,10 +528,23 @@ export function useFoodManager() {
     const fetchInitialData = async () => {
         try {
             const [resFood, resCat] = await Promise.all([ foodApi.getFoods(), foodApi.getCategories() ]);
-            mockData.value = resFood.data;
-            listCategories.value = resCat.data;
+            
+            const categories = resCat.data || [];
+            listCategories.value = categories;
+
+            mockData.value = (resFood.data || []).map(food => {
+                const category = categories.find(c => c.id === food.idDanhMuc);
+                return {
+                    ...food,
+                    maDanhMuc: category ? category.maDanhMuc : 'N/A',
+                    tenDanhMuc: category ? category.tenDanhMuc : 'Chưa phân loại'
+                };
+            });
+
             calculatePriceLimits(mockData.value);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Lỗi fetch dữ liệu:", e); 
+        }
     }
     
     onMounted(async () => {
@@ -495,7 +564,7 @@ export function useFoodManager() {
         if (statusFilter.value !== 'all') result = result.filter(i => i.trangThai === Number(statusFilter.value));
         if (categoryFilter.value) result = result.filter(i => i.idDanhMuc == categoryFilter.value);
         
-        result = result.filter(item => isPriceInRange(item)); // Lọc giá
+        result = result.filter(item => isPriceInRange(item));
 
         return result.sort((a, b) => {
             if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
@@ -740,10 +809,16 @@ export function useHotpotManager() {
 
     const fetchInitialData = async () => {
         try {
-            const [resHotpots, resTypes] = await Promise.all([ foodApi.getHotpots(), foodApi.getHotpotTypes() ]);
+            const [resHotpots, resTypes] = await Promise.all([ 
+                foodApi.getHotpots(), 
+                foodApi.getHotpotTypes() 
+            ]);
             hotpotData.value = resHotpots.data;
-            listLoaiSet.value = resTypes.data;
+            listLoaiSet.value = resTypes.data || []; // Đảm bảo không bị null
             calculatePriceLimits(hotpotData.value);
+            
+            // Log thử để kiểm tra dữ liệu thực tế từ API
+            console.log("Dữ liệu Loại Set Lẩu:", listLoaiSet.value);
         } catch (e) { console.error(e); }
     }
     
@@ -751,6 +826,7 @@ export function useHotpotManager() {
         await fetchInitialData();
         if (route.query.preType) {
             typeFilter.value = Number(route.query.preType) || route.query.preType;
+            
             isTypeLocked.value = route.query.locked === 'true';
         }
     });
@@ -768,7 +844,9 @@ export function useHotpotManager() {
             result = result.filter(i => (Number(i.trangThai) === 1 ? 1 : 0) === targetStatus);
         }
 
-        if (typeFilter.value !== 'all') result = result.filter(i => i.idLoaiSet == typeFilter.value);
+        if (typeFilter.value && typeFilter.value !== 'all') {
+            result = result.filter(i => i.idLoaiSet == typeFilter.value);
+        }
         result = result.filter(item => isPriceInRange(item)); // Lọc giá
 
         return result.sort((a, b) => {
@@ -853,10 +931,19 @@ export function useHotpotManager() {
         .catch(console.error).finally(() => isLoading.value = false);
     }
 
+    const uniqueTypes = computed(() => {
+        // Nếu API trả về listLoaiSet có dạng [{id, tenLoaiSet, ...}]
+        // Chúng ta map nó về [{id, name}] để khớp với label="name" trong template
+        return listLoaiSet.value.map(type => ({
+            id: type.id,
+            name: type.tenLoaiSet || type.name // Ưu tiên tenLoaiSet nếu có
+        }));
+    });
+
     return { 
         hotpotData, paginatedData, listLoaiSet, searchQuery, typeFilter, statusFilter, sortOption, 
         currentPage, totalPages, totalElements, visiblePages, goToPage, isTypeLocked,
-        globalMinPrice, globalMaxPrice, selectedPriceRange, itemsPerPage, getAllHotpot,
+        globalMinPrice, globalMaxPrice, selectedPriceRange, itemsPerPage, getAllHotpot, uniqueTypes,
         handleToggleStatus, exportToExcel,
         goToAdd: () => router.push({ name: 'addHotpotSet' }),
         goToEdit: (item) => router.push({ name: 'updateHotpotSet', params: { id: item.id } }),
@@ -886,7 +973,7 @@ export function useHotpotForm(isEditMode = false) {
         try {
             const [resTypes, resFoods] = await Promise.all([ foodApi.getHotpotTypes(), foodApi.getFoods() ]);
             listLoaiSet.value = resTypes.data;
-            listFoods.value = resFoods.data.filter(f => Number(f.trangThai) === 1); 
+            listFoods.value = [...resFoods.data.filter(f => Number(f.trangThai) === 1)];
 
             if ((isEditMode || isViewMode.value) && hotpotId) {
                 const resHotpot = await foodApi.getHotpotById(hotpotId);
@@ -1014,7 +1101,7 @@ export function useHotpotForm(isEditMode = false) {
     };
 
     return { 
-        formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode,
+        formData, selectedIngredients, listLoaiSet, filteredFoodList, searchQuery, errors, totalComponentsPrice, isViewMode, fetchInitialData,
         addIngredient, removeIngredient, handleFileUpload, handleUpdate: handleSave, handleSave, goBack: () => router.back() 
     };
 }

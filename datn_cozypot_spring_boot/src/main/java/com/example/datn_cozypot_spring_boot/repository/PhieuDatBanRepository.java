@@ -94,13 +94,8 @@ Page<PhieuDatBan> search(
 //    """)
 //    List<PhieuDatBan> findWaitingListFuture();
 
-    @Query(value = """
-    SELECT * FROM phieu_dat_ban p
-    WHERE p.trang_thai = 1
-    AND p.thoi_gian_dat >= DATEADD(MINUTE, -10, GETDATE())
-    ORDER BY p.thoi_gian_dat ASC
-""", nativeQuery = true)
-    List<PhieuDatBan> findWaitingListFuture();
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 2 AND p.thoiGianDat >= :thoiGianTraCuu ORDER BY p.thoiGianDat ASC")
+    List<PhieuDatBan> findWaitingListFuture(@Param("thoiGianTraCuu") LocalDateTime thoiGianTraCuu);
 
 
     @Modifying
@@ -156,6 +151,7 @@ Page<PhieuDatBan> search(
             @Param("end") LocalDateTime end
     );
 
-
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.idBanAn.id = :idBanAn AND p.trangThai IN (2, 3) ORDER BY p.id DESC")
+    List<PhieuDatBan> findActivePhieuByBanAn(@Param("idBanAn") Integer idBanAn);
 
 }

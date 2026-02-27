@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -73,6 +74,7 @@ public class NhanVien {
     private Boolean gioiTinh;
 
     @OneToMany(mappedBy = "idNhanVien")
+    @JsonIgnore
     private Set<GiaoCa> giaoCas = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idNhanVien")

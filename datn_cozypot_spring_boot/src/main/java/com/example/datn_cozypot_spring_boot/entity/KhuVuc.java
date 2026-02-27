@@ -1,5 +1,7 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,16 +17,14 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "khu_vuc")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class KhuVuc {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_khu_vuc", nullable = false)
     private Integer id;
 
-    @Size(max = 10)
-    @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'KV'+right('000'+CONVERT([varchar](10), [id_khu_vuc]), 3)), '')")
-    @Column(name = "ma_khu_vuc", nullable = false, length = 10)
+    @Column(name = "ma_khu_vuc", insertable = false, updatable = false)
     private String maKhuVuc;
 
     @Size(max = 100)
@@ -46,6 +46,7 @@ public class KhuVuc {
     private Integer trangThai;
 
     @OneToMany(mappedBy = "idKhuVuc")
+    @JsonIgnore
     private Set<BanAn> banAns = new LinkedHashSet<>();
 
 }

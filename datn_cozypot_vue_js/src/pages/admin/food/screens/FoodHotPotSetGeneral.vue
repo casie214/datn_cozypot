@@ -10,6 +10,20 @@ import Swal from 'sweetalert2';
 
 const router = useRouter();
 
+const statusOptions = [
+  { value: 'all', label: 'Tất cả' },
+  { value: '1', label: 'Đang kinh doanh' },
+  { value: '0', label: 'Ngưng kinh doanh' }
+];
+
+const sortOptions = [
+  { value: 'newest', label: 'Mới nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' },
+  { value: 'price_asc', label: 'Giá (Thấp -> Cao)' },
+  { value: 'price_desc', label: 'Giá (Cao -> Thấp)' }
+];
+
+
 const {
   getAllHotpot, paginatedData, searchQuery, sortOption, currentPage, totalPages,
   visiblePages, itemsPerPage, goToPage, statusFilter, typeFilter, uniqueTypes,
@@ -35,9 +49,9 @@ const handleEdit = (item) => {
   });
 };
 
-const handleRefreshListBtn = () =>{
+const handleRefreshListBtn = () => {
   Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
-                    setTimeout(() => emit('close'), 1000);
+  setTimeout(() => emit('close'), 1000);
   getAllHotpot();
 }
 
@@ -50,9 +64,9 @@ const getImg = (url) => {
 </script>
 
 <template>
-  
-    
-  
+
+
+
   <div class="tab-content">
     <div class="filter-box">
       <div class="filter-row">
@@ -61,35 +75,44 @@ const getImg = (url) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
+            
           </div>
         </div>
 
         <div class="filter-item">
           <label>Trạng thái</label>
-          <select v-model="statusFilter" class="form-control">
-            <option value="all">Tất cả</option>
-            <option value="1">Đang kinh doanh</option>
-            <option value="0">Ngưng kinh doanh</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="statusFilter" 
+            :options="statusOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item">
           <label>Loại set lẩu</label>
           <div class="multiselect-wrapper">
-            <Multiselect v-model="typeFilter" :options="uniqueTypes" valueProp="id" label="name"
-              placeholder="-- Tất cả --" :searchable="true" :canClear="!isTypeLocked" :disabled="isTypeLocked"
-              noOptionsText="Không có dữ liệu" noResultsText="Không tìm thấy" />
+            <Multiselect v-model="typeFilter" :options="uniqueTypes" :key="uniqueTypes.length" valueProp="id"
+              label="name" placeholder="Tất cả loại lẩu" :searchable="true" :canClear="!isTypeLocked"
+              :disabled="isTypeLocked" noOptionsText="Đang tải dữ liệu..." noResultsText="Không tìm thấy kết quả" />
           </div>
         </div>
         <div class="filter-item">
           <label>Sắp xếp theo</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="newest">Mới nhất</option>
-            <option value="name_asc">Tên (A-Z)</option>
-            <option value="price_asc">Giá tăng dần</option>
-            <option value="price_desc">Giá giảm dần</option>
-          </select>
+           <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <div class="filter-item price-filter-item">
@@ -101,7 +124,7 @@ const getImg = (url) => {
               </span>
             </label>
             <div class="slider-wrapper" v-if="globalMaxPrice > 0">
-              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="10000"
+              <Slider v-model="selectedPriceRange" :min="globalMinPrice" :max="globalMaxPrice" :step="1000"
                 :tooltips="false" />
             </div>
             <div v-else class="loading-text">Đang tải...</div>
@@ -124,11 +147,12 @@ const getImg = (url) => {
         <i class="fas fa-plus"></i>
       </button>
       <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
-          <i class="fas fa-file-excel"></i>
+        <i class="fas fa-file-excel"></i>
       </button>
-      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i class="fas fa-sync-alt"></i></button>
+      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i
+          class="fas fa-sync-alt"></i></button>
     </div>
-    
+
     <div class="table-container" style="min-height: 278px;">
       <table>
         <thead>
@@ -158,8 +182,6 @@ const getImg = (url) => {
 
             <td class="actions">
               <div class="action-group">
-                <i style="cursor:pointer" class="fas fa-eye view-icon me-2" title="Xem chi tiết"
-                  @click="handleViewDetail(item)"></i>
 
                 <i style="cursor:pointer" class="fas fa-pen edit-icon me-2" title="Chỉnh sửa set lẩu"
                   @click="handleEdit(item)"></i>
@@ -271,6 +293,10 @@ const getImg = (url) => {
   font-weight: 500;
 }
 
+.multiselect-wrapper-sm {
+  width: 220px;
+}
+
 .status-badge.active {
   background-color: white;
   color: black;
@@ -284,21 +310,21 @@ const getImg = (url) => {
 }
 
 .btn-add-only {
-    background-color: #8B0000 !important;
-    color: white !important;
-    border: none !important;
+  background-color: #8B0000 !important;
+  color: white !important;
+  border: none !important;
 }
 
 
 .btn-action-icon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    border: 1px solid #eee !important;
-    color: var(--primary-red);
-    transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #eee !important;
+  color: var(--primary-red);
+  transition: all 0.2s ease;
 }
 </style>

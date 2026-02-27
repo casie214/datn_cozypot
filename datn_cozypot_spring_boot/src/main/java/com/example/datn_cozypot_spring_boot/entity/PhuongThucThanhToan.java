@@ -42,7 +42,7 @@ public class PhuongThucThanhToan {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    @OneToMany(mappedBy = "idPhuongThucThanhToan")
+    @OneToMany(mappedBy = "phuongThucThanhToan")
     private Set<LichSuThanhToan> lichSuThanhToans = new LinkedHashSet<>();
 
 }

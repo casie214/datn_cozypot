@@ -25,6 +25,7 @@ public class SetLauRequest {
     private String hinhAnh;
     private Integer idLoaiSet;
     private Integer trangThai;
+    private String moTaChiTiet;
 
     // Danh sách các món ăn trong set này
     @NotEmpty(message = "Set lẩu phải có ít nhất 1 món")

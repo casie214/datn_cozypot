@@ -6,6 +6,19 @@ import { ref } from 'vue';
 import CommonPagination from '@/components/commonPagination.vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
+import Multiselect from '@vueform/multiselect';
+
+const statusOptions = [
+  { value: 'default', label: 'Mặc định (Hỗn hợp)' },
+  { value: 'active_first', label: 'Đang kinh doanh lên đầu' },
+  { value: 'inactive_first', label: 'Ngưng kinh doanh lên đầu' }
+];
+
+const sortOptionsList = [
+  { value: 'id_desc', label: 'Mới nhất (ID giảm)' },
+  { value: 'id_asc', label: 'Cũ nhất (ID tăng)' },
+  { value: 'name_asc', label: 'Tên (A-Z)' }
+];
 
 const {
   categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
@@ -49,26 +62,31 @@ const goToFoodList = (category) => {
           <div class="input-group">
             <input v-model="searchQuery" class="form-control form-search" type="text"
               placeholder="Tìm kiếm danh mục (mã, tên)" />
-            <button class="search-btn"><i class="fas fa-search me-1"></i></button>
           </div>
         </div>
 
         <div class="filter-item">
           <label>Trạng thái</label>
-          <select v-model="statusSort" class="form-control">
-            <option value="default">Mặc định (Hỗn hợp)</option>
-            <option value="active_first">Đang kinh doanh lên đầu</option>
-            <option value="inactive_first">Ngưng kinh doanh lên đầu</option>
-          </select>
+          <Multiselect 
+            v-model="statusSort" 
+            :options="statusOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp theo</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="id_desc">Mới nhất (ID giảm)</option>
-            <option value="id_asc">Cũ nhất (ID tăng)</option>
-            <option value="name_asc">Tên (A-Z)</option>
-          </select>
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptionsList" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
         </div>
 
         <button class="btn-clear" @click="searchQuery = ''; sortOption = 'id_desc'; statusSort = 'default'">
@@ -216,5 +234,38 @@ const goToFoodList = (category) => {
     border: 1px solid #eee !important;
     color: var(--primary-red);
     transition: all 0.2s ease;
+}
+
+.custom-filter-multiselect {
+  /* Đồng bộ kích thước và viền với input tìm kiếm */
+  min-width: 250px;
+  min-height: calc(1.5em + 0.75rem + 2px); /* Tương đương 38px của form-control */
+  --ms-border-color: #ddd;
+  --ms-radius: 4px;
+  --ms-font-size: 1rem;
+  --ms-line-height: 1.5;
+  --ms-bg: #fff;
+
+  /* Cài đặt màu ĐỎ ĐẬM khi focus/chọn */
+  --ms-border-color-active: #8B0000;
+  --ms-ring-color: rgba(139, 0, 0, 0.2); /* Hiệu ứng đổ bóng (glow) viền đỏ */
+  --ms-ring-width: 4px;
+
+  /* Cài đặt màu khi hover chuột vào các option xổ xuống */
+  --ms-option-bg-pointed: #fdf2f2;
+  --ms-option-color-pointed: #8B0000;
+  
+  /* Cài đặt màu cho option đang được chọn */
+  --ms-option-bg-selected: #8B0000;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #600000; /* Màu khi rê chuột vào option đang chọn */
+}
+
+/* Ép lại padding bên trong cho khớp với input thường */
+:deep(.custom-filter-multiselect .multiselect-search) {
+  padding-left: 0.75rem;
+}
+:deep(.custom-filter-multiselect .multiselect-single-label) {
+  padding-left: 0.75rem;
 }
 </style>

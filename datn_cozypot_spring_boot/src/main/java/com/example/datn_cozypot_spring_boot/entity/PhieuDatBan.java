@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,6 +23,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "phieu_dat_ban")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class PhieuDatBan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,10 +40,9 @@ public class PhieuDatBan {
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
 
-    @Size(max = 10)
+    @Size(max = 30)
     @NotNull
-    @ColumnDefault("isnull(CONVERT([varchar](10), 'PDB'+right('0000'+CONVERT([varchar](10), [id_phieu_dat_ban]), 4)), '')")
-    @Column(name = "ma_dat_ban", nullable = false, length = 10)
+    @Column(name = "ma_dat_ban", nullable = false, length = 30)
     private String maDatBan;
 
     @Column(name = "thoi_gian_dat")
