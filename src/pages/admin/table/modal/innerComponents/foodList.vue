@@ -8,6 +8,8 @@ import {
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 import { watch, ref, computed, onMounted } from 'vue';
+import Swal from 'sweetalert2';
+import axiosClient from "@/services/axiosClient";
 
 const isLoading = ref(false);
 const props = defineProps({
@@ -145,7 +147,14 @@ const addItem = (item) => {
 const decreaseItem = (uniqueId) => {
     if (selectedItems.value[uniqueId]) {
         selectedItems.value[uniqueId].quantity--;
-        if (selectedItems.value[uniqueId].quantity <= 0) delete selectedItems.value[uniqueId];
+        
+        // Khi số lượng chạm mốc 0, chỉ xóa khỏi giỏ hàng trên màn hình
+        if (selectedItems.value[uniqueId].quantity <= 0) {
+            delete selectedItems.value[uniqueId];
+            
+            // 🚨 KHÔNG GỌI API XÓA Ở ĐÂY NỮA
+            // Khi bấm "Xác nhận", Backend sẽ tự so sánh và Xóa món này giúp bạn.
+        }
     }
 };
 
