@@ -7,6 +7,12 @@ import UnitAddScreen from './UnitAddScreen.vue';
 import UnitUpdateScreen from './UnitUpdateScreen.vue';
 import Multiselect from '@vueform/multiselect';
 
+const sortOptions = [
+  { value: 'id_desc', label: 'Mới nhất' },
+  { value: 'id_asc', label: 'Cũ nhất' },
+  { value: 'name_asc', label: 'Tên (A-Z)' }
+];
+
 const expandedRows = ref([]); // Chứa danh sách ID của các hàng đang mở
 
 const toggleRow = (id) => {
@@ -144,11 +150,16 @@ const handleEditValue = async (valItem, parentUnit) => {
 
         <div class="filter-item">
           <label>Sắp xếp</label>
-          <select v-model="sortOption" class="form-control">
-            <option value="id_desc">Mới nhất</option>
-            <option value="id_asc">Cũ nhất</option>
-            <option value="name_asc">Tên hiển thị (A-Z)</option>
-          </select>
+          <div class="multiselect-wrapper-sm">
+          <Multiselect 
+            v-model="sortOption" 
+            :options="sortOptions" 
+            :searchable="true"
+            :canClear="false"
+            :no-results-text="'Không tìm thấy kết quả nào'"
+            class="custom-filter-multiselect"
+          />
+          </div>
         </div>
 
         <button class="btn-clear" @click="searchQuery = ''; sortOption = 'id_desc'; categoryFilter = null">
@@ -387,6 +398,10 @@ const handleEditValue = async (valItem, parentUnit) => {
   font-weight: 700;
   color: #444;
   margin-bottom: 10px;
+}
+
+.multiselect-wrapper-sm {
+  width: 220px;
 }
 
 /* Badge Custom */
