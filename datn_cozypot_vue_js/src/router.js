@@ -7,6 +7,7 @@ import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
 import PaymentFailed from "./pages/guest/payment-processor/PaymentFailed.vue";
 import PaymentSuccess from "./pages/guest/payment-processor/PaymentSuccess.vue";
+import CustomerMenu from "./pages/admin/table/screen/CustomerMenu.vue";
 
 const routes = [
     {
@@ -300,6 +301,12 @@ const routes = [
         path: '/payment-failed',
         name: 'PaymentFailed',
         component: PaymentFailed
+    },
+    {
+        path: '/menu-khach',
+        name: 'CustomerMenu',
+        component: CustomerMenu,
+        meta: { requiresAuth: false }
     }
 ];
 
