@@ -38,6 +38,9 @@ export const useClientLogic = () => {
       return { content: [], totalPages: 0 };
     }
   };
+  
 
   return { getStatusDisplay, fetchData };
+
+  
 };
