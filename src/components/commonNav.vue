@@ -69,6 +69,7 @@ onUnmounted(() => {
                 <li><router-link to="/" active-class="active">Trang chủ</router-link></li>
                 <li><router-link to="/menu" active-class="active">Thực đơn</router-link></li>
                 <li><router-link to="/offers" active-class="active">Ưu đãi</router-link></li>
+                <li><router-link to="/dat-ban" active-class="active">Đặt bàn</router-link></li>
             </ul>
 
             <div class="nav-auth">
