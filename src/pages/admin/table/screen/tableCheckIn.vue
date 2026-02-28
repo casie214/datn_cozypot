@@ -5,7 +5,6 @@ import {
   fetchTableStatusByDate,
   updateTrangThaiBan,
   createOrder,
-  // fetchActiveBillByBan, <-- Có thể xóa nếu không dùng tới nữa
 } from "../../../../services/tableManageService";
 import { computed, onMounted, ref, onUnmounted, watch } from "vue";
 import dayjs from "dayjs";
@@ -13,27 +12,18 @@ import router from "@/App";
 import { useRoute, useRouter } from "vue-router";
 import FoodList from "../modal/innerComponents/foodList.vue";
 import Swal from "sweetalert2";
-import { BeGetChiTietHoaDon } from "../../order/screens/orderService";
 import axiosClient from "@/services/axiosClient";
 
 const activeFloor = ref(1);
 
-// --- THÊM ĐOẠN NÀY VÀO ---
-// Tự động quét danh sách bàn, lấy ra các tầng duy nhất và sắp xếp tăng dần
+// Tự động quét danh sách bàn, lấy ra các tầng duy nhất
 const danhSachTang = computed(() => {
   if (!danhSachBan.value || danhSachBan.value.length === 0) return [];
-  
-  // Lấy ra mảng các tầng (Hỗ trợ cả tên biến là soTang hoặc tang tùy Backend trả về)
   const floors = danhSachBan.value.map(ban => Number(ban.soTang || ban.tang));
-  
-  // Lọc trùng lặp (Set) và sắp xếp (Sort)
   const uniqueFloors = [...new Set(floors)].sort((a, b) => a - b);
-  
-  // Tự động set activeFloor về tầng đầu tiên nếu tầng hiện tại không tồn tại
   if (uniqueFloors.length > 0 && !uniqueFloors.includes(activeFloor.value)) {
     activeFloor.value = uniqueFloors[0];
   }
-  
   return uniqueFloors;
 });
 
@@ -48,24 +38,18 @@ const timeWindowOptions = [
   { label: 'Hết ngày', value: 1440 }
 ];
 
-// Biến lưu giá trị đang chọn (Mặc định là 15)
 const selectedTimeWindow = ref(15);
 
-// Hàm thay đổi filter
 const setTimeWindow = (val) => {
   selectedTimeWindow.value = val;
-  // Sau khi đổi filter, refresh lại sơ đồ bàn ngay lập tức
   handleFetchAllCheckIn();
 };
 
 const checkTimeStatus = (dbTime) => {
   if (!dbTime) return { isEarly: false, minutes: 0 };
-  
   const now = dayjs(currentTime.value);
   const target = dayjs(dbTime);
   const minutesLeft = target.diff(now, "minute");
-
-  // 🚨 ĐỔI TỪ 10 THÀNH 15 Ở ĐÂY
   if (minutesLeft > 15) { 
     return { isEarly: true, minutes: minutesLeft };
   }
@@ -75,11 +59,9 @@ const checkTimeStatus = (dbTime) => {
 const fetchAllBan = async () => {
   try {
     const data = await fetchAllBanAn();
-
     danhSachBan.value = data.map((ban, index) => {
       const defaultCol = (index % 3) * 4 + 1;
       const defaultRow = Math.floor(index / 3) * 2 + 1;
-
       return {
         ...ban,
         column: ban.column || defaultCol,
@@ -92,9 +74,7 @@ const fetchAllBan = async () => {
 };
 
 const banTheoTang = computed(() => {
-  return danhSachBan.value.filter(
-    (ban) => Number(ban.soTang) === activeFloor.value,
-  );
+  return danhSachBan.value.filter((ban) => Number(ban.soTang) === activeFloor.value);
 });
 
 const thongKeTang = computed(() => {
@@ -114,57 +94,41 @@ const calculatedTableStatuses = computed(() => {
   const now = dayjs(currentTime.value);
   
   danhSachBan.value.forEach(ban => {
-    // Lấy trạng thái gốc từ DB. 
-    // 🚨 QUAN TRỌNG: Nếu DB lỡ lưu là 2, ép nó về 0 để Frontend TỰ TÍNH màu vàng
     let baseStatus = Number(tableStatusMap.value[ban.id] ?? 0);
     if (baseStatus === 2) baseStatus = 0; 
 
-    // Nếu bàn Đang có khách (1), hiển thị màu đỏ/cam luôn
     if (baseStatus === 1) {
       statuses[ban.id] = 1;
       return;
     }
 
-    // Tìm xem có phiếu đặt nào của bàn này LỌT VÀO KHUNG GIỜ TOGGLE không
     const hasBookingInWindow = danhSachCho.value.some(khach => {
       const isMatch = khach.idBanAn == ban.id || khach.maBan === ban.maBan;
-      
       if (isMatch && Number(khach.trangThai) === 2) {
         const gioHen = dayjs(khach.thoiGianDat);
         const diff = gioHen.diff(now, "minute");
-        
-        // Khách đến trong khoảng window (diff <= window) 
-        // VÀ cho phép khách đến trễ hiển thị tối đa 30 phút (diff >= -30)
         return diff <= window && diff >= -30;
       }
       return false;
     });
 
-    // Nếu lọt khung giờ -> Gán trạng thái 2 (Vàng). Nếu không -> 0 (Trống/Xanh)
     statuses[ban.id] = hasBookingInWindow ? 2 : baseStatus;
   });
-  
   return statuses;
 });
 
-// Hàm này gắn trực tiếp lên template HTML, lấy kết quả từ Computed cực mượt
 const getTrangThaiTheoNgay = (banId) => {
   return calculatedTableStatuses.value[banId] ?? 0;
 };
-const selectedDate = ref(
-  new Date().toISOString().slice(0, 10), 
-);
+const selectedDate = ref(new Date().toISOString().slice(0, 10));
 
 const fetchTableStatus = async () => {
   try {
-    // Chỉ gọi 1 API lấy danh sách bàn vật lý
     const dataBan = await fetchAllBanAn();
     const newMap = {};
-
     dataBan.forEach((ban) => {
       newMap[ban.id] = ban.trangThai; 
     });
-
     tableStatusMap.value = newMap;
   } catch (error) {
     console.error("Lỗi đồng bộ trạng thái bàn:", error);
@@ -193,13 +157,11 @@ const handleFetchAllCheckIn = async () => {
 const handleTableClick = async (ban) => {
   const trangThaiBan = getTrangThaiTheoNgay(ban.id);
   
-  // 1. NẾU BÀN ĐANG CÓ KHÁCH -> Mở Modal quản lý bình thường
   if (trangThaiBan === 1) {
     openManageModal(ban);
     return;
   } 
   
-  // 2. NẾU BÀN TRỐNG -> Kiểm tra xem có đang trong tiến trình "Tách bàn" không?
   const pendingSplitText = localStorage.getItem("pendingSplitCustomer");
   
   if (pendingSplitText && trangThaiBan === 0) {
@@ -219,25 +181,22 @@ const handleTableClick = async (ban) => {
     });
 
     if (confirmSplit.isConfirmed) {
-      // Gọi API ép bàn này lên Trạng thái 1 (Có khách) và tạo Hóa đơn phụ
       try {
         const payloadBanPhu = {
-          idBanAn: banMoi.id, 
+          idBanAn: ban.id, 
           trangThai: 1, 
-          id: null, // 🚨 BẮT BUỘC THÊM DÒNG NÀY ĐỂ BACKEND BIẾT LÀ TẠO MỚI
-          idKhachHang: pendingSplitData.value.idKhachHang, 
-          idNhanVien: JSON.parse(localStorage.getItem("user")).id, // Gửi kèm NV thao tác
-          ghiChu: pendingSplitData.value.ghiChu
+          id: null, 
+          idKhachHang: pendingCustomer.idKhachHang, 
+          idNhanVien: getCurrentStaffId() || 1,
+          ghiChu: pendingCustomer.ghiChu
         };
 
         await updateTrangThaiBan(payloadBanPhu); 
-        
         Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã tạo bàn phụ thành công!', timer: 1500, showConfirmButton: false });
         
-        // Hoàn tất -> Xóa bộ nhớ tạm
         localStorage.removeItem("pendingSplitCustomer");
+        isSelectingSecondTable.value = false;
         
-        // Tải lại dữ liệu
         await handleFetchAllCheckIn();
         await fetchAllBan();
         await fetchTableStatus();
@@ -245,29 +204,21 @@ const handleTableClick = async (ban) => {
         Swal.fire('Lỗi', 'Không thể mở bàn phụ lúc này', 'error');
       }
     } else if (confirmSplit.isDenied) {
-      // Nhân viên đổi ý, không muốn tách bàn nữa
       localStorage.removeItem("pendingSplitCustomer");
+      isSelectingSecondTable.value = false;
       Swal.fire({ icon: 'info', title: 'Đã hủy', text: 'Đã hủy tiến trình tách bàn.', timer: 1000, showConfirmButton: false });
     }
     return;
   }
-
-  // 3. Nếu bàn trống và không có tiến trình tách bàn nào
-  console.log("Bàn trống, vui lòng check-in từ danh sách phiếu đặt.");
 };
 
 const handleCheckInGuest = async (khach) => {
   const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
-  
-  if (!ban) {
-    return Swal.fire('Lỗi', 'Không tìm thấy thông tin bàn của khách này!', 'error');
-  }
+  if (!ban) return Swal.fire('Lỗi', 'Không tìm thấy thông tin bàn của khách này!', 'error');
 
-  // Lấy số người thực tế từ phiếu và sức chứa của bàn
   const soKhach = khach.soNguoi || 1;
   const sucChua = Number(ban.soCho);
 
-  // 🚨 KIỂM TRA QUÁ TẢI CHỖ NGỒI (Ví dụ 8 người > 4 chỗ)
   if (soKhach > sucChua) {
     const swalResult = await Swal.fire({
       title: 'Bàn không đủ chỗ!',
@@ -275,30 +226,25 @@ const handleCheckInGuest = async (khach) => {
       icon: 'warning',
       showDenyButton: true,
       showCancelButton: true,
-      confirmButtonColor: '#7d161a', // Nút Đỏ
-      denyButtonColor: '#28a745',    // Nút Xanh lá
+      confirmButtonColor: '#7d161a',
+      denyButtonColor: '#28a745',   
       confirmButtonText: '<i class="fa-solid fa-chair"></i> Kê thêm ghế',
       denyButtonText: '<i class="fa-solid fa-arrows-split-up-and-left"></i> Tách làm 2 bàn',
       cancelButtonText: 'Hủy bỏ'
     });
 
     if (swalResult.isConfirmed) {
-      // 1. CHỌN KÊ THÊM GHẾ -> Mở Modal Check-in bình thường
       selectedPhieu.value = khach; 
       await openManageModal(ban);
       return;
-
     } else if (swalResult.isDenied) {
-      // 2. CHỌN TÁCH BÀN -> Xử lý luồng tạo bàn phụ
       await handleSplitTableLogic(khach, ban);
       return;
     } else {
-      // 3. CHỌN HỦY -> Dừng lại
       return;
     }
   }
 
-  // Cảnh báo nếu đến sớm (Giữ nguyên logic cũ của bạn)
   const timeInfo = checkTimeStatus(khach.thoiGianDat);
   if (timeInfo.isEarly) {
     const confirm = await Swal.fire({
@@ -312,13 +258,11 @@ const handleCheckInGuest = async (khach) => {
     if (!confirm.isConfirmed) return;
   }
 
-  // CHỈ MỞ MODAL NẾU ĐỦ CHỖ VÀ ĐÚNG GIỜ
   selectedPhieu.value = khach; 
   await openManageModal(ban); 
 };
 
 const handleSplitTableLogic = async (khach, banGoc) => {
-  // 1. Check-in ngay lập tức cho Bàn Gốc (Bàn 1)
   try {
     const payloadBanGoc = {
       idBanAn: banGoc.id, 
@@ -326,26 +270,22 @@ const handleSplitTableLogic = async (khach, banGoc) => {
       id: khach.id, 
       trangThaiPhieu: 3 
     };
-    await updateTrangThaiBan(payloadBanGoc); // Gọi API Backend
+    await updateTrangThaiBan(payloadBanGoc); 
     
-    // 2. Thông báo và hướng dẫn nhân viên mở bàn 2
     await Swal.fire({
       title: 'Đã Check-in Bàn 1',
       html: `Đã xếp ${banGoc.soCho} khách vào bàn <b>${banGoc.maBan}</b>.<br><br>
-             Vui lòng <b>Click vào một bàn trống khác</b> trên sơ đồ bên cạnh để tạo hóa đơn cho ${soKhach - banGoc.soCho} khách còn lại.`,
+             Vui lòng <b>Click vào một bàn trống khác</b> trên sơ đồ bên cạnh để tạo hóa đơn cho số khách còn lại.`,
       icon: 'success',
       confirmButtonText: 'Đã hiểu'
     });
 
-    // 3. Ghi nhớ tạm thời thông tin khách này vào một biến toàn cục
-    // Để khi nhân viên click vào bàn trống tiếp theo, ta tự động gán tên khách vào đó.
     localStorage.setItem("pendingSplitCustomer", JSON.stringify({
-      idKhachHang: khach.idKhachHang,
-      tenKhachHang: khach.tenKhachHang,
+      idKhachHang: khach.idKhachHang || null,
+      tenKhachHang: khach.tenKhachHang || 'Khách vãng lai',
       ghiChu: `Bàn phụ - Tách ra từ đoàn ${khach.soNguoi} người của bàn ${banGoc.maBan}`
     }));
 
-    // Tải lại sơ đồ
     await handleFetchAllCheckIn();
     await fetchAllBan();
   } catch (error) {
@@ -364,10 +304,7 @@ const danhSachLoc = computed(() => {
 
     if ([3, 5].includes(Number(khach.trangThai))) return true;
 
-    // Lấy khoảng thời gian từ Dropdown/Toggle
     const window = Number(selectedTimeWindow.value);
-    
-    // Đồng bộ logic thời gian với Sơ đồ bàn ở trên
     const matchTime = phutConLai <= window && phutConLai >= -30; 
     
     const matchSearch = khach.soDienThoai?.includes(searchQuery.value) ||
@@ -385,39 +322,27 @@ const danhSachLoc = computed(() => {
 const currentTime = ref(new Date());
 let timer;
 const currentStaffName = ref("");
+const orderHistory = ref([]); 
 
-const orderHistory = ref([]); // Chứa danh sách lịch sử từ API
-
-// Hàm lấy lịch sử từ Backend
 const fetchOrderHistory = async () => {
   if (!selectedPhieu.value?.idHoaDon) return;
-  
   try {
-    // Gọi API lấy lịch sử theo ID hóa đơn
     const res = await axiosClient.get(`/hoa-don-thanh-toan/lich-su/${selectedPhieu.value.idHoaDon}`);
     orderHistory.value = res.data;
-    modalView.value = 'orderHistory'; // Chuyển view sang lịch sử
+    modalView.value = 'orderHistory'; 
   } catch (error) {
-    console.error("Lỗi lấy lịch sử:", error);
     Swal.fire('Lỗi', 'Không thể lấy dữ liệu lịch sử!', 'error');
   }
 };
 
-// Hàm định dạng thời gian cho timeline
 const formatHistoryTime = (time) => {
   if (!time) return "Vừa xong";
-  
-  // Nếu Spring Boot trả về mảng [YYYY, MM, DD, HH, mm, ss]
   if (Array.isArray(time)) {
     const [y, m, d, h, min] = time;
     return dayjs(new Date(y, m - 1, d, h, min)).format("HH:mm - DD/MM/YYYY");
   }
-  
-  // Nếu là chuỗi ISO
   return dayjs(time).format("HH:mm - DD/MM/YYYY");
 };
-
-
 
 onMounted(() => {
   fetchAllBan();
@@ -427,15 +352,13 @@ onMounted(() => {
   }, 1000);
 
   const user = JSON.parse(localStorage.getItem("user"));
-    if (user) currentStaffName.value = user.hoTen || user.username;
+  if (user) currentStaffName.value = user.hoTen || user.username;
 });
 
 onUnmounted(() => clearInterval(timer));
 
 const getCountdown = (dbTime) => {
   if (!dbTime) return "00:00:00";
-
-  // Xử lý an toàn định dạng ngày (tránh lỗi mảng hoặc chuỗi)
   let target = null;
   if (Array.isArray(dbTime)) {
     const [y, m, d, h, min, s] = dbTime;
@@ -445,13 +368,10 @@ const getCountdown = (dbTime) => {
   }
 
   const now = dayjs(currentTime.value);
-  const diff = target.diff(now); // Đơn vị là mili-giây
-  
-  // Xác định xem đã quá giờ chưa
+  const diff = target.diff(now); 
   const isNegative = diff < 0;
   const absDiff = Math.abs(diff);
 
-  // Tính Toán Giờ, Phút, Giây
   const h = Math.floor(absDiff / 3600000).toString().padStart(2, "0");
   const m = Math.floor((absDiff % 3600000) / 60000).toString().padStart(2, "0");
   const s = Math.floor((absDiff % 60000) / 1000).toString().padStart(2, "0");
@@ -473,12 +393,69 @@ const getStatusClass = (trangThai) => {
   return "status-booked";
 };
 
-
 // --- QUẢN LÝ MODAL & CẬP NHẬT ---
 const isShowModal = ref(false);
 const selectedBan = ref(null);
 const selectedPhieu = ref(null);
 const activeHoaDonId = ref(null);
+const modalView = ref("info");
+const listMonDaChon = ref([]);
+
+// KHAI BÁO BIẾN CHO GỘP BÀN
+const listBanGop = ref([]); 
+const listHoaDonGop = ref([]); 
+const listBanCoKhachKhac = ref([]);
+
+// 🚨 HÀM FETCH DANH SÁCH BÀN GỘP HỢP LỆ (CÙNG KHÁCH + LÊN ĐỦ MÓN/HOẶC TRỐNG MÓN)
+const fetchDanhSachBanGopHople = async () => {
+  listBanCoKhachKhac.value = [];
+  
+  const currentCustomerId = selectedPhieu.value?.idKhachHang;
+
+  const cacBanCoKhach = danhSachBan.value.filter(ban => 
+    getTrangThaiTheoNgay(ban.id) === 1 && ban.id !== selectedBan.value?.id
+  );
+
+  for (const ban of cacBanCoKhach) {
+    try {
+      const res = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${ban.id}`);
+      if (res.data) {
+        const targetCustomerId = res.data.idKhachHang;
+
+        if (currentCustomerId && targetCustomerId && currentCustomerId === targetCustomerId) {
+            const chiTiet = res.data.chiTiet || res.data.chiTietHoaDon || res.data.chiTietMonAn || [];
+            const monCuaBan = chiTiet.filter(m => m.trangThaiMon !== 0);
+            
+            let isHopLe = false;
+
+            if (monCuaBan.length === 0) {
+              isHopLe = true; 
+            } else {
+              isHopLe = monCuaBan.every(m => m.trangThaiMon === 2);
+            }
+            
+            if (isHopLe) {
+              const tongTienMon = monCuaBan.reduce((sum, item) => sum + (item.donGia * item.soLuong), 0);
+              const vat = tongTienMon * (res.data.vatApDung / 100);
+              const canThu = tongTienMon + vat - (res.data.soTienDaGiam || 0) - (res.data.tienCoc || 0);
+
+              listBanCoKhachKhac.value.push({
+                ...ban,
+                _hoaDonInfo: {
+                  idHoaDon: res.data.idHoaDon,
+                  idPhieu: res.data.id,
+                  idBanAn: ban.id,
+                  canThu: canThu > 0 ? canThu : 0
+                }
+              });
+            }
+        }
+      }
+    } catch (error) {
+      console.log(`Lỗi kiểm tra bàn ${ban.maBan}`);
+    }
+  }
+};
 
 const openManageModal = async (ban, forceStatus = null) => {
   const bId = ban.id || ban.idBanAn;
@@ -498,9 +475,7 @@ const openManageModal = async (ban, forceStatus = null) => {
     
     if (resPhieu.data) {
       const data = resPhieu.data;
-      
       selectedPhieu.value = {
-        // Sử dụng data.id (là ID phiếu) để mở khóa các nút chức năng
         id: data.id, 
         idHoaDon: data.idHoaDon || data.id, 
         maDatBan: data.maPhieu || 'N/A',
@@ -515,17 +490,13 @@ const openManageModal = async (ban, forceStatus = null) => {
         vatApDung: data.vatApDung || 10
       };
 
-      // SỬA TẠI ĐÂY: Thêm data.chiTiet vào chuỗi kiểm tra
       const listFromApiRaw = data.chiTiet || data.chiTietHoaDon || data.chiTietMonAn || [];
-      
-      // 🚨 BƯỚC LỌC THẦN THÁNH: Bỏ qua những món đã bị xóa (trạng thái = 0)
       const listFromApi = listFromApiRaw.filter(mon => mon.trangThaiMon !== 0);
       
       if (listFromApi.length > 0) {
         listMonDaChon.value = listFromApi.map((mon) => {
             const isSet = mon.type === 'SET' || mon.idSetLau != null;
             const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
-
             return {
                 dbDetailId: mon.idChiTietHd, 
                 originalId: originalId,
@@ -541,49 +512,63 @@ const openManageModal = async (ban, forceStatus = null) => {
       }
     }
   } catch (e) {
-    console.log("Bàn này trống hoặc chưa có phiếu:", e.message);
+    console.log("Bàn trống");
   }
   
+  if (getTrangThaiTheoNgay(bId) === 1) {
+    await fetchDanhSachBanGopHople();
+  }
+
   isShowModal.value = true;
+};
+
+// Hàm toggle chọn bàn gộp
+const toggleGopBan = (ban) => {
+  const index = listBanGop.value.findIndex(b => b.id === ban.id);
+  
+  if (index !== -1) {
+    listBanGop.value.splice(index, 1);
+    listHoaDonGop.value.splice(index, 1);
+  } else {
+    listBanGop.value.push(ban);
+    listHoaDonGop.value.push(ban._hoaDonInfo);
+  }
 };
 
 const billSummary = computed(() => {
   const tong = listMonDaChon.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const giam = selectedPhieu.value?.soTienDaGiam || 0;
-  
   let sauGiam = tong - giam;
   if (sauGiam < 0) sauGiam = 0;
-
   const vatRate = selectedPhieu.value?.vatApDung || 10; 
   const vat = sauGiam * (vatRate / 100); 
-  
   const coc = selectedPhieu.value?.tienCoc || 0;
-
   let canThu = (sauGiam + vat) - coc;
   if (canThu < 0) canThu = 0;
-
   return { tong, giam, vat, coc, canThu, vatRate }; 
+});
+
+// Tổng tiền sau gộp
+const grandTotalToPay = computed(() => {
+  const tienBanChinh = billSummary.value.canThu;
+  const tienCacBanGop = listHoaDonGop.value.reduce((sum, hd) => sum + hd.canThu, 0);
+  return tienBanChinh + tienCacBanGop;
 });
 
 const modalActiveFloor = ref(1);
 const modalHoveredTableId = ref(null);
 
-// Lấy danh sách bàn theo tầng ĐANG CHỌN TRONG MODAL
 const modalBanTheoTang = computed(() => {
   return danhSachBan.value.filter(ban => Number(ban.soTang) === modalActiveFloor.value);
 });
 
-// Hàm mở view Đổi Bàn (Tự động focus vào tầng của bàn hiện tại)
 const openChangeTableView = () => {
   modalView.value = 'changeTable';
   modalActiveFloor.value = Number(selectedBan.value?.soTang) || 1;
 };
 
-// Hover vào danh sách bàn trống bên phải
 const onHoverEmptyTable = (ban) => {
   modalHoveredTableId.value = ban.id;
-  
-  // Tự động chuyển tầng nếu bàn được hover ở tầng khác
   if (Number(ban.soTang) !== modalActiveFloor.value) {
     modalActiveFloor.value = Number(ban.soTang);
   }
@@ -599,63 +584,52 @@ const closeModal = () => {
   selectedPhieu.value = null;
   listMonDaChon.value = [];
   isSelectingSecondTable.value = false;
-  pendingSplitData.value = null;
+  
+  listBanGop.value = [];
+  listHoaDonGop.value = [];
 };
 
 const handleCloseFoodList = async () => {
-  // 1. Quay về màn hình thông tin chính
   modalView.value = 'info';
-
-  // 2. Chạy logic đồng bộ để lấy lại data phòng trường hợp user có chỉnh sửa gì đó rồi Hủy
   const bId = selectedBan.value.id || selectedBan.value.idBanAn;
   try {
     const resPhieu = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${bId}`);
-    
     if (resPhieu.data) {
-      // --- BỔ SUNG: CẬP NHẬT CÁC TRƯỜNG TIỀN TỆ TỪ BACKEND ---
       if (selectedPhieu.value) {
           selectedPhieu.value.tongTienChuaGiam = resPhieu.data.tongTienChuaGiam || 0;
           selectedPhieu.value.soTienDaGiam = resPhieu.data.soTienDaGiam || 0;
           selectedPhieu.value.tienCoc = resPhieu.data.tienCoc || 0;
           selectedPhieu.value.tongTienThanhToan = resPhieu.data.tongTienThanhToan || 0;
       }
-
       if (resPhieu.data.chiTiet) {
-        listMonDaChon.value = resPhieu.data.chiTiet
-          .filter(m => m.trangThaiMon !== 0)
-          .map((mon) => {
+        listMonDaChon.value = resPhieu.data.chiTiet.filter(m => m.trangThaiMon !== 0).map((mon) => {
             const isSet = mon.type === 'SET' || mon.idSetLau != null;
             const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
             return {
-              dbDetailId: mon.idChiTietHd, 
-              originalId: originalId,
-              type: isSet ? 'SET' : 'FOOD', 
-              uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
-              name: mon.tenMon,
-              quantity: mon.soLuong,
-              price: mon.donGia || 0,
-              note: mon.ghiChu || '',
-              served: mon.trangThaiMon === 2 
+                dbDetailId: mon.idChiTietHd, 
+                originalId: originalId,
+                type: isSet ? 'SET' : 'FOOD', 
+                uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
+                name: mon.tenMon,
+                quantity: mon.soLuong,
+                price: mon.donGia || 0,
+                note: mon.ghiChu || '',
+                served: mon.trangThaiMon === 2 
             };
-          });
+        });
       }
     }
   } catch (error) {
-    console.error("Lỗi đồng bộ khi đóng menu:", error);
+    console.error("Lỗi đồng bộ", error);
   }
 };
 
 const hoveredTableId = ref(null);
 
 const onHoverCustomerCard = (khach) => {
-  // Tìm thông tin bàn từ danh sách bàn đã load
   const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
-  
   if (ban) {
     hoveredTableId.value = ban.id;
-    
-    // TỰ ĐỘNG CHUYỂN TẦNG:
-    // Nếu bàn ở tầng khác với tầng đang xem thì chuyển sang tầng đó
     if (Number(ban.soTang) !== activeFloor.value) {
       activeFloor.value = Number(ban.soTang);
     }
@@ -666,40 +640,20 @@ const onLeaveCustomerCard = () => {
   hoveredTableId.value = null;
 };
 
-const tinhPhut = (thoiGianDat) => {
-  const hienTai = dayjs();
-  const gioHen = dayjs(thoiGianDat);
-  return gioHen.diff(hienTai, 'minute');
-};
-
 const handleDirectCheckIn = async () => {
   if (!selectedBan.value) return;
-
   const bId = selectedBan.value.id;
-  
-  // Tạo payload ép trạng thái bàn lên 1 (Có khách)
   const payload = {
     idBanAn: bId, 
     trangThai: 1, 
     id: selectedPhieu.value?.id || null, 
-    // Nếu có phiếu đặt thì đổi phiếu thành 3 (Checked-in)
     trangThaiPhieu: selectedPhieu.value?.id ? 3 : null 
   };
-
   try {
-    // 1. Gọi API lưu
     await updateTrangThaiBan(payload);
-    
-    // 2. ÉP ĐỔI MÀU BÀN VÀ TRẠNG THÁI TRONG MODAL NGAY LẬP TỨC
-    tableStatusMap.value = {
-      ...tableStatusMap.value,
-      [bId]: 1
-    };
-    selectedBan.value.trangThai = 1; // Giúp nút Check-in biến mất ngay lập tức
-
+    tableStatusMap.value = { ...tableStatusMap.value, [bId]: 1 };
+    selectedBan.value.trangThai = 1; 
     Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
-    
-    // 3. Sync lại dữ liệu ngầm
     await handleFetchAllCheckIn();
     await fetchAllBan();
     await fetchTableStatus();
@@ -713,47 +667,30 @@ const formatDate = (time) => {
   return dayjs(time).format("DD/MM/YYYY HH:mm");
 };
 
-const modalView = ref("info");
 const switchToAddFood = () => {
   modalView.value = "addFood";
 };
 
-const listMonDaChon = ref([]);
-
 const totalTempPrice = computed(() => {
-  return listMonDaChon.value.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
+  return listMonDaChon.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
 });
 
 const handleSaveFood = async (itemsArray) => {
   if (!selectedPhieu.value?.id) {
-    Swal.fire('Lưu ý', 'Bàn này chưa có Phiếu đặt trước. Hệ thống không hỗ trợ thêm món cho khách vãng lai!', 'warning');
+    Swal.fire('Lưu ý', 'Bàn này chưa có Phiếu đặt trước. Không hỗ trợ thêm món!', 'warning');
     return;
   }
-
-  // Nếu khách xóa hết món trong menu thì cho về Info luôn
   if (itemsArray.length === 0) {
     listMonDaChon.value = [];
     modalView.value = 'info';
     return;
   }
-
   try {
-    const userStorage = localStorage.getItem("user");
-    let currentStaffId = 1;
-    if (userStorage) {
-      const user = JSON.parse(userStorage);
-      if (user.id) currentStaffId = user.id;
-    }
-
     const payload = {
       idHoaDon: selectedPhieu.value?.idHoaDon || null, 
       idBanAn: selectedBan.value.id,
-      idNhanVien: currentStaffId,
+      idNhanVien: getCurrentStaffId() || 1,
       idKhachHang: selectedPhieu.value?.idKhachHang || null,
-      
       chiTietHoaDon: itemsArray.map(item => ({
         id: item.dbDetailId || null, 
         idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
@@ -762,206 +699,141 @@ const handleSaveFood = async (itemsArray) => {
         ghiChu: item.note || '' 
       }))
     };
-
-    // GỌI API THÊM/SỬA MÓN
     await createOrder(payload);
-
-    await Swal.fire({
-      icon: 'success',
-      title: 'Thành công!',
-      text: "Đã cập nhật thực đơn thành công!",
-      timer: 1500,
-      showConfirmButton: false
-    });
-
-    // 🚨 BƯỚC ĐỒNG BỘ: Sau khi lưu xong, gọi lại API để lấy dbDetailId và CẬP NHẬT TIỀN TỆ
-    const bId = selectedBan.value.id || selectedBan.value.idBanAn;
-    const resPhieu = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${bId}`);
-    
-    if (resPhieu.data) {
-       // --- BỔ SUNG: CẬP NHẬT CÁC TRƯỜNG TIỀN TỆ TỪ BACKEND ---
-       if (selectedPhieu.value) {
-           selectedPhieu.value.tongTienChuaGiam = resPhieu.data.tongTienChuaGiam || 0;
-           selectedPhieu.value.soTienDaGiam = resPhieu.data.soTienDaGiam || 0;
-           selectedPhieu.value.tienCoc = resPhieu.data.tienCoc || 0;
-           selectedPhieu.value.tongTienThanhToan = resPhieu.data.tongTienThanhToan || 0;
-       }
-
-       if (resPhieu.data.chiTiet) {
-           listMonDaChon.value = resPhieu.data.chiTiet.filter(m => m.trangThaiMon !== 0).map((mon) => {
-             const isSet = mon.type === 'SET' || mon.idSetLau != null;
-             const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
-             return {
-                 dbDetailId: mon.idChiTietHd, 
-                 originalId: originalId,
-                 type: isSet ? 'SET' : 'FOOD', 
-                 uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
-                 name: mon.tenMon,
-                 quantity: mon.soLuong,
-                 price: mon.donGia || 0,
-                 note: mon.ghiChu || '',
-                 served: mon.trangThaiMon === 2 
-             };
-           });
-       }
-    }
-
-    modalView.value = 'info';
-
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: "Đã cập nhật thực đơn!", timer: 1500, showConfirmButton: false });
+    handleCloseFoodList();
   } catch (e) {
-    console.error("Lỗi khi thêm món:", e);
-    Swal.fire({
-      icon: 'error',
-      title: 'Lỗi',
-      text: "Lỗi khi lưu món: " + (e.response?.data?.message || e.message)
-    });
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: "Lỗi lưu món" });
   }
 };
 
-
 const handlePaymentCash = async () => {
-  // 1. Lấy số tiền thực tế CẦN THU THÊM (từ computed billSummary bạn vừa tạo)
-  const amountToPay = billSummary.value.canThu; 
-
-  // 2. Hiển thị Popup xác nhận rõ ràng số tiền cho thu ngân
+  const amountToPay = grandTotalToPay.value; 
   const confirm = await Swal.fire({
-    title: 'Xác nhận thanh toán?',
-    html: `Số tiền khách cần trả thêm (sau khi trừ cọc): <br><br>
-           <b style="color: #7d161a; font-size: 26px">${amountToPay.toLocaleString()} đ</b>
-           <br><br><span style="font-size: 13px; color: #666;">Bàn sẽ được giải phóng ngay lập tức sau khi xác nhận.</span>`,
+    title: 'Xác nhận thanh toán TIỀN MẶT?',
+    html: `Tổng tiền (đã bao gồm các bàn gộp): <br><br>
+           <b style="color: #28a745; font-size: 26px">${amountToPay.toLocaleString()} đ</b>`,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#28a745', // Nút màu xanh lá (Đồng ý)
-    cancelButtonColor: '#6c757d',  // Nút màu xám (Hủy)
-    confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Đã nhận đủ tiền',
+    confirmButtonColor: '#28a745', 
+    confirmButtonText: 'Đã nhận đủ tiền',
     cancelButtonText: 'Quay lại'
   });
 
   if (!confirm.isConfirmed) return;
 
-  // 3. Đóng gói Payload gửi xuống API updateCheckIn
-  const payload = {
-    idBanAn: selectedBan.value.id,     // Bàn hiện tại
-    trangThai: 0,                      // Ép bàn về trạng thái 0 (Trống)
-    id: selectedPhieu.value.id,        // ID Phiếu đặt
-    trangThaiPhieu: 4,                 // Đổi trạng thái phiếu -> Hoàn tất
-    trangThaiHoaDon: 6,                // Đổi trạng thái Hóa đơn -> Đã thanh toán
-    tienMat: amountToPay,              // 🚨 GỬI TIỀN MẶT ĐỂ GHI VÀO BẢNG LỊCH SỬ
-    ghiChu: `Thanh toán 100% bằng tiền mặt tại quầy. Đã thu: ${amountToPay.toLocaleString()}đ`
-  };
-
-  // 4. Gọi API và Reload dữ liệu
-  await executeApiUpdate(payload, 'Đã hoàn tất thanh toán tiền mặt!');
-};
-
-const canCheckIn = (dbTime) => {
-  if (!dbTime) return false;
-  const now = dayjs(currentTime.value);
-  const target = dayjs(dbTime);
-  const minutesLeft = target.diff(now, "minute");
-  return minutesLeft <= 15; 
-};
-
-const executeApiUpdate = async (payload, successMsg) => {
   try {
-    // 1. Gọi API cập nhật xuống DB
-    await updateTrangThaiBan(payload);
+    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: successMsg, timer: 1500, showConfirmButton: false });
+    const payloadChinh = {
+      idBanAn: selectedBan.value.id,
+      trangThai: 0,
+      id: selectedPhieu.value.id,
+      trangThaiPhieu: 4,
+      trangThaiHoaDon: 6,
+      tienMat: billSummary.value.canThu, 
+      ghiChu: `Thanh toán Tiền mặt`
+    };
+    await updateTrangThaiBan(payloadChinh);
+
+    if (listHoaDonGop.value.length > 0) {
+      await Promise.all(listHoaDonGop.value.map(hd => {
+        return updateTrangThaiBan({
+          idBanAn: hd.idBanAn,
+          trangThai: 0,
+          id: hd.idPhieu,
+          trangThaiPhieu: 4,
+          trangThaiHoaDon: 6,
+          tienMat: hd.canThu,
+          ghiChu: `Gộp chung với ${selectedBan.value.maBan}`
+        });
+      }));
+    }
+
+    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã thanh toán toàn bộ!', timer: 1500 });
     closeModal();
-    
-    // 2. LOAD LẠI THEO ĐÚNG THỨ TỰ NÀY ĐỂ TRÁNH LỖI ĐỒNG BỘ:
-    await handleFetchAllCheckIn(); // Lấy danh sách phiếu mới nhất trước
-    await fetchAllBan();           // Lấy trạng thái vật lý của bàn
-    await fetchTableStatus();      // Cuối cùng mới tính toán và tô màu bàn
-    
+    await handleFetchAllCheckIn();
+    await fetchAllBan();
+    await fetchTableStatus();
   } catch (err) {
-    console.error("Lỗi API:", err);
-    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Thao tác thất bại! Vui lòng thử lại.' });
+    Swal.fire('Lỗi', 'Lỗi khi thanh toán', 'error');
+  }
+};
+
+const customerOrderUrl = computed(() => {
+  if (!selectedBan.value || !selectedPhieu.value?.idHoaDon) return '';
+  
+  const baseUrl = window.location.origin; // Lấy http://localhost:5173
+  
+  // Link sẽ có dạng: http://localhost:5173/menu-khach?ban=3&hoadon=15
+  return `${baseUrl}/menu-khach?ban=${selectedBan.value.id}&hoadon=${selectedPhieu.value.idHoaDon}`;
+});
+
+// 2. Hàm copy link gửi cho khách qua Zalo/Mess (nếu không tiện quét)
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    Swal.fire({ 
+      icon: 'success', 
+      title: 'Đã copy link!', 
+      text: 'Bạn có thể dán gửi cho khách',
+      timer: 1500, 
+      showConfirmButton: false 
+    });
+  } catch (err) {
+    Swal.fire('Lỗi', 'Không thể copy link', 'error');
   }
 };
 
 const handlePaymentVNPayFull = async () => {
-  if (!selectedPhieu.value?.idHoaDon) {
-    return Swal.fire('Lưu ý', 'Bàn này chưa có hóa đơn để thanh toán!', 'warning');
-  }
-
+  const amountToPay = grandTotalToPay.value;
   const confirm = await Swal.fire({
-    title: 'Thanh toán qua VNPay?',
-    text: 'Hóa đơn sẽ chuyển sang trạng thái chờ thanh toán và hệ thống sẽ chuyển sang cổng VNPay. Bạn đồng ý chứ?',
+    title: 'Thanh toán VNPay Gộp?',
+    text: `Chuyển cổng VNPay với tổng tiền ${amountToPay.toLocaleString()} đ. Đồng ý?`,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#e67e22',
-    confirmButtonText: 'Đồng ý & Thanh toán',
-    cancelButtonText: 'Quay lại'
+    confirmButtonColor: '#007bff',
+    confirmButtonText: 'Tiếp tục'
   });
 
   if (!confirm.isConfirmed) return;
 
-  const bId = selectedBan.value.id;
-  
-  // 1. LƯU TRỮ ID HÓA ĐƠN VÀO BIẾN CỤC BỘ TRƯỚC KHI BỊ XÓA BỞI closeModal()
-  const idHoaDonThanhToan = selectedPhieu.value.idHoaDon; 
-
-  const payload = {
-    idNhanVien: getCurrentStaffId(),
-    idBanAn: bId,
-    trangThai: 1, 
-    id: selectedPhieu.value.id,
-    trangThaiPhieu: 3, 
-    trangThaiHoaDon: 5,
-    tienMat: 0, // <--- Bổ sung cái này để gửi xuống Backend không bị lỗi
-    ghiChu: "Thanh toán 100% qua VNPay"
-  };
-
   try {
-    Swal.fire({ 
-      title: 'Đang xử lý...', 
-      text: 'Vui lòng không đóng trình duyệt',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    // 2. Cập nhật trạng thái xuống DB
-    await updateTrangThaiBan(payload);
-    
-    // 3. Đóng modal
-    closeModal();
-    
-    Swal.update({ title: 'Đang kết nối VNPay...' });
-
-    // 4. Gọi API lấy link bằng biến đã lưu (Đã sửa idHoaDon thành idHoaDonThanhToan và bỏ remaining)
-    const vnpayRes = await axiosClient.get(`/vnpay/create-payment/${idHoaDonThanhToan}`);
-    
-    if (vnpayRes.data && vnpayRes.data.url) {
-      window.location.href = vnpayRes.data.url;
-    } else {
-      Swal.fire('Lỗi', 'Không lấy được link thanh toán từ hệ thống', 'error');
-      await fetchAllBan(); 
+    Swal.fire({ title: 'Đang kết nối VNPay...', didOpen: () => Swal.showLoading() });
+    let chuoiIdHoaDon = String(selectedPhieu.value.idHoaDon);
+    if (listHoaDonGop.value.length > 0) {
+      const idsPhu = listHoaDonGop.value.map(hd => hd.idHoaDon).join("_");
+      chuoiIdHoaDon += "_" + idsPhu;
     }
 
+    await updateTrangThaiBan({ idBanAn: selectedBan.value.id, trangThai: 1, id: selectedPhieu.value.id, trangThaiPhieu: 3, trangThaiHoaDon: 5, tienMat: 0 });
+    if (listHoaDonGop.value.length > 0) {
+      await Promise.all(listHoaDonGop.value.map(hd => 
+        updateTrangThaiBan({ idBanAn: hd.idBanAn, trangThai: 1, id: hd.idPhieu, trangThaiPhieu: 3, trangThaiHoaDon: 5, tienMat: 0 })
+      ));
+    }
+    closeModal();
+    const vnpayRes = await axiosClient.get(`/vnpay/create-payment/${chuoiIdHoaDon}?amount=${amountToPay}`);
+    if (vnpayRes.data && vnpayRes.data.url) {
+      window.location.href = vnpayRes.data.url;
+    }
   } catch (err) {
-    console.error("Lỗi quy trình thanh toán:", err);
-    Swal.fire('Lỗi', 'Thao tác thất bại! Vui lòng thử lại.', 'error');
-    await fetchAllBan();
+    Swal.fire('Lỗi', 'Khởi tạo VNPay thất bại', 'error');
   }
 };
 
 const handlePaymentMixed = async () => {
-  const totalInvoice = totalTempPrice.value;
-
+  const totalInvoice = grandTotalToPay.value;
   const { value: cashAmountStr } = await Swal.fire({
-    title: 'Thanh toán hỗn hợp',
+    title: 'Thanh toán hỗn hợp (Gộp)',
     input: 'number',
-    inputLabel: `Tổng hóa đơn: ${totalInvoice.toLocaleString()}đ`,
-    inputPlaceholder: 'Nhập số tiền mặt khách trả trước...',
+    inputLabel: `Tổng gộp: ${totalInvoice.toLocaleString()}đ`,
+    inputPlaceholder: 'Nhập số tiền mặt khách đưa trước...',
     showCancelButton: true,
     confirmButtonText: 'Tiếp tục sang VNPay',
     inputValidator: (value) => {
-      if (!value || value <= 0) return 'Vui lòng nhập số tiền hợp lệ!';
-      if (value >= totalInvoice) return 'Tiền mặt phải nhỏ hơn tổng hóa đơn!';
+      if (!value || value <= 0) return 'Vui lòng nhập số hợp lệ!';
+      if (value >= totalInvoice) return 'Tiền mặt phải nhỏ hơn tổng bill!';
     }
   });
 
@@ -971,97 +843,54 @@ const handlePaymentMixed = async () => {
 
     try {
       Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-      // BƯỚC 1: Lưu lịch sử Tiền mặt vào DB trước
-      const payload = {
-        idBanAn: selectedBan.value.id,
-        trangThai: 1, // Vẫn giữ khách tại bàn cho đến khi VNPay xong
-        id: selectedPhieu.value.id,
-        trangThaiPhieu: 3, 
-        trangThaiHoaDon: 5, // Chuyển sang trạng thái "Chờ thanh toán"
-        idNhanVien: getCurrentStaffId(),
-        tienMat: cashAmount, // <--- Gửi số tiền mặt khách vừa đưa
-        ghiChu: `Thanh toán hỗn hợp: Đã thu ${cashAmount.toLocaleString()}đ tiền mặt.`
-      };
-      
-      await updateTrangThaiBan(payload); // Gọi API backend để lưu Lịch sử CASH
-
-      // BƯỚC 2: Chuyển hướng sang VNPay cho phần tiền còn lại
-      const idHoaDon = selectedPhieu.value.idHoaDon;
-      const vnpayRes = await axiosClient.get(`/vnpay/create-payment/${idHoaDon}?amount=${remaining}`);
-      
-      if (vnpayRes.data && vnpayRes.data.url) {
-        window.location.href = vnpayRes.data.url;
+      let chuoiIdHoaDon = String(selectedPhieu.value.idHoaDon);
+      if (listHoaDonGop.value.length > 0) {
+        const idsPhu = listHoaDonGop.value.map(hd => hd.idHoaDon).join("_");
+        chuoiIdHoaDon += "_" + idsPhu;
       }
+
+      await updateTrangThaiBan({ idBanAn: selectedBan.value.id, trangThai: 1, id: selectedPhieu.value.id, trangThaiPhieu: 3, trangThaiHoaDon: 5, idNhanVien: getCurrentStaffId(), tienMat: cashAmount, ghiChu: `Thu hỗn hợp ${cashAmount}đ` });
+      
+      if (listHoaDonGop.value.length > 0) {
+        await Promise.all(listHoaDonGop.value.map(hd => 
+          updateTrangThaiBan({ idBanAn: hd.idBanAn, trangThai: 1, id: hd.idPhieu, trangThaiPhieu: 3, trangThaiHoaDon: 5, tienMat: 0 })
+        ));
+      }
+
+      const vnpayRes = await axiosClient.get(`/vnpay/create-payment/${chuoiIdHoaDon}?amount=${remaining}`);
+      if (vnpayRes.data && vnpayRes.data.url) window.location.href = vnpayRes.data.url;
     } catch (error) {
-      Swal.fire('Lỗi', 'Không thể khởi tạo thanh toán hỗn hợp', 'error');
+      Swal.fire('Lỗi', 'Lỗi thanh toán', 'error');
     }
   }
 };
 
 const handleCancelTicket = async () => {
-  if (!selectedPhieu.value?.id) {
-    return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
-  }
-
-  const confirm = await Swal.fire({
-    title: 'Hủy phiếu đặt bàn?',
-    text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    confirmButtonText: 'Đồng ý hủy',
-    cancelButtonText: 'Quay lại'
-  });
-
+  if (!selectedPhieu.value?.id) return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
+  const confirm = await Swal.fire({ title: 'Hủy phiếu đặt bàn?', text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Đồng ý hủy', cancelButtonText: 'Quay lại' });
   if (!confirm.isConfirmed) return;
-
   const bId = selectedBan.value.id;
-  const payload = {
-    idBanAn: bId,
-    trangThai: 0, // Bàn về trống
-    id: selectedPhieu.value.id,
-    trangThaiPhieu: 0, // Phiếu chuyển Hủy
-    trangThaiHoaDon: 8 // <--- THÊM DÒNG NÀY ĐỂ ĐỔI HÓA ĐƠN THÀNH 8
-  };
-
-  // ÉP GIAO DIỆN CHUYỂN VỀ TRỐNG KHI HỦY PHIẾU
-  tableStatusMap.value = {
-    ...tableStatusMap.value,
-    [bId]: 0
-  };
-
-  await executeApiUpdate(payload, 'Hủy phiếu thành công. Đã giải phóng bàn!');
+  await updateTrangThaiBan({ idBanAn: bId, trangThai: 0, id: selectedPhieu.value.id, trangThaiPhieu: 0, trangThaiHoaDon: 8 });
+  tableStatusMap.value = { ...tableStatusMap.value, [bId]: 0 };
+  closeModal();
+  await handleFetchAllCheckIn();
+  await fetchAllBan();
+  Swal.fire({ icon: 'success', title: 'Đã hủy', timer: 1000 });
 };
 
 const activeBookingTableIds = computed(() => {
-  // Lấy ID của bàn từ các phiếu đang chờ ở danh sách bên phải
   const bookingIds = danhSachLoc.value.map(khach => {
     const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
     return ban ? ban.id : null;
   });
-
-  // Lấy thêm ID của tất cả các bàn đang có trạng thái "Có khách" (1) trên sơ đồ
-  const occupiedIds = danhSachBan.value
-    .filter(ban => getTrangThaiTheoNgay(ban.id) === 1)
-    .map(ban => ban.id);
-
+  const occupiedIds = danhSachBan.value.filter(ban => getTrangThaiTheoNgay(ban.id) === 1).map(ban => ban.id);
   return [...new Set([...bookingIds, ...occupiedIds])].filter(id => id !== null);
 });
 
-watch(
-  selectedDate,
-  async () => {
-    await fetchTableStatus();
-  },
-  { immediate: true },
-);
+watch(selectedDate, async () => { await fetchTableStatus(); }, { immediate: true });
 
 const props = defineProps({
-    initialItems: {
-        type: Array,
-        default: () => []
-    }
+    initialItems: { type: Array, default: () => [] }
 });
 
 const initSelectedItems = () => {
@@ -1069,307 +898,149 @@ const initSelectedItems = () => {
     if (props.initialItems && props.initialItems.length > 0) {
         props.initialItems.forEach(item => {
             const key = item.uniqueId;
-            if (key) {
-                selectedItems.value[key] = { ...item };
-            }
+            if (key) selectedItems.value[key] = { ...item };
         });
     }
 };
 
 const listBanTrong = computed(() => {
-  // Chỉ lấy những bàn đang Trống (trạng thái 0) và khác bàn hiện tại
-  return danhSachBan.value.filter(ban => 
-    getTrangThaiTheoNgay(ban.id) === 0 && 
-    ban.id !== selectedBan.value?.id
-  );
+  return danhSachBan.value.filter(ban => getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan.value?.id);
 });
 
+const isSelectingSecondTable = ref(false);
+
 const handleSwitchTable = async (banMoi) => {
-  // ==========================================================
-  // 🚨 LUỒNG 1: NẾU ĐANG Ở BƯỚC CHỌN BÀN THỨ 2 (TÁCH BÀN)
-  // ==========================================================
-  // Đã bỏ check pendingSplitData.value ở đây để đảm bảo lọt vào IF
-  if (isSelectingSecondTable.value) { 
+  if (isSelectingSecondTable.value) {
     try {
-      // 1. Lấy ID nhân viên từ LocalStorage
-      const userStorage = localStorage.getItem("user");
-      let currentStaffId = 1; 
-      if (userStorage) {
-        const userObj = JSON.parse(userStorage);
-        if (userObj.id) currentStaffId = userObj.id;
-      }
-
-      // 2. Đọc dữ liệu từ biến pendingSplitData (Đã được gán ở luồng 2)
+      const pendingText = localStorage.getItem("pendingSplitCustomer");
       let khachHangId = null;
-      let ghiChuTach = "Bàn phụ tách ra";
-
-      if (pendingSplitData.value) {
-         khachHangId = pendingSplitData.value.idKhachHang;
-         ghiChuTach = pendingSplitData.value.ghiChu;
+      let ghiChuTach = "Bàn phụ";
+      if (pendingText) {
+         const pendingObj = JSON.parse(pendingText);
+         khachHangId = pendingObj.idKhachHang || null;
+         ghiChuTach = pendingObj.ghiChu || "Bàn phụ";
       }
 
-      // 3. Gói Payload gửi xuống tạo Bàn vãng lai
-      const payloadBanPhu = {
-        idBanAn: banMoi.id, 
-        trangThai: 1, 
-        id: null, // Đánh dấu là MỞ MỚI
-        
-        idKhachHang: khachHangId, 
-        idNhanVien: currentStaffId, 
-        ghiChu: ghiChuTach
-      };
-
-      await updateTrangThaiBan(payloadBanPhu); 
-      
+      await updateTrangThaiBan({ idBanAn: banMoi.id, trangThai: 1, id: null, idKhachHang: khachHangId, idNhanVien: getCurrentStaffId() || 1, ghiChu: ghiChuTach });
       Swal.fire({ icon: 'success', title: 'Hoàn tất', text: 'Đã thiết lập bàn phụ thành công!', timer: 1500, showConfirmButton: false });
       
-      // Dọn dẹp trạng thái và đóng Modal
       isSelectingSecondTable.value = false;
-      pendingSplitData.value = null; // Reset biến
+      localStorage.removeItem("pendingSplitCustomer");
       closeModal();
-      
-      // Reload sơ đồ
       await handleFetchAllCheckIn();
       await fetchAllBan();
       return;
     } catch (error) {
-      console.error(error);
-      Swal.fire('Lỗi', 'Không thể mở bàn phụ lúc này', 'error');
-      return;
+      return Swal.fire('Lỗi', 'Không thể mở bàn phụ lúc này', 'error');
     }
   }
 
-  // ==========================================================
-  // 🚨 LUỒNG 2: ĐỔI BÀN BÌNH THƯỜNG HOẶC KÍCH HOẠT TÁCH BÀN
-  // ==========================================================
   const soKhach = selectedPhieu.value?.soNguoi || 1; 
   const sucChuaBanMoi = Number(banMoi.soCho);
 
-  // A. KIỂM TRA BÀN MỚI KHÔNG ĐỦ CHỖ
   if (soKhach > sucChuaBanMoi) {
     const swalResult = await Swal.fire({
       title: 'Bàn mới không đủ chỗ!',
-      html: `Đoàn có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br><br>Vui lòng chọn hướng xử lý:`,
+      html: `Đoàn có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br>Chọn hướng xử lý:`,
       icon: 'warning',
       showDenyButton: true,
       showCancelButton: true,
       confirmButtonColor: '#7d161a',
       denyButtonColor: '#28a745',
-      confirmButtonText: '<i class="fa-solid fa-chair"></i> Ép vào 1 bàn (Kê ghế)',
+      confirmButtonText: '<i class="fa-solid fa-chair"></i> Kê ghế',
       denyButtonText: '<i class="fa-solid fa-arrows-split-up-and-left"></i> Đổi & Tách bàn',
-      cancelButtonText: 'Hủy bỏ'
+      cancelButtonText: 'Hủy'
     });
 
     if (swalResult.isConfirmed) {
-      // Ép bàn -> Cho chạy tiếp logic đổi bàn thường ở dưới
+      // Tiếp tục xuống đổi bàn
     } else if (swalResult.isDenied) {
-      // 🚨 CHỌN TÁCH BÀN
       try {
-        const userStorage = localStorage.getItem("user");
-        let currentStaffId = 1;
-        if (userStorage) {
-          const userObj = JSON.parse(userStorage);
-          if (userObj.id) currentStaffId = userObj.id;
-        }
-
-        // 1. Chuyển hóa đơn qua bàn mới
-        const payloadSwitch = {
-          id: selectedPhieu.value.id, 
-          idBanAn: selectedBan.value.id, 
-          idBanAnMoi: banMoi.id,         
-          idNhanVien: currentStaffId,
-          trangThai: 0 
-        };
-        await updateTrangThaiBan(payloadSwitch);
-
-        // 2. 🚨 GÁN DỮ LIỆU CHO BIẾN PENDING CHO BƯỚC SAU ĐỌC
+        await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0 });
         isSelectingSecondTable.value = true;
         
-        pendingSplitData.value = {
+        localStorage.setItem("pendingSplitCustomer", JSON.stringify({
           idKhachHang: selectedPhieu.value.idKhachHang || null, 
-          tenKhachHang: selectedPhieu.value.tenKhachHang || 'Khách vãng lai',
-          ghiChu: `Bàn phụ - Tách ra từ đoàn ${soKhach} người của bàn ${banMoi.maBan}`
-        };
+          ghiChu: `Bàn phụ - Tách từ ${banMoi.maBan}`
+        }));
 
-        // 3. UI Update ảo để hiển thị bàn cũ đã chuyển sang bàn mới
         selectedBan.value = { ...banMoi, trangThai: 1 };
         await handleFetchAllCheckIn();
         await fetchAllBan();
-
-        Swal.fire({
-          title: 'Đã chuyển Bàn Chính',
-          html: `Đã dời đoàn khách sang bàn <b>${banMoi.maBan}</b>.<br><br>
-                 Vui lòng <b>nhấp chọn tiếp 1 bàn trống</b> bên dưới để chứa số khách còn lại.`,
-          icon: 'success',
-          confirmButtonText: 'Đã hiểu'
-        });
-
+        Swal.fire({ title: 'Đã chuyển', html: `Vui lòng <b>chọn tiếp 1 bàn trống</b> bên dưới cho số khách còn lại.`, icon: 'success' });
         return; 
       } catch (error) {
-        return Swal.fire('Lỗi', 'Không thể đổi và tách bàn lúc này!', 'error');
+        return Swal.fire('Lỗi', 'Lỗi đổi và tách bàn!', 'error');
       }
     } else {
       return; 
     }
-  } 
-  // B. BÀN ĐỦ CHỖ (Xác nhận bình thường)
-  else {
-    const confirm = await Swal.fire({
-      title: 'Xác nhận đổi bàn?',
-      text: `Chuyển khách từ bàn ${selectedBan.value.maBan} sang bàn ${banMoi.maBan}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#7d161a',
-      confirmButtonText: 'Đồng ý đổi'
-    });
-
+  } else {
+    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', showCancelButton: true, confirmButtonColor: '#7d161a' });
     if (!confirm.isConfirmed) return;
   }
 
-  // --- LOGIC GỌI API ĐỔI BÀN (Trường hợp Đổi thường / Kê ghế) ---
   try {
-    const userStorage = localStorage.getItem("user");
-    let currentStaffId = 1;
-    if (userStorage) {
-      const userObj = JSON.parse(userStorage);
-      if (userObj.id) currentStaffId = userObj.id;
-    }
-
-    const payload = {
-      id: selectedPhieu.value.id, 
-      idBanAn: selectedBan.value.id, 
-      idBanAnMoi: banMoi.id,         
-      idNhanVien: currentStaffId, 
-      trangThai: 0 
-    };
-
-    await updateTrangThaiBan(payload);
-    await Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã chuyển bàn hoàn tất!', timer: 1500, showConfirmButton: false });
-    
+    await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0 });
+    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đổi bàn hoàn tất!', timer: 1500, showConfirmButton: false });
     closeModal();
     await handleFetchAllCheckIn();
     await fetchAllBan();
   } catch (error) {
-    Swal.fire('Lỗi', 'Không thể đổi bàn lúc này!', 'error');
+    Swal.fire('Lỗi', 'Lỗi đổi bàn!', 'error');
   }
-};
-
-const isSelectingSecondTable = ref(false);
-const pendingSplitData = ref(null);
-
-// Hàm nếu nhân viên đổi ý, chỉ chuyển bàn 1 mà không muốn tách bàn 2 nữa
-const cancelSplit = () => {
-  isSelectingSecondTable.value = false;
-  pendingSplitData.value = null;
-  modalView.value = 'info';
 };
 
 const isAllItemsServed = computed(() => {
-  if (listMonDaChon.value.length === 0) return false;
+  // Nếu chưa gọi món nào -> Mặc định là hợp lệ (được thanh toán)
+  if (listMonDaChon.value.length === 0) return true; 
+  
+  // Nếu có món -> Bắt buộc mọi món phải có trạng thái "served" (Đã lên)
   return listMonDaChon.value.every(item => item.served);
 });
 
-// Hàm đánh dấu 1 món đã lên
 const toggleItemServed = async (item) => {
   try {
-    // 1. Lấy ID nhân viên đang đăng nhập để ghi log
-    const userStorage = localStorage.getItem("user");
-    let currentStaffId = null;
-    if (userStorage) {
-      const user = JSON.parse(userStorage);
-      currentStaffId = user.id;
-    }
-
-    // 2. Xác định trạng thái mới
     const newStatus = item.served ? 1 : 2; 
-    
-    // 3. Truyền thêm idNhanVien vào query params
-    await axiosClient.put(
-      `/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=${newStatus}&idNhanVien=${currentStaffId}`
-    );
-    
-    // Thành công thì mới đổi trạng thái trên giao diện
+    await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=${newStatus}&idNhanVien=${getCurrentStaffId()||1}`);
     item.served = !item.served;
-
-    // (Tùy chọn) Hiện thông báo nhỏ
-    const msg = item.served ? 'Đã xác nhận lên món' : 'Đã hoàn tác trạng thái món';
-    // toast.success(msg); 
-
   } catch (error) {
-    console.error("Lỗi cập nhật món:", error);
-    Swal.fire('Lỗi', 'Không thể cập nhật trạng thái món ăn này!', 'error');
+    Swal.fire('Lỗi', 'Không thể cập nhật!', 'error');
   }
 };
 
-// Hàm đánh dấu Đã lên TẤT CẢ
 const markAllServed = async () => {
   const unservedItems = listMonDaChon.value.filter(item => !item.served);
-  
-  if (unservedItems.length === 0) {
-    return Swal.fire({ icon: 'info', title: 'Thông báo', text: 'Tất cả món đã được lên!', timer: 1500 });
-  }
-
+  if (unservedItems.length === 0) return;
   try {
     Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    // Gọi API cho tất cả các món chưa lên chuyển thành trạng thái 2
-    await Promise.all(
-      unservedItems.map(item => 
-        axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=2`)
-      )
-    );
-
-    // Cập nhật giao diện
+    await Promise.all(unservedItems.map(item => axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=2`)));
     listMonDaChon.value.forEach(item => item.served = true);
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã xác nhận lên tất cả món!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', title: 'Thành công', timer: 1000, showConfirmButton: false });
   } catch (error) {
-    console.error("Lỗi cập nhật hàng loạt:", error);
-    Swal.fire('Lỗi', 'Có lỗi xảy ra khi xác nhận món!', 'error');
+    Swal.fire('Lỗi', 'Lỗi!', 'error');
   }
 };
 
 const handleDeleteItem = async (item, index) => {
-  const confirm = await Swal.fire({
-    title: 'Xóa món ăn?',
-    text: `Bạn có chắc chắn muốn hủy món "${item.name}" ra khỏi hóa đơn không?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#dc3545',
-    confirmButtonText: 'Đồng ý xóa',
-    cancelButtonText: 'Quay lại'
-  });
-
+  const confirm = await Swal.fire({ title: 'Xóa món?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Xóa' });
   if (confirm.isConfirmed) {
     try {
-      // Gọi API chuyển trạng thái thành 0 (Hủy)
       await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=0`);
-      
-      // Xóa món đó khỏi mảng hiển thị (sẽ tự động trừ tiền trong totalTempPrice)
       listMonDaChon.value.splice(index, 1);
-      
       Swal.fire({ icon: 'success', title: 'Đã xóa!', timer: 1000, showConfirmButton: false });
-      
-      // Nếu xóa hết món thì quay về màn Check-in
-      if (listMonDaChon.value.length === 0) {
-        modalView.value = 'info';
-      }
+      if (listMonDaChon.value.length === 0) modalView.value = 'info';
     } catch (error) {
-      console.error("Lỗi xóa món:", error);
-      Swal.fire('Lỗi', 'Không thể xóa món ăn này!', 'error');
+      Swal.fire('Lỗi', 'Không thể xóa!', 'error');
     }
   }
 };
 
-// Tính toán tiền
-const vatAmount = computed(() => totalTempPrice.value * 0.1);
-const finalTotal = computed(() => totalTempPrice.value + vatAmount.value);
 const isServing = computed(() => {
   return selectedBan.value && selectedBan.value.trangThai === 1;
 });
 
-watch(() => props.initialItems, (newItems) => {
-    initSelectedItems();
-}, { deep: true, immediate: true });
+watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, immediate: true });
 </script>
 
 <template>
@@ -1416,7 +1087,7 @@ watch(() => props.initialItems, (newItems) => {
               <div class="floor-plan-section">
                 <div class="floor-header"></div>
                 <div class="grid-container">
-                  <div class="grid-canvas" @dragover.prevent @drop="onDrop" :class="{ 'editing-mode': isEditing }">
+                  <div class="grid-canvas" @dragover.prevent :class="{ 'editing-mode': false }">
                     <div
                       v-for="ban in banTheoTang"
                       :key="ban.id"
@@ -1535,7 +1206,6 @@ watch(() => props.initialItems, (newItems) => {
       <div class="modal-header-custom">
         <h4 class="modal-title-custom">
           {{ modalView === "info" ? `Check-in bàn ${selectedBan?.maBan}` : "Thêm món ăn" }}
-          
         </h4>
         <button class="close-btn" @click="closeModal">✕</button>
       </div>
@@ -1627,7 +1297,9 @@ watch(() => props.initialItems, (newItems) => {
               <span v-if="listMonDaChon.length === 0">Thêm món</span>
               <span v-else> Đã chọn {{ listMonDaChon.length }} món </span>
             </button>
-            <button :disabled="!isServing" class="btn-action">QR đặt món</button>
+            <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewQR'">
+                <i class="fa-solid fa-qrcode me-1"></i> QR đặt món
+            </button>
             <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'">
               <i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng
             </button>
@@ -1680,6 +1352,35 @@ watch(() => props.initialItems, (newItems) => {
               Vui lòng vào <strong>"Xem đơn hàng"</strong> và xác nhận đã lên đủ món để mở khóa thanh toán.
             </div>
 
+            <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="merge-payment-box mb-3 p-3 rounded" style="background-color: #fff5f5; border: 1px dashed #7d161a;">
+                 <div class="d-flex justify-content-between align-items-center mb-2">
+                     <h6 class="fw-bold mb-0" style="color: #7d161a;"><i class="fa-solid fa-link me-1"></i> Gộp bàn thanh toán</h6>
+                     <span class="badge rounded-pill" style="background-color: #7d161a;">{{ listBanGop.length }} bàn đã chọn</span>
+                 </div>
+                 
+                 <div v-if="listBanCoKhachKhac.length > 0">
+                     <p class="small text-muted mb-2">Các bàn sau có cùng khách và đủ điều kiện gộp:</p>
+                     <div class="d-flex gap-2 flex-wrap">
+                         <button v-for="ban in listBanCoKhachKhac" :key="ban.id"
+                                 class="btn btn-sm d-flex flex-column align-items-center justify-content-center p-2 transition-all custom-merge-btn"
+                                 style="min-width: 80px; border-radius: 8px;"
+                                 :class="listBanGop.some(b => b.id === ban.id) ? 'is-selected shadow' : 'bg-white'"
+                                 @click="toggleGopBan(ban)">
+                             <span class="fw-bold fs-6">{{ ban.maBan }}</span>
+                             <small style="font-size: 11px;">+{{ ban._hoaDonInfo.canThu.toLocaleString() }}đ</small>
+                         </button>
+                     </div>
+                     
+                     <div v-if="listBanGop.length > 0" class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center" style="border-top-color: #7d161a !important;">
+                         <span class="text-dark fw-bold" style="font-size: 14px;">TỔNG SAU GỘP:</span>
+                         <span class="text-danger fw-bold fs-5">{{ grandTotalToPay.toLocaleString() }} đ</span>
+                     </div>
+                 </div>
+                 
+                 <div v-else class="text-center py-2">
+                     <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Hiện không có bàn liên quan đủ điều kiện để gộp.</small>
+                 </div>
+            </div>
             <div class="payment-grid" :class="{ 'disabled-payment': !isAllItemsServed }">
               <button class="btn-pay cash-btn" @click="handlePaymentCash">
                 <i class="fa-solid fa-money-bill-1-wave"></i>
@@ -1806,56 +1507,54 @@ watch(() => props.initialItems, (newItems) => {
           </div>
         </div>
 
-  <div v-else-if="modalView === 'orderHistory'" class="history-container h-100 d-flex flex-column">
-    <div class="history-header mb-4">
-        <h5 class="fw-bold"><i class="fa-solid fa-history me-2"></i>Lịch sử đơn hàng - Bàn {{ selectedBan?.maBan }}</h5>
-        <p class="text-muted small">Mã hóa đơn: #{{ selectedPhieu?.idHoaDon }}</p>
-    </div>
+        <div v-else-if="modalView === 'orderHistory'" class="history-container h-100 d-flex flex-column">
+          <div class="history-header mb-4">
+              <h5 class="fw-bold"><i class="fa-solid fa-history me-2"></i>Lịch sử đơn hàng - Bàn {{ selectedBan?.maBan }}</h5>
+              <p class="text-muted small">Mã hóa đơn: #{{ selectedPhieu?.idHoaDon }}</p>
+          </div>
 
-    <div class="timeline-wrapper flex-grow-1 overflow-auto pe-2">
-        <div v-if="orderHistory.length === 0" class="text-center py-5">
-            <i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i>
-            <p>Chưa có dữ liệu lịch sử cho đơn hàng này</p>
-        </div>
+          <div class="timeline-wrapper flex-grow-1 overflow-auto pe-2">
+              <div v-if="orderHistory.length === 0" class="text-center py-5">
+                  <i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i>
+                  <p>Chưa có dữ liệu lịch sử cho đơn hàng này</p>
+              </div>
 
-        <div v-else class="timeline">
-            <div v-for="(log, index) in orderHistory" :key="index" class="timeline-item">
-                <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}">
-                    <i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i>
-                </div>
-                
-                <div class="timeline-card shadow-sm">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6>
-                        <span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span>
-                    </div>
-                    
-                    <div class="log-meta mb-2">
-                        <small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small>
-                        <small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small>
-                    </div>
+              <div v-else class="timeline">
+                  <div v-for="(log, index) in orderHistory" :key="index" class="timeline-item">
+                      <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}">
+                          <i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i>
+                      </div>
+                      
+                      <div class="timeline-card shadow-sm">
+                          <div class="d-flex justify-content-between align-items-start">
+                              <h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6>
+                              <span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span>
+                          </div>
+                          
+                          <div class="log-meta mb-2">
+                              <small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small>
+                              <small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small>
+                          </div>
 
-                    <div class="log-details p-2 bg-light rounded">
-                        <p class="mb-0 small text-secondary">
-                            <i class="fa-solid fa-info-circle me-1"></i> 
-                            {{ log.lyDo || 'Không có ghi chú thêm' }}
-                        </p>
-                    </div>
-                </div>
+                          <div class="log-details p-2 bg-light rounded">
+                              <p class="mb-0 small text-secondary">
+                                  <i class="fa-solid fa-info-circle me-1"></i> 
+                                  {{ log.lyDo || 'Không có ghi chú thêm' }}
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="mt-3 pt-3 border-top">
+              <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
+                  <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
+              </button>
             </div>
         </div>
-    </div>
 
-    
-
-    <div class="mt-3 pt-3 border-top">
-        <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
-            <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
-        </button>
-      </div>
-  </div>
-
-  <div v-else-if="modalView === 'changeTable'" class="change-table-container h-100 d-flex flex-column p-3" style="background-color: #f8f9fa;">
+        <div v-else-if="modalView === 'changeTable'" class="change-table-container h-100 d-flex flex-column p-3" style="background-color: #f8f9fa;">
           <div class="d-flex justify-content-between align-items-center mb-3">
              <div class="alert alert-secondary mb-0 border-0 shadow-sm flex-grow-1 me-4 d-flex align-items-center">
                 <i class="fa-solid fa-person-walking-arrow-right me-2 text-danger fs-5"></i>
@@ -1880,7 +1579,6 @@ watch(() => props.initialItems, (newItems) => {
           </div>
 
           <div class="floor-plan-layout flex-grow-1 overflow-hidden d-flex gap-3">
-             
              <div class="floor-plan-section flex-grow-1 bg-white shadow-sm border rounded">
                 <div class="grid-container h-100">
                    <div class="grid-canvas">
@@ -1938,7 +1636,6 @@ watch(() => props.initialItems, (newItems) => {
                    </div>
                 </div>
              </div>
-             
           </div>
 
           <div class="mt-3 pt-3 border-top bg-white px-3 py-2 rounded shadow-sm d-flex justify-content-between">
@@ -1946,6 +1643,35 @@ watch(() => props.initialItems, (newItems) => {
                 <i class="fa-solid fa-arrow-left me-1"></i> Hủy đổi bàn
              </button>
           </div>
+        </div>
+
+        <div v-else-if="modalView === 'viewQR'" class="qr-container h-100 d-flex flex-column align-items-center p-4" style="background-color: #f8f9fa;">
+            <h5 class="fw-bold mb-2 text-center" style="color: #7d161a;">
+                <i class="fa-solid fa-qrcode me-2"></i>Mã QR Đặt Món Bàn {{ selectedBan?.maBan }}
+            </h5>
+            <p class="text-center text-muted small mb-4">
+                Khuyến khích khách hàng quét mã này để tự chọn món. Đơn hàng sẽ tự động đồng bộ vào hóa đơn hiện tại.
+            </p>
+
+            <div class="qr-box p-3 bg-white shadow rounded border mb-4 d-flex justify-content-center align-items-center" style="width: 250px; height: 250px;">
+                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(customerOrderUrl)}&margin=10`" 
+                     alt="QR Code" 
+                     class="img-fluid" />
+            </div>
+
+            <div class="input-group mb-4 w-100 shadow-sm">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-link text-muted"></i></span>
+                <input type="text" class="form-control bg-light" :value="customerOrderUrl" readonly style="font-size: 13px;">
+                <button class="btn btn-outline-secondary" style="background-color: white;" @click="copyToClipboard(customerOrderUrl)">
+                    <i class="fa-regular fa-copy text-primary"></i> Copy
+                </button>
+            </div>
+
+            <div class="mt-auto w-100 pt-3 border-top">
+                <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
+                </button>
+            </div>
         </div>
 
         <div v-else class="h-100 full-modal-content">
@@ -2745,17 +2471,16 @@ hr {
 
 /* Màu sắc riêng từng loại */
 .cash-btn {
-  background-color: #28a745; /* Xanh lá */
+  background-color: #5c0a16; /* Xanh lá */
   width: 100%;
 }
 
 .vnpay-btn {
-  background-color: #007bff; /* Xanh dương */
+  background-color: #5c0a16; /* Xanh dương */
 }
 
 .mixed-btn {
-  background-color: #ffc107; /* Vàng */
-  color: #333;
+  background-color: #5c0a16; /* Vàng */
 }
 
 /* Nút hủy phiếu nhỏ gọn */
@@ -3103,6 +2828,12 @@ button:disabled {
   transition: all 0.2s ease;
 }
 
+.merge-payment-box {
+  transition: all 0.3s ease;
+}
+.merge-payment-box button {
+  border-width: 2px;
+}
 .time-btn:hover {
   color: #7d161a;
 }
@@ -3152,5 +2883,49 @@ button:disabled {
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   border-color: #28a745 !important; /* Đổi viền sang xanh lá thay vì đỏ */
   background-color: #f8fff9 !important;
+}
+
+.merge-payment-box {
+  transition: all 0.3s ease;
+}
+
+/* Nút gộp bàn mặc định */
+.custom-merge-btn {
+  border: 1px solid #ccc !important;
+  color: #333 !important;
+  background-color: #fff !important;
+}
+
+/* 🚨 XỬ LÝ HOVER: Bắt buộc ra màu đỏ nhạt, không được ra màu xanh */
+.custom-merge-btn:hover:not(.is-selected) {
+  border-color: #7d161a !important;
+  background-color: #fce8e8 !important; /* Màu nền đỏ cực nhạt */
+  color: #7d161a !important;
+}
+
+/* Đảm bảo chữ bên trong cũng đổi màu khi hover */
+.custom-merge-btn:hover:not(.is-selected) span,
+.custom-merge-btn:hover:not(.is-selected) small {
+  color: #7d161a !important;
+}
+
+/* 🚨 KHI ĐÃ CHỌN: Đỏ đậm chữ trắng */
+.custom-merge-btn.is-selected {
+  background-color: #7d161a !important;
+  border-color: #7d161a !important;
+  box-shadow: 0 4px 8px rgba(125, 22, 26, 0.3) !important;
+}
+
+/* Chống hiệu ứng xanh của Bootstrap khi click/focus */
+.custom-merge-btn:focus, 
+.custom-merge-btn:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Ép chữ trắng tuyệt đối khi đã chọn */
+.custom-merge-btn.is-selected span,
+.custom-merge-btn.is-selected small {
+  color: #ffffff !important;
 }
 </style>
