@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -159,7 +160,7 @@ public class HoaDonThanhToanService {
         Instant now = Instant.now();
 
         hd.setTrangThaiHoaDon(6);
-        hd.setThoiGianThanhToan(now);
+        hd.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
         hoaDonThanhToanRepository.save(hd);
 
         if (hd.getIdBanAn() != null){
