@@ -112,13 +112,18 @@ const routes = [
         ]
     },
 
-    // ================== THỐNG KÊ ==================
-    {
-        path: "/admin/statistics",
-        name: "statisticsManager",
-        component: () => import("@/pages/admin/statistics/screens/statisticsManager.vue"),
-        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-    },
+    // Trước khi sửa: meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+
+// SAU KHI SỬA:
+{
+    path: "/admin/statistics",
+    name: "statisticsManager",
+    component: () => import("@/pages/admin/statistics/screens/statisticsManager.vue"),
+    meta: { 
+        requiresAuth: true, 
+        requiredRole: ['ADMIN'] // Chỉ cho phép ADMIN
+    }
+},
 
     // ================== MENU & FOOD (ĐÃ LÀM PHẲNG) ==================
     {
@@ -364,6 +369,8 @@ router.beforeEach((to, from, next) => {
         }
         return next('/');
     }
+
+    
 
     next();
 });
