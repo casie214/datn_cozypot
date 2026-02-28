@@ -8,9 +8,11 @@ import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResp
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanResponse;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
 import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,6 +49,7 @@ public class HoaDonThanhToanController {
     private final LichSuThanhToanService lichSuThanhToanService;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
     private final PhieuDatBanRepository phieuDatBanRepository;
+    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -59,7 +63,6 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) Integer trangThaiHoanTien,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
@@ -72,7 +75,7 @@ public class HoaDonThanhToanController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai,trangThaiHoanTien, start, end, pageable);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
     @GetMapping("/get-by-id/{id}")
@@ -91,6 +94,19 @@ public class HoaDonThanhToanController {
             return ResponseEntity.ok("Thanh toán thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/hoan-tat")
+    public ResponseEntity<?> hoanTatHoaDon(@RequestBody LichSuHoaDonRequest request) {
+        try {
+            hoaDonThanhToanService.hoanTatHoaDon(request);
+            return ResponseEntity.ok("Hoàn tất hóa đơn và giải phóng bàn thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 
@@ -165,39 +181,34 @@ public class HoaDonThanhToanController {
 
     @GetMapping("/active-by-ban/{idBanAn}")
     public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
-        // 1. Lấy danh sách phiếu đang hoạt động từ Repository
+        // 1. Lấy danh sách phiếu đang hoạt động (Trạng thái 2: Đã xác nhận hoặc 3: Đã check-in)
         List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
         if (list == null || list.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        // 2. Lấy phiếu mới nhất
+        // 2. Lấy phiếu mới nhất của bàn đó
         PhieuDatBan phieu = list.get(0);
 
-        // 3. Mapping sang DTO
+        // 3. Khởi tạo và mapping thông tin cơ bản sang Response DTO
         PhieuDatBanResponse res = new PhieuDatBanResponse();
         res.setId(phieu.getId());
-
-        // ĐOẠN LẤY MÃ PHIẾU: Bạn hãy kiểm tra lại Entity, thường là một trong các tên sau:
-        // phieu.getMaPhieuDatBan() hoặc phieu.getMaDatBan() hoặc phieu.getMaPhieu()
         res.setMaPhieu(phieu.getMaDatBan());
-
         res.setThoiGianDat(phieu.getThoiGianDat());
         res.setSoNguoi(phieu.getIdBanAn().getSoNguoiToiDa());
         res.setTrangThai(phieu.getTrangThai());
 
-        // 4. Mapping thông tin Khách hàng (Thêm kiểm tra null để an toàn)
+        // 4. Mapping thông tin Khách hàng (An toàn khi khách vãng lai)
         if (phieu.getIdKhachHang() != null) {
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
             res.setSdtKhachHang(phieu.getIdKhachHang().getSoDienThoai());
         } else {
-            // Nếu là khách vãng lai hoặc không có data khách hàng
             res.setTenKhachHang("Khách vãng lai");
             res.setSdtKhachHang("N/A");
         }
 
-        // 5. Mapping thông tin Bàn ăn và Khu vực
+        // 5. Mapping thông tin Bàn ăn và Khu vực hiển thị UI
         if (phieu.getIdBanAn() != null) {
             res.setIdBanAn(phieu.getIdBanAn().getId());
             res.setMaBan(phieu.getIdBanAn().getMaBan());
@@ -205,6 +216,52 @@ public class HoaDonThanhToanController {
             if (phieu.getIdBanAn().getIdKhuVuc() != null) {
                 res.setTenKhuVuc(phieu.getIdBanAn().getIdKhuVuc().getTenKhuVuc());
                 res.setTang(phieu.getIdBanAn().getIdKhuVuc().getTang());
+            }
+        }
+
+        // 6. LOGIC QUAN TRỌNG: Lấy Hóa đơn và Chi tiết món ăn để gửi về Frontend
+        // Tìm hóa đơn gắn với Phiếu đặt bàn này
+        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
+
+        if (hoaDon != null) {
+            // Lấy tất cả các món trong chi tiết hóa đơn
+            List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
+
+            if (chiTietHD != null && !chiTietHD.isEmpty()) {
+                List<PhieuDatBanResponse.ChiTietMonResponse> dsMon = chiTietHD.stream().map(item -> {
+                    String tenMon = "Không xác định";
+                    Integer originalId = null;
+                    String type = "";
+                    Integer idMonAn = null;
+                    Integer idSet = null;
+
+                    // Kiểm tra xem là món lẻ hay set lẩu để lấy thông tin đúng
+                    if (item.getIdChiTietMonAn() != null) {
+                        tenMon = item.getIdChiTietMonAn().getTenMon();
+                        originalId = item.getIdChiTietMonAn().getId();
+                        type = "FOOD";
+                        idMonAn = originalId;
+                    } else if (item.getIdSetLau() != null) {
+                        tenMon = item.getIdSetLau().getTenSetLau();
+                        originalId = item.getIdSetLau().getId();
+                        type = "SET";
+                        idSet = originalId;
+                    }
+
+                    // Gọi Constructor đầy đủ 8 tham số đã khai báo trong DTO
+                    return new PhieuDatBanResponse.ChiTietMonResponse(
+                            originalId,   // id (dùng làm originalId cho FE)
+                            tenMon,       // tenMon
+                            item.getSoLuong(),
+                            item.getDonGiaTaiThoiDiemBan(),
+                            item.getThanhTien(),
+                            type,         // type ("FOOD" hoặc "SET")
+                            idMonAn,      // idChiTietMonAn
+                            idSet         // idSetLau
+                    );
+                }).collect(Collectors.toList());
+
+                res.setChiTiet(dsMon);
             }
         }
 
