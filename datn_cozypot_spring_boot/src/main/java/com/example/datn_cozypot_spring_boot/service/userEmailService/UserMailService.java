@@ -66,7 +66,7 @@ public class UserMailService {
                 "                " +
                 "                <div style=\"margin-bottom: 15px;\">" +
                 "                    <label style=\"color: #888; font-size: 12px; display: block; text-transform: uppercase;\">Tên đăng nhập</label>" +
-                "                    <span style=\"color: #333; font-weight: 500;\">" + req.getTenDangNhap() + "</span>" +
+                "                    <span style=\"color: #333; font-weight: 500;\">" + req.getEmail() + "</span>" +
                 "                </div>" +
                 "                " +
                 (type.equals("CREATE") ?
@@ -145,7 +145,8 @@ public class UserMailService {
         String title = type.equals("CREATE") ? "CHÀO MỪNG THÀNH VIÊN MỚI" : "CẬP NHẬT THÔNG TIN";
 
         // An toàn hơn: Tránh NullPointerException hoặc hiển thị chữ "null"
-        String userName = (req.getTenDangNhap() != null) ? req.getTenDangNhap() : "Liên hệ Admin";
+        // Sửa đoạn này:
+        String userName = (req.getEmail() != null) ? req.getEmail() : "Liên hệ Admin";
         String password = (req.getMatKhauDangNhap() != null) ? req.getMatKhauDangNhap() : "Đã bảo mật";
 
         // --- LOGIC LẤY ĐỊA CHỈ ĐÃ CHỌN ---
@@ -188,7 +189,7 @@ public class UserMailService {
                 "                </div>" +
                 "            </div>" +
                 "            <div style=\"margin-top: 30px; text-align: center;\">" +
-                "                <a href=\"http://your-website.com/login\" style=\"display: inline-block; background-color: #800000; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px;\">ĐĂNG NHẬP NGAY</a>" +
+                "                <a href=\"http://localhost:5173/home\" style=\"display: inline-block; background-color: #800000; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px;\">ĐĂNG NHẬP NGAY</a>" +
                 "            </div>" +
                 "        </div>" +
                 "        <div style=\"background-color: #f9f9f9; padding: 15px; text-align: center; font-size: 11px; color: #999;\">" +

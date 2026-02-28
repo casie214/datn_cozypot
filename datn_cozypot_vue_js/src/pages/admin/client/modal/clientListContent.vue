@@ -74,7 +74,7 @@
             <i class="fas fa-plus"></i>
           </button>
 
-          <button @click="handleExportExcel" title="Xuất Excel"
+          <button @click="handleActionWithAuth(handleExportExcel, 'ADMIN')" title="Xuất Excel"
             style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
             <i class="fas fa-file-excel"></i>
           </button>
@@ -114,7 +114,7 @@
               </td>
               <td>
                 <div class="d-flex align-items-center" style="justify-content: center;">
-                  
+
                   <div>
                     <div style="text-align: center !important;" class="fw-bold text-dark mb-0">
                       <span>{{ kh.tenKhachHang }}</span>
@@ -161,7 +161,7 @@
                   <div class="form-check form-switch" style="margin-bottom: 0; min-height: auto;">
                     <input class="form-check-input cz-switch shadow-none" type="checkbox" role="switch"
                       style="cursor: pointer; width: 2.5em; height: 1.25em;" :checked="kh.trangThai === 1"
-                      @click.prevent="onToggleStatus(kh)">
+                      @click.prevent="handleActionWithAuth(() => handleToggleStatus(kh), 'ADMIN')">
                   </div>
 
 
@@ -196,7 +196,28 @@ import clientService from '@/services/clientService';
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
 import '../clientStyle.css';
+import { useAuthStore } from "@/pages/guest/authentication/authenticationServices/authenticationService";
+const authStore = useAuthStore();
+const handleActionWithAuth = (callbackAction, requiredRole) => {
+  const userRole = authStore.role;
 
+  // Nếu role của người dùng không khớp với role yêu cầu (ADMIN)
+  if (userRole !== requiredRole) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Không có quyền thực hiện!',
+      text: 'Bạn không có quyền hạn thao tác chức năng này. Vui lòng liên hệ Quản trị viên.',
+      confirmButtonText: 'Đã hiểu',
+      confirmButtonColor: '#7d161a',
+      timer: 3000,
+      timerProgressBar: true
+    });
+    return; // Dừng lại, không chạy hàm callbackAction
+  }
+
+  // Nếu đúng quyền thì thực hiện hành động chính
+  callbackAction();
+};
 const { getStatusDisplay, fetchData } = useClientLogic();
 const router = useRouter();
 const listKhachHang = ref([]);
@@ -205,7 +226,7 @@ const filters = reactive({
   trangThai: null,
   gioiTinh: null, // Thêm dòng này để mặc định là "Tất cả"
   tuNgay: ''
-}); 
+});
 const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0, totalElements: 0 });
 
 // Sửa lại hàm handleSearch để nhận tham số page (mặc định là null)
@@ -214,8 +235,8 @@ const handleSearch = async (page = null) => {
 
   // Nếu có truyền page từ pagination thì cập nhật
   if (pagination.currentPage > pagination.totalPages && pagination.totalPages > 0) {
-  pagination.currentPage = 1;
-}
+    pagination.currentPage = 1;
+  }
   try {
     const data = await fetchData(filters, pagination);
 
@@ -300,7 +321,6 @@ const toggleSelectItem = (id) => {
 // Trong HTML bạn để @click.prevent="onToggleStatus(kh)" 
 // nhưng trong Script bạn đặt là handleToggleStatus.
 // Hãy đổi tên trong script hoặc template cho khớp nhau.
-const onToggleStatus = (kh) => handleToggleStatus(kh);
 
 // 5. Thêm hàm handleEdit
 const handleEdit = (kh) => {
@@ -406,7 +426,15 @@ const handleExportExcel = async () => {
     }
   }
 };
+const getFullAddress = (dc) => {
+  const tinh = listTinhThanh.find(t => t.id === dc.idTinhThanh)?.name
+  const huyen = listQuanHuyen.find(q => q.id === dc.idQuanHuyen)?.name
+  const xa = listPhuongXa.find(x => x.id === dc.idPhuongXa)?.name
 
+  return [dc.diaChiChiTiet, xa, huyen, tinh]
+    .filter(Boolean)
+    .join(', ')
+}
 // --- 2. Hàm Tải lại (Refresh) ---
 const handleRefresh = async () => {
   try {
@@ -427,9 +455,22 @@ const handleRefresh = async () => {
   }
 };
 
-// Tìm và XÓA phiên bản handleToggleStatus cũ đi
-// CHỈ GIỮ LẠI đoạn này:
-
+const onToggleStatus = (kh) => {
+  if (authStore.role !== 'ADMIN') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Hành động bị chặn!',
+      text: 'Bạn không có quyền thay đổi trạng thái khách hàng.',
+      confirmButtonText: 'Đã hiểu',
+      confirmButtonColor: '#7d161a',
+      timer: 2500,
+      timerProgressBar: true
+    });
+    return;
+  }
+  //a dmin thì đươc dùng
+  handleToggleStatus(kh);
+};
 const handleToggleStatus = async (kh) => {
   const isLocking = kh.trangThai === 1;
 

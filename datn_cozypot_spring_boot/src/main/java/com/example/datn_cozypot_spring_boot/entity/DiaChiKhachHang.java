@@ -7,13 +7,14 @@ import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "dia_chi_khach_hang")
-@Getter @Setter // Hoặc @Data nếu dùng Lombok
+@Getter
+@Setter
 public class DiaChiKhachHang {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_dia_chi") // Khớp với SQL của bạn
-    private Integer id; // Đặt tên là id để khớp với code trong Service
+    @Column(name = "id_dia_chi")
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_khach_hang")
@@ -28,7 +29,6 @@ public class DiaChiKhachHang {
 
     @Column(name = "la_mac_dinh")
     private Boolean laMacDinh;
-    // Trong file DiaChiKhachHang.java
 
     @Column(name = "id_tinh_thanh")
     private String idTinhThanh;

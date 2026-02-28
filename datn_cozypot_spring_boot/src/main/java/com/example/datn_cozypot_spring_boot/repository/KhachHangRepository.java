@@ -41,6 +41,8 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
 
     List<KhachHang> findByTrangThai(Integer trangThai);
+    Optional<KhachHang> findByEmail(String email);
+    Optional<KhachHang> findByEmailOrTenDangNhap(String email, String tenDangNhap);
 
     /**
      * Thống kê khách hàng theo tháng (Native Query cho SQL Server)
@@ -84,4 +86,5 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     );
 
     Optional<KhachHang> findKhachHangByEmail(String identifier);
+    Optional<KhachHang> findByTenDangNhap(String tenDangNhap);
 }

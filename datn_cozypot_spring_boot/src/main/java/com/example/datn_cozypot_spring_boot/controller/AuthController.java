@@ -9,6 +9,7 @@ import com.example.datn_cozypot_spring_boot.security.CustomUserDetailsService;
 import com.example.datn_cozypot_spring_boot.security.JwtTokenProvider;
 import com.example.datn_cozypot_spring_boot.service.AuthenticationService.AuthService;
 import com.example.datn_cozypot_spring_boot.service.AuthenticationService.GoogleAuthService;
+import com.example.datn_cozypot_spring_boot.service.AuthenticationService.MailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -37,12 +40,15 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
     private final GoogleAuthService googleAuthService;
+    private final MailService mailService;
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> loginAdmin(@RequestBody LoginRequest req) {
         NhanVien nv = nhanVienRepository.findNhanVienByTenDangNhap(req.getUsername())
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
-
+        if (nv.getTrangThaiLamViec() != 1) {
+            return ResponseEntity.status(403).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
+        }
         if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
             return ResponseEntity.status(401).body("Sai mật khẩu");
         }
@@ -61,32 +67,70 @@ public class AuthController {
                 nv.getSdtNhanVien()));
     }
 
-    //login cho khách hàng
     @PostMapping("/client/login")
     public ResponseEntity<?> loginClient(@RequestBody LoginRequest req) {
-        KhachHang kh = khachHangRepository.findKhachHangByEmail(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
-        if (!passwordEncoder.matches(req.getPassword(), kh.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Sai mật khẩu");
+        KhachHang kh = khachHangRepository
+                .findByEmailOrTenDangNhap(req.getUsername(), req.getUsername())
+                .orElseThrow(() -> new RuntimeException("Tài khoản hoặc Email không tồn tại"));
+        if (kh.getTrangThai() != 1) {
+            return ResponseEntity.status(403).body("Tài khoản khách hàng đã bị ngừng hoạt động");
         }
 
-        String accessToken = tokenProvider.generateToken(kh.getEmail(), "USER");
-        String refreshToken = jwtUtils.generateRefreshToken(kh.getTenDangNhap());
+        if (!passwordEncoder.matches(req.getPassword(), kh.getMatKhauDangNhap())) {
+            return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
+        }
 
-        return ResponseEntity.ok(new AuthResponse(accessToken,
+        String identifier = (kh.getTenDangNhap() != null && !kh.getTenDangNhap().isEmpty())
+                ? kh.getTenDangNhap()
+                : kh.getEmail();
+
+        String accessToken = tokenProvider.generateToken(identifier, "USER");
+        String refreshToken = jwtUtils.generateRefreshToken(identifier);
+
+        return ResponseEntity.ok(new AuthResponse(
+                accessToken,
                 refreshToken,
                 "USER",
                 kh.getId(),
-                kh.getEmail(),
+                kh.getTenDangNhap(),
                 kh.getTenKhachHang(),
-                kh.getSoDienThoai()));
+                kh.getSoDienThoai()
+        ));
     }
+
+
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok(Collections.singletonMap("message", "Đăng ký thành công! Vui lòng đăng nhập."));
+        return ResponseEntity.ok(Collections.singletonMap("message", "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra!"));    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        try {
+            authService.verifyOtp(email, otp);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Đăng ký thành công! Vui lòng đăng nhập."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Collections.singletonMap("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        try {
+            // Bạn cần thêm hàm resendOtp trong AuthService (logic: tạo OTP mới, update bảng tạm, gửi lại mail)
+            // Nếu chưa kịp viết resendOtp, bạn có thể tạm gọi lại hàm register nếu bạn đã xử lý MERGE/Delete cũ
+            // Ở đây tôi gọi một hàm giả định trong service:
+            authService.resendOtp(email);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Mã OTP mới đã được gửi!"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Collections.singletonMap("message", "Không thể gửi lại mã!"));
+        }
     }
 
     @PostMapping("/refresh-token")
@@ -119,10 +163,46 @@ public class AuthController {
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
         String code = request.get("code");
         try {
-            Map<String, String> result = googleAuthService.loginWithGoogle(code);
+            Map<String, Object> result = googleAuthService.loginWithGoogle(code);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
+            if (e.getMessage().contains("chưa tồn tại")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi đăng nhập Google: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        try {
+            Optional<KhachHang> kh = khachHangRepository.findKhachHangByEmail(email);
+            if (kh.isPresent()) {
+                String newPassword = generateRandomPassword();
+                kh.get().setMatKhauDangNhap(passwordEncoder.encode(newPassword));
+                khachHangRepository.save(kh.get());
+                mailService.sendForgotPasswordEmail(email, newPassword);
+                return ResponseEntity.ok("Mật khẩu mới đã được gửi đến email của bạn.");
+            }
+
+            Optional<NhanVien> nv = nhanVienRepository.findNhanVienByTenDangNhap(email);
+            if (nv.isPresent()) {
+                String newPassword = generateRandomPassword();
+                nv.get().setMatKhauDangNhap(passwordEncoder.encode(newPassword));
+                nhanVienRepository.save(nv.get());
+
+                mailService.sendForgotPasswordEmail(email, newPassword);
+                return ResponseEntity.ok("Mật khẩu mới đã được gửi đến email của bạn.");
+            }
+            return ResponseEntity.status(404).body("Email không tồn tại trong hệ thống!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    private String generateRandomPassword() {
+        return String.valueOf((int)((Math.random() * 899999) + 100000)); // Tạo số ngẫu nhiên 6 chữ số
     }
 }
