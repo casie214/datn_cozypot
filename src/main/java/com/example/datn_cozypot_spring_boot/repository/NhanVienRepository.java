@@ -29,16 +29,27 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             @Param("gioiTinh") Boolean gioiTinh, // Thêm tham số giới tính (Boolean)
             @Param("tuNgay") LocalDate tuNgay,
             Pageable pageable);
+
     // SỬA DÒNG NÀY: Từ existsBySoDienThoai thành existsBySdtNhanVien
     boolean existsByTenDangNhap(String tenDangNhap);
+
     boolean existsByEmail(String email);
+
     boolean existsBySdtNhanVien(String sdt);
+
     boolean existsBySoCccd(String cccd);
 
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
+
     boolean existsByEmailAndIdNot(String email, Integer id);
+
     boolean existsBySdtNhanVienAndIdNot(String sdt, Integer id);
+
     boolean existsBySoCccdAndIdNot(String cccd, Integer id);
 
     Optional<NhanVien> findNhanVienByTenDangNhap(String identifier);
+
+    Optional<NhanVien> findByTenDangNhap(String tenDangNhap);
+    Optional<NhanVien> findByEmail(String email);
+
 }

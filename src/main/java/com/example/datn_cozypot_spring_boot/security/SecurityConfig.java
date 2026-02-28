@@ -30,6 +30,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
+    private final CustomAccessDeniedHandler accessDeniedHandler;
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,14 +44,17 @@ public class SecurityConfig {
           .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(unauthorizedHandler))
-          .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**").permitAll()
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler(accessDeniedHandler) // <--- Thêm dòng này để xử lý 403
+                )
+                .authorizeHttpRequests(auth -> auth
+                  .requestMatchers("/api/auth/**").permitAll()
+                  .requestMatchers(HttpMethod.POST, "/api/tai-khoan/doi-mat-khau").authenticated()
+                  .requestMatchers(HttpMethod.PUT, "/api/tai-khoan/doi-mat-khau").authenticated()
                   .requestMatchers("/api/auth/refresh-token").permitAll()
                   .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
-                  .requestMatchers(
-                          "/api/dot-khuyen-mai/export-excel"
-                  ).permitAll()
+                  .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()
                   .requestMatchers("/api/guest/**").permitAll()
                   .requestMatchers("/api/khach-hang/**").permitAll()
                   .requestMatchers("/api/thong-ke/**").permitAll()
@@ -59,10 +63,10 @@ public class SecurityConfig {
                   .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
                   .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
             .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
             .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
             .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN")
-
 
                   .requestMatchers("/dat-ban/**").permitAll()
             .requestMatchers("/uploads/**").permitAll()

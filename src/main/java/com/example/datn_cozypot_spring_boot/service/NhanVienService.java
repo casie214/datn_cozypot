@@ -4,6 +4,7 @@ import com.example.datn_cozypot_spring_boot.dto.NhanVienRequest;
 import com.example.datn_cozypot_spring_boot.dto.NhanVienResponse;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.entity.VaiTro;
+import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import com.example.datn_cozypot_spring_boot.repository.NhanVienRepository;
 import com.example.datn_cozypot_spring_boot.repository.VaiTroRepository;
 import com.example.datn_cozypot_spring_boot.service.userEmailService.UserMailService;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,13 +57,16 @@ public class NhanVienService {
 
     @Autowired
     private NhanVienRepository repo;
-
+    @Autowired
+    private KhachHangRepository khachHangRepo;
     @Autowired
     private VaiTroRepository vaiTroRepo;
 
     @Autowired
     private UserMailService userMailService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     private final Path storageFolder = Paths.get("uploads/images");
 
     public NhanVienService() {
@@ -83,13 +88,22 @@ public class NhanVienService {
             throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
         }
     }
-
     public boolean checkDuplicate(String type, String value, Integer excludeId) {
         if (value == null || value.isBlank()) return false;
+        if ("email".equals(type)) {
+            boolean existsInNhanVien;
+            if (excludeId != null) {
+                existsInNhanVien = repo.existsByEmailAndIdNot(value, excludeId);
+            } else {
+                existsInNhanVien = repo.existsByEmail(value);
+            }
+            boolean existsInKhachHang = khachHangRepo.existsByEmail(value);
+
+            return existsInNhanVien || existsInKhachHang;
+        }
         if (excludeId != null) {
             return switch (type) {
                 case "tenDangNhap" -> repo.existsByTenDangNhapAndIdNot(value, excludeId);
-                case "email" -> repo.existsByEmailAndIdNot(value, excludeId);
                 case "sdtNhanVien" -> repo.existsBySdtNhanVienAndIdNot(value, excludeId);
                 case "soCccd" -> repo.existsBySoCccdAndIdNot(value, excludeId);
                 default -> false;
@@ -97,7 +111,6 @@ public class NhanVienService {
         } else {
             return switch (type) {
                 case "tenDangNhap" -> repo.existsByTenDangNhap(value);
-                case "email" -> repo.existsByEmail(value);
                 case "sdtNhanVien" -> repo.existsBySdtNhanVien(value);
                 case "soCccd" -> repo.existsBySoCccd(value);
                 default -> false;
@@ -118,58 +131,66 @@ public class NhanVienService {
 
     @Transactional
     public NhanVienResponse create(NhanVienRequest req, MultipartFile file) {
-        // 1. Kiểm tra trùng lặp
-        if (repo.existsByTenDangNhap(req.getTenDangNhap())) throw new RuntimeException("Tên đăng nhập đã tồn tại");
-        if (repo.existsByEmail(req.getEmail())) throw new RuntimeException("Email đã tồn tại");
+        if (repo.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email này đã được sử dụng!");
+        }
 
-        // 2. Map dữ liệu và xử lý ảnh
+        // Check bảng Khách hàng (SỬA Ở ĐÂY)
+        if (khachHangRepo.existsByEmail(req.getEmail())) {
+            throw new RuntimeException("Email này đã được sử dụng!");
+        }
+
+        // Check tên đăng nhập (nếu cần tách biệt)
+        if (repo.existsByTenDangNhap(req.getEmail()))
+            throw new RuntimeException("Email này đã được sử dụng!");
         NhanVien nv = new NhanVien();
         mapRequestToEntity(req, nv);
+        nv.setTenDangNhap(req.getEmail());
+        // Xử lý mật khẩu thô
+        String rawPassword = (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().isEmpty())
+                ? req.getMatKhauDangNhap() : "123456";
+        req.setMatKhauDangNhap(rawPassword);
+        nv.setMatKhauDangNhap(passwordEncoder.encode(rawPassword));
         if (file != null && !file.isEmpty()) {
             nv.setAnhDaiDien(saveImage(file));
         }
-
-        // 3. Lưu vào Database
         NhanVien savedNv = repo.save(nv);
-        NhanVienResponse response = convertToResponse(savedNv);
-
-        // 4. Gửi mail thông báo (Đặt trong try-catch để nếu lỗi mail thì vẫn không mất dữ liệu DB)
         try {
             userMailService.sendStaffNotificationMail(req, "CREATE");
         } catch (Exception e) {
-            // Chỉ log lỗi ra console, không chặn luồng trả về của khách hàng
-            System.err.println("Lỗi gửi email khi tạo mới: " + e.getMessage());
+            System.err.println("Lỗi gửi email: " + e.getMessage());
         }
 
-        return response;
+        return convertToResponse(savedNv);
     }
-
     @Transactional
     public NhanVienResponse update(Integer id, NhanVienRequest req, MultipartFile file) {
-        // 1. Kiểm tra tồn tại và trùng lặp
         NhanVien nv = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
-        if (repo.existsByTenDangNhapAndIdNot(req.getTenDangNhap(), id))
-            throw new RuntimeException("Tên đăng nhập bị trùng");
-        if (repo.existsByEmailAndIdNot(req.getEmail(), id)) throw new RuntimeException("Email đã bị trùng");
+        String currentPasswordInDb = nv.getMatKhauDangNhap();
 
-        // 2. Map dữ liệu mới và xử lý ảnh (nếu có ảnh mới)
+        if (repo.existsByEmailAndIdNot(req.getEmail(), id))
+            throw new RuntimeException("Email này đã được sử dụng");
+        if (khachHangRepo.existsByEmail(req.getEmail()))
+            throw new RuntimeException("Email này đã được sử dụng");
+        if (repo.existsByTenDangNhapAndIdNot(req.getEmail(), id))
+            throw new RuntimeException("Email này đã được sử dụng");
         mapRequestToEntity(req, nv);
+        nv.setTenDangNhap(req.getEmail());
+        if (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().trim().isEmpty()) {
+            nv.setMatKhauDangNhap(passwordEncoder.encode(req.getMatKhauDangNhap()));
+        } else {
+            nv.setMatKhauDangNhap(currentPasswordInDb);
+        }
         if (file != null && !file.isEmpty()) {
             nv.setAnhDaiDien(saveImage(file));
         }
-
-        // 3. Cập nhật vào Database
         NhanVien updatedNv = repo.save(nv);
-        NhanVienResponse response = convertToResponse(updatedNv);
-
-        // 4. Gửi mail thông báo cập nhật
         try {
             userMailService.sendStaffNotificationMail(req, "UPDATE");
         } catch (Exception e) {
             System.err.println("Lỗi gửi email khi cập nhật: " + e.getMessage());
         }
-
-        return response;
+        return convertToResponse(updatedNv);
     }
 
     @Transactional
@@ -372,15 +393,15 @@ public class NhanVienService {
             if (repo.existsBySoCccd(cccd)) {
                 errorMessages.append("Dòng ").append(i + 1).append(": Số CCCD '").append(cccd).append("' đã tồn tại.\n");
             }
+            if (khachHangRepo.existsByEmail(email)) {
+                errorMessages.append("Dòng ").append(i + 1).append(": Email '").append(email).append("' đã được đăng ký bởi một khách hàng.\n");
+            }
 
-            // Nếu đã có lỗi ở các dòng trước hoặc dòng này, không cần tạo Object nữa, chỉ quét tiếp để tìm lỗi
             if (errorMessages.length() > 0) continue;
 
-            // --- NẾU KHÔNG CÓ LỖI THÌ TẠO ĐỐI TƯỢNG ---
             NhanVien nv = new NhanVien();
             nv.setHoTenNhanVien(hoTen);
 
-            // Vai trò
             String tenVT = getCellValue(row.getCell(1));
             VaiTro vt = vaiTroRepo.findByTenVaiTro(tenVT);
             nv.setIdVaiTro(vt);
