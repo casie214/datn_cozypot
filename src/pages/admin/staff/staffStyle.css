@@ -50,13 +50,12 @@
 /* 4. CARD BỘ LỌC VÀ BẢNG (NỀN TRẮNG HOÀN TOÀN) */
 .filter-card-premium, 
 .table-container-premium {
-  background: var(--bg-white) !important;
-  border-radius: 16px !important;
-  border: 1px solid var(--border-light) !important;
-  box-shadow: var(--shadow-premium) !important;
-  margin-bottom: 25px;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  background: var(--white);
+  border-radius: 15px;
+  margin-bottom: 30px;
+  /* Giữ viền xám nhẹ của bạn */
+
+  box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
 
 

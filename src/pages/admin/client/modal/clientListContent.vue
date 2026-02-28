@@ -541,17 +541,14 @@ onMounted(handleSearch);
 .filter-card {
   background: var(--white);
   border-radius: 15px;
-
   margin-bottom: 30px;
   /* Giữ viền xám nhẹ của bạn */
-  border: 1px solid #d0cece;
 
   box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
 
 .filter-label {
   font-size: 13px;
-  color: #888;
   margin-bottom: 5px;
   display: block;
 }
