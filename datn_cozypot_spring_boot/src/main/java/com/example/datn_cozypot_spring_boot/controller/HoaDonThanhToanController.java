@@ -26,11 +26,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -194,7 +192,7 @@ public class HoaDonThanhToanController {
 
     @GetMapping("/active-by-ban/{idBanAn}")
     public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
-        // 1. Lấy danh sách phiếu đang hoạt động (Trạng thái 2: Đã xác nhận hoặc 3: Đã check-in)
+        // 1. Lấy danh sách phiếu đang hoạt động
         List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
         if (list == null || list.isEmpty()) {
@@ -209,9 +207,9 @@ public class HoaDonThanhToanController {
         res.setId(phieu.getId());
         res.setMaPhieu(phieu.getMaDatBan());
         res.setThoiGianDat(phieu.getThoiGianDat());
-        res.setSoNguoi(phieu.getIdBanAn().getSoNguoiToiDa());
+        res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
-
+        res.setIdKhachHang(phieu.getIdKhachHang().getId());
 
         // 4. Mapping thông tin Khách hàng (An toàn khi khách vãng lai)
         if (phieu.getIdKhachHang() != null) {
@@ -237,7 +235,20 @@ public class HoaDonThanhToanController {
         // Tìm hóa đơn gắn với Phiếu đặt bàn này
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
 
+        // Nếu chưa tìm thấy qua Phiếu, thử tìm qua Bàn đang hoạt động (Đảm bảo không bị lọt hóa đơn)
+        if (hoaDon == null) {
+            hoaDon = hoaDonThanhToanRepository.findActiveBillByBanAn(idBanAn).orElse(null);
+        }
+
         if (hoaDon != null) {
+            // 🚨 GÁN ID VÀ THÔNG TIN TÀI CHÍNH CỦA HÓA ĐƠN Ở ĐÂY
+            res.setIdHoaDon(hoaDon.getId());
+            res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO);
+            res.setSoTienDaGiam(hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO);
+            res.setTienCoc(hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO);
+            res.setTongTienThanhToan(hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO);
+            res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
+
             // Lấy tất cả các món trong chi tiết hóa đơn
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
 
@@ -262,7 +273,7 @@ public class HoaDonThanhToanController {
                         idSet = originalId;
                     }
 
-                    // Khởi tạo đối tượng rỗng và dùng Setter (rất an toàn và dễ đọc)
+                    // Khởi tạo đối tượng rỗng và dùng Setter
                     PhieuDatBanResponse.ChiTietMonResponse chiTietDTO = new PhieuDatBanResponse.ChiTietMonResponse();
 
                     // Set 8 trường thông tin món
@@ -275,7 +286,7 @@ public class HoaDonThanhToanController {
                     chiTietDTO.setIdChiTietMonAn(idMonAn);
                     chiTietDTO.setIdSetLau(idSet);
 
-                    // 🚨 Set 2 trường mới để thao tác tick/xóa hoạt động đúng (khóa chính và trạng thái)
+                    // Setup để thao tác Front-end không lỗi
                     chiTietDTO.setIdChiTietHd(item.getId());
                     chiTietDTO.setTrangThaiMon(item.getTrangThaiMon());
 
@@ -283,7 +294,16 @@ public class HoaDonThanhToanController {
                 }).collect(Collectors.toList());
 
                 res.setChiTiet(dsMon);
+            } else {
+                res.setChiTiet(new ArrayList<>()); // Ép mảng rỗng thay vì null để Vue không bị lỗi
             }
+        } else {
+            // Hóa đơn null -> Setup giá trị mặc định để Frontend không bị "Undefined"
+            res.setTongTienChuaGiam(BigDecimal.ZERO);
+            res.setSoTienDaGiam(BigDecimal.ZERO);
+            res.setTienCoc(BigDecimal.ZERO);
+            res.setTongTienThanhToan(BigDecimal.ZERO);
+            res.setChiTiet(new ArrayList<>());
         }
 
         return ResponseEntity.ok(res);

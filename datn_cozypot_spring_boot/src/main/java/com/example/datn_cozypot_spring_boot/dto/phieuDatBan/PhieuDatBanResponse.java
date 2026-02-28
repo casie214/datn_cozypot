@@ -26,6 +26,15 @@ public class PhieuDatBanResponse {
     private String maBan;
     private String tenKhuVuc;
     private Integer tang;
+    private Integer idHoaDon;
+    private Integer idKhachHang;
+
+    private BigDecimal tongTienChuaGiam;
+    private BigDecimal soTienDaGiam;
+    private BigDecimal tienCoc;
+    private BigDecimal tongTienThanhToan;
+
+    private Double vatApDung;
 
     private List<ChiTietMonResponse> chiTiet;
 
