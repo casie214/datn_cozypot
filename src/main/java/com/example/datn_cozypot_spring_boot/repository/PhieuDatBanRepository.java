@@ -154,4 +154,7 @@ Page<PhieuDatBan> search(
     @Query("SELECT p FROM PhieuDatBan p WHERE p.idBanAn.id = :idBanAn AND p.trangThai IN (2, 3) ORDER BY p.id DESC")
     List<PhieuDatBan> findActivePhieuByBanAn(@Param("idBanAn") Integer idBanAn);
 
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.thoiGianDat >= :startOfDay AND p.thoiGianDat <= :endOfDay AND p.trangThai IN (1, 2, 3)")
+    List<PhieuDatBan> findPhieuDatBanTrongNgay(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
 }
