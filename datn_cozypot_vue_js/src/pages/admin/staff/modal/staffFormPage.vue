@@ -670,18 +670,18 @@ const handleSave = async () => {
         errors[key] = resData.errors[key];
       });
       toast.error("Thông tin nhập vào chưa đúng, vui lòng kiểm tra các ô báo đỏ!");
-      
+
       nextTick(() => {
         const firstError = document.querySelector('.is-invalid');
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
-    } 
+    }
     else {
-      toast.error(errorMsg); 
+      toast.error(errorMsg);
       Swal.fire({
         icon: 'error',
         title: 'Thông báo',
-        text: errorMsg, 
+        text: errorMsg,
         confirmButtonColor: '#800000',
       });
     }
@@ -699,8 +699,15 @@ const handleSave = async () => {
 onMounted(async () => {
   try {
     const roleRes = await staffService.getActiveRoles();
-    listRoles.value = roleRes.data;
-
+    listRoles.value = roleRes.data.map(role => {
+      if (role.tenVaiTro === 'ADMIN') {
+        return { ...role, tenVaiTro: 'Quản trị viên' };
+      }
+      if (role.tenVaiTro === 'EMPLOYEE') {
+        return { ...role, tenVaiTro: 'Nhân viên' };
+      }
+      return role;
+    });
     if (staffId.value) {
       const res = await staffService.getDetail(staffId.value);
       Object.assign(formData, res.data);
