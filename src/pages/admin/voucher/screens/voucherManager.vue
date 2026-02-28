@@ -89,10 +89,11 @@
             </div>
 
             <div class="d-flex justify-content-end mb-3 gap-2">
-                <button class="btn-red-dark" @click="exportExcel">
+                <button class="btn-red-dark" @click="handleActionWithAuth(() => exportExcel(), 'ADMIN')">
                     <i class="fas fa-file-excel me-2"></i> Xuất Excel
                 </button>
-                <button class="btn-red-dark" @click="openFormAdd">
+
+                <button class="btn-red-dark" @click="handleActionWithAuth(() => openFormAdd(), 'ADMIN')">
                     <i class="fas fa-plus me-2"></i> Thêm phiếu giảm giá
                 </button>
             </div>
@@ -165,7 +166,8 @@
                                     <div class="icon-tooltip">
                                         <i class="fas fa-pen edit-icon"
                                             :class="{ 'disabled-icon': getStatusDisplay(pg).text === 'Hết hạn' }"
-                                            @click="getStatusDisplay(pg).text !== 'Hết hạn' && openFormEdit(pg.id)"></i>
+                                            @click="getStatusDisplay(pg).text !== 'Hết hạn' && handleActionWithAuth(() => openFormEdit(pg.id), 'ADMIN')">
+                                        </i>
                                         <span class="tooltip-text">Chỉnh sửa</span>
                                     </div>
 
@@ -173,17 +175,16 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input custom-red-switch" type="checkbox"
                                                 :checked="pg.trangThai === 1" :disabled="isExpired(pg.ngayKetThuc)"
-                                                @click.prevent="!isExpired(pg.ngayKetThuc) && triggerToggleStatus(pg)" />
+                                                @click.prevent="!isExpired(pg.ngayKetThuc) && handleActionWithAuth(() => triggerToggleStatus(pg), 'ADMIN')" />
                                         </div>
 
                                         <span class="tooltip-text">
                                             {{ isExpired(pg.ngayKetThuc)
                                                 ? 'Phiếu giảm giá đã hết hạn'
-                                                : 'Bật / Tắt phiếu giảm giá' }}
+                                            : 'Bật / Tắt phiếu giảm giá' }}
                                         </span>
                                     </div>
                                 </div>
-
                             </td>
                         </tr>
                         <tr v-if="listPhieuGiamGia.length === 0">
@@ -637,6 +638,9 @@ import { ref, onMounted, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
+import { usePermission } from "@/components/permissionHelper";
+const { handleActionWithAuth } = usePermission();
+
 const formatCurrency = (value) => {
     if (!value) return '0 đ'
     return value.toLocaleString('vi-VN') + ' đ'
@@ -779,25 +783,25 @@ const validateForm = () => {
     ======================== */
     const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/;
 
-if (!formData.tenPhieuGiamGia) {
-    errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
-    isValid = false;
-}
-else if (!nameRegex.test(formData.tenPhieuGiamGia)) {
-    errors.tenPhieuGiamGia =
-        "Tên không được chứa ký tự đặc biệt";
-    isValid = false;
-}
-else if (formData.tenPhieuGiamGia.length < 5) {
-    errors.tenPhieuGiamGia =
-        "Tên phải ≥ 5 ký tự";
-    isValid = false;
-}
-else if (formData.tenPhieuGiamGia.length > 200) {
-    errors.tenPhieuGiamGia =
-        "Tên tối đa 200 ký tự";
-    isValid = false;
-}
+    if (!formData.tenPhieuGiamGia) {
+        errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
+        isValid = false;
+    }
+    else if (!nameRegex.test(formData.tenPhieuGiamGia)) {
+        errors.tenPhieuGiamGia =
+            "Tên không được chứa ký tự đặc biệt";
+        isValid = false;
+    }
+    else if (formData.tenPhieuGiamGia.length < 5) {
+        errors.tenPhieuGiamGia =
+            "Tên phải ≥ 5 ký tự";
+        isValid = false;
+    }
+    else if (formData.tenPhieuGiamGia.length > 200) {
+        errors.tenPhieuGiamGia =
+            "Tên tối đa 200 ký tự";
+        isValid = false;
+    }
 
     /* ========================
        3. Code
