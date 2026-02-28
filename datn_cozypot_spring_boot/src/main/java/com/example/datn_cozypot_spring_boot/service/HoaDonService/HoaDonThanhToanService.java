@@ -233,7 +233,9 @@ public class HoaDonThanhToanService {
 
     @Transactional
     public void createOrder(HoaDonThanhToanRequest req) {
-        // 1. TÌM CHÍNH XÁC HÓA ĐƠN ĐANG THAO TÁC
+        // =======================================================
+        // 1. TÌM HOẶC TẠO MỚI HÓA ĐƠN
+        // =======================================================
         BanAn banAn = banAnRepo.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Bàn ăn không tồn tại"));
 
@@ -251,24 +253,25 @@ public class HoaDonThanhToanService {
         } else {
             hoaDon = new HoaDonThanhToan();
             hoaDon.setIdBanAn(banAn);
-            // ... set các thông tin cơ bản cho hóa đơn mới như cũ
             hoaDon.setThoiGianTao(Instant.now());
-            hoaDon.setTrangThaiHoaDon(4);
+            hoaDon.setTrangThaiHoaDon(4); // 4 = Đang phục vụ
             hoaDon.setTongTienChuaGiam(BigDecimal.ZERO);
             hoaDon.setTongTienThanhToan(BigDecimal.ZERO);
+
+            if (req.getIdNhanVien() != null) {
+                NhanVien nv = nhanVienRepository.findById(req.getIdNhanVien()).orElse(null);
+                hoaDon.setIdNhanVien(nv);
+            }
             hoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
-            LichSuHoaDon logTaoMoi = new LichSuHoaDon();
-            logTaoMoi.setIdHoaDon(hoaDon);
-            logTaoMoi.setHanhDong("Mở bàn");
-            logTaoMoi.setTrangThaiMoi(4);
-            logTaoMoi.setThoiGianThucHien(Instant.now());
-            logTaoMoi.setIdNhanVien(hoaDon.getIdNhanVien());
-            lichSuHoaDonRepository.save(logTaoMoi);
+            // 📝 LOG: Tạo hóa đơn
+            ghiLichSu(hoaDon, req.getIdNhanVien(), "Tạo hóa đơn", "Mở bàn " + banAn.getMaBan(), null, 4);
 
-            banAn.setTrangThai(1);
+            banAn.setTrangThai(1); // Bàn chuyển sang Có khách
             banAnRepo.save(banAn);
         }
+
+        Integer trangThaiHienTai = hoaDon.getTrangThaiHoaDon();
 
         // =======================================================
         // 2. ĐỒNG BỘ CHI TIẾT MÓN ĂN
@@ -283,44 +286,50 @@ public class HoaDonThanhToanService {
         if (requestDetails == null) requestDetails = new ArrayList<>();
 
         for (ChiTietHoaDonRequest itemReq : requestDetails) {
-
-            // ÉP KIỂU VỀ STRING ĐỂ SO SÁNH (CHỐNG LỖI INTEGER KHÔNG BẰNG LONG)
             Optional<ChiTietHoaDon> matchOpt = existingDetails.stream().filter(dbItem -> {
+                if (itemReq.getId() != null && itemReq.getId().equals(dbItem.getId())) return true;
                 boolean isFoodMatch = itemReq.getIdChiTietMonAn() != null && dbItem.getIdChiTietMonAn() != null
-                        && String.valueOf(itemReq.getIdChiTietMonAn()).equals(String.valueOf(dbItem.getIdChiTietMonAn().getId()));
-
+                        && itemReq.getIdChiTietMonAn().equals(dbItem.getIdChiTietMonAn().getId());
                 boolean isSetMatch = itemReq.getIdSetLau() != null && dbItem.getIdSetLau() != null
-                        && String.valueOf(itemReq.getIdSetLau()).equals(String.valueOf(dbItem.getIdSetLau().getId()));
-
+                        && itemReq.getIdSetLau().equals(dbItem.getIdSetLau().getId());
                 return isFoodMatch || isSetMatch;
             }).findFirst();
 
             ChiTietHoaDon chiTiet;
-            BigDecimal donGiaGoc;
+            BigDecimal donGiaGoc = BigDecimal.ZERO;
 
             if (matchOpt.isPresent()) {
-                // ĐÃ TỒN TẠI -> Cập nhật số lượng
+                // MÓN CŨ ĐÃ CÓ TRONG DB
                 chiTiet = matchOpt.get();
                 donGiaGoc = chiTiet.getDonGiaTaiThoiDiemBan();
+
+                if (chiTiet.getTrangThaiMon() != null && chiTiet.getTrangThaiMon() == 0) {
+                    chiTiet.setTrangThaiMon(1);
+                    ghiLichSu(hoaDon, req.getIdNhanVien(),
+                            "Gọi lại món: " + getTenMonFromEntity(chiTiet) + " x" + itemReq.getSoLuong(),
+                            "Khách gọi lại món đã hủy", trangThaiHienTai, trangThaiHienTai);
+                }
+
                 chiTiet.setSoLuong(itemReq.getSoLuong());
                 chiTiet.setGhiChuMon(itemReq.getGhiChu());
             } else {
-                // MỚI TOANH -> Tạo mới
+                // MÓN MỚI TOANH 100%
                 chiTiet = new ChiTietHoaDon();
                 chiTiet.setIdHoaDon(hoaDon);
 
+                // 🚨 KIỂM TRA CHẶT CHẼ TRÁNH LỖI NULL
                 if (itemReq.getIdChiTietMonAn() != null) {
                     DanhMucChiTiet monAn = chiTietDanhMucChiTietRepository.findById(itemReq.getIdChiTietMonAn())
-                            .orElseThrow(() -> new RuntimeException("Lỗi ID Món"));
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn ID " + itemReq.getIdChiTietMonAn()));
                     chiTiet.setIdChiTietMonAn(monAn);
                     donGiaGoc = monAn.getGiaBan();
                 } else if (itemReq.getIdSetLau() != null) {
                     SetLau setLau = setLauRepository.findById(itemReq.getIdSetLau())
-                            .orElseThrow(() -> new RuntimeException("Lỗi ID Set"));
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID " + itemReq.getIdSetLau()));
                     chiTiet.setIdSetLau(setLau);
                     donGiaGoc = setLau.getGiaBan();
                 } else {
-                    continue;
+                    throw new RuntimeException("Dữ liệu không hợp lệ: Phải truyền ID Món hoặc ID Set");
                 }
 
                 chiTiet.setDonGiaTaiThoiDiemBan(donGiaGoc);
@@ -328,39 +337,107 @@ public class HoaDonThanhToanService {
                 chiTiet.setNgayGioTao(LocalDateTime.now());
                 chiTiet.setSoLuong(itemReq.getSoLuong());
                 chiTiet.setGhiChuMon(itemReq.getGhiChu());
+
+                // 📝 LOG: Gọi món mới
+                System.out.println("✅ Chuẩn bị thêm món mới: " + getTenMonFromEntity(chiTiet));
+                ghiLichSu(hoaDon, req.getIdNhanVien(),
+                        "Gọi món: " + getTenMonFromEntity(chiTiet) + " x" + itemReq.getSoLuong(),
+                        "Khách gọi món", trangThaiHienTai, trangThaiHienTai);
             }
 
             BigDecimal thanhTien = donGiaGoc.multiply(BigDecimal.valueOf(itemReq.getSoLuong()));
             chiTiet.setThanhTien(thanhTien);
 
+            // LƯU CHI TIẾT
             chiTiet = chiTietHoaDonRepository.save(chiTiet);
             itemsToKeep.add(chiTiet);
             tongTienMoi = tongTienMoi.add(thanhTien);
         }
 
         // =======================================================
-        // 3. TÌM VÀ DIỆT CÁC MÓN KHÁCH ĐÃ XÓA
+        // 3. XÓA MỀM CÁC MÓN BỊ LOẠI KHỎI GIỎ HÀNG
         // =======================================================
         List<ChiTietHoaDon> toDelete = existingDetails.stream()
+                .filter(oldItem -> oldItem.getTrangThaiMon() != null && oldItem.getTrangThaiMon() != 0)
                 .filter(oldItem -> !itemsToKeep.contains(oldItem))
                 .collect(Collectors.toList());
 
-        if (!toDelete.isEmpty()) {
-            // Cắt đứt quan hệ với Entity Hóa đơn để Hibernate cho phép xóa
-            if (hoaDon.getChiTietHoaDons() != null) {
-                hoaDon.getChiTietHoaDons().removeAll(toDelete);
-            }
+        for (ChiTietHoaDon delItem : toDelete) {
+            ghiLichSu(hoaDon, req.getIdNhanVien(),
+                    "Hủy món: " + getTenMonFromEntity(delItem) + " x" + delItem.getSoLuong(),
+                    "Nhân viên xóa trực tiếp", trangThaiHienTai, trangThaiHienTai);
 
-            // Xóa sổ khỏi DB
-            chiTietHoaDonRepository.deleteAll(toDelete);
-            chiTietHoaDonRepository.flush(); // Bắt buộc thực thi ngay lập tức
+            delItem.setTrangThaiMon(0);
+            chiTietHoaDonRepository.save(delItem);
         }
 
-        // 4. CHỐT TỔNG TIỀN VÀ LƯU
-        hoaDon.setTongTienChuaGiam(tongTienMoi);
-        BigDecimal giamGia = hoaDon.getSoTienDaGiam() == null ? BigDecimal.ZERO : hoaDon.getSoTienDaGiam();
-        hoaDon.setTongTienThanhToan(tongTienMoi.subtract(giamGia));
+        // =======================================================
+        // 4. CHỐT TỔNG TIỀN VÀ LƯU HÓA ĐƠN
+        // =======================================================
+        // 4.1. Lấy lại danh sách món MỚI NHẤT từ DB (Chỉ lấy món chưa hủy: trangThaiMon != 0)
+        List<ChiTietHoaDon> dsMonHienTai = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId())
+                .stream()
+                .filter(item -> item.getTrangThaiMon() != null && item.getTrangThaiMon() != 0)
+                .collect(Collectors.toList());
+
+        // 4.2. Tính tổng tiền món ăn (Chưa giảm)
+        BigDecimal tongTienChuaGiam = dsMonHienTai.stream()
+                .map(ChiTietHoaDon::getThanhTien)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 4.3. Lấy các thông số phụ phí của Hóa đơn hiện tại
+        BigDecimal giamGia = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
+        BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+
+        // Lấy % VAT (Nếu DB bạn có cột vat_ap_dung, nếu không thì mặc định là 10%)
+        BigDecimal vatPhanTram = hoaDon.getVatApDung() != null ? BigDecimal.valueOf(hoaDon.getVatApDung()) : BigDecimal.TEN;
+
+        // 4.4. Công thức toán học (Nghiệp vụ chuẩn)
+        // A. Tiền sau giảm = Tổng tiền - Giảm giá
+        BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
+        if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
+
+        // B. Tiền VAT = Tiền sau giảm * (VAT / 100)
+        BigDecimal tienVat = tienSauGiam.multiply(vatPhanTram).divide(BigDecimal.valueOf(100), java.math.RoundingMode.HALF_UP);
+
+        // C. Cần thanh toán = Tiền sau giảm + VAT - Tiền cọc đã đưa
+        BigDecimal tongTienThanhToan = tienSauGiam.add(tienVat).subtract(tienCoc);
+
+        // Nếu cọc nhiều hơn tiền ăn -> Không cần thu thêm (Số tiền = 0). (Số tiền dư có thể xử lý hoàn trả sau)
+        if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) {
+            tongTienThanhToan = BigDecimal.ZERO;
+        }
+
+        // 4.5. Cập nhật lại thực thể và Lưu
+        hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
+        hoaDon.setTongTienThanhToan(tongTienThanhToan);
 
         hoaDonThanhToanRepository.save(hoaDon);
+        System.out.println("✅ Đã cập nhật lại tài chính cho Hóa đơn ID: " + hoaDon.getId() + " | Khách cần trả thêm: " + tongTienThanhToan);
+    }
+
+    private String getTenMonFromEntity(ChiTietHoaDon ct) {
+        if (ct.getIdChiTietMonAn() != null) return ct.getIdChiTietMonAn().getTenMon();
+        if (ct.getIdSetLau() != null) return ct.getIdSetLau().getTenSetLau();
+        return "Món không xác định";
+    }
+
+    private void ghiLichSu(HoaDonThanhToan hoaDon, Integer idNhanVien, String hanhDong, String lyDo, Integer trangThaiCu, Integer trangThaiMoi) {
+        LichSuHoaDon lichSu = new LichSuHoaDon();
+        lichSu.setIdHoaDon(hoaDon);
+
+        // Tìm nhân viên thực hiện (nếu có idNhanVien truyền lên từ FE)
+        if (idNhanVien != null) {
+            NhanVien nv = nhanVienRepository.findById(idNhanVien).orElse(null);
+            lichSu.setIdNhanVien(nv);
+        }
+
+        lichSu.setHanhDong(hanhDong);
+        lichSu.setLyDoThucHien(lyDo);
+        lichSu.setThoiGianThucHien(Instant.now());
+        lichSu.setTrangThaiTruocDo(trangThaiCu);
+        lichSu.setTrangThaiMoi(trangThaiMoi);
+
+        lichSuHoaDonRepository.save(lichSu);
     }
 }

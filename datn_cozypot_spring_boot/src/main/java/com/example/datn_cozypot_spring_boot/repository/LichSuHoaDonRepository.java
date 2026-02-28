@@ -12,4 +12,6 @@ import java.util.List;
 public interface LichSuHoaDonRepository extends JpaRepository<LichSuHoaDon, Integer> {
     @Query("SELECT l FROM LichSuHoaDon l WHERE l.idHoaDon.id = :idHoaDon ORDER BY l.thoiGianThucHien DESC")
     List<LichSuHoaDon> findByHoaDonId(@Param("idHoaDon") Integer idHoaDon);
+
+    List<LichSuHoaDon> findByIdHoaDon_Id(Integer idHoaDon);
 }

@@ -12,6 +12,12 @@ public class DatBanUpdateRequest {
 
         private Integer id;
 
+        private Integer idNhanVien;
+
+        private Integer idKhachHang;
+
+        private Integer idBanAnMoi;
+
         @NotNull(message = "ID Bàn không được trống")
         private Integer idBanAn;
 
