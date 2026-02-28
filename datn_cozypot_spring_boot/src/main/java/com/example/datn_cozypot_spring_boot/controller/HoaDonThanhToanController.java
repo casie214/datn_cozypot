@@ -8,12 +8,10 @@ import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResp
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanResponse;
-import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
-import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
-import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
-import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
+import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
+import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
@@ -28,11 +26,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,6 +46,7 @@ public class HoaDonThanhToanController {
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
     private final PhieuDatBanRepository phieuDatBanRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
+    private final LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -78,13 +75,27 @@ public class HoaDonThanhToanController {
         return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
-    @GetMapping("/get-by-id/{id}")
-    public ResponseEntity<HoaDonThanhToanResponse> getById(@PathVariable Integer id) {
-        HoaDonThanhToanResponse response = hoaDonThanhToanService.getHoaDonById(id);
-        if (response != null) {
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.notFound().build();
+    @GetMapping("/hoa-don/{idHoaDon}")
+    public ResponseEntity<?> getHistory(@PathVariable Integer idHoaDon) {
+        List<LichSuHoaDon> list = lichSuHoaDonRepository.findByIdHoaDon_Id(idHoaDon);
+
+        // Map sang DTO để có tên nhân viên và format thời gian chuẩn
+        List<Map<String, Object>> response = list.stream().map(log -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("hanhDong", log.getHanhDong());
+            map.put("thoiGianThucHien", log.getThoiGianThucHien()); // Instant hoặc LocalDateTime
+            map.put("lyDoThucHien", log.getLyDoThucHien());
+
+            // Lấy tên nhân viên từ object NhanVien
+            if (log.getIdNhanVien() != null) {
+                map.put("tenNhanVien", log.getIdNhanVien().getHoTenNhanVien());
+            } else {
+                map.put("tenNhanVien", "Hệ thống");
+            }
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/xac-nhan-thanh-toan")
@@ -181,7 +192,7 @@ public class HoaDonThanhToanController {
 
     @GetMapping("/active-by-ban/{idBanAn}")
     public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
-        // 1. Lấy danh sách phiếu đang hoạt động (Trạng thái 2: Đã xác nhận hoặc 3: Đã check-in)
+        // 1. Lấy danh sách phiếu đang hoạt động
         List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
         if (list == null || list.isEmpty()) {
@@ -196,8 +207,9 @@ public class HoaDonThanhToanController {
         res.setId(phieu.getId());
         res.setMaPhieu(phieu.getMaDatBan());
         res.setThoiGianDat(phieu.getThoiGianDat());
-        res.setSoNguoi(phieu.getIdBanAn().getSoNguoiToiDa());
+        res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
+        res.setIdKhachHang(phieu.getIdKhachHang().getId());
 
         // 4. Mapping thông tin Khách hàng (An toàn khi khách vãng lai)
         if (phieu.getIdKhachHang() != null) {
@@ -223,7 +235,20 @@ public class HoaDonThanhToanController {
         // Tìm hóa đơn gắn với Phiếu đặt bàn này
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
 
+        // Nếu chưa tìm thấy qua Phiếu, thử tìm qua Bàn đang hoạt động (Đảm bảo không bị lọt hóa đơn)
+        if (hoaDon == null) {
+            hoaDon = hoaDonThanhToanRepository.findActiveBillByBanAn(idBanAn).orElse(null);
+        }
+
         if (hoaDon != null) {
+            // 🚨 GÁN ID VÀ THÔNG TIN TÀI CHÍNH CỦA HÓA ĐƠN Ở ĐÂY
+            res.setIdHoaDon(hoaDon.getId());
+            res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO);
+            res.setSoTienDaGiam(hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO);
+            res.setTienCoc(hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO);
+            res.setTongTienThanhToan(hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO);
+            res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
+
             // Lấy tất cả các món trong chi tiết hóa đơn
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
 
@@ -248,21 +273,37 @@ public class HoaDonThanhToanController {
                         idSet = originalId;
                     }
 
-                    // Gọi Constructor đầy đủ 8 tham số đã khai báo trong DTO
-                    return new PhieuDatBanResponse.ChiTietMonResponse(
-                            originalId,   // id (dùng làm originalId cho FE)
-                            tenMon,       // tenMon
-                            item.getSoLuong(),
-                            item.getDonGiaTaiThoiDiemBan(),
-                            item.getThanhTien(),
-                            type,         // type ("FOOD" hoặc "SET")
-                            idMonAn,      // idChiTietMonAn
-                            idSet         // idSetLau
-                    );
+                    // Khởi tạo đối tượng rỗng và dùng Setter
+                    PhieuDatBanResponse.ChiTietMonResponse chiTietDTO = new PhieuDatBanResponse.ChiTietMonResponse();
+
+                    // Set 8 trường thông tin món
+                    chiTietDTO.setId(originalId);
+                    chiTietDTO.setTenMon(tenMon);
+                    chiTietDTO.setSoLuong(item.getSoLuong());
+                    chiTietDTO.setDonGia(item.getDonGiaTaiThoiDiemBan());
+                    chiTietDTO.setThanhTien(item.getThanhTien());
+                    chiTietDTO.setType(type);
+                    chiTietDTO.setIdChiTietMonAn(idMonAn);
+                    chiTietDTO.setIdSetLau(idSet);
+
+                    // Setup để thao tác Front-end không lỗi
+                    chiTietDTO.setIdChiTietHd(item.getId());
+                    chiTietDTO.setTrangThaiMon(item.getTrangThaiMon());
+
+                    return chiTietDTO;
                 }).collect(Collectors.toList());
 
                 res.setChiTiet(dsMon);
+            } else {
+                res.setChiTiet(new ArrayList<>()); // Ép mảng rỗng thay vì null để Vue không bị lỗi
             }
+        } else {
+            // Hóa đơn null -> Setup giá trị mặc định để Frontend không bị "Undefined"
+            res.setTongTienChuaGiam(BigDecimal.ZERO);
+            res.setSoTienDaGiam(BigDecimal.ZERO);
+            res.setTienCoc(BigDecimal.ZERO);
+            res.setTongTienThanhToan(BigDecimal.ZERO);
+            res.setChiTiet(new ArrayList<>());
         }
 
         return ResponseEntity.ok(res);
