@@ -1,10 +1,7 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
-import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
-import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
-import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
-import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
@@ -22,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -150,4 +148,21 @@ public Page<DatBanListResponse> searchDatBan(
         return ResponseEntity.ok(datBanService.getByTang(tang));
     }
 
+    @PostMapping("/check-ban-trong")
+    public ResponseEntity<Boolean> checkBanTrong(@Valid @RequestBody DatBanRequest request) {
+        boolean conBan = datBanService.checkBanTrong(request);
+        return ResponseEntity.ok(conBan);
+    }
+
+    @PostMapping("/tao-moi")
+    public ResponseEntity<?> taoPhieuDatBanOnline(@RequestBody DatBanOnlineRequest request) {
+        try {
+            Map<String, Object> responseData = datBanService.taoPhieuDatBanOnline(request);
+
+            // Trả Object JSON này về cho Frontend (VueJS sẽ đọc response.data.idHoaDon, v.v..)
+            return ResponseEntity.ok(responseData);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

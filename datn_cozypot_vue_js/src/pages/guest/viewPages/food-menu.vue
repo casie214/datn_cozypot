@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import axiosClient from '@/services/axiosClient';
 import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 // --- 1. STATE QUẢN LÝ DỮ LIỆU ---
 const categories = ref([]);
 const menuData = ref([]);
@@ -282,6 +284,15 @@ const removeItem = (index) => {
 const totalCount = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0));
 const totalPrice = computed(() => cart.value.reduce((sum, item) => sum + (item.price * item.quantity), 0));
 
+watch(cart, (newCart) => {
+    localStorage.setItem('cart', JSON.stringify(newCart));
+}, { deep: true });
+
+const navigateToBooking = () => {
+    closeCartModal();
+    router.push('/dat-ban'); 
+};
+
 // ==========================================
 // D. UTILS & SCROLL SPY
 // ==========================================
@@ -334,117 +345,127 @@ const onScroll = () => {
 onMounted(() => {
     fetchData();
     window.addEventListener('scroll', onScroll);
+
+    // KHI VÀO TRANG MENU, TỰ ĐỘNG KHÔI PHỤC GIỎ HÀNG TỪ LOCALSTORAGE
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+        try {
+            cart.value = JSON.parse(savedCart);
+        } catch (e) {
+            console.error("Lỗi parse giỏ hàng:", e);
+        }
+    }
 });
 onUnmounted(() => {
     window.removeEventListener('scroll', onScroll);
 });
 
-// ==========================================
-// E. LOGIC XÁC NHẬN ĐẶT BÀN (CHECKOUT)
-// ==========================================
-const isCheckoutOpen = ref(false);
-const isSubmitting = ref(false);
-const tables = ref([]); 
+// // ==========================================
+// // E. LOGIC XÁC NHẬN ĐẶT BÀN (CHECKOUT)
+// // ==========================================
+// const isCheckoutOpen = ref(false);
+// const isSubmitting = ref(false);
+// const tables = ref([]); 
 
-const fetchTables = async () => {
-    try {
-        const res = await axiosClient.get('/guest/table/active'); 
-        tables.value = res.data || [];
-    } catch (error) {
-        console.error("Lỗi lấy danh sách bàn:", error);
-    }
-};
+// const fetchTables = async () => {
+//     try {
+//         const res = await axiosClient.get('/guest/table/active'); 
+//         tables.value = res.data || [];
+//     } catch (error) {
+//         console.error("Lỗi lấy danh sách bàn:", error);
+//     }
+// };
 
-const checkoutForm = ref({
-    tenKhachHang: '',
-    soDienThoai: '',
-    email: '',
-    ngayDat: '',
-    gioDat: '',
-    soNguoi: 2,
-    ghiChu: '',
-    idKhachHang: null,
-    idBanAn: null 
-});
+// const checkoutForm = ref({
+//     tenKhachHang: '',
+//     soDienThoai: '',
+//     email: '',
+//     ngayDat: '',
+//     gioDat: '',
+//     soNguoi: 2,
+//     ghiChu: '',
+//     idKhachHang: null,
+//     idBanAn: null 
+// });
 
-const openCheckoutModal = () => {
-    if (cart.value.length === 0) return;
-    fetchTables(); 
+// const openCheckoutModal = () => {
+//     if (cart.value.length === 0) return;
+//     fetchTables(); 
 
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            const userObj = JSON.parse(userStr);
-            checkoutForm.value.idKhachHang = userObj.id || null;
-            checkoutForm.value.tenKhachHang = userObj.tenKhachHang || userObj.hoTen || '';
-            checkoutForm.value.soDienThoai = userObj.soDienThoai || userObj.sdt || userObj.phone || userObj.dienThoai || '';
-            checkoutForm.value.email = userObj.email || '';
-        } catch (e) {}
-    }
+//     const userStr = localStorage.getItem('user');
+//     if (userStr) {
+//         try {
+//             const userObj = JSON.parse(userStr);
+//             checkoutForm.value.idKhachHang = userObj.id || null;
+//             checkoutForm.value.tenKhachHang = userObj.tenKhachHang || userObj.hoTen || '';
+//             checkoutForm.value.soDienThoai = userObj.soDienThoai || userObj.sdt || userObj.phone || userObj.dienThoai || '';
+//             checkoutForm.value.email = userObj.email || '';
+//         } catch (e) {}
+//     }
 
-    const now = new Date();
-    checkoutForm.value.ngayDat = now.toISOString().split('T')[0];
-    now.setHours(now.getHours() + 1);
-    checkoutForm.value.gioDat = now.toTimeString().substring(0, 5);
+//     const now = new Date();
+//     checkoutForm.value.ngayDat = now.toISOString().split('T')[0];
+//     now.setHours(now.getHours() + 1);
+//     checkoutForm.value.gioDat = now.toTimeString().substring(0, 5);
 
-    isCartOpen.value = false;
-    isCheckoutOpen.value = true;
-};
+//     isCartOpen.value = false;
+//     isCheckoutOpen.value = true;
+// };
 
-const closeCheckoutModal = () => isCheckoutOpen.value = false;
-const quayLaiGioHang = () => {
-    isCheckoutOpen.value = false;
-    isCartOpen.value = true;
-};
+// const closeCheckoutModal = () => isCheckoutOpen.value = false;
+// const quayLaiGioHang = () => {
+//     isCheckoutOpen.value = false;
+//     isCartOpen.value = true;
+// };
 
-const submitOrder = async () => {
-    const ten = checkoutForm.value.tenKhachHang ? checkoutForm.value.tenKhachHang.toString().trim() : '';
-    const sdt = checkoutForm.value.soDienThoai ? checkoutForm.value.soDienThoai.toString().trim() : '';
-    const ngay = checkoutForm.value.ngayDat;
-    const gio = checkoutForm.value.gioDat;
-    const soNguoi = checkoutForm.value.soNguoi;
-    const idBan = checkoutForm.value.idBanAn;
+// const submitOrder = async () => {
+//     const ten = checkoutForm.value.tenKhachHang ? checkoutForm.value.tenKhachHang.toString().trim() : '';
+//     const sdt = checkoutForm.value.soDienThoai ? checkoutForm.value.soDienThoai.toString().trim() : '';
+//     const ngay = checkoutForm.value.ngayDat;
+//     const gio = checkoutForm.value.gioDat;
+//     const soNguoi = checkoutForm.value.soNguoi;
+//     const idBan = checkoutForm.value.idBanAn;
 
-    if (!ten || !sdt || !ngay || !gio || !soNguoi) {
-        return Swal.fire('Thiếu thông tin', 'Vui lòng điền đầy đủ Tên, SĐT, Ngày đến, Giờ đến và Số người!', 'warning');
-    }
-    if (!idBan) return Swal.fire('Lưu ý', 'Vui lòng chọn bàn bạn muốn ngồi!', 'warning');
+//     if (!ten || !sdt || !ngay || !gio || !soNguoi) {
+//         return Swal.fire('Thiếu thông tin', 'Vui lòng điền đầy đủ Tên, SĐT, Ngày đến, Giờ đến và Số người!', 'warning');
+//     }
+//     if (!idBan) return Swal.fire('Lưu ý', 'Vui lòng chọn bàn bạn muốn ngồi!', 'warning');
 
-    const hour = parseInt(gio.split(':')[0]);
-    if (hour < 9 || hour > 22) return Swal.fire('Lưu ý', 'Nhà hàng chỉ nhận đặt bàn từ 09:00 đến 22:00', 'warning');
-    if (soNguoi <= 0) return Swal.fire('Lưu ý', 'Số người tối thiểu phải là 1!', 'warning');
+//     const hour = parseInt(gio.split(':')[0]);
+//     if (hour < 9 || hour > 22) return Swal.fire('Lưu ý', 'Nhà hàng chỉ nhận đặt bàn từ 09:00 đến 22:00', 'warning');
+//     if (soNguoi <= 0) return Swal.fire('Lưu ý', 'Số người tối thiểu phải là 1!', 'warning');
 
-    try {
-        isSubmitting.value = true;
-        const payload = {
-            idKhachHang: checkoutForm.value.idKhachHang,
-            idBanAn: checkoutForm.value.idBanAn,
-            tenKhachHangThoiVu: checkoutForm.value.tenKhachHang,
-            sdtThoiVu: checkoutForm.value.soDienThoai,
-            thoiGianDat: `${checkoutForm.value.ngayDat}T${checkoutForm.value.gioDat}:00`,
-            soNguoi: checkoutForm.value.soNguoi,
-            ghiChu: checkoutForm.value.ghiChu,
-            tongTien: totalPrice.value,
-            chiTiet: cart.value.map(item => ({
-                idChiTietMonAn: item.type === 'MON' ? item.id : null,
-                idSetLau: item.type === 'SET' ? item.id : null,
-                soLuong: item.quantity,
-                donGia: item.price
-            }))
-        };
+//     try {
+//         isSubmitting.value = true;
+//         const payload = {
+//             idKhachHang: checkoutForm.value.idKhachHang,
+//             idBanAn: checkoutForm.value.idBanAn,
+//             tenKhachHangThoiVu: checkoutForm.value.tenKhachHang,
+//             sdtThoiVu: checkoutForm.value.soDienThoai,
+//             thoiGianDat: `${checkoutForm.value.ngayDat}T${checkoutForm.value.gioDat}:00`,
+//             soNguoi: checkoutForm.value.soNguoi,
+//             ghiChu: checkoutForm.value.ghiChu,
+//             tongTien: totalPrice.value,
+//             chiTiet: cart.value.map(item => ({
+//                 idChiTietMonAn: item.type === 'MON' ? item.id : null,
+//                 idSetLau: item.type === 'SET' ? item.id : null,
+//                 soLuong: item.quantity,
+//                 donGia: item.price
+//             }))
+//         };
 
-        await axiosClient.post('/guest/reservation/create', payload);
-        await Swal.fire('Thành công', 'Đơn đặt bàn của bạn đã được ghi nhận. Vui lòng chờ nhân viên xác nhận!', 'success');
-        cart.value = [];
-        closeCheckoutModal();
+//         await axiosClient.post('/guest/reservation/create', payload);
+//         await Swal.fire('Thành công', 'Đơn đặt bàn của bạn đã được ghi nhận. Vui lòng chờ nhân viên xác nhận!', 'success');
+//         cart.value = [];
+//         closeCheckoutModal();
 
-    } catch (error) {
-        console.error("Lỗi đặt bàn:", error);
-        Swal.fire('Lỗi', 'Có lỗi xảy ra trong quá trình đặt bàn. Vui lòng thử lại!', 'error');
-    } finally {
-        isSubmitting.value = false;
-    }
-};
+//     } catch (error) {
+//         console.error("Lỗi đặt bàn:", error);
+//         Swal.fire('Lỗi', 'Có lỗi xảy ra trong quá trình đặt bàn. Vui lòng thử lại!', 'error');
+//     } finally {
+//         isSubmitting.value = false;
+//     }
+// };
 </script>
 
 <template>
@@ -609,7 +630,7 @@ const submitOrder = async () => {
                         <div class="d-flex justify-content-between align-items-center w-100">
                             <span class="fw-bold text-dark fs-5">Tổng: <span class="text-danger">{{
                                 formatPrice(totalPrice) }}</span></span>
-                            <button class="btn-checkout" @click="openCheckoutModal">XÁC NHẬN</button>
+                            <button class="btn-checkout" @click="navigateToBooking">ĐẾN TRANG ĐẶT BÀN</button>
                         </div>
                     </div>
                 </div>
@@ -656,12 +677,12 @@ const submitOrder = async () => {
             </div>
         </Transition>
 
-        <Transition name="modal-fade">
+        <!-- <Transition name="modal-fade">
             <div v-if="isCheckoutOpen" class="cart-modal-overlay" @click.self="closeCheckoutModal">
                 </div>
-        </Transition>
+        </Transition> -->
 
-        <Transition name="modal-fade">
+        <!-- <Transition name="modal-fade">
             <div v-if="isCheckoutOpen" class="cart-modal-overlay" @click.self="closeCheckoutModal">
                 <div class="cart-modal-content checkout-modal-size">
                     <div class="modal-header bg-primary-red text-white">
@@ -773,7 +794,7 @@ const submitOrder = async () => {
                     </div>
                 </div>
             </div>
-        </Transition>
+        </Transition> -->
     </div>
 
     
@@ -1746,7 +1767,7 @@ const submitOrder = async () => {
     border-radius: 4px;
 }
 
-/* --- CSS CHO CHECKOUT MODAL --- */
+/* --- CSS CHO CHECKOUT MODAL ---
 .checkout-modal-size {
     max-width: 950px !important;
 }
@@ -1787,5 +1808,5 @@ const submitOrder = async () => {
 
 :global(.swal2-container) {
     z-index: 20000 !important;
-}
+} */
 </style>

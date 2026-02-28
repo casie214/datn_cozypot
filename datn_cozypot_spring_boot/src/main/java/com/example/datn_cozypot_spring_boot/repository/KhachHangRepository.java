@@ -91,4 +91,6 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
 
     Optional<KhachHang> findKhachHangByEmail(String identifier);
+
+    KhachHang findBySoDienThoai(String soDienThoai);
 }
