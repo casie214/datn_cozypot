@@ -11,6 +11,7 @@ import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -116,7 +117,9 @@ public Page<DatBanListResponse> searchDatBan(
         datBanService.updateCheckIn(datBanUpdateRequest);
     }
 
+
     @PutMapping("/chi-tiet-hoa-don/{id}/trang-thai")
+    @Transactional
     public ResponseEntity<?> updateTrangThaiMon(@PathVariable Integer id, @RequestParam Integer trangThai, @RequestParam(required = false) Integer idNhanVien) {
         ChiTietHoaDon chiTiet = chiTietHoaDonRepository.findById(id).orElse(null);
         if (chiTiet == null) {
