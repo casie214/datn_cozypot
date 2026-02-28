@@ -19,9 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -318,7 +317,7 @@ public class DatBanService {
                     } else if (trangThaiMoi == 6) {
                         hanhDongLog = "Đã thanh toán";
                         lyDoLog = "Hoàn tất thanh toán tại quầy";
-                        hoaDon.setThoiGianThanhToan(Instant.now()); // Sửa lại thành LocalDateTime cho đồng bộ
+                        hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS)); // Sửa lại thành LocalDateTime cho đồng bộ
                     } else if (trangThaiMoi == 8) {
                         hanhDongLog = "Hủy hóa đơn";
                         lyDoLog = "Hủy phiếu đặt bàn / Hủy hóa đơn";

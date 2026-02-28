@@ -159,11 +159,19 @@ const visibleSteps = computed(() => {
 const onBack = () => router.push({ name: "orderManager" });
 
 onMounted(async () => {
-  const orderDbId = route.params.id;
-  if (orderDbId) {
+  // 🚨 Kiểm tra lại: Nếu trong router.js bạn đặt path là "/detail/:id" thì giữ nguyên
+  // Nếu đặt là "/detail/:idHoaDon" thì phải đổi thành route.params.idHoaDon
+  const orderDbId = route.params.id; 
+
+  if (orderDbId && orderDbId !== "undefined") {
+    console.log("Đang lấy chi tiết cho ID:", orderDbId);
     await handleViewDetail(orderDbId);
+  } else {
+    console.error("Không tìm thấy ID hóa đơn trên URL!");
+    router.push({ name: 'orderManager' });
   }
 });
+
 </script>
 
 <template>

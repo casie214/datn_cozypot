@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @RestController
@@ -185,7 +186,7 @@ public class VNPayController {
 
                             // 1. CẬP NHẬT TRẠNG THÁI HÓA ĐƠN -> Đã thanh toán (6)
                             hoaDon.setTrangThaiHoaDon(6);
-                            hoaDon.setThoiGianThanhToan(Instant.now());
+                            hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
 
                             // 2. CẬP NHẬT PHIẾU ĐẶT BÀN -> Hoàn tất (4)
                             if (hoaDon.getIdPhieuDatBan() != null) {
