@@ -75,6 +75,15 @@ public class HoaDonThanhToanController {
         return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
+    @GetMapping("/get-by-id/{id}")
+    public ResponseEntity<HoaDonThanhToanResponse> getById(@PathVariable Integer id) {
+        HoaDonThanhToanResponse response = hoaDonThanhToanService.getHoaDonById(id);
+        if (response != null) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
     @GetMapping("/hoa-don/{idHoaDon}")
     public ResponseEntity<?> getHistory(@PathVariable Integer idHoaDon) {
         List<LichSuHoaDon> list = lichSuHoaDonRepository.findByIdHoaDon_Id(idHoaDon);
