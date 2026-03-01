@@ -44,6 +44,7 @@ const menuItems = ref([
 
     { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+    { name: 'Tham số', icon: "fa-solid fa-sliders", path: '/admin/parameters' },
 
 
 ]);
