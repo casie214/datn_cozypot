@@ -93,8 +93,8 @@ export const searchDatBanService = async ({ payload, page, size }) => {
     });
     return response.data;
   } catch (error) {
-    // 🔥 SỬA: In lỗi ra console để debug
-    console.error("🔥 Lỗi chi tiết từ Backend:", error.response);
+    // SỬA: In lỗi ra console để debug
+    console.error("Lỗi chi tiết từ Backend:", error.response);
     
     // Ném lỗi gốc ra để Vue bắt được (error.response.data thường chứa message từ Java)
     throw error; 
@@ -122,9 +122,18 @@ export const updateTTPhieuDatBan = async (id, trangThai) => {
     }
 };
 
+// export const fetchTableStatusByDate = async (date) => {
+//     try {
+//         const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${date}`);
+//         return response.data;
+//     } catch (error) {
+//         throw error;
+//     }
+// }
 export const fetchTableStatusByDate = async (date) => {
     try {
-        const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${date}`);
+        const dateOnly = date.split("T")[0]  // "2026-02-28T23:29" → "2026-02-28"
+        const response = await axiosClient.get(`${PREFIX}/ban-an/trang-thai-theo-ngay/${dateOnly}`);
         return response.data;
     } catch (error) {
         throw error;
@@ -172,7 +181,7 @@ export const createBanFull = async (payload) => {
         );
         return response.data;
     } catch (error) {
-        console.error("🔥 Lỗi khi tạo tầng + khu vực + bàn:", error.response);
+        console.error("Lỗi khi tạo tầng + khu vực + bàn:", error.response);
         throw error;
     }
 };
@@ -202,3 +211,35 @@ export const createKhuVuc = async (data) => {
   }
 };
 
+export const createPhieuDatBanFullService = async (payload) => {
+    try {
+        const response = await axiosClient.post(
+            `${PREFIX}/add-phieu-dat-ban`,
+            payload
+        );
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi tạo phiếu đặt bàn full:", error.response);
+        throw error;
+    }
+};
+
+export const fetchAllCustomers = async () => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/all-khach-hang`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const searchCustomerByPhone = async (keyword) => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/search-khach`, {
+            params: { keyword }
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
