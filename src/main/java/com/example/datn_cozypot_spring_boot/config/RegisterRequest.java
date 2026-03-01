@@ -1,4 +1,5 @@
 package com.example.datn_cozypot_spring_boot.config;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,10 +32,24 @@ public class RegisterRequest {
     @NotBlank(message = "Số điện thoại không được để trống")
     private String soDienThoai;
 
-    private String diaChi;
-
     private Boolean gioiTinh;
 
     @NotNull(message = "Ngày sinh không được để trống")
     private LocalDate ngaySinh;
+
+    @NotBlank(message = "Vui lòng chọn Tỉnh/Thành phố")
+    private String idTinhThanh;
+
+    @NotBlank(message = "Vui lòng chọn Quận/Huyện")
+    private String idQuanHuyen;
+
+    @NotBlank(message = "Vui lòng chọn Phường/Xã")
+    private String idPhuongXa;
+
+    @NotBlank(message = "Vui lòng nhập địa chỉ chi tiết")
+    private String diaChiChiTiet;
+
+    private String hoTenNhan;
+    private String soDienThoaiNhan;
+    private Boolean laMacDinh;
 }
