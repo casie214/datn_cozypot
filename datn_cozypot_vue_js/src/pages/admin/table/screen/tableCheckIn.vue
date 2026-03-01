@@ -104,7 +104,9 @@ const calculatedTableStatuses = computed(() => {
 
     const hasBookingInWindow = danhSachCho.value.some(khach => {
       const isMatch = khach.idBanAn == ban.id || khach.maBan === ban.maBan;
-      if (isMatch && Number(khach.trangThai) === 2) {
+      
+      // 🚨 SỬA Ở ĐÂY: Chỉ giữ bàn khi phiếu là 0 (Chờ xác nhận) hoặc 1 (Đã xác nhận)
+      if (isMatch && [0, 1].includes(Number(khach.trangThai))) {
         const gioHen = dayjs(khach.thoiGianDat);
         const diff = gioHen.diff(now, "minute");
         return diff <= window && diff >= -30;
@@ -320,15 +322,18 @@ const handleSplitTableLogic = async (khach, banGoc) => {
 const danhSachLoc = computed(() => {
   return danhSachCho.value.filter((khach) => {
     if (!khach.maBan && !khach.idBanAn) return false;
-    if (Number(khach.trangThai) === 0 || Number(khach.trangThai) === 4) return false;
+    
+    // 🚨 SỬA Ở ĐÂY: Loại bỏ các trạng thái không còn là "Khách chờ" (2, 3, 4, 5)
+    // Chỉ giữ lại 0 (Chờ xác nhận) và 1 (Đã xác nhận)
+    if ([2, 3, 4, 5].includes(Number(khach.trangThai))) return false;
 
     const thoiGianDat = dayjs(khach.thoiGianDat);
     const hienTai = dayjs(currentTime.value);
     const phutConLai = thoiGianDat.diff(hienTai, "minute");
 
-    if ([3, 5].includes(Number(khach.trangThai))) return true;
-
     const window = Number(selectedTimeWindow.value);
+    
+    // Khách quá hạn 30 phút sẽ tự động biến mất khỏi danh sách do điều kiện >= -30 này
     const matchTime = phutConLai <= window && phutConLai >= -30; 
     
     const matchSearch = khach.soDienThoai?.includes(searchQuery.value) ||
@@ -796,10 +801,17 @@ const handleDirectCheckIn = async () => {
     await updateTrangThaiBan(payload);
     tableStatusMap.value = { ...tableStatusMap.value, [bId]: 1 };
     selectedBan.value.trangThai = 1; 
+    
     Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
+    
     await handleFetchAllCheckIn();
     await fetchAllBan();
     await fetchTableStatus();
+
+    // 🚨 THÊM DÒNG NÀY (THE FIX): Tự động load lại dữ liệu của chính bàn này 
+    // để lấy được idHoaDon vừa được Backend tạo ra -> Các nút sẽ lập tức sáng lên!
+    await openManageModal(selectedBan.value);
+
   } catch (err) {
     Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Check-in thất bại!' });
   }
@@ -868,25 +880,27 @@ const handlePaymentCash = async () => {
   try {
     Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
+    // Gửi yêu cầu thanh toán bàn chính
     const payloadChinh = {
       idBanAn: selectedBan.value.id,
       trangThai: 0,
       id: selectedPhieu.value.id,
-      trangThaiPhieu: 4,
-      trangThaiHoaDon: 6,
+      trangThaiPhieu: 4, // 🚨 Trạng thái phiếu 4: Hoàn thành
+      trangThaiHoaDon: 6, // Hóa đơn 6: Đã thanh toán
       tienMat: billSummary.value.canThu, 
       ghiChu: `Thanh toán Tiền mặt`
     };
     await updateTrangThaiBan(payloadChinh);
 
+    // Gửi yêu cầu thanh toán các bàn phụ gộp chung
     if (listHoaDonGop.value.length > 0) {
       await Promise.all(listHoaDonGop.value.map(hd => {
         return updateTrangThaiBan({
           idBanAn: hd.idBanAn,
           trangThai: 0,
           id: hd.idPhieu,
-          trangThaiPhieu: 4,
-          trangThaiHoaDon: 6,
+          trangThaiPhieu: 4, // 🚨 Bàn phụ cũng về 4: Hoàn thành
+          trangThaiHoaDon: 6, // Hóa đơn phụ về 6
           tienMat: hd.canThu,
           ghiChu: `Gộp chung với ${selectedBan.value.maBan}`
         });
@@ -1011,9 +1025,18 @@ const handlePaymentMixed = async () => {
 const handleCancelTicket = async () => {
   if (!selectedPhieu.value?.id) return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
   const confirm = await Swal.fire({ title: 'Hủy phiếu đặt bàn?', text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Đồng ý hủy', cancelButtonText: 'Quay lại' });
+  
   if (!confirm.isConfirmed) return;
+  
   const bId = selectedBan.value.id;
-  await updateTrangThaiBan({ idBanAn: bId, trangThai: 0, id: selectedPhieu.value.id, trangThaiPhieu: 0, trangThaiHoaDon: 8 });
+  await updateTrangThaiBan({ 
+      idBanAn: bId, 
+      trangThai: 0, // Trả bàn về trạng thái Trống
+      id: selectedPhieu.value.id, 
+      trangThaiPhieu: 2, // 🚨 SỬA Ở ĐÂY: 2 = Đã hủy
+      trangThaiHoaDon: 8 // Hóa đơn trạng thái Hủy
+  });
+  
   tableStatusMap.value = { ...tableStatusMap.value, [bId]: 0 };
   closeModal();
   await handleFetchAllCheckIn();
