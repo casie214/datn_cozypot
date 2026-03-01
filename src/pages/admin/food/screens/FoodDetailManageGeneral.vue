@@ -8,6 +8,8 @@ import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 import CommonPagination from '@/components/commonPagination.vue';
 import Swal from 'sweetalert2';
+import { usePermission } from "@/components/permissionHelper";
+const { handleActionWithAuth } = usePermission();
 
 const statusOptions = [
   { value: 'all', label: 'Tất cả' },
@@ -61,35 +63,24 @@ const router = useRouter();
           <div class="multiselect-wrapper">
             <Multiselect v-model="categoryFilter" :options="listCategories" valueProp="id" label="tenDanhMuc"
               placeholder="-- Tất cả danh mục --" :searchable="true" :canClear="!isCategoryLocked"
-              :disabled="isCategoryLocked" noOptionsText="Không có danh mục nào" noResultsText="Không tìm thấy kết quả" />
+              :disabled="isCategoryLocked" noOptionsText="Không có danh mục nào"
+              noResultsText="Không tìm thấy kết quả" />
           </div>
         </div>
 
-         <div class="filter-item">
+        <div class="filter-item">
           <label>Trạng thái</label>
           <div class="multiselect-wrapper-sm">
-          <Multiselect 
-            v-model="statusFilter" 
-            :options="statusOptions" 
-            :searchable="true"
-            :canClear="false"
-            :no-results-text="'Không tìm thấy kết quả nào'"
-            class="custom-filter-multiselect"
-          />
+            <Multiselect v-model="statusFilter" :options="statusOptions" :searchable="true" :canClear="false"
+              :no-results-text="'Không tìm thấy kết quả nào'" class="custom-filter-multiselect" />
           </div>
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp theo</label>
           <div class="multiselect-wrapper-sm">
-          <Multiselect 
-            v-model="sortOption" 
-            :options="sortOptions" 
-            :searchable="true"
-            :canClear="false"
-            :no-results-text="'Không tìm thấy kết quả nào'"
-            class="custom-filter-multiselect"
-          />
+            <Multiselect v-model="sortOption" :options="sortOptions" :searchable="true" :canClear="false"
+              :no-results-text="'Không tìm thấy kết quả nào'" class="custom-filter-multiselect" />
           </div>
         </div>
 
@@ -112,14 +103,18 @@ const router = useRouter();
 
     <div class="flex-row">
       <div class="action-row" style="margin-left: auto;">
-        <button class="btn-action-icon btn-add-only" @click="goToAdd">
+        <button class="btn-action-icon btn-add-only" @click="handleActionWithAuth(() => goToAdd(), 'ADMIN')">
           <i class="fas fa-plus"></i>
         </button>
-        <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
+
+        <button class="btn-action-icon" @click="handleActionWithAuth(() => exportToExcel(), 'ADMIN')"
+          title="Xuất Excel danh sách hiện tại">
           <i class="fas fa-file-excel"></i>
         </button>
-        <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i
-            class="fas fa-sync-alt"></i></button>
+
+        <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại">
+          <i class="fas fa-sync-alt"></i>
+        </button>
       </div>
     </div>
 
@@ -168,7 +163,7 @@ const router = useRouter();
 
             <td>{{ item.kichCo || '---' }}</td>
 
-            
+
 
             <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
 

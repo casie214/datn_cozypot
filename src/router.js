@@ -5,11 +5,16 @@ import TableCalendar from "./pages/admin/table/modal/tableCalendar.vue";
 import CardTable from "./pages/admin/table/modal/cardTable.vue";
 import ListTable from "./pages/admin/table/modal/listTable.vue";
 import Swal from 'sweetalert2';
+import PaymentFailed from "./pages/guest/payment-processor/PaymentFailed.vue";
+import PaymentSuccess from "./pages/guest/payment-processor/PaymentSuccess.vue";
+import CustomerMenu from "./pages/admin/table/screen/CustomerMenu.vue";
 
 const routes = [
     {
+        // ================== QUẢN LÝ KHÁCH HÀNG ==================
         path: "/admin/client",
         component: () => import("@/pages/admin/client/screens/clientManager.vue"),
+        // Cần đăng nhập (requiresAuth) và cả Admin/Nhân viên (Employee) đều được vào
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] },
         children: [
             {
@@ -28,19 +33,21 @@ const routes = [
                 path: "form/:id?",
                 name: "clientForm",
                 component: () => import("@/pages/admin/client/modal/clientFormPage.vue"),
-                meta: { index: 2 } // Cấp độ 2: Form (Sâu hơn)
+                meta: { index: 2, requiredRole: ['ADMIN'] }
             }
         ]
     },
     {
         path: "/login",
         name: "login",
-        component: () => import("@/pages/guest/authentication/loginPage.vue")
+        component: () => import("@/pages/guest/authentication/loginPage.vue"),
+        meta: { requiresAuth: false }
     },
     {
         path: "/register",
         name: "register",
-        component: () => import("@/pages/guest/authentication/registerPage.vue")
+        component: () => import("@/pages/guest/authentication/registerPage.vue"),
+        meta: { requiresAuth: false }
     },
     {
         path: "/admin/dashboard",
@@ -90,6 +97,7 @@ const routes = [
         path: "/admin/staff",
         // File này bây giờ đóng vai trò là cái "vỏ" (Layout)
         component: () => import("@/pages/admin/staff/screens/staffManager.vue"),
+        meta: { requiresAuth: true, requiredRole: ['ADMIN'] },
         children: [
             {
                 path: "",
@@ -109,13 +117,18 @@ const routes = [
         ]
     },
 
-    // ================== THỐNG KÊ ==================
-    {
-        path: "/admin/statistics",
-        name: "statisticsManager",
-        component: () => import("@/pages/admin/statistics/screens/statisticsManager.vue"),
-        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
-    },
+    // Trước khi sửa: meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+
+// SAU KHI SỬA:
+{
+    path: "/admin/statistics",
+    name: "statisticsManager",
+    component: () => import("@/pages/admin/statistics/screens/statisticsManager.vue"),
+    meta: {
+        requiresAuth: true,
+        requiredRole: ['ADMIN'] // Chỉ cho phép ADMIN
+    }
+},
 
     // ================== MENU & FOOD (ĐÃ LÀM PHẲNG) ==================
     {
@@ -133,7 +146,7 @@ const routes = [
             import("./pages/admin/category/screens/categoryManager.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
-    
+
     // --- SET LẨU ---
     {
         path: '/manage/food/hotpot/add',
@@ -181,7 +194,7 @@ const routes = [
             requiredRole: 'ADMIN'
         }
     },
-    
+
     {
         path: '/manage/food/update/:id',
         name: 'updateFood',
@@ -206,6 +219,13 @@ const routes = [
             requiredRole: ['ADMIN', 'EMPLOYEE']
         }
     },
+    {
+        path: "/doi-mat-khau",
+        name: "doiMatKhau",
+        component: () => import("@/pages/guest/authentication/DoiMatKhau.vue"),
+        meta: { requiresAuth: true }
+    },
+
     // ĐÃ XÓA: CÁC ROUTE DETAIL (addFoodDetail, updateFoodDetail, viewFoodDetail) VÌ KHÔNG CÒN CẦN THIẾT
 
     // ================== HÓA ĐƠN & GUEST ==================
@@ -222,6 +242,7 @@ const routes = [
         component: () => import("./pages/guest/viewPages/food-menu.vue"),
         meta: { requiresAuth: false }
     },
+    // ================== QUẢN LÝ ĐƠN HÀNG==================
     {
         path: "/admin/orders",
         name: "orderManager",
@@ -244,7 +265,7 @@ const routes = [
         path: "/admin/add-food/:id",
         name: "addFoodScreen",
         component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
-        meta: { requiresAuth: true, requiredRole: 'ADMIN' }
+        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
 
     // ================== KHUYẾN MÃI & KHÁC ==================
@@ -258,7 +279,7 @@ const routes = [
         path: "/admin/promotions",
         name: "voucherManager",
         component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue"),
-        meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
+        meta: { requiresAuth: true, requiredRole: ['ADMIN'] }
     },
     {
         path: "/admin/promotion",
@@ -289,6 +310,22 @@ const routes = [
         component: () => import("./pages/admin/unit/screens/UnitManagerAll.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
+    {
+        path: '/payment-success',
+        name: 'PaymentSuccess',
+        component: PaymentSuccess
+    },
+    {
+        path: '/payment-failed',
+        name: 'PaymentFailed',
+        component: PaymentFailed
+    },
+    {
+        path: '/menu-khach',
+        name: 'CustomerMenu',
+        component: CustomerMenu,
+        meta: { requiresAuth: false }
+    }
 ];
 
 const router = createRouter({
@@ -324,7 +361,7 @@ router.beforeEach((to, from, next) => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Không có quyền truy cập!',
-                    text: 'Bạn không có quyền hạn để vào trang này.',
+                    text: 'Bạn không có quyền hạn thao tác chức năng này. Vui lòng liên hệ Quản trị viên.',
                     confirmButtonText: 'Đã hiểu',
                     confirmButtonColor: '#7d161a',
                     timer: 3000,
@@ -345,6 +382,8 @@ router.beforeEach((to, from, next) => {
         }
         return next('/');
     }
+
+
 
     next();
 });
