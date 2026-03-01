@@ -1,14 +1,11 @@
 package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
-<<<<<<< HEAD
 import com.example.datn_cozypot_spring_boot.dto.response.*;
-=======
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
->>>>>>> 371e6f781e7b5be4384479e408911f842704392b
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.PhuongThucThanhToanRepository;
@@ -23,15 +20,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-<<<<<<< HEAD
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-=======
 import java.math.BigDecimal;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
->>>>>>> 371e6f781e7b5be4384479e408911f842704392b
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
