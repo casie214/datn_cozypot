@@ -1,6 +1,13 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
+<<<<<<< HEAD
+import com.example.datn_cozypot_spring_boot.dto.response.*;
+import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
+import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
+import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
+import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+=======
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
@@ -10,6 +17,7 @@ import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.repository.*;
+>>>>>>> 371e6f781e7b5be4384479e408911f842704392b
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -20,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -225,6 +234,40 @@ public Page<DatBanListResponse> searchDatBan(
     @GetMapping("/khu-vuc/tang/{tang}")
     public ResponseEntity<?> getByTang(@PathVariable Integer tang) {
         return ResponseEntity.ok(datBanService.getByTang(tang));
+    }
+
+    @PostMapping("/add-phieu-dat-ban")
+    public ResponseEntity<CreatePhieuDatBanFullResponse> createFull(
+            @RequestBody CreatePhieuDatBanFullRequest req) {
+
+        CreatePhieuDatBanFullResponse response = datBanService.createFull(req);
+        return ResponseEntity.ok(response);
+    }
+
+    // GET /api/khach-hang/all
+    // Lấy toàn bộ danh sách → dùng cho multiselect khi mở modal
+    @GetMapping("/all-khach-hang")
+    public ResponseEntity<List<KhachHangSelectDTO>> getAll() {
+        return ResponseEntity.ok(datBanService.getAllForSelect());
+    }
+
+    // GET /api/khach-hang/search?keyword=0912...
+    // Tìm theo tên hoặc SĐT → dùng cho filter realtime trong multiselect
+    @GetMapping("/search-khach")
+    public ResponseEntity<List<KhachHangSelectDTO>> search(
+            @RequestParam(required = false, defaultValue = "") String keyword) {
+        return ResponseEntity.ok(datBanService.searchByKeyword(keyword));
+    }
+
+    // GET /api/khach-hang/sdt/0912345678
+    // Tìm đúng 1 khách theo SĐT
+    @GetMapping("/sdt/{soDienThoai}")
+    public ResponseEntity<?> findBySdt(@PathVariable String soDienThoai) {
+        KhachHangSelectDTO result = datBanService.findBySoDienThoai(soDienThoai);
+        if (result == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(result);
     }
 
 }

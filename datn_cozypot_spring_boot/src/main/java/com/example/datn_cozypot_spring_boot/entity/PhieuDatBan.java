@@ -41,7 +41,11 @@ public class PhieuDatBan {
     private KhachHang idKhachHang;
 
     @Size(max = 30)
+<<<<<<< HEAD
+    @Column(name = "ma_dat_ban", insertable = false, updatable = false, length = 30)
+=======
     @Column(name = "ma_dat_ban", insertable = false, updatable = false)
+>>>>>>> 371e6f781e7b5be4384479e408911f842704392b
     private String maDatBan;
 
     @Column(name = "thoi_gian_dat")
