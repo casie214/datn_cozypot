@@ -40,8 +40,7 @@ const goToMenu = () => {
 };
 
 const goToBooking = () => {
-  // router.push({ name: 'booking' });
-  alert("Chuyển đến trang đặt bàn...");
+  router.push({ name: 'booking' });
 };
 
 const goToLogin = () => {

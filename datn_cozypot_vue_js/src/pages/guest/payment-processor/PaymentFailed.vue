@@ -5,25 +5,47 @@
                 <i class="fa-solid fa-xmark"></i>
             </div>
             <h2>Thanh Toán Thất Bại</h2>
-            <p>Giao dịch đã bị hủy hoặc có lỗi xảy ra. Hóa đơn vẫn chưa được thanh toán.</p>
 
-            <button class="btn-return" @click="goHome">
-                Quay lại Sơ đồ bàn
-            </button>
+            <template v-if="isDeposit">
+                <p>Giao dịch đặt cọc đã bị hủy hoặc có lỗi xảy ra. Đơn đặt bàn của bạn đang ở trạng thái chờ thanh toán.</p>
+                <button class="btn-return" @click="goToHistory">
+                    Xem Lịch sử đặt bàn
+                </button>
+            </template>
+
+            <template v-else>
+                <p>Giao dịch đã bị hủy hoặc có lỗi xảy ra. Hóa đơn vẫn chưa được thanh toán.</p>
+                <button class="btn-return" @click="goHome">
+                    Quay lại Sơ đồ bàn
+                </button>
+            </template>
         </div>
     </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import { computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
+const router = useRouter();
+const route = useRoute(); // Thêm useRoute để lấy tham số trên thanh địa chỉ
+
+// Kiểm tra xem URL có chứa "?type=deposit" hay không
+const isDeposit = computed(() => route.query.type === 'deposit');
+
+// Hàm chuyển hướng cho Nhân viên
 const goHome = () => {
-    router.push('/admin/checkin'); // Đổi thành route màn hình sơ đồ bàn của bạn
+    router.push('/admin/checkin'); 
+};
+
+// Hàm chuyển hướng cho Khách hàng
+const goToHistory = () => {
+    router.push('/history'); 
 };
 </script>
 
 <style scoped>
+/* Toàn bộ CSS của bạn được giữ nguyên không thay đổi */
 .payment-result {
     height: 100vh;
     display: flex;

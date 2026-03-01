@@ -41,6 +41,9 @@ public class HoaDonThanhToanService {
     BanAnRepository banAnRepo;
 
     @Autowired
+    PhieuDatBanRepository phieuDatBanRepository;
+
+    @Autowired
     DanhMucChiTietRepository chiTietDanhMucChiTietRepository;
     @Autowired
     private SetLauRepository setLauRepository;
@@ -119,6 +122,12 @@ public class HoaDonThanhToanService {
         if (hd.getIdBanAn()!= null){
             hd.getIdBanAn().setTrangThai(0);
             banAnRepo.save(hd.getIdBanAn());
+        }
+
+        if (hd.getIdPhieuDatBan() != null) {
+            PhieuDatBan phieu = hd.getIdPhieuDatBan();
+            phieu.setTrangThai(2);
+            phieuDatBanRepository.save(phieu);
         }
 
         hoaDonThanhToanRepository.save(hd);

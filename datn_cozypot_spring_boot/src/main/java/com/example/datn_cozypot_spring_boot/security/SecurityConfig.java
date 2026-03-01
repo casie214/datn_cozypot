@@ -30,7 +30,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
+    // Giữ lại từ nhánh main để xử lý lỗi 403
     private final CustomAccessDeniedHandler accessDeniedHandler;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -39,20 +41,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(unauthorizedHandler)
-                        .accessDeniedHandler(accessDeniedHandler) // <--- Thêm dòng này để xử lý 403
+                        .accessDeniedHandler(accessDeniedHandler) // Xử lý 403 từ main
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Auth & Tài khoản (Từ main)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
+
+                        // Public API (Gộp chung)
+                        .requestMatchers("/api/payment/**").permitAll() // Từ code của bạn
                         .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                         .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()
                         .requestMatchers("/api/guest/**").permitAll()
@@ -60,22 +64,36 @@ public class SecurityConfig {
                         .requestMatchers("/api/thong-ke/**").permitAll()
                         .requestMatchers("/api/mon-an-di-kem/**").permitAll()
                         .requestMatchers("/api/set-lau/**").permitAll()
-                        .requestMatchers("/api/vnpay/**").permitAll()
+
+                        // Đặt bàn (Public) - Từ code của bạn
+                        // Lưu ý: Các API cụ thể này phải đặt TRƯỚC rule "/api/dat-ban/**" ở bên dưới
+                        .requestMatchers(HttpMethod.POST, "/api/dat-ban/check-ban-trong").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/dat-ban/tao-moi").permitAll()
+
+                        // VNPay (Gộp của bạn và main)
+                        .requestMatchers("/api/vnpay/vnpay-return").permitAll()
+                        .requestMatchers("/api/vnpay/create-payment/**").permitAll()
+                        .requestMatchers("/api/vnpay/vnpay-return-deposit").permitAll()
+                        .requestMatchers("/api/vnpay/create-payment-deposit/**").permitAll()
+                        .requestMatchers("/api/vnpay/**").permitAll() // Của main bao trọn vnpay
+
+                        // Đặt bàn (Protected)
                         .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // General API Rules
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN")
 
+                        // Static resources & Swagger
                         .requestMatchers("/dat-ban/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

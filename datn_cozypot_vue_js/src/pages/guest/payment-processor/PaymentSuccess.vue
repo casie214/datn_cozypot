@@ -4,22 +4,56 @@
             <div class="icon-circle success">
                 <i class="fa-solid fa-check"></i>
             </div>
-            <h2>Thanh Toán Thành Công!</h2>
-            <p>Hóa đơn đã được ghi nhận. Bàn đã được dọn trống.</p>
 
-            <button class="btn-return" @click="goHome">
-                Quay lại Quản lý bàn
-            </button>
+            <div v-if="paymentType === 'deposit'">
+                <h2>Đặt Bàn Thành Công!</h2>
+                <p>Tiền cọc đã được thanh toán. Nhà hàng đã ghi nhận lịch hẹn và chuẩn bị món ăn. Xin cảm ơn!</p>
+
+                <button class="btn-return" @click="goHome">
+                    Trở về Trang chủ
+                </button>
+            </div>
+
+            <div v-else>
+                <h2>Thanh Toán Thành Công!</h2>
+                <p>Hóa đơn đã được ghi nhận. Bàn đã được dọn trống.</p>
+
+                <button class="btn-return" @click="goHome">
+                    Quay lại Quản lý bàn
+                </button>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
+import { computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+const route = useRoute();
 const router = useRouter();
 
+// 1. Đọc query params trên URL (Ví dụ: ?type=deposit)
+// Nếu không có thì mặc định là 'full'
+const paymentType = computed(() => route.query.type || 'full');
+
+onMounted(() => {
+    // 2. NẾU LÀ KHÁCH HÀNG: Xóa sạch giỏ hàng và dữ liệu nháp
+    if (paymentType.value === 'deposit') {
+        localStorage.removeItem("cart");
+        sessionStorage.removeItem("pendingBooking");
+    }
+});
+
+// 3. Xử lý nút bấm dựa theo loại thanh toán
 const goHome = () => {
-    router.push('/admin/checkin'); // Đổi thành route màn hình sơ đồ bàn của bạn
+    if (paymentType.value === 'deposit') {
+        // Khách hàng -> Về trang chủ
+        router.push('/'); 
+    } else {
+        // Nhân viên -> Về quản lý bàn
+        router.push('/admin/checkin'); 
+    }
 };
 </script>
 
