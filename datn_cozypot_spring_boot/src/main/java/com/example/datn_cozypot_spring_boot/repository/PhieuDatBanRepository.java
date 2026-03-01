@@ -100,10 +100,10 @@ ORDER BY
 //    """)
 //    List<PhieuDatBan> findWaitingListFuture();
 
-    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 2 AND p.thoiGianDat >= :thoiGianTraCuu ORDER BY p.thoiGianDat ASC")
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 AND p.thoiGianDat >= :thoiGianTraCuu ORDER BY p.thoiGianDat ASC")
     List<PhieuDatBan> findWaitingListFuture(@Param("thoiGianTraCuu") LocalDateTime thoiGianTraCuu);
 
-    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 2 AND p.thoiGianDat >= :thoiGianBatDau AND p.thoiGianDat <= :thoiGianKetThuc ORDER BY p.thoiGianDat ASC")
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 AND p.thoiGianDat >= :thoiGianBatDau AND p.thoiGianDat <= :thoiGianKetThuc ORDER BY p.thoiGianDat ASC")
     List<PhieuDatBan> findWaitingListToday(@Param("thoiGianBatDau") LocalDateTime thoiGianBatDau, @Param("thoiGianKetThuc") LocalDateTime thoiGianKetThuc);
 
 

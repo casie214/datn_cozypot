@@ -26,20 +26,20 @@ public class PhieuDatBanScheduler {
     private final BanAnRepository banAnRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 6000)
     @Transactional
     public void autoCancelExpiredReservations() {
         // Mốc thời gian: Hiện tại trừ đi 15 phút
         LocalDateTime limitTime = LocalDateTime.now().minusMinutes(15);
 
         // Tìm các phiếu ở trạng thái 2 (Đã xác nhận/Chờ) và thoiGianDat < limitTime
-        List<PhieuDatBan> expiredReservations = phieuDatBanRepository.findAllByTrangThaiAndThoiGianDatBefore(2, limitTime);
+        List<PhieuDatBan> expiredReservations = phieuDatBanRepository.findAllByTrangThaiAndThoiGianDatBefore(1, limitTime);
 
         for (PhieuDatBan phieu : expiredReservations) {
             System.out.println("🤖 Hệ thống tự động hủy phiếu quá hạn: " + phieu.getMaDatBan());
 
             // 1. Hủy Phiếu Đặt Bàn (Trạng thái = 0)
-            phieu.setTrangThai(0);
+            phieu.setTrangThai(5);
             phieuDatBanRepository.save(phieu);
 
             // 2. Tìm Hóa Đơn liên quan đến phiếu này
