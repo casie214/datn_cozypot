@@ -352,6 +352,13 @@ onMounted(() => {
 
   const user = JSON.parse(localStorage.getItem("user"));
   if (user) currentStaffName.value = user.hoTen || user.username;
+
+  setInterval(() => {
+    checkOverdueTables();
+  }, 3 * 60 * 1000); 
+  
+  // Chạy ngay 1 lần lúc vừa mở trang web
+  setTimeout(() => checkOverdueTables(), 5000);
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -1160,6 +1167,57 @@ const handleCancelWaitingTicket = async (khach) => {
       }
   }
 };
+
+const warnedTables = ref([]);
+
+// 2. Hàm quét tìm các bàn đã ngồi quá 3 tiếng
+const checkOverdueTables = async () => {
+  // Lấy các bàn đang có người ngồi
+  const activeTables = danhSachBan.value.filter(ban => getTrangThaiTheoNgay(ban.id) === 1);
+  
+  for (const ban of activeTables) {
+    if (warnedTables.value.includes(ban.id)) continue; // Bỏ qua nếu đã cảnh báo rồi
+
+    try {
+      // Tận dụng API có sẵn để xem thông tin giờ vào của bàn
+      const res = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${ban.id}`);
+      if (res.data && res.data.thoiGianDat) {
+        const thoiGianVao = dayjs(res.data.thoiGianDat);
+        const now = dayjs(new Date());
+        
+        // Tính khoảng cách thời gian (hour, true = lấy số thập phân, vd 3.1 tiếng)
+        const diffHours = now.diff(thoiGianVao, 'hour', true); 
+
+        if (diffHours >= 3) {
+          warnedTables.value.push(ban.id); // Ghi sổ đen để không báo lại nữa
+          
+          const confirm = await Swal.fire({
+            title: 'Khách ngồi quá 3 tiếng!',
+            html: `Bàn <b>${ban.maBan}</b> đã check-in từ ${thoiGianVao.format('HH:mm')}.<br><br>Vui lòng kiểm tra lại tình trạng hoặc yêu cầu thanh toán!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#7d161a',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Mở Modal bàn này',
+            cancelButtonText: 'Để sau'
+          });
+
+          // Nếu nhân viên bấm đồng ý -> Bật luôn modal quản lý bàn đó lên
+          if (confirm.isConfirmed) {
+            await openManageModal(ban);
+          }
+        }
+      }
+    } catch (error) {
+      // Bỏ qua lỗi nếu chưa lấy được thông tin
+    }
+  }
+};
+
+// 3. Tự động xóa bàn khỏi danh sách "đã cảnh báo" khi bàn đó thanh toán xong và dọn dẹp (Về trạng thái Trống)
+watch(calculatedTableStatuses, (newStatuses) => {
+  warnedTables.value = warnedTables.value.filter(id => newStatuses[id] !== 0);
+}, { deep: true });
 
 const isServing = computed(() => {
   return selectedBan.value && 
