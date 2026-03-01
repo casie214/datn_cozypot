@@ -26,16 +26,33 @@ public class PhieuDatBanResponse {
     private String maBan;
     private String tenKhuVuc;
     private Integer tang;
+    private Integer idHoaDon;
+    private Integer idKhachHang;
+
+    private BigDecimal tongTienChuaGiam;
+    private BigDecimal soTienDaGiam;
+    private BigDecimal tienCoc;
+    private BigDecimal tongTienThanhToan;
+
+    private Double vatApDung;
 
     private List<ChiTietMonResponse> chiTiet;
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class ChiTietMonResponse {
-        private Integer id;
-        private String tenMon; // "Lẩu Thái", "Bò Mỹ"...
+        private Integer idChiTietHd; // THÊM TRƯỜNG NÀY ĐỂ LƯU KHÓA CHÍNH (SỐ 12, 13...)
+        private Integer id; // Đây là originalId (ID của món lẻ hoặc set lẩu)
+        private String tenMon;
+        private Integer trangThaiMon;
         private Integer soLuong;
         private BigDecimal donGia;
         private BigDecimal thanhTien;
+
+        private String type; // "FOOD" hoặc "SET"
+        private Integer idChiTietMonAn;
+        private Integer idSetLau;
+
     }
 }

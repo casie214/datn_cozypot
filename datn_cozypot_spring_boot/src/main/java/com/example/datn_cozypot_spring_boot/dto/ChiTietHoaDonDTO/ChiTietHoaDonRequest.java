@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class ChiTietHoaDonRequest {
+    private Integer id;
     private Integer idChiTietMonAn;
     private Integer idSetLau;
     private Integer soLuong;

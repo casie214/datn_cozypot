@@ -5,7 +5,9 @@ import {
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { inject } from "vue";
+import { usePermission } from "@/components/permissionHelper";
 
+const { handleActionWithAuth } = usePermission();
 const danhSachBanFromParent = inject("danhSachBan", ref([]));
 // const tableStatusMapFromParent = inject('tableStatusMap', ref({}));
 // const selectedDateFromParent = inject('selectedDate', ref(''));
@@ -387,19 +389,19 @@ onUnmounted(() => {
               Thời gian hiện tại: <strong>{{ currentTime }}</strong>
             </div>
             <button
-              class="edit-pos-btn"
-              @click="isEditing = !isEditing"
-              :class="{ 'btn-save': isEditing }"
-            >
-              <i
-                :class="
-                  isEditing
-                    ? 'fa-solid fa-floppy-disk'
-                    : 'fa-solid fa-pen-to-square'
-                "
-              ></i>
-              {{ isEditing ? " Lưu vị trí" : " Chỉnh sửa vị trí bàn" }}
-            </button>
+  class="edit-pos-btn"
+  @click="handleActionWithAuth(() => { isEditing = !isEditing }, 'ADMIN')"
+  :class="{ 'btn-save': isEditing }"
+>
+  <i
+    :class="
+      isEditing
+        ? 'fa-solid fa-floppy-disk'
+        : 'fa-solid fa-pen-to-square'
+    "
+  ></i>
+  {{ isEditing ? " Lưu vị trí" : " Chỉnh sửa vị trí bàn" }}
+</button>
           </div>
           <div class="grid-container">
             <div
