@@ -8,8 +8,10 @@ import {
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import dayjs from "dayjs";
 import Multiselect from "vue-multiselect";
-import "vue-multiselect/dist/vue-multiselect.min.css";
-/* 1. KHỞI TẠO TRẠNG THÁI */
+import "vue-multiselect/dist/vue-multiselect.css";/* 1. KHỞI TẠO TRẠNG THÁI */
+
+import { usePermission } from "@/components/permissionHelper";
+const { handleActionWithAuth } = usePermission();
 const danhSachBan = ref([]);
 
 /* 2. CÁC HÀM TIỆN ÍCH (Sửa lỗi "is not a function") */
@@ -252,42 +254,22 @@ onMounted(() => {
         <div>
           <label>Tìm kiếm</label>
           <br />
-          <input
-            type="text"
-            v-model="searchKeyword"
-            class="dropdown-display"
-            placeholder="Tìm theo mã bàn, khu vực, tầng..."
-          />
+          <input type="text" v-model="searchKeyword" class="dropdown-display"
+            placeholder="Tìm theo mã bàn, khu vực, tầng..." />
         </div>
         <!-- Lọc tầng -->
         <!-- ===== FILTER TẦNG ===== -->
         <div class="dropdown-wrapper">
           <label>Lọc theo tầng</label>
 
-          <Multiselect
-            v-model="filterTang"
-            :options="listTangOptions"
-            label="label"
-            track-by="value"
-            :multiple="true"
-            placeholder="Chọn tầng"
-            :show-labels="false"
-            class="custom-multiselect"
-          />
+          <Multiselect v-model="filterTang" :options="listTangOptions" label="label" track-by="value" :multiple="true"
+            placeholder="Chọn tầng" :show-labels="false" class="custom-multiselect" />
         </div>
         <div class="dropdown-wrapper">
           <label>Lọc theo loại đặt bàn</label>
 
-          <Multiselect
-            v-model="filterLoaiDatBan"
-            :options="listLoaiDatBanOptions"
-            label="label"
-            track-by="value"
-            :multiple="true"
-            placeholder="Chọn loại bàn"
-            :show-labels="false"
-            class="custom-multiselect"
-          />
+          <Multiselect v-model="filterLoaiDatBan" :options="listLoaiDatBanOptions" label="label" track-by="value"
+            :multiple="true" placeholder="Chọn loại bàn" :show-labels="false" class="custom-multiselect" />
         </div>
         <div>
           <br />
@@ -342,11 +324,8 @@ onMounted(() => {
             </td> -->
 
             <td>
-              <button
-                class="action-list"
-                style="border: none; background-color: white"
-                @click="openUpdateModal(ban.id)"
-              >
+              <button class="action-list" style="border: none; background-color: white"
+                @click="handleActionWithAuth(() => openUpdateModal(ban.id), 'ADMIN')">
                 <i class="fa-regular fa-pen-to-square action-icon"></i>
               </button>
             </td>
@@ -394,11 +373,7 @@ onMounted(() => {
           <label>Tầng</label>
           <select class="form-select" v-model="form.tang">
             <option value="" disabled>-- Chọn tầng --</option>
-            <option
-              v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]"
-              :key="tang"
-              :value="tang"
-            >
+            <option v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]" :key="tang" :value="tang">
               Tầng {{ tang }}
             </option>
           </select>
@@ -406,22 +381,14 @@ onMounted(() => {
 
         <div class="form-group">
           <label>Khu vực</label>
-          <select
-            class="form-select"
-            v-model="form.idKhuVuc"
-            :disabled="!form.tang"
-          >
+          <select class="form-select" v-model="form.idKhuVuc" :disabled="!form.tang">
             <option value="" disabled>-- Chọn khu vực --</option>
-            <option
-              v-for="khuVuc in khuVucTheoTang"
-              :key="khuVuc.id"
-              :value="khuVuc.id"
-            >
+            <option v-for="khuVuc in khuVucTheoTang" :key="khuVuc.id" :value="khuVuc.id">
               {{ khuVuc.tenKhuVuc }}
             </option>
           </select>
         </div>
-        
+
 
         <!-- <div class="form-group">
           <label>Ngày tạo</label><br>
@@ -582,15 +549,19 @@ onMounted(() => {
 .table thead tr th {
   background-color: #7d161a;
 }
+
 .list-card {
   border-radius: 12px;
-  overflow: hidden; /* QUAN TRỌNG */
+  overflow: hidden;
+  /* QUAN TRỌNG */
   border: 1px solid #ddd;
 }
+
 /* Body */
 .table tbody tr:last-child td {
   border-bottom: none;
 }
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -608,6 +579,7 @@ onMounted(() => {
   animation: fadeIn 0.25s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -650,6 +622,7 @@ onMounted(() => {
   font-size: 14px;
   transition: 0.2s;
 }
+
 .form-group input {
   width: 100%;
 }
@@ -730,6 +703,7 @@ onMounted(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -740,6 +714,7 @@ onMounted(() => {
     transform: scale(0.92);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;

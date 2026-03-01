@@ -43,7 +43,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
 
         // hoặc tìm trong bảng khách hàng
-        Optional<KhachHang> khachHang = khachHangRepository.findKhachHangByEmail(identifier);
+        Optional<KhachHang> khachHang = khachHangRepository.findByTenDangNhap(identifier);
         // thấy thì trả UserDetails quyền USER
         if (khachHang.isPresent()) {
             KhachHang kh = khachHang.get();
@@ -53,7 +53,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             String password = (kh.getMatKhauDangNhap() == null) ? "" : kh.getMatKhauDangNhap();
 
             return new User(
-                    (kh.getEmail() != null) ? kh.getEmail() : kh.getSoDienThoai(),
+                    kh.getTenDangNhap(),
                     password,
                     authorities
             );
