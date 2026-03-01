@@ -1423,12 +1423,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
             </div>
           </div>
         </div>
-        <div>
-          <div class="filter-date px-3">
-            <label>📅 Lọc theo ngày</label>
-            <input type="date" v-model="selectedDate" class="form-control" />
-          </div>
-        </div>
+        
       </div>
 
       <div class="contain-frame mt-3">
