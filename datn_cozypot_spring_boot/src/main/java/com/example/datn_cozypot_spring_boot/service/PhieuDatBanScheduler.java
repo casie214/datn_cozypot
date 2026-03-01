@@ -26,7 +26,7 @@ public class PhieuDatBanScheduler {
     private final BanAnRepository banAnRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
 
-    @Scheduled(fixedRate = 6000)
+    @Scheduled(fixedRate = 30000)
     @Transactional
     public void autoCancelExpiredReservations() {
         // Mốc thời gian: Hiện tại trừ đi 15 phút

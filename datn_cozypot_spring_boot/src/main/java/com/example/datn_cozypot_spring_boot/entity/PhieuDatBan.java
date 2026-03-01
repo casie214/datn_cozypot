@@ -42,7 +42,6 @@ public class PhieuDatBan {
 
     @Size(max = 30)
     @Column(name = "ma_dat_ban", insertable = false, updatable = false, length = 30)
-
     private String maDatBan;
 
     @Column(name = "thoi_gian_dat")
