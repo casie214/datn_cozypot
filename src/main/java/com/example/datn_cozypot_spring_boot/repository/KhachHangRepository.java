@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
+import com.example.datn_cozypot_spring_boot.entity.BanAn;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,19 +16,23 @@ import java.util.Optional;
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
     @Query("SELECT DISTINCT kh FROM KhachHang kh " +
-            "LEFT JOIN kh.danhSachDiaChi dc " + // Join với bảng địa chỉ
+            "LEFT JOIN kh.danhSachDiaChi dc " +
             "WHERE (:keyword IS NULL OR kh.maKhachHang LIKE %:keyword% " +
             "OR kh.tenKhachHang LIKE %:keyword% " +
             "OR kh.soDienThoai LIKE %:keyword% " +
             "OR kh.email LIKE %:keyword% " +
-            "OR dc.thongTinDiaChi LIKE %:keyword%) AND " + // Tìm kiếm cả trong địa chỉ
-            "(:trangThai IS NULL OR kh.trangThai = :trangThai) AND " +
-            "(:tuNgay IS NULL OR CAST(kh.ngayTaoTaiKhoan AS date) >= :tuNgay)")
+            "OR dc.diaChiChiTiet LIKE %:keyword%) " +
+            "AND (:trangThai IS NULL OR kh.trangThai = :trangThai) " +
+            "AND (CAST(:gioiTinh AS boolean) IS NULL OR kh.gioiTinh = :gioiTinh) " + // Thêm CAST để chắc chắn
+            "AND (:tuNgay IS NULL OR CAST(kh.ngayTaoTaiKhoan AS date) >= :tuNgay)")
     Page<KhachHang> searchKhachHang(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
+            @Param("gioiTinh") Boolean gioiTinh, // ✅ Đổi Integer thành Boolean ở đây
             @Param("tuNgay") java.time.LocalDate tuNgay,
             Pageable pageable);
+
+    // Kiểm tra tồn tại phục vụ validate trùng lặp
     boolean existsBySoDienThoai(String soDienThoai);
     boolean existsByEmail(String email);
     boolean existsByTenDangNhap(String tenDangNhap);
@@ -36,8 +40,14 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
     boolean existsByEmailAndIdNot(String email, Integer id);
     boolean existsByTenDangNhapAndIdNot(String tenDangNhap, Integer id);
-    List<KhachHang> findByTrangThai(Integer trangThai);
 
+    List<KhachHang> findByTrangThai(Integer trangThai);
+    Optional<KhachHang> findByEmail(String email);
+    Optional<KhachHang> findByEmailOrTenDangNhap(String email, String tenDangNhap);
+
+    /**
+     * Thống kê khách hàng theo tháng (Native Query cho SQL Server)
+     */
     @Query(value = """
     SELECT 
         kh.id_khach_hang,
@@ -46,9 +56,7 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
         kh.so_dien_thoai,
         kh.email,
         kh.ngay_sinh,
-
         COUNT(DISTINCT pdb_thang.id_phieu_dat_ban) AS so_lan_dat_trong_thang,
-
         ISNULL(SUM(
             CASE 
                 WHEN hd.trang_thai_hoa_don = 2 
@@ -56,39 +64,38 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
                 ELSE 0 
             END
         ), 0) AS tong_chi_tieu_trong_thang,
-
         MAX(pdb_all.thoi_gian_dat) AS lan_dat_gan_nhat
-
     FROM khach_hang kh
-
     LEFT JOIN phieu_dat_ban pdb_thang
         ON kh.id_khach_hang = pdb_thang.id_khach_hang
         AND MONTH(pdb_thang.thoi_gian_dat) = :thang
         AND YEAR(pdb_thang.thoi_gian_dat) = :nam
-
     LEFT JOIN phieu_dat_ban pdb_all
         ON kh.id_khach_hang = pdb_all.id_khach_hang
-
     LEFT JOIN hoa_don_thanh_toan hd
         ON kh.id_khach_hang = hd.id_khach_hang
         AND MONTH(hd.thoi_gian_thanh_toan) = :thang
         AND YEAR(hd.thoi_gian_thanh_toan) = :nam
-    WHERE kh.trang_thai = 1   -- ⭐ CHỈ KH HOẠT ĐỘNG
-
+    WHERE kh.trang_thai = 1
     GROUP BY 
-        kh.id_khach_hang,
-        kh.ma_khach_hang,
-        kh.ten_khach_hang,
-        kh.so_dien_thoai,
-        kh.email,
-        kh.ngay_sinh
-""", nativeQuery = true)
+        kh.id_khach_hang, kh.ma_khach_hang, kh.ten_khach_hang, 
+        kh.so_dien_thoai, kh.email, kh.ngay_sinh
+    """, nativeQuery = true)
     List<Object[]> thongKeKhachHangTheoThang(
             @Param("thang") int thang,
             @Param("nam") int nam
     );
 
-
-
     Optional<KhachHang> findKhachHangByEmail(String identifier);
+
+    Optional<KhachHang> findBySoDienThoai(String soDienThoai);
+
+    // Tìm theo tên hoặc SĐT (dùng cho multiselect search)
+    @Query("SELECT k FROM KhachHang k WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR " +
+            "LOWER(k.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "k.soDienThoai LIKE CONCAT('%', :keyword, '%'))" +
+            " ORDER BY k.tenKhachHang")
+    List<KhachHang> searchByKeyword(@Param("keyword") String keyword);
+    Optional<KhachHang> findByTenDangNhap(String tenDangNhap);
 }

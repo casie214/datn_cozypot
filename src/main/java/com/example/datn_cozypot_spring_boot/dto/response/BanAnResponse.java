@@ -67,11 +67,19 @@ public class BanAnResponse {
     }
 
     private boolean isValidBooking(PhieuDatBan p) {
-        if (p.getTrangThai() != 1 || p.getThoiGianDat() == null) return false;
+        // 1. Kiểm tra trạng thái phiếu (Ví dụ: 1 hoặc 2 tùy theo logic của bạn, ở đây tôi giữ 1 theo code cũ của bạn)
+        // Chú ý: Nếu trạng thái "Đã xác nhận" của bạn là 2 thì hãy đổi số 1 thành số 2
+        if (p.getTrangThai() == null || p.getTrangThai() != 1 || p.getThoiGianDat() == null) return false;
 
         ZonedDateTime nowVN = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         ZonedDateTime bookingTimeVN = p.getThoiGianDat().atZone(ZoneId.of("Asia/Ho_Chi_Minh"));
 
-        return bookingTimeVN.isAfter(nowVN);
+        // 2. Kiểm tra xem có cùng ngày hôm nay không
+        boolean isToday = bookingTimeVN.toLocalDate().equals(nowVN.toLocalDate());
+
+        // 3. Logic: Chỉ hiện "Đã đặt" nếu là phiếu của HÔM NAY
+        // và thời gian khách đến phải SAU hiện tại (chưa quá giờ)
+        // Bạn có thể thêm điều kiện: bookingTimeVN.isBefore(nowVN.plusHours(3)) nếu chỉ muốn khóa bàn trước 3 tiếng
+        return isToday && bookingTimeVN.isAfter(nowVN);
     }
 }
