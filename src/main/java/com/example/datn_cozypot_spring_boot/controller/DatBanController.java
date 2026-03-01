@@ -1,13 +1,11 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
-<<<<<<< HEAD
 import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
-=======
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
@@ -17,7 +15,6 @@ import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
 import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.repository.*;
->>>>>>> 371e6f781e7b5be4384479e408911f842704392b
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
