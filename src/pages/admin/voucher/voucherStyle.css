@@ -159,9 +159,26 @@
 .bg-light-soft { background-color: #f8f9fa; }
 .bg-danger-soft { background-color: #fff5f5; }
 .text-primary-red { color: #8b0000; }
-.btn-red-dark { background: #8b0000; color: white; border: none; padding: 10px 20px; border-radius: 8px; transition: 0.3s; }
-.btn-red-dark:hover { background: #8b0000; transform: translateY(-2px); }
+.btn-red-dark {
+    background-color: #ffffff;
+    color: #8B0000; /* đỏ đô */
+    border: 2px solid #8B0000;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
 
+.btn-red-dark:hover {
+    background-color: #8B0000;
+    color: #ffffff;
+}
+
+.btn-red-dark:focus {
+    background-color: #8B0000;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
 .item-row:hover { background-color: #f1f1f1; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -268,32 +285,7 @@
     transition: transform 0.5s ease;
 }
 
-/* --- TỐI ƯU NÚT THÊM MỚI (ADD BUTTON) --- */
-.btn-red-dark {
-    background-color: var(--dark-red);
-    color: var(--white) !important;
-    border-radius: 8px;
-    padding: 10px 20px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 6px rgba(96, 0, 0, 0.2);
-    margin-top: 10px; /* Tạo khoảng cách với filter card phía trên */
-}
 
-.btn-red-dark:hover {
-    background-color: #8b0000;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
-}
-
-.btn-red-dark:active {
-    transform: translateY(0);
-}
 
 .app-content{
   background-color: white;
@@ -412,33 +404,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   padding: 8px 12px;
   color: gray;
 }
-/* --- TÙY CHỈNH NÚT THÊM MỚI (Btn Red Dark) --- */
-.btn-red-dark {
-    color: var(--white) !important;
-    border-radius: 8px;
-    padding: 10px 24px;
-    border: 1px solid var(--dark-red);
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 6px rgba(123, 18, 28, 0.2);
-    background-color: #8b0000;
-}
 
-.btn-red-dark:hover {
-    background-color: #8b0000;
-    border-color: #8b0000;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
-    color: white !important;
-}
-
-.btn-red-dark:active {
-    transform: translateY(0);
-}
 
 /* --- TÙY CHỈNH NÚT BỎ LỌC (Btn Reset/Refresh) --- */
 /* Class này áp dụng cho nút có icon xoay trong bộ lọc */
@@ -472,11 +438,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     transition: transform 0.5s ease;
 }
 
-.btn-red-dark:hover {
-  background-color:#8b0000;
-  
-font-weight: bold;
-}
+
 
 /* Nút bấm */
 .btn-red-btn-outline-secondary {
@@ -1032,18 +994,25 @@ font-weight: bold;
 }
 
 .btn-red-dark {
-    background-color: #800000;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    transition: all 0.3s;
+    background-color: #ffffff;
+    color: #8B0000; /* đỏ đô */
+    border: 2px solid #8B0000;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .btn-red-dark:hover {
-    background-color: #600000;
-    transform: translateY(-1px);
+    background-color: #8B0000;
+    color: #ffffff;
 }
 
+.btn-red-dark:focus {
+    background-color: #8B0000;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
 .table-responsive {
     border: 1px solid white;
     border-radius: 8px;
