@@ -21,9 +21,13 @@ public class DatBanUpdateRequest {
         @NotNull(message = "ID Bàn không được trống")
         private Integer idBanAn;
 
+        private String maDatBanGoc;
+
         private Integer trangThai;
 
         private BigDecimal tienMat;
 
         private Integer trangThaiPhieu;
+
+        private Double vatApDung;
 }

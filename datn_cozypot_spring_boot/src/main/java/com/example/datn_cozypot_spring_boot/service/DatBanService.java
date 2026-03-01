@@ -252,6 +252,10 @@ public class DatBanService {
             phieuMoi.setHinhThucDat(2);
             phieuMoi.setNguoiTao("Hệ thống");
 
+            if (request.getMaDatBanGoc() != null) {
+                phieuMoi.setMaDatBan(request.getMaDatBanGoc());
+            }
+
             // 🚨 TẠO BIẾN KHÁCH HÀNG ĐỂ DÙNG CHUNG CHO CẢ PHIẾU VÀ HÓA ĐƠN
             KhachHang kh = null;
             if (request.getIdKhachHang() != null) {
@@ -276,8 +280,10 @@ public class DatBanService {
             hoaDonMoi.setSoTienDaGiam(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTongTienThanhToan(java.math.BigDecimal.ZERO);
-            hoaDonMoi.setVatApDung(10.0F);
 
+            Double vatFromRequest = request.getVatApDung();
+            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 10.0f;
+            hoaDonMoi.setVatApDung(finalVat);
 
 
             if (request.getIdNhanVien() != null) {
