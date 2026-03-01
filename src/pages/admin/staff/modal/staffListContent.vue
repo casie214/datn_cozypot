@@ -9,12 +9,13 @@
         <i class="fas fa-filter me-2"></i>Bộ lọc tìm kiếm
       </div>
       <div class="row g-3 p-3 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-4">
           <label class="filter-label">Từ khóa</label>
           <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, email..."
             @input="onSearchInput">
         </div>
-        <div class="col-md-5">
+
+        <div class="col-md-3">
           <label class="filter-label">Trạng thái</label>
           <select v-model="filters.trangThai" class="form-select custom-input" @change="handleSearch">
             <option :value="null">Tất cả</option>
@@ -22,12 +23,30 @@
             <option :value="2">Ngừng hoạt động</option>
           </select>
         </div>
-        <!-- <div class="col-md-3">
-          <label class="filter-label">Từ ngày</label>
-          <input type="date" v-model="filters.tuNgay" class="form-control custom-input" @change="handleSearch">
-        </div> -->
+
+        <div class="col-md-3">
+          <label class="filter-label">Giới tính</label>
+          <div class="gender-filter-group">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" v-model="filters.gioiTinh" :value="null" id="nvAll"
+                name="nvGender" @change="handleSearch">
+              <label class="form-check-label" for="nvAll">Tất cả</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" v-model="filters.gioiTinh" :value="true" id="nvMale"
+                name="nvGender" @change="handleSearch">
+              <label class="form-check-label" for="nvMale">Nam</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" v-model="filters.gioiTinh" :value="false" id="nvFemale"
+                name="nvGender" @change="handleSearch">
+              <label class="form-check-label" for="nvFemale">Nữ</label>
+            </div>
+          </div>
+        </div>
+
         <div class="col-md-2">
-          <button class="btn-red-dark w-100 py-2" @click="handleSearch">Tìm kiếm</button>
+          <button class="btn-red-dark w-100 py-2" @click="handleReset">Xóa bộ lọc</button>
         </div>
       </div>
     </div>
@@ -48,21 +67,27 @@
             <i class="fas fa-plus"></i>
           </button>
 
-          <!-- <button @click="triggerImport" title="Import dữ liệu"
+          <button @click="downloadTemplate" title="Tải file mẫu nhập liệu"
             style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
-            <i class="fas fa-cloud-upload-alt"></i>
-          </button> -->
+            <i class="fas fa-file-download"></i>
+          </button>
+
+          <button @click="$refs.fileInput.click()" title="Nhập dữ liệu từ Excel"
+            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+            <i class="fas fa-file-import"></i>
+          </button>
 
           <input type="file" ref="fileInput" @change="handleImportExcel" style="display: none" accept=".xlsx, .xls">
+
           <button @click="printToPDF" title="In bản PDF"
             style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
             <i class="fas fa-print"></i>
           </button>
 
-          <button @click="exportToExcel" title="Xuất Excel"
+          <!-- <button @click="exportToExcel" title="Xuất Excel"
             style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
             <i class="fas fa-file-excel"></i>
-          </button>
+          </button> -->
 
           <button
             @click="handleSearch(true); Swal.fire({ icon: 'success', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
@@ -78,8 +103,7 @@
           <thead>
             <tr style="background-color: #800000;">
               <th class="text-center" style="width: 40px; border: none;">
-                <input type="checkbox" class="form-check-input" @change="toggleSelectAll"
-                  :checked="selectedIds.length === listNhanVien.length && listNhanVien.length > 0">
+                <input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isSelectAllPages">
               </th>
               <th class="text-center" style="color: white; border: none;">STT</th>
               <th style="color: white; border: none;">Nhân viên</th>
@@ -94,7 +118,8 @@
           <tbody>
             <tr v-for="(nv, index) in listNhanVien" :key="nv.id">
               <td class="text-center">
-                <input type="checkbox" class="form-check-input custom-checkbox" :value="nv.id" v-model="selectedIds">
+                <input type="checkbox" class="form-check-input custom-checkbox" :value="nv.id" v-model="selectedIds"
+                  :checked="isSelectAllPages || selectedIds.includes(nv.id)">
               </td>
               <td class="text-center text-muted font-monospace">
                 {{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}
@@ -131,7 +156,7 @@
 
               <td class="text-center">
                 <span :class="['badge-status', nv.trangThaiLamViec === 1 ? 'status-active' : 'status-locked']">
-                  {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng việc' }}
+                  {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
                 </span>
               </td>
 
@@ -200,6 +225,7 @@ const listNhanVien = ref([]);
 const filters = reactive({
   keyword: '',
   trangThai: null,
+  gioiTinh: null,
   tuNgay: ''
 });
 const { getStatusDisplay, fetchData, toggleStaffStatus } = useStaffLogic();
@@ -275,12 +301,9 @@ const onToggleStatus = async (nv) => {
 };
 
 // --- LOGIC MODAL ---
-
 const openModalAdd = () => {
   router.push("/admin/staff/form");
 };
-
-
 
 const handleEdit = (nv) => {
   // Kiểm tra trạng thái: Nếu không phải 1 (Đang hoạt động) thì chặn
@@ -302,26 +325,20 @@ const handleEdit = (nv) => {
   router.push(`/admin/staff/form/${nv.id}`);
 };
 
-
-const openModalView = (id) => {
-  // detailStaffId.value = id;
-  // isDetailModalOpen.value = true;
-  router.push(`/admin/staff/view/${id}`);
-};
-
-const closeDetailModal = () => {
-  isDetailModalOpen.value = false;
-};
-// 1. Mảng lưu trữ các ID được chọn
+isDetailModalOpen.value = false;
+const isSelectAllPages = ref(false);
 const selectedIds = ref([]);
 
-// 2. Hàm xử lý tích chọn tất cả (Ô dòng đỏ)
 const toggleSelectAll = (event) => {
-  if (event.target.checked) {
-    // Nếu tích ô đỏ: lấy toàn bộ .id gán vào mảng chọn
+  const checked = event.target.checked;
+
+  // LỖI SAI CŨ: Thiếu dòng này
+  isSelectAllPages.value = checked;
+
+  if (checked) {
+    // Tích cho trang hiện tại để người dùng thấy ngay lập tức
     selectedIds.value = listNhanVien.value.map(nv => nv.id);
   } else {
-    // Nếu bỏ tích ô đỏ: xóa sạch mảng
     selectedIds.value = [];
   }
 };
@@ -388,64 +405,207 @@ const exportToExcel = async () => {
     }
   }
 };
+const downloadTemplate = async () => {
+  // BƯỚC 1: Kiểm tra điều kiện chọn (Dựa vào cả cờ isSelectAllPages và mảng selectedIds)
+  if (!isSelectAllPages.value && selectedIds.value.length === 0) {
+    Swal.fire({
+      title: 'Thông báo',
+      text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để lấy dữ liệu mẫu!',
+      icon: 'warning',
+      confirmButtonColor: '#800000'
+    });
+    return;
+  }
 
-// Thêm vào ngay dưới các biến ref hiện có
-const fileInput = ref(null);
+  // BƯỚC 2: Xác nhận (Hiển thị thông báo linh hoạt theo số lượng chọn)
+  const confirmText = isSelectAllPages.value
+    ? "Hệ thống sẽ tạo file mẫu chứa dữ liệu của TOÀN BỘ nhân viên trong hệ thống."
+    : `Hệ thống sẽ tạo file mẫu chứa dữ liệu của ${selectedIds.value.length} nhân viên bạn đã chọn.`;
 
-// Hàm mở cửa sổ chọn file
-const triggerImport = () => {
-  fileInput.value.click();
-};
-
-// Hàm xử lý file sau khi người dùng chọn
-const handleImportExcel = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Xác nhận trước khi Import
   const result = await Swal.fire({
-    title: 'Xác nhận Import?',
-    text: "Dữ liệu từ file Excel sẽ được thêm vào hệ thống.",
+    title: 'Tải file mẫu nhập liệu?',
+    text: confirmText,
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#800000',
-    confirmButtonText: 'Đồng ý',
-    cancelButtonText: 'Hủy'
+    confirmButtonText: 'Tải mẫu ngay',
+    cancelButtonText: 'Để sau'
   });
 
   if (result.isConfirmed) {
     try {
-      Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.showLoading();
 
-      await staffService.importExcel(file);
+      // BƯỚC 3: Chuẩn bị Params gửi lên Server
+      const params = {
+        // Nếu chọn tất cả hệ thống thì gửi null để Backend tự lấy hết
+        // Nếu không thì mới join danh sách ID
+        listId: isSelectAllPages.value ? null : selectedIds.value.join(','),
 
-      Swal.fire('Thành công!', 'Đã nhập dữ liệu nhân viên thành công.', 'success');
-      handleSearch(true); // Load lại bảng để thấy dữ liệu mới
+        // Gửi kèm keyword và bộ lọc để nếu chọn tất cả, Backend vẫn lấy đúng theo kết quả đang tìm kiếm
+        keyword: filters.keyword || null,
+        trangThai: filters.trangThai !== null ? filters.trangThai : null
+      };
+
+      // Gọi service (đảm bảo Backend API này xử lý được trường hợp listId rỗng/null)
+      const response = await staffService.exportTemplate(params);
+
+      // BƯỚC 4: Xử lý file trả về (Blob)
+      const rawData = response.data ? response.data : response;
+      const blob = new Blob([rawData], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      // Kiểm tra file lỗi (dung lượng quá nhỏ)
+      if (blob.size < 500) throw new Error("Dữ liệu file không hợp lệ.");
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Mau_Import_NV_${dayjs().format('DDMMYYYY')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
     } catch (error) {
-      console.error("Lỗi Import:", error);
-      Swal.fire('Lỗi!', 'Không thể nhập dữ liệu. Vui lòng kiểm tra lại định dạng file!', 'error');
-    } finally {
-      event.target.value = ''; // Reset để có thể chọn lại cùng 1 file
+      console.error("Lỗi tải file mẫu:", error);
+      Swal.fire('Lỗi!', 'Không thể tải file mẫu. Vui lòng kiểm tra lại hệ thống.', 'error');
     }
-  } else {
-    event.target.value = ''; // Reset nếu người dùng hủy
   }
 };
 
 
-const printToPDF = () => {
-  if (selectedIds.value.length === 0) {
+// Thêm vào ngay dưới các biến ref hiện có
+const fileInput = ref(null);
+
+const handleReset = async () => {
+  filters.keyword = '';
+  filters.trangThai = null;
+  filters.tuNgay = null;
+  filters.gioiTinh = null;
+  const defaultFilters = {
+    keyword: '',
+    trangThai: null,
+    gioiTinh: null,
+    tuNgay: null
+  };
+
+  const defaultPagination = {
+    currentPage: 1,
+    pageSize: 10
+  };
+
+  try {
+    // 3. GỌI API LẤY LẠI DỮ LIỆU TOÀN BỘ
+    const data = await fetchData(defaultFilters, defaultPagination);
+
+    // 4. CẬP NHẬT LẠI DANH SÁCH HIỂN THỊ
+    listNhanVien.value = data.content;
+
+    // Cập nhật lại tổng số trang nếu có
+    // totalPages.value = data.totalPages;
+
+    console.log("Đã reset giao diện và dữ liệu thành công!");
+  } catch (error) {
+    console.error("Lỗi khi reset:", error);
+  }
+};
+
+const handleImportExcel = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Hiển thị thông báo đang xử lý
+  Swal.fire({
+    title: 'Đang xử lý dữ liệu...',
+    text: 'Hệ thống đang kiểm tra và lưu dữ liệu, vui lòng đợi.',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
+
+  try {
+    // Gọi service import
+    const response = await staffService.importExcel(file);
+
+    Swal.fire({
+      title: 'Thành công!',
+      text: response.data.message || 'Đã nhập danh sách nhân viên thành công.',
+      icon: 'success',
+      confirmButtonColor: '#800000'
+    });
+
+    // Sau khi import xong thì gọi hàm load lại dữ liệu bảng
+    // Thường là hàm fetch data của bạn, ví dụ: loadData() hoặc handleSearch(true)
+    handleSearch(true);
+
+  } catch (error) {
+    let errorMsg = "Đã có lỗi xảy ra khi nhập file.";
+
+    // Bắt lỗi 400 (Trùng Email, SĐT, CCCD...) từ Backend
+    if (error.response && error.response.status === 400) {
+      errorMsg = error.response.data;
+    }
+
+    Swal.fire({
+      icon: 'error',
+      title: 'Dữ liệu không hợp lệ!',
+      html: `<div style="text-align: left; max-height: 300px; overflow-y: auto; background: #fff5f5; padding: 10px; border: 1px solid #feb2b2;">
+               <pre style="color: #c53030; font-family: inherit; font-size: 13px; white-space: pre-wrap; margin: 0;">${errorMsg}</pre>
+             </div>`,
+      width: '600px',
+      confirmButtonColor: '#800000'
+    });
+  } finally {
+    // Quan trọng: Reset input file để có thể chọn lại cùng 1 file vừa sửa
+    event.target.value = '';
+  }
+};
+
+const printToPDF = async () => {
+  // 1. Kiểm tra điều kiện: Nếu không chọn "Tất cả" và mảng ID trống
+  if (!isSelectAllPages.value && selectedIds.value.length === 0) {
     Swal.fire({ title: 'Thông báo', text: 'Vui lòng chọn nhân viên!', icon: 'warning' });
     return;
   }
 
-  const selectedStaffData = listNhanVien.value.filter(nv =>
-    selectedIds.value.includes(nv.id)
-  );
+  let selectedStaffData = [];
 
+  // 2. Lấy dữ liệu thực tế để in
+  if (isSelectAllPages.value) {
+    // Nếu chọn tất cả hệ thống: Gọi API lấy toàn bộ nhân viên theo filter hiện tại
+    try {
+      Swal.fire({
+        title: 'Đang chuẩn bị dữ liệu in...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      // Thay staffService.getAll bằng hàm gọi API lấy danh sách của bạn
+      const response = await staffService.getAll({
+        keyword: filters.keyword,
+        trangThai: filters.trangThai,
+        page: 0,
+        size: 9999 // Lấy số lượng lớn để bao phủ toàn bộ
+      });
+
+      selectedStaffData = response.data.content || response.data;
+      Swal.close();
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Lỗi', 'Không thể lấy dữ liệu để in', 'error');
+      return;
+    }
+  } else {
+    // Nếu chọn lẻ: Lọc từ danh sách đang hiển thị (Logic cũ của bạn)
+    selectedStaffData = listNhanVien.value.filter(nv =>
+      selectedIds.value.includes(nv.id)
+    );
+  }
+
+  // --- GIỮ NGUYÊN HOÀN TOÀN LOGIC RENDER HTML CỦA BẠN DƯỚI ĐÂY ---
   const printWindow = window.open('', '_blank');
-
-  // Bạn nên thay bằng link ảnh logo thực tế của CozyPot
 
   printWindow.document.write(`
     <html>
@@ -460,13 +620,12 @@ const printToPDF = () => {
             font-family: 'Montserrat', sans-serif; 
             color: #2d3436; 
             margin: 0; 
-            background-color: #525659; /* Màu nền trình xem PDF */
+            background-color: #525659;
             display: flex;
             flex-direction: column;
             align-items: center;
           }
 
-          /* THANH TOOLBAR PDF MÔ PHỎNG */
           .pdf-header-nav {
             width: 100%;
             background: #323639;
@@ -481,7 +640,6 @@ const printToPDF = () => {
             z-index: 100;
           }
 
-          /* TRANG GIẤY A4 */
           .a4-page {
             background: white;
             width: 210mm;
@@ -493,7 +651,6 @@ const printToPDF = () => {
             position: relative;
           }
 
-          /* HEADER GIỐNG ẢNH MẪU */
           .brand-header {
             display: flex;
             justify-content: space-between;
@@ -511,7 +668,6 @@ const printToPDF = () => {
           .report-meta-title h2 { margin: 0; font-size: 20px; color: #2d3436; }
           .report-meta-title p { margin: 0; font-size: 11px; color: #b78a28; font-weight: bold; }
 
-          /* THÔNG TIN CHI TIẾT */
           .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -521,7 +677,6 @@ const printToPDF = () => {
           }
           .info-label { font-weight: bold; color: #800000; }
 
-          /* TABLE STYLES THEO ẢNH MẪU */
           .cozypot-table {
             width: 100%;
             border-collapse: collapse;
@@ -544,7 +699,6 @@ const printToPDF = () => {
           .col-name { text-align: left !important; color: #800000; font-weight: bold; }
           .col-id { font-weight: bold; color: #2d3436; }
 
-          /* BADGE TRẠNG THÁI */
           .status-badge {
             background: #e6f4ea;
             color: #1e7e34;
@@ -555,7 +709,6 @@ const printToPDF = () => {
             display: inline-block;
           }
 
-          /* FOOTER CHỮ KÝ */
           .signature-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -620,26 +773,21 @@ const printToPDF = () => {
               </tr>
             </thead>
             <tbody>
-  ${selectedStaffData.map((nv, index) => `
-    <tr>
-      <td>${(index + 1).toString().padStart(2, '0')}</td>
-      
-      <td class="col-id">${nv.maNhanVien || 'N/A'}</td>
-      
-      <td class="col-name">${nv.hoTenNhanVien ? nv.hoTenNhanVien.toUpperCase() : ''}</td>
-      
-      <td>${nv.sdtNhanVien || ''}</td>
-      
-      <td>${nv.tenVaiTro || 'Nhân viên'}</td>
-      
-      <td>
-        <span class="status-badge">
-          ${nv.trangThaiLamViec === 1 ? 'ĐANG LÀM VIỆC' : 'NGỪNG HOẠT ĐỘNG'}
-        </span>
-      </td>
-    </tr>
-  `).join('')}
-</tbody>
+              ${selectedStaffData.map((nv, index) => `
+                <tr>
+                  <td>${(index + 1).toString().padStart(2, '0')}</td>
+                  <td class="col-id">${nv.maNhanVien || 'N/A'}</td>
+                  <td class="col-name">${nv.hoTenNhanVien ? nv.hoTenNhanVien.toUpperCase() : ''}</td>
+                  <td>${nv.sdtNhanVien || ''}</td>
+                  <td>${nv.tenVaiTro || 'Nhân viên'}</td>
+                  <td>
+                    <span class="status-badge">
+                      ${nv.trangThaiLamViec === 1 ? 'ĐANG LÀM VIỆC' : 'NGỪNG HOẠT ĐỘNG'}
+                    </span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
           </table>
 
           <div class="signature-section">
@@ -661,12 +809,12 @@ const printToPDF = () => {
 
   printWindow.document.close();
 
-  // Đợi font và ảnh load xong mới mở hộp thoại in
   setTimeout(() => {
     printWindow.focus();
     printWindow.print();
   }, 800);
 };
+
 
 onMounted(handleSearch);
 </script>

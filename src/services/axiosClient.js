@@ -23,15 +23,12 @@ const processQueue = (error, token = null) => {
 
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        // Lấy token trực tiếp từ localStorage mỗi khi có request
+        const token = localStorage.getItem('accessToken'); 
 
         if (token) {
-            console.log("🟢 Gửi request với Token:", token.substring(0, 10) + "...");
             config.headers.Authorization = `Bearer ${token}`;
-        } else {
-            console.warn("🔴 Không tìm thấy Token trong localStorage");
         }
-
         return config;
     },
     (error) => Promise.reject(error)
@@ -39,18 +36,23 @@ axiosClient.interceptors.request.use(
 
 axiosClient.interceptors.response.use(
     (response) => response,
-    async(error) => {
+    async (error) => {
         const originalRequest = error.config;
+
         if (!error.response) {
             return Promise.reject(error);
         }
 
-        if (error.response.status === 401 && !originalRequest._retry) {
-
+        if (
+            error.response.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url.includes("/login") &&
+            !originalRequest.url.includes("/refresh-token")
+        ) {
             if (isRefreshing) {
-                return new Promise(function(resolve, reject) {
-                        failedQueue.push({ resolve, reject });
-                    })
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
                     .then((token) => {
                         originalRequest.headers.Authorization = `Bearer ${token}`;
                         return axiosClient(originalRequest);

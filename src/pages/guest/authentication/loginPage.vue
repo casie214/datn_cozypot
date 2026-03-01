@@ -1,6 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
+import axiosClient from '@/services/axiosClient';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import CommonNav from '@/components/commonNav.vue';
 import GoogleLoginCallback from './googleLoginCallback.vue';
@@ -9,74 +11,191 @@ const authStore = useAuthStore();
 const router = useRouter();
 const isClientLogin = ref(true);
 
-const navigateToRegister = () => {
-    router.push('/register');
-}
-
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
-
 const errors = ref({});
+
+const showForgotModal = ref(false);
+const forgotEmail = ref('');
+const isSending = ref(false);
+const wasSubmitted = ref(false); 
+
+watch([email, password, isClientLogin], () => {
+    if (wasSubmitted.value) {
+        validate();
+    }
+});
+const handleForgotPassword = async () => {
+    if (!forgotEmail.value) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Chú ý',
+            text: 'Vui lòng nhập email của bạn!',
+            confirmButtonColor: '#8B1A1A'
+        });
+        return;
+    }
+    isSending.value = true;
+    try {
+        // 2. Gọi API Backend đã viết
+        await axiosClient.post('/auth/forgot-password', { email: forgotEmail.value });
+
+        // 3. Thông báo thành công bằng SweetAlert
+        Swal.fire({
+            icon: 'success',
+            title: 'Thành công!',
+            text: 'Mật khẩu mới đã được gửi vào Email của bạn. Vui lòng kiểm tra!',
+            confirmButtonColor: '#8B1A1A'
+        });
+
+        // 4. Đóng modal và reset input
+        showForgotModal.value = false;
+        forgotEmail.value = '';
+    } catch (error) {
+        // 5. Thông báo lỗi
+        let errorMsg = "Có lỗi xảy ra, vui lòng thử lại sau!";
+        if (error.response && error.response.data) {
+            errorMsg = typeof error.response.data === 'string' ? error.response.data : error.response.data.message;
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Thất bại',
+            text: errorMsg,
+            confirmButtonColor: '#8B1A1A'
+        });
+    } finally {
+        isSending.value = false;
+    }
+}
+
+
+const navigateToRegister = () => {
+    router.push('/register');
+}
 
 const validate = () => {
     errors.value = {};
     let isValid = true;
 
-    // validate email
-    if (!email.value) {
-        errors.value.email = isClientLogin.value ? "Email không được để trống" : "Tên đăng nhập không được để trống";
+    const accountVal = email.value ? email.value.trim() : "";
+    const passwordVal = password.value ? password.value.trim() : "";
+
+    if (!accountVal) {
+        errors.value.email = isClientLogin.value 
+            ? "Vui lòng nhập Email hoặc Tên đăng nhập" 
+            : "Tên đăng nhập không được để trống";
         isValid = false;
     } 
-    else if (isClientLogin.value) { 
+    else if (!isClientLogin.value && accountVal.length < 4) {
+        errors.value.email = "Tên đăng nhập phải có ít nhất 4 ký tự";
+        isValid = false;
+    }
+    else if (isClientLogin.value && accountVal.includes('@')) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.value)) {
-            errors.value.email = "Email không đúng định dạng";
+        if (!emailRegex.test(accountVal)) {
+            errors.value.email = "Định dạng Email không hợp lệ";
             isValid = false;
         }
     }
-
-    // validate mật khẩu
-    if (!password.value) {
+    if (!passwordVal) {
         errors.value.password = "Mật khẩu không được để trống";
         isValid = false;
-    } else if (password.value.length < 6) {
+    } else if (passwordVal.length < 6) {
         errors.value.password = "Mật khẩu phải có ít nhất 6 ký tự";
         isValid = false;
     }
+
     return isValid;
-}
+};
 
 const handleLogin = async () => {
-    if(!validate()){
-        return;
-    }
+    wasSubmitted.value = true;
+    if (!validate()) return;
+
     errorMessage.value = '';
+    
+    // 1. Hiển thị loading chuyên nghiệp
+    Swal.fire({
+        title: 'Đang xác thực...',
+        text: 'Vui lòng chờ trong giây lát',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     try {
+        console.log("Đang gọi API đăng nhập...");
+        // Lưu ý: Đảm bảo biến email.value và password.value khớp với logic Store
         await authStore.login(email.value, password.value, isClientLogin.value);
+        
+        console.log("Đăng nhập thành công, chuẩn bị chuyển trang");
 
+        // 2. Thông báo thành công (Dùng timer để tự đóng)
+        await Swal.fire({
+            icon: 'success',
+            title: 'Đăng nhập thành công!',
+            text: isClientLogin.value ? 'Chào mừng bạn đến với CozyPot!' : 'Chào mừng bạn đến với trang quản lý!',
+            timer: 1500,
+            showConfirmButton: false,
+            timerProgressBar: true
+        });
+
+        // 3. Thực hiện chuyển trang
         if (isClientLogin.value) {
-            alert("Đăng nhập thành công!");
             router.push('/');
         } else {
             router.push('/admin/dashboard');
         }
 
     } catch (error) {
-        if (error.response && error.response.data) {
-            errorMessage.value = error.response.data.message || "Sai tài khoản hoặc mật khẩu";
+        console.error("Lỗi đăng nhập:", error);
+        
+        // Mặc định là thông báo sai thông tin
+        let errorMsg = "Sai tài khoản hoặc mật khẩu"; 
+        let errorTitle = "Đăng nhập thất bại";
+
+        // Xử lý bóc tách lỗi từ Backend
+        if (error.response) {
+            const status = error.response.status;
+            const data = error.response.data;
+
+            if (status === 403) {
+                errorTitle = "Tài khoản bị khóa";
+                errorMsg = data.message || data || "Tài khoản của bạn tạm thời không thể truy cập.";
+            } else if (status === 401) {
+                errorMsg = "Tên đăng nhập hoặc mật khẩu không chính xác.";
+            } else if (data) {
+                // Lấy message nếu Backend trả về Object { message: "..." }
+                errorMsg = data.message || (typeof data === 'string' ? data : errorMsg);
+            }
+        } else if (error.request) {
+            // Request đã gửi nhưng không nhận được phản hồi (Lỗi Server chết hoặc Network)
+            errorMsg = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng!";
         } else {
-            errorMessage.value = "Lỗi kết nối đến Server!";
+            errorMsg = error.message;
         }
+
+        // 4. Hiển thị thông báo lỗi
+        Swal.fire({
+            icon: 'error',
+            title: errorTitle,
+            text: errorMsg,
+            confirmButtonColor: '#8B1A1A',
+            confirmButtonText: 'Thử lại'
+        });
     }
-}
+};
 
 const switchTab = (isClient) => {
     isClientLogin.value = isClient;
-    errorMessage.value = '';
     email.value = '';
     password.value = '';
+    errors.value = {}; //reset lỗi khi chuyển tab
+    errorMessage.value = '';
+    wasSubmitted.value = false; 
 }
 
 const loginWithGoogle = () => {
@@ -84,9 +203,9 @@ const loginWithGoogle = () => {
     const redirectUri = "http://localhost:5173/auth/google/callback";
     const scope = "email profile";
     const responseType = "code";
-    
+
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}`;
-    
+
     window.location.href = googleAuthUrl;
 };
 
@@ -94,233 +213,392 @@ const loginWithGoogle = () => {
 
 <template>
     <div class="main-content">
-        
-        <div class="etched-container">
-            <section class="py-3 py-md-5 py-xl-8 etched-container-2">
-                <div class="container">
-                    <div class="container-fluid px-5">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="mb-5">
-                                    <h2 class="display-5 fw-bold text-center">
-                                        {{ isClientLogin ? 'Đăng nhập' : 'Cổng nhân viên' }}
-                                    </h2>
+        <div class="login-card">
+            <div class="tab-switcher mb-4">
+                <button :class="['tab-btn', { active: isClientLogin }]" @click="switchTab(true)">Khách hàng</button>
+                <button :class="['tab-btn', { active: !isClientLogin }]" @click="switchTab(false)">Quản lý</button>
+            </div>
 
-                                    <p v-if="isClientLogin" class="text-center m-0">
-                                        Chưa có tài khoản?
-                                        <a style="cursor: pointer;" class="register-link" @click="navigateToRegister">Đăng ký</a>
-                                    </p>
-                                    <p v-else class="text-center m-0 text-secondary small">
-                                        Cho nhân viên và quản lý
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+            <h2 class="login-title">Đăng nhập</h2>
+            <p class="login-subtitle">Trải nghiệm không gian ẩm thực tinh hoa</p>
 
-                        <div class="row justify-content-center">
-                            <div class="col-12 col-lg-10 col-xl-8">
-                                <div class="row gy-5 justify-content-center">
-                                    <div class="col-12 col-lg-5">
-
-                                        <div v-if="errorMessage" class="alert alert-danger p-2 text-center small mb-3">
-                                            {{ errorMessage }}
-                                        </div>
-
-                                        <form @submit.prevent="handleLogin">
-                                            <div class="row gy-3 overflow-hidden">
-                                                <div class="col-12">
-                                                    <div class="form-floating mb-3">
-                                                        <input v-model="email" type="text"
-                                                            class="form-control border-0 border-bottom rounded-0"
-                                                            :class="{ 'is-invalid': errors.email }"
-                                                            name="email" id="email" placeholder="name@example.com"
-                                                            >
-
-                                                        <label for="email" class="form-label"
-                                                            :class="{ 'admin-label': !isClientLogin }">
-                                                            {{ isClientLogin ? 'Email' : 'Tên đăng nhập' }}
-                                                        </label>
-                                                        <div class="invalid-feedback">{{ errors.email }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-12">
-                                                    <div class="form-floating mb-3">
-                                                        <input v-model="password" type="password"
-                                                            class="form-control border-0 border-bottom rounded-0"
-                                                            :class="{ 'is-invalid': errors.password }"
-                                                            name="password" id="password" value=""
-                                                            placeholder="Password">
-                                                        <label for="password" class="form-label">Mật khẩu</label>
-                                                        <div class="invalid-feedback">{{ errors.password }}</div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="col-12">
-                                                    <div class="row justify-content-between">
-                                                        <div class="col-12">
-                                                            <div class="text-start">
-                                                                <a href="#!"
-                                                                    class="link-secondary text-decoration-none">Quên mật khẩu?</a>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                    </div>
-                                                </div>
-
-                                                <div class="col-12">
-                                                    <div class="row justify-content-between">
-                                                        <div class="col-12">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" value=""
-                                                                    name="remember_me" id="remember_me">
-                                                                <label class="form-check-label text-secondary"
-                                                                    for="remember_me">Nhớ đăng nhập</label>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                    </div>
-                                                </div>
-                                                
-
-                                                <div class="col-12">
-                                                    <div class="d-grid">
-                                                        <button class="btn btn-lg rounded-0 fs-6"
-                                                            :class="isClientLogin ? 'btn-dark' : 'btn-danger'"
-                                                            type="submit">
-                                                            {{ isClientLogin ? 'Đăng nhập' : 'Truy cập' }}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-
-                                    <template v-if="isClientLogin">
-                                        <div
-                                            class="col-12 col-lg-2 d-flex align-items-center justify-content-center gap-3 flex-lg-column">
-                                            <div class="bg-dark h-100 d-none d-lg-block"
-                                                style="width: 1px; --bs-bg-opacity: .1;"></div>
-                                            <div class="bg-dark w-100 d-lg-none"
-                                                style="height: 1px; --bs-bg-opacity: .1;"></div>
-                                            <div>or</div>
-                                            <div class="bg-dark h-100 d-none d-lg-block"
-                                                style="width: 1px; --bs-bg-opacity: .1;"></div>
-                                            <div class="bg-dark w-100 d-lg-none"
-                                                style="height: 1px; --bs-bg-opacity: .1;"></div>
-                                        </div>
-                                        <div class="col-12 col-lg-5 d-flex align-items-center">
-                                            <div class="d-flex gap-3 flex-column w-100 ">
-                                                <a @click="loginWithGoogle"
-                                                    class="btn bsb-btn-2xl btn-outline-dark rounded-0 d-flex align-items-center">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                                        fill="currentColor" class="bi bi-google text-danger"
-                                                        viewBox="0 0 16 16">
-                                                        <path
-                                                            d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.689 7.689 0 0 1 5.352 2.082l-2.284 2.284A4.347 4.347 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.792 4.792 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.702 3.702 0 0 0 1.599-2.431H8v-3.08h7.545z" />
-                                                    </svg>
-                                                    <span class="ms-2 fs-6 flex-grow-1">Tiếp tục với Google</span>
-                                                </a>
-                                                <a href="#!"
-                                                    class="btn bsb-btn-2xl btn-outline-dark rounded-0 d-flex align-items-center">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                                        fill="currentColor" class="bi bi-facebook text-primary"
-                                                        viewBox="0 0 16 16">
-                                                        <path
-                                                            d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z" />
-                                                    </svg>
-                                                    <span class="ms-2 fs-6 flex-grow-1">Tiếp tục với Facebook</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <form @submit.prevent="handleLogin" class="mt-4">
+                <div class="mb-3">
+                    <input v-model="email" type="text" class="custom-input"
+                        :placeholder="isClientLogin ? 'Email' : 'Tên đăng nhập'"
+                        :class="{ 'is-invalid': errors.email }">
+                    <div class="invalid-feedback text-start">{{ errors.email }}</div>
                 </div>
 
-                <div class="px-4 mb-2 d-flex pt-5">
-                    <div class="btn-group shadow-sm" role="group" aria-label="Login Type">
-                        <button type="button" class="btn btn-sm px-4"
-                            :class="isClientLogin ? 'btn-dark' : 'btn-outline-dark'" @click="isClientLogin = true">
-                            Khách hàng
-                        </button>
-                        <button type="button" class="btn btn-sm px-4"
-                            :class="!isClientLogin ? 'btn-danger' : 'btn-outline-secondary'"
-                            @click="isClientLogin = false">
-                            Quản lý
-                        </button>
-                    </div>
+                <div class="mb-3">
+                    <input v-model="password" type="password" class="custom-input" placeholder="Mật khẩu"
+                        :class="{ 'is-invalid': errors.password }">
+                    <div class="invalid-feedback text-start">{{ errors.password }}</div>
                 </div>
 
-            </section>
+                <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+                    <div class="form-check" style="display: flex; align-items: center; gap: 8px;">
+                        <input class="form-check-input custom-checkbox" type="checkbox" id="remember_me"
+                            style="cursor: pointer; accent-color: var(--primary);">
+                        <label class="form-check-label remember-text" for="remember_me"
+                            style="cursor: pointer; user-select: none;">Nhớ đăng nhập</label>
+                    </div>
+                    <a href="#!" class="forgot-password" @click.prevent="showForgotModal = true">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="btn-login">Đăng nhập ngay</button>
+            </form>
+
+            <!-- <div class="register-hint mt-4">
+                Chưa có tài khoản? <a @click="navigateToRegister" class="register-link">Đăng ký ngay</a>
+            </div> -->
+            <div v-if="isClientLogin" class="register-hint mt-4">
+                Chưa có tài khoản? <a @click="navigateToRegister" class="register-link">Đăng ký ngay</a>
+            </div>
+
+            <template v-if="isClientLogin">
+                <div class="divider">
+                    <span>HOẶC TIẾP TỤC VỚI</span>
+                </div>
+
+                <div class="social-login">
+                    <button @click="loginWithGoogle" class="social-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+                            <path fill="#FFC107"
+                                d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                            <path fill="#FF3D00"
+                                d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                            <path fill="#4CAF50"
+                                d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                            <path fill="#1976D2"
+                                d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                        </svg>
+                        <span>Google</span>
+                    </button>
+
+                    <!-- <button class="social-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#1877F2"
+                            viewBox="0 0 24 24">
+                            <path
+                                d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                        </svg>
+                        <span>Facebook</span>
+                    </button> -->
+                </div>
+            </template>
+        </div>
+        <div v-if="showForgotModal" class="modal-overlay" @click.self="showForgotModal = false">
+            <div class="forgot-modal">
+                <div class="text-end">
+                    <button @click="showForgotModal = false" class="btn-close-modal">&times;</button>
+                </div>
+                <h3 class="modal-title">Quên mật khẩu?</h3>
+                <p class="modal-desc">Đừng lo lắng, nhập email của bạn để nhận lại mật khẩu mới từ CozyPot.</p>
+
+                <div class="mb-4 text-start"> <input v-model="forgotEmail" type="email" class="custom-input shadow-sm"
+                        placeholder="Nhập email của bạn">
+                    <small v-if="forgotError" class="text-danger mt-1 d-block">{{ forgotError }}</small>
+                </div>
+
+                <button @click="handleForgotPassword" class="btn-login w-100" :disabled="isSending">
+                    <span v-if="isSending" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ isSending ? 'Đang xử lý...' : 'Gửi mật khẩu mới' }}
+                </button>
+            </div>
         </div>
     </div>
 </template>
 
-
-
 <style scoped>
+:root {
+    --cozy-red: #6d1313;
+    /* Đỏ thẫm từ chữ CozyPot */
+    --cozy-gold: #D4A017;
+    /* Vàng đồng từ icon nồi lẩu */
+}
+
 .main-content {
-    display: flex;
-    justify-content: center;
-    height: 80vh;
-}
+    background-color: #f8f9fa;
+    /* Khóa chặt vị trí vào khung nhìn, không cho cuộn trang */
+    position: fixed;
+    inset: 0;
+    /* Tương đương top:0, left:0, right:0, bottom:0 */
+    width: 100vw;
+    height: 100vh;
 
-.etched-container {
-    margin: 0;
-    padding: 0;
+    /* Căn giữa tuyệt đối nội dung bên trong */
     display: flex;
-    padding-top: 30px;
-    justify-content: center;
-    height: 100%;
-    width: 80%;
-}
-
-.etched-container-2 {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    height: 90%;
-    width: 70%;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    justify-content: center;
+
+    padding: 20px;
+    overflow: hidden;
+    /* Triệt tiêu hoàn toàn thanh cuộn trình duyệt */
 }
 
-.container {
-    width: 100% !important;
-}
-
-.login-link:hover {
-    color: #0d6efd;
-}
-
-.half-sized {
-    width: 50%;
-}
-
-.invalid-feedback {
-    display: block;
+.login-card {
+    background: #ffffff;
     width: 100%;
-    margin-top: 0.25rem;
-    font-size: 0.875em;
-    color: #dc3545;
-    text-align: left;
+    max-width: 850px;
+
+    /* Điều chỉnh padding dọc nhỏ lại một chút để không bị "kích" chiều cao */
+    padding: 40px 100px;
+    border-radius: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    text-align: center;
+
+    /* Đảm bảo card không bao giờ vượt quá chiều cao màn hình */
+    max-height: 90vh;
+    overflow-y: auto;
+    /* Chỉ cho phép cuộn bên trong card nếu nội dung quá dài */
+
+    /* Khử mọi margin thừa có thể gây xê dịch */
+    margin: 0;
 }
 
-.is-invalid {
-    border-color: #dc3545 !important;
-    padding-right: calc(1.5em + 0.75rem);
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right calc(0.375em + 0.1875rem) center;
-    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+/* Tab Switcher Style */
+.tab-switcher {
+    background: #f1f1f1;
+    display: inline-flex;
+    padding: 5px;
+    border-radius: 12px;
 }
-.form-control.is-invalid:focus {
-    border-bottom: 1px solid #dc3545 !important;
-    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+
+.tab-btn {
+    border: none;
+    padding: 6px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: 0.3s;
+    background: transparent;
+    color: #666;
+}
+
+.tab-btn.active {
+    background: #6d1414;
+    color: white;
+}
+
+.login-title {
+    font-weight: 800;
+    font-size: 32px;
+    margin-bottom: 5px;
+    color: #6d1414;
+}
+
+.login-subtitle {
+    color: #888;
+    font-size: 14px;
+}
+
+/* Input Style */
+.custom-input {
+    width: 100%;
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    padding: 15px 20px;
+    border-radius: 15px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.custom-input:focus {
+    background: #fff;
+    border-color: var(--cozy-red);
+    box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+}
+
+.remember-text,
+.forgot-password {
+    color: #75231a;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.custom-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.custom-checkbox:hover {
+    filter: brightness(0.9);
+}
+
+/* Button Login */
+.btn-login {
+    width: 100%;
+    background: var(--cozy-red);
+    color: rgb(255, 255, 255);
+    border: none;
+    padding: 14px;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: 0.3s;
+    background: #7d1f1f;
+    box-shadow: 0 4px 15px rgba(139, 26, 26, 0.2);
+}
+
+.btn-login:hover {
+    background: #6d1414;
+    /* Đỏ đậm hơn khi hover */
+    transform: translateY(-1px);
+}
+
+.register-hint {
+    font-size: 14px;
+    color: #666;
+}
+
+.register-link {
+    color: #75231a;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Social Login */
+.divider {
+    margin: 30px 0 20px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.divider span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 0 15px;
+    color: #aaa;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+form {
+    max-width: 500px;
+    /* Giới hạn độ rộng của riêng form bên trong card */
+    margin: 0 auto;
+    /* Căn giữa form */
+}
+
+.social-login {
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    gap: 15px;
+}
+
+.social-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.social-btn:hover {
+    background: #f8f9fa;
+}
+
+/* Modal Quên mật khẩu */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+/* Khung Popup */
+.forgot-modal {
+    background: white;
+    padding: 35px;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: popIn 0.3s ease-out;
+}
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #444;
+    cursor: pointer;
+    padding: 0 5px;
+    transition: all 0.2s;
+    font-weight: 300;
+}
+
+.btn-close-modal:hover {
+    color: #000;
+    transform: scale(1.1);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header-custom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    color: #8B1A1A;
+    /* Màu đỏ CozyPot */
+    font-weight: 700;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #999;
+    cursor: pointer;
+}
+
+.modal-desc {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* Biến nút login của bạn dùng chung cho nút Gửi */
+.btn-login:disabled {
+    background: #ccc;
+    cursor: not-allowed;
 }
 </style>

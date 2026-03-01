@@ -27,6 +27,13 @@ const handleLogout = () => {
     window.location.reload();
 };
 
+const goToChangePassword = () => {
+    showDropdown.value = false;
+    router.push('/doi-mat-khau');
+}
+const goToProfile = () => {
+    alert("Chức năng đang phát triển");
+}
 const closeDropdown = (e) => {
     if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
         showDropdown.value = false;
@@ -47,13 +54,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="app-header">
-    <div class="header-left">
-      <button class="btn-back" @click="goBack">←</button>  
-    </div>
-    <div class="header-right">
-      <i class="fa-regular fa-bell icon-bell"></i>
-      <div class="nav-auth">
+    <header class="app-header">
+        <div class="header-left">
+            <button class="btn-back" @click="goBack">←</button>
+        </div>
+        <div class="header-right">
+            <i class="fa-regular fa-bell icon-bell"></i>
+            <div class="nav-auth">
                 <div v-if="!isLoggedIn" class="guest-actions">
                     <button class="btn-login" @click="handleLogin">
                         <i class="fa-regular fa-user"></i> Đăng nhập
@@ -66,13 +73,15 @@ onUnmounted(() => {
                         <div class="user-info" @click="toggleDropdown">
                             <img :src="userAvatar" alt="User" class="avatar-img" />
                             <span class="user-name">{{ authStore.user?.username || 'Đã đăng nhập' }}</span>
-                            <i class="fa-solid fa-caret-down"></i>
                         </div>
 
                         <transition name="dropdown-fade">
                             <div v-if="showDropdown" class="dropdown-menu">
                                 <div class="dropdown-item" @click="goToProfile">
                                     <i class="fa-solid fa-id-card"></i> Hồ sơ cá nhân
+                                </div>
+                                <div class="dropdown-item" @click="goToChangePassword">
+                                    <i class="fa-solid fa-key"></i> Đổi mật khẩu
                                 </div>
                                 <div class="dropdown-divider"></div>
                                 <div class="dropdown-item text-danger" @click="handleLogout">
@@ -83,59 +92,61 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
-    </div>
-  </header>
+        </div>
+    </header>
 </template>
 
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
-.btn-back{
-  border: none;
-  background-color: white;
-  transition: 0.2s;
-  scale: 1.3;
+.btn-back {
+    border: none;
+    background-color: white;
+    transition: 0.2s;
+    scale: 1.3;
 }
 
-.btn-back:hover{
-  transform: scale(1.1);
+.btn-back:hover {
+    transform: scale(1.1);
 }
 
 .app-header {
-  height: 60px; /* Chiều cao của Header */
-  background-color: #ffffff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 30px;
-  border-bottom: 1px solid #e0e0e0; /* Đường kẻ dưới header */
-  position: sticky;
-  top: 0;
-  z-index: 100;
+    height: 60px;
+    /* Chiều cao của Header */
+    background-color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    border-bottom: 1px solid #e0e0e0;
+    /* Đường kẻ dưới header */
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .header-right {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-  color: #555;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    color: #555;
 }
 
 .icon-bell {
-  font-size: 1.2rem;
-  cursor: pointer;
+    font-size: 1.2rem;
+    cursor: pointer;
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 500;
 }
 
 .icon-arrow {
-  font-size: 0.8rem;
+    font-size: 0.8rem;
 }
 
 .guest-actions {
