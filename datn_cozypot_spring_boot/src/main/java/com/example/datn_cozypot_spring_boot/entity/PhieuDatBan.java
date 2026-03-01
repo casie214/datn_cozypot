@@ -41,8 +41,7 @@ public class PhieuDatBan {
     private KhachHang idKhachHang;
 
     @Size(max = 30)
-    @NotNull
-    @Column(name = "ma_dat_ban", nullable = false, length = 30)
+    @Column(name = "ma_dat_ban", insertable = false, updatable = false, length = 30)
     private String maDatBan;
 
     @Column(name = "thoi_gian_dat")

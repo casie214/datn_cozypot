@@ -3,28 +3,38 @@ package com.example.datn_cozypot_spring_boot.service;
 import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanRequest;
 import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
+import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.PhuongThucThanhToanRepository;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
+import java.util.stream.Collectors;
+@Slf4j
 @Service
 public class DatBanService {
     @Autowired
@@ -44,9 +54,13 @@ public class DatBanService {
     private PhuongThucThanhToanRepository phuongThucThanhToanRepository;
     @Autowired
     private LichSuThanhToanRepository lichSuThanhToanRepository;
-
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
     @Autowired
     private LichSuHoaDonRepository lichSuHoaDonRepository;
+
+    @Autowired
+    private EmailDatBanService emailDatBanService;
 
     @Autowired
     private ChiTietHoaDonRepository chiTietHoaDonRepository;
@@ -55,17 +69,44 @@ public class DatBanService {
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
     }
 
-    public List<DatBanListResponse> getAllByTrangThai(){
-        LocalDateTime thoiGianTraCuu = LocalDateTime.now().minusMinutes(60);
 
-        return phieuDatBanRepository.findWaitingListFuture(thoiGianTraCuu)
+    public List<DatBanListResponse> getAllByTrangThai(){
+        LocalDateTime thoiGianBatDau = LocalDateTime.now().minusHours(3); // Cho phép trễ tối đa 3 tiếng
+        LocalDateTime thoiGianKetThuc = LocalDateTime.now().plusDays(2).toLocalDate().atTime(23, 59, 59); // Lấy cho cả ngày mai
+
+        return phieuDatBanRepository.findWaitingListToday(thoiGianBatDau, thoiGianKetThuc)
                 .stream()
                 .map(DatBanListResponse::new)
                 .toList();
     }
 
     public List<BanAnResponse> getAllBanAn(){
-        return banAnRepository.findAll().stream().map(BanAnResponse::new).toList();
+        List<BanAn> allBan = banAnRepository.findAll();
+
+        // Lấy danh sách các phiếu đặt bàn "ảnh hưởng đến hiện tại" (logic chúng ta vừa sửa ở trên)
+        List<DatBanListResponse> waitingToday = getAllByTrangThai();
+
+        return allBan.stream().map(ban -> {
+            BanAnResponse res = new BanAnResponse(ban);
+
+            // 1. Kiểm tra xem bàn này có nằm trong danh sách "Sắp có khách đến" không
+            boolean isReservedToday = waitingToday.stream()
+                    .anyMatch(p -> p.getMaBan().equals(ban.getMaBan()));
+
+            // 2. Định nghĩa lại trạng thái hiển thị
+            if (ban.getTrangThai() == 1) {
+
+                res.setTrangThai(1);
+            } else if (isReservedToday) {
+
+                res.setTrangThai(2);
+            } else {
+
+                res.setTrangThai(0);
+            }
+
+            return res;
+        }).toList();
     }
 
     public BanAnResponse getBanAnById(Integer id){
@@ -115,29 +156,35 @@ public class DatBanService {
 
 
     public Page<DatBanListResponse> searchDatBan(
-        DatBanSearchRequest request,
-        Pageable pageable
-) {
-    LocalDateTime start = null;
-    LocalDateTime end = null;
+            DatBanSearchRequest request,
+            Pageable pageable
+    ) {
+        LocalDateTime start = null;
+        LocalDateTime end = null;
 
-    if (request.getThoiGianDat() != null) {
-        LocalDate date = request.getThoiGianDat();
-        start = date.atStartOfDay();
-        end = date.plusDays(1).atStartOfDay();
+        if (request.getThoiGianDat() != null) {
+            LocalDate date = request.getThoiGianDat();
+            start = date.atStartOfDay();
+            end = date.plusDays(1).atStartOfDay();
+        }
+
+
+        PageRequest pageRequest = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.unsorted()   // QUAN TRỌNG
+        );
+
+        Page<PhieuDatBan> page = phieuDatBanRepository.search(
+                request.getSoDienThoai(),
+                request.getTrangThai(),
+                start,
+                end,
+                pageRequest
+        );
+
+        return page.map(DatBanListResponse::new);
     }
-
-    Page<PhieuDatBan> page = phieuDatBanRepository.search(
-            request.getSoDienThoai(),
-            request.getTrangThai(),
-            start,
-            end,
-            pageable
-    );
-
-    return page.map(DatBanListResponse::new);
-}
-
 
 
     @Transactional
@@ -154,8 +201,108 @@ public class DatBanService {
 
     @Transactional
     public void updateCheckIn(DatBanUpdateRequest request) {
+        // =========================================================================
+        // 1. XỬ LÝ NGHIỆP VỤ ĐỔI BÀN (NẾU CÓ idBanAnMoi)
+        // =========================================================================
+        if (request.getId() != null && request.getIdBanAnMoi() != null) {
+            PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
 
-        // 1. CẬP NHẬT TRẠNG THÁI BÀN ĂN
+            HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(request.getId());
+
+            BanAn banCu = phieu.getIdBanAn();
+            BanAn banMoi = banAnRepository.findById(request.getIdBanAnMoi())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn mới"));
+
+            String maBanCu = banCu.getMaBan();
+            String maBanMoi = banMoi.getMaBan();
+
+            phieu.setIdBanAn(banMoi);
+            if (hoaDon != null) {
+                hoaDon.setIdBanAn(banMoi);
+            }
+
+            banCu.setTrangThai(0);
+            banMoi.setTrangThai(1);
+
+            banAnRepository.save(banCu);
+            banAnRepository.save(banMoi);
+            phieuDatBanRepository.save(phieu);
+
+            if (hoaDon != null) {
+                ghiLichSu(hoaDon, request.getIdNhanVien(),
+                        "Đổi bàn: " + maBanCu + " -> " + maBanMoi,
+                        "Chuyển toàn bộ dữ liệu từ bàn cũ sang bàn mới",
+                        hoaDon.getTrangThaiHoaDon(), hoaDon.getTrangThaiHoaDon());
+                hoaDonThanhToanRepository.save(hoaDon);
+            }
+            return;
+        }
+
+        // =========================================================================
+        // 2. 🚨 LOGIC TÁCH BÀN / MỞ BÀN PHỤ / KHÁCH VÃNG LAI (KHI id BỊ NULL)
+        // =========================================================================
+        if (request.getId() == null && request.getTrangThai() != null && request.getTrangThai() == 1) {
+            BanAn banPhu = banAnRepository.findById(request.getIdBanAn())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));
+
+            banPhu.setTrangThai(1);
+            banAnRepository.save(banPhu);
+
+            PhieuDatBan phieuMoi = new PhieuDatBan();
+            phieuMoi.setIdBanAn(banPhu);
+            phieuMoi.setThoiGianDat(java.time.LocalDateTime.now());
+            phieuMoi.setSoLuongKhach(banPhu.getSoNguoiToiDa());
+            phieuMoi.setTrangThai(3); // 🚨 Đã check-in / Đang sử dụng
+            phieuMoi.setHinhThucDat(2);
+            phieuMoi.setNguoiTao("Hệ thống");
+
+            if (request.getMaDatBanGoc() != null) {
+                phieuMoi.setMaDatBan(request.getMaDatBanGoc());
+            }
+
+            // GÁN ID KHÁCH HÀNG CHO PHIẾU
+            KhachHang kh = null;
+            if (request.getIdKhachHang() != null) {
+                kh = khachHangRepository.findById(request.getIdKhachHang()).orElse(null);
+                phieuMoi.setIdKhachHang(kh);
+            }
+            phieuMoi = phieuDatBanRepository.save(phieuMoi);
+
+            // TẠO HÓA ĐƠN CHO BÀN PHỤ
+            HoaDonThanhToan hoaDonMoi = new HoaDonThanhToan();
+            hoaDonMoi.setIdPhieuDatBan(phieuMoi);
+            hoaDonMoi.setIdBanAn(banPhu);
+
+            if (kh != null) {
+                hoaDonMoi.setIdKhachHang(kh);
+            }
+
+            hoaDonMoi.setThoiGianTao(Instant.now());
+            hoaDonMoi.setTrangThaiHoaDon(4);
+            hoaDonMoi.setTongTienChuaGiam(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setSoTienDaGiam(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTongTienThanhToan(java.math.BigDecimal.ZERO);
+
+            Double vatFromRequest = request.getVatApDung();
+            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 10.0f;
+            hoaDonMoi.setVatApDung(finalVat);
+
+            if (request.getIdNhanVien() != null) {
+                NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
+                hoaDonMoi.setIdNhanVien(nv);
+            }
+
+            hoaDonMoi = hoaDonThanhToanRepository.save(hoaDonMoi);
+
+            ghiLichSu(hoaDonMoi, request.getIdNhanVien(), "Mở bàn phụ", "Tạo hóa đơn cho bàn tách", 4, 4);
+            return;
+        }
+
+        // =========================================================================
+        // 3. CẬP NHẬT TRẠNG THÁI BÀN ĂN (CHO LUỒNG CŨ CÓ ID PHIẾU)
+        // =========================================================================
         if (request.getIdBanAn() != null) {
             BanAn banAn = banAnRepository.findById(request.getIdBanAn())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));
@@ -163,72 +310,125 @@ public class DatBanService {
             banAnRepository.save(banAn);
         }
 
-        // 2. CẬP NHẬT TRẠNG THÁI PHIẾU ĐẶT BÀN
+        // =========================================================================
+        // 4. CẬP NHẬT TRẠNG THÁI PHIẾU ĐẶT BÀN
+        // =========================================================================
         if (request.getId() != null && request.getTrangThaiPhieu() != null) {
             PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
-
             phieu.setTrangThai(request.getTrangThaiPhieu());
             phieuDatBanRepository.save(phieu);
         }
 
-        // 3. CẬP NHẬT ĐỒNG BỘ TRẠNG THÁI HÓA ĐƠN
+        // =========================================================================
+        // 5. 🚨 CẬP NHẬT ĐỒNG BỘ TRẠNG THÁI HÓA ĐƠN & GHI LOG
+        // =========================================================================
         if (request.getId() != null) {
-            // Tìm hóa đơn dựa theo id của Phiếu Đặt Bàn
             HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(request.getId());
+            PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId()).orElse(null); // Lấy phiếu ra để đồng bộ
 
-            if (hoaDon != null) {
-                // ƯU TIÊN 1: Nếu Frontend truyền rõ trạng thái Hóa Đơn (Ví dụ truyền 5 lúc bấm Thanh toán)
+            if (hoaDon != null && phieu != null) {
+                Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
+                Integer trangThaiMoi = trangThaiCu;
+                String hanhDongLog = "";
+                String lyDoLog = "Cập nhật hệ thống";
+
                 if (request.getTrangThaiHoaDon() != null) {
-                    hoaDon.setTrangThaiHoaDon(request.getTrangThaiHoaDon());
+                    trangThaiMoi = request.getTrangThaiHoaDon();
+                    hoaDon.setTrangThaiHoaDon(trangThaiMoi);
 
-                    // Nếu hoàn tất thanh toán 100% bằng tiền mặt (Trạng thái 6) thì chốt thời gian
-                    if (request.getTrangThaiHoaDon() == 6) {
-                        hoaDon.setThoiGianThanhToan(java.time.Instant.now());
+                    if (trangThaiMoi == 5) {
+                        hanhDongLog = "Yêu cầu tính tiền";
+                        lyDoLog = "Khách yêu cầu hóa đơn tạm tính";
+                    } else if (trangThaiMoi == 6) {
+                        hanhDongLog = "Đã thanh toán";
+                        lyDoLog = "Hoàn tất thanh toán tại quầy";
+                        hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
+
+                        // 🚨 ĐỒNG BỘ PHIẾU: Hóa đơn thanh toán xong -> Phiếu Hoàn thành (4)
+                        phieu.setTrangThai(4);
+
+                    } else if (trangThaiMoi == 8) {
+                        hanhDongLog = "Hủy hóa đơn";
+                        lyDoLog = "Hủy phiếu đặt bàn / Hủy hóa đơn";
+
+                        // 🚨 ĐỒNG BỘ PHIẾU: Hủy hóa đơn -> Phiếu bị Hủy (2)
+                        phieu.setTrangThai(2);
+                    }
+                    phieuDatBanRepository.save(phieu); // Lưu lại phiếu
+
+                } else if (request.getTrangThaiPhieu() != null) {
+                    if (request.getTrangThaiPhieu() == 3 && trangThaiCu < 4) {
+                        trangThaiMoi = 4; // Trạng thái Phục vụ của Hóa Đơn
+                        hoaDon.setTrangThaiHoaDon(trangThaiMoi);
+                        hanhDongLog = "Khách nhận bàn";
+                        lyDoLog = "Nhân viên xác nhận khách đã vào bàn";
                     }
                 }
-                // ƯU TIÊN 2: Dùng logic suy luận mặc định cho các trường hợp check-in thông thường
-                else if (request.getTrangThaiPhieu() != null) {
-                    if (request.getTrangThaiPhieu() == 3) {
-                        hoaDon.setTrangThaiHoaDon(4); // Đang phục vụ
-                    } else if (request.getTrangThaiPhieu() == 0) {
-                        hoaDon.setTrangThaiHoaDon(0); // Hủy
-                    }
+
+                // Ghi log
+                if (!hanhDongLog.isEmpty()) {
+                    ghiLichSu(hoaDon, request.getIdNhanVien(), hanhDongLog, lyDoLog, trangThaiCu, trangThaiMoi);
                 }
 
-                // ==========================================
-                // 4. XỬ LÝ LƯU LỊCH SỬ TIỀN MẶT (NẾU CÓ)
-                // ==========================================
-                if (request.getTienMat() != null && request.getTienMat().compareTo(java.math.BigDecimal.ZERO) > 0) {
-
-                    // 4.1. Cộng dồn số tiền mặt khách đưa vào Hóa Đơn
-                    java.math.BigDecimal tienHienTai = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : java.math.BigDecimal.ZERO;
+                // Tiền mặt
+                if (request.getTienMat() != null && request.getTienMat().compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal tienHienTai = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : BigDecimal.ZERO;
                     hoaDon.setTienKhachDua(tienHienTai.add(request.getTienMat()));
 
-                    // 4.2. Lưu vào bảng LichSuThanhToan
-                    try {
-                        PhuongThucThanhToan ptCash = phuongThucThanhToanRepository.findByMaPhuongThuc("PT02");
+                    ghiLichSu(hoaDon, request.getIdNhanVien(),
+                            "Thu tiền mặt: " + request.getTienMat().setScale(0) + "đ",
+                            "Thanh toán tại quầy", trangThaiMoi, trangThaiMoi);
 
-                        LichSuThanhToan lichSuCash = new LichSuThanhToan();
-                        lichSuCash.setPhuongThucThanhToan(ptCash);
-                        lichSuCash.setHoaDon(hoaDon);
-                        lichSuCash.setTenPhuongThuc(ptCash != null ? ptCash.getTenPhuongThuc() : "Tiền mặt");
-                        lichSuCash.setMaGiaoDich("CASH_" + System.currentTimeMillis());
-                        lichSuCash.setSoTienThanhToan(request.getTienMat());
-                        lichSuCash.setLoaiGiaoDich(1); // 1 = Giao dịch Thu Tiền
-                        lichSuCash.setNgayThanhToan(java.time.Instant.now());
-                        lichSuCash.setTrangThai(1); // 1 = Thành công
-
-                        lichSuThanhToanRepository.save(lichSuCash);
-                    } catch (Exception e) {
-                        System.out.println("❌ Lỗi lưu lịch sử thanh toán Tiền mặt: " + e.getMessage());
-                    }
+                    saveLichSuThanhToan(hoaDon, request.getTienMat(), "PT02", "CASH_");
                 }
 
-                // Cuối cùng: Lưu tất cả thay đổi của Hóa Đơn xuống DB
                 hoaDonThanhToanRepository.save(hoaDon);
             }
         }
+    }
+
+    private String getTenMonFromEntity(ChiTietHoaDon ct) {
+        if (ct.getIdChiTietMonAn() != null) return ct.getIdChiTietMonAn().getTenMon();
+        if (ct.getIdSetLau() != null) return ct.getIdSetLau().getTenSetLau();
+        return "Món không xác định";
+    }
+
+    private void saveLichSuThanhToan(HoaDonThanhToan hd, BigDecimal soTien, String maPT, String prefixMaGD) {
+        try {
+            PhuongThucThanhToan pt = phuongThucThanhToanRepository.findByMaPhuongThuc(maPT);
+            LichSuThanhToan ls = new LichSuThanhToan();
+            ls.setPhuongThucThanhToan(pt);
+            ls.setHoaDon(hd);
+            ls.setTenPhuongThuc(pt != null ? pt.getTenPhuongThuc() : maPT);
+            ls.setMaGiaoDich(prefixMaGD.contains("_") ? prefixMaGD + System.currentTimeMillis() : prefixMaGD);
+            ls.setSoTienThanhToan(soTien);
+            ls.setLoaiGiaoDich(1);
+            ls.setNgayThanhToan(Instant.now());
+            ls.setTrangThai(1);
+            lichSuThanhToanRepository.save(ls);
+        } catch (Exception e) {
+            System.out.println("Lỗi lưu lịch sử thanh toán: " + e.getMessage());
+        }
+    }
+
+    private void ghiLichSu(HoaDonThanhToan hoaDon, Integer idNhanVien, String hanhDong, String lyDo, Integer trangThaiCu, Integer trangThaiMoi) {
+        LichSuHoaDon lichSu = new LichSuHoaDon();
+        lichSu.setIdHoaDon(hoaDon);
+
+        // Tìm nhân viên thực hiện (nếu có idNhanVien truyền lên từ FE)
+        if (idNhanVien != null) {
+            NhanVien nv = nhanVienRepository.findById(idNhanVien).orElse(null);
+            lichSu.setIdNhanVien(nv);
+        }
+
+        lichSu.setHanhDong(hanhDong);
+        lichSu.setLyDoThucHien(lyDo);
+        lichSu.setThoiGianThucHien(Instant.now());
+        lichSu.setTrangThaiTruocDo(trangThaiCu);
+        lichSu.setTrangThaiMoi(trangThaiMoi);
+
+        lichSuHoaDonRepository.save(lichSu);
     }
 
     @Transactional
@@ -402,7 +602,7 @@ public class DatBanService {
         }
 
         // 2. Xử lý khách hàng
-        KhachHang khachHang = khachHangRepository.findBySoDienThoai(request.getPhone());
+        KhachHang khachHang = khachHangRepository.findBySoDienThoai(request.getPhone()).orElse(null);
         if (khachHang == null) {
             khachHang = new KhachHang();
             khachHang.setTenKhachHang(request.getFullName());
@@ -423,7 +623,7 @@ public class DatBanService {
         phieu.setThoiGianDat(request.getThoiGianDat());
         phieu.setHinhThucDat(1);
         phieu.setSoLuongKhach(request.getSoNguoi());
-        phieu.setTrangThai(1);
+        phieu.setTrangThai(0);
         phieu.setNguoiTao("Khách hàng");
         phieu.setMaDatBan("PDB" + System.currentTimeMillis());
         phieu.setNgayTao(java.time.LocalDateTime.now());
@@ -521,6 +721,178 @@ public class DatBanService {
 
         return result;
     }
+
+    @Transactional
+    public CreatePhieuDatBanFullResponse createFull(CreatePhieuDatBanFullRequest req) {
+
+        KhachHang khachHang;
+
+        // ===============================
+        // 1️⃣ Nếu chọn khách cũ
+        // ===============================
+        if (req.getIdKhachHang() != null) {
+
+            khachHang = khachHangRepository.findById(req.getIdKhachHang())
+                    .orElseThrow(() ->
+                            new RuntimeException("Không tìm thấy khách hàng"));
+
+        } else {
+
+            // ===============================
+            // 2️⃣ Nếu là khách mới
+            // ===============================
+
+            if (req.getSoDienThoai() == null || req.getSoDienThoai().isBlank()) {
+                throw new RuntimeException("Số điện thoại không được để trống");
+            }
+
+            Optional<KhachHang> existing =
+                    khachHangRepository.findBySoDienThoai(req.getSoDienThoai());
+
+            if (existing.isPresent()) {
+                khachHang = existing.get();
+            } else {
+                khachHang = new KhachHang();
+                khachHang.setTenKhachHang(req.getTenKhachHang());
+                khachHang.setSoDienThoai(req.getSoDienThoai());
+                khachHang.setEmail(req.getEmail());
+                khachHang.setNgaySinh(req.getNgaySinh());
+                khachHang.setGioiTinh(req.getGioiTinh());
+                khachHang.setTrangThai(1);
+                khachHangRepository.save(khachHang);
+            }
+        }
+
+        // ===============================
+        // 3️⃣ Kiểm tra bàn
+        // ===============================
+
+        BanAn ban = banAnRepository.findById(req.getIdBanAn())
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy bàn"));
+
+        // ===============================
+        // 4️⃣ Check trùng giờ
+        // ===============================
+
+        LocalDateTime start = req.getThoiGianDat().minusHours(2);
+        LocalDateTime end   = req.getThoiGianDat().plusHours(2);
+
+        boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
+
+        if (isTrung) {
+            throw new RuntimeException("Bàn đã có lịch trong vòng 2 tiếng");
+        }
+
+        // ===============================
+        // 5️⃣ Tạo phiếu
+        // ===============================
+
+        PhieuDatBan pdb = new PhieuDatBan();
+        pdb.setIdBanAn(ban);
+        pdb.setIdKhachHang(khachHang);
+        pdb.setThoiGianDat(req.getThoiGianDat());
+        pdb.setHinhThucDat(req.getHinhThucDat());
+        pdb.setSoLuongKhach(req.getSoLuongKhach());
+        pdb.setTrangThai(0);
+
+        PhieuDatBan saved = phieuDatBanRepository.save(pdb);
+
+        ban.setTrangThai(1);
+        banAnRepository.save(ban);
+
+        // ===============================
+        // 6️⃣ Gửi mail + auto confirm
+        // ===============================
+
+        boolean daGuiMail = false;
+
+        if (khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
+
+            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                    .tenKhachHang(khachHang.getTenKhachHang())
+                    .soDienThoai(khachHang.getSoDienThoai())
+                    .email(khachHang.getEmail())
+                    .thoiGianDat(req.getThoiGianDat()
+                            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                    .tenBan(ban.getMaBan())
+                    .khuVuc(ban.getIdKhuVuc() != null
+                            ? ban.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + ban.getIdKhuVuc().getTang()
+                            : "N/A")
+                    .soLuongKhach(req.getSoLuongKhach())
+                    .maPhieuDatBan("PDB-" + saved.getId())
+                    .build();
+
+            try {
+                emailDatBanService.sendXacNhanDatBanSync(emailDto); // ← gọi bản sync
+
+                // ✅ Gửi mail OK → tự động xác nhận phiếu
+                saved.setTrangThai(1); // 1 = Đã xác nhận
+                phieuDatBanRepository.save(saved);
+
+                daGuiMail = true;
+                log.info("✅ Tự động xác nhận phiếu PDB-{} sau khi gửi mail", saved.getId());
+
+            } catch (Exception e) {
+                // ❌ Gửi mail lỗi → giữ trạng thái 0, không crash API
+                log.warn("⚠️ Gửi mail thất bại, phiếu PDB-{} giữ trạng thái chờ xác nhận: {}",
+                        saved.getId(), e.getMessage());
+            }
+
+        } else {
+            // Không có email → vẫn tạo phiếu nhưng trạng thái 0 chờ xác nhận thủ công
+            log.info("ℹ️ Khách không có email, phiếu PDB-{} chờ xác nhận thủ công", saved.getId());
+        }
+
+        // ===============================
+        // 7️⃣ Trả về response cho FE
+        // ===============================
+
+        return CreatePhieuDatBanFullResponse.builder()
+                .idPhieuDatBan(saved.getId())
+                .maPhieuDatBan("PDB-" + saved.getId())
+                .daGuiMail(daGuiMail)
+                .emailGuiToi(daGuiMail ? khachHang.getEmail() : null)
+                .build();
+    }
+
+    // ========== Lấy tất cả khách hàng cho multiselect ==========
+    public List<KhachHangSelectDTO> getAllForSelect() {
+        return khachHangRepository.findAll()
+                .stream()
+                .map(this::toSelectDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ========== Tìm kiếm theo keyword (tên hoặc SĐT) ==========
+    public List<KhachHangSelectDTO> searchByKeyword(String keyword) {
+        return khachHangRepository.searchByKeyword(keyword)
+                .stream()
+                .map(this::toSelectDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ========== Tìm theo SĐT chính xác ==========
+    public KhachHangSelectDTO findBySoDienThoai(String soDienThoai) {
+        return khachHangRepository.findBySoDienThoai(soDienThoai)
+                .map(this::toSelectDTO)
+                .orElse(null);
+    }
+
+    // ========== Mapper Entity -> DTO ==========
+    private KhachHangSelectDTO toSelectDTO(KhachHang k) {
+        return KhachHangSelectDTO.builder()
+                .idKhachHang(k.getId())
+                .maKhachHang(k.getMaKhachHang())
+                .tenKhachHang(k.getTenKhachHang())
+                .soDienThoai(k.getSoDienThoai())
+                .email(k.getEmail())
+                .ngaySinh(k.getNgaySinh())
+                .gioiTinh(k.getGioiTinh())
+                .build();
+    }
+
+
 
 
 }

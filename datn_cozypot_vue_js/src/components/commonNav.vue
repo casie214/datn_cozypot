@@ -6,6 +6,8 @@ import { useAuthStore } from '@/pages/guest/authentication/authenticationService
 const router = useRouter();
 const authStore = useAuthStore();
 
+
+console.log("USER:", authStore.user);
 // --- STATE ---
 const showDropdown = ref(false);
 const dropdownRef = ref(null);
@@ -37,7 +39,10 @@ const handleLogout = () => {
     showDropdown.value = false;
     window.location.reload();
 };
-
+const goToChangePassword = () => {
+    showDropdown.value = false;
+    router.push('/doi-mat-khau');
+}
 const goToProfile = () => {
     alert("Chức năng đang phát triển");
 }
@@ -89,7 +94,6 @@ onUnmounted(() => {
                         <div class="user-info" @click="toggleDropdown">
                             <img :src="userAvatar" alt="User" class="avatar-img" />
                             <span class="user-name">{{ authStore.user?.username || 'Đã đăng nhập' }}</span>
-                            <i class="fa-solid fa-caret-down"></i>
                         </div>
 
                         <transition name="dropdown-fade">
@@ -99,6 +103,9 @@ onUnmounted(() => {
                                 </div>
                                 <div class="dropdown-item" @click="router.push('/history')">
                                     <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt bàn
+                                </div>
+                                <div class="dropdown-item" @click="goToChangePassword">
+                                    <i class="fa-solid fa-key"></i> Đổi mật khẩu
                                 </div>
                                 <div class="dropdown-divider"></div>
                                 <div class="dropdown-item text-danger" @click="handleLogout">

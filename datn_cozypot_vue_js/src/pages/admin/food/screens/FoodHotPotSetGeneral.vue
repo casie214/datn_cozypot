@@ -7,7 +7,8 @@ import CommonPagination from '@/components/commonPagination.vue';
 import '@vueform/multiselect/themes/default.css';
 import Multiselect from '@vueform/multiselect';
 import Swal from 'sweetalert2';
-
+import { usePermission } from "@/components/permissionHelper";
+const { handleActionWithAuth } = usePermission();
 const router = useRouter();
 
 const statusOptions = [
@@ -75,21 +76,14 @@ const getImg = (url) => {
           <div class="input-group">
             <input v-model="searchQuery" type="text" class="form-search form-control"
               placeholder="Tìm kiếm set lẩu (mã, tên)" />
-            
           </div>
         </div>
 
         <div class="filter-item">
           <label>Trạng thái</label>
           <div class="multiselect-wrapper-sm">
-          <Multiselect 
-            v-model="statusFilter" 
-            :options="statusOptions" 
-            :searchable="true"
-            :canClear="false"
-            :no-results-text="'Không tìm thấy kết quả nào'"
-            class="custom-filter-multiselect"
-          />
+            <Multiselect v-model="statusFilter" :options="statusOptions" :searchable="true" :canClear="false"
+              :no-results-text="'Không tìm thấy kết quả nào'" class="custom-filter-multiselect" />
           </div>
         </div>
 
@@ -103,15 +97,9 @@ const getImg = (url) => {
         </div>
         <div class="filter-item">
           <label>Sắp xếp theo</label>
-           <div class="multiselect-wrapper-sm">
-          <Multiselect 
-            v-model="sortOption" 
-            :options="sortOptions" 
-            :searchable="true"
-            :canClear="false"
-            :no-results-text="'Không tìm thấy kết quả nào'"
-            class="custom-filter-multiselect"
-          />
+          <div class="multiselect-wrapper-sm">
+            <Multiselect v-model="sortOption" :options="sortOptions" :searchable="true" :canClear="false"
+              :no-results-text="'Không tìm thấy kết quả nào'" class="custom-filter-multiselect" />
           </div>
         </div>
 
@@ -143,14 +131,18 @@ const getImg = (url) => {
     </div>
 
     <div class="action-row" style="margin-left: auto;">
-      <button class="btn-action-icon btn-add-only" @click="goToAddScreen">
+      <button class="btn-action-icon btn-add-only" @click="handleActionWithAuth(() => goToAddScreen(), 'ADMIN')">
         <i class="fas fa-plus"></i>
       </button>
-      <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel danh sách hiện tại">
+
+      <button class="btn-action-icon" @click="handleActionWithAuth(() => exportToExcel(), 'ADMIN')"
+        title="Xuất Excel danh sách hiện tại">
         <i class="fas fa-file-excel"></i>
       </button>
-      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại"><i
-          class="fas fa-sync-alt"></i></button>
+
+      <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại">
+        <i class="fas fa-sync-alt"></i>
+      </button>
     </div>
 
     <div class="table-container" style="min-height: 278px;">
