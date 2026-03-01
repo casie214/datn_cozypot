@@ -408,13 +408,11 @@ public class DatBanService {
             khachHang.setTenKhachHang(request.getFullName());
             khachHang.setSoDienThoai(request.getPhone());
             khachHang.setEmail(request.getEmail());
+            khachHang.setTenDangNhap(request.getPhone());
+            khachHang.setMatKhauDangNhap("CozyPot@" + request.getPhone());
             khachHang.setTrangThai(1);
             khachHang.setAuthProvider(com.example.datn_cozypot_spring_boot.config.AuthProvider.LOCAL);
             khachHang.setNgayTaoTaiKhoan(java.time.Instant.now());
-            khachHang = khachHangRepository.save(khachHang);
-        } else {
-            if (request.getFullName() != null) khachHang.setTenKhachHang(request.getFullName());
-            if (request.getEmail() != null) khachHang.setEmail(request.getEmail());
             khachHang = khachHangRepository.save(khachHang);
         }
 
@@ -440,7 +438,12 @@ public class DatBanService {
         hoaDon.setIdKhachHang(khachHang);
         hoaDon.setIdBanAn(banDuocChon);
         hoaDon.setIdPhieuDatBan(phieu);
-        hoaDon.setGhiChu(request.getGhiChu());
+
+        String thongTinKhachNhap = String.format("[Hệ thống ghi nhận] Khách: %s | SĐT: %s | Email: %s. ",
+                request.getFullName(), request.getPhone(), request.getEmail() != null ? request.getEmail() : "Không có");
+        String ghiChuGoc = request.getGhiChu() != null ? "Ghi chú của khách: " + request.getGhiChu() : "";
+
+        hoaDon.setGhiChu(thongTinKhachNhap + ghiChuGoc);
         hoaDon.setThoiGianTao(Instant.now());
 
         // Nhận tiền từ Request
@@ -493,7 +496,7 @@ public class DatBanService {
         LichSuHoaDon logTaoMoi = new LichSuHoaDon();
         logTaoMoi.setIdHoaDon(hoaDon);
         logTaoMoi.setHanhDong("Tạo hóa đơn online");
-        logTaoMoi.setLyDoThucHien("Khách tạo đơn đặt bàn qua Website");
+        logTaoMoi.setLyDoThucHien(String.format("Khách %s (%s/%s) tạo đơn đặt bàn qua Website", request.getFullName(), request.getPhone(), request.getEmail()));
         logTaoMoi.setTrangThaiTruocDo(null);
         logTaoMoi.setTrangThaiMoi(0); // Luôn ghi log bắt đầu từ 0
         logTaoMoi.setThoiGianThucHien(Instant.now());

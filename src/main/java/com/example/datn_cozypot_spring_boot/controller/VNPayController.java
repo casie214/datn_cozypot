@@ -359,10 +359,10 @@ public class VNPayController {
                 // Trả về trang báo thành công kèm type=deposit
                 response.sendRedirect("http://localhost:5173/payment-success?type=deposit");
             } else {
-                response.sendRedirect("http://localhost:5173/payment-failed");
+                response.sendRedirect("http://localhost:5173/payment-failed?type=deposit");
             }
         } else {
-            response.sendRedirect("http://localhost:5173/payment-failed?error=checksum");
+            response.sendRedirect("http://localhost:5173/payment-failed?type=deposit&error=checksum");
         }
     }
 }
