@@ -26,6 +26,77 @@ const customerInfo = reactive({
   idKhachHang: null,
 });
 
+const errors = reactive({
+  people: "",
+  date: "",
+  time: "",
+  fullName: "",
+  phone: "",
+  email: "",
+});
+
+// --- CÁC HÀM VALIDATE ---
+const validatePeople = () => {
+  const p = bookingData.people;
+  if (!p) {
+    errors.people = "Vui lòng nhập số người.";
+  } else if (p < 1 || p > 20) {
+    errors.people = "Số người phải từ 1 đến 20.";
+  } else if (!Number.isInteger(Number(p))) {
+    errors.people = "Số người phải là số nguyên dương.";
+  } else {
+    errors.people = "";
+  }
+};
+
+const validateDate = () => {
+  if (!bookingData.date) {
+    errors.date = "Vui lòng chọn ngày đến.";
+  } else {
+    errors.date = "";
+  }
+};
+
+const validateTime = () => {
+  if (!bookingData.time) {
+    errors.time = "Vui lòng chọn giờ đến.";
+  } else {
+    errors.time = "";
+  }
+};
+
+const validateFullName = () => {
+  if (!customerInfo.fullName || customerInfo.fullName.trim() === "") {
+    errors.fullName = "Vui lòng nhập họ và tên.";
+  } else if (customerInfo.fullName.trim().length < 2) {
+    errors.fullName = "Tên quá ngắn, vui lòng nhập đầy đủ.";
+  } else {
+    errors.fullName = "";
+  }
+};
+
+const validatePhone = () => {
+  const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})\b$/;
+  if (!customerInfo.phone) {
+    errors.phone = "Vui lòng nhập số điện thoại.";
+  } else if (!phoneRegex.test(customerInfo.phone)) {
+    errors.phone = "Số điện thoại không hợp lệ";
+  } else {
+    errors.phone = "";
+  }
+};
+
+const validateEmail = () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!customerInfo.email) {
+    errors.email = "Vui lòng nhập email.";
+  } else if (!emailRegex.test(customerInfo.email)) {
+    errors.email = "Định dạng email không hợp lệ.";
+  } else {
+    errors.email = "";
+  }
+};
+
 const cart = ref([]);
 
 // --- 3. LIFECYCLE: PHỤC HỒI DỮ LIỆU & TỰ ĐỘNG ĐIỀN THÔNG TIN ---
@@ -96,12 +167,25 @@ const depositAmount = computed(() => totalAmount.value * 0.4);
 
 // --- 4. LOGIC BƯỚC 1: KIỂM TRA BÀN ---
 const checkAvailability = async () => {
-  if (!bookingData.people || !bookingData.date || !bookingData.time) {
-    return Swal.fire(
-      "Thiếu thông tin",
-      "Vui lòng điền đủ số người, ngày và giờ!",
-      "warning",
-    );
+  validatePeople();
+  validateDate();
+  validateTime();
+  if (errors.people || errors.date || errors.time) {
+    return;
+  }
+
+  const now = new Date();
+  const selectedDateTime = new Date(
+    `${bookingData.date}T${bookingData.time}:00`,
+  );
+
+  if (selectedDateTime <= now) {
+    return Swal.fire({
+      icon: "warning",
+      title: "Thời gian không hợp lệ",
+      text: "Vui lòng chọn thời gian đặt bàn ở trong tương lai!",
+      confirmButtonColor: "#7d161a",
+    });
   }
 
   isLoading.value = true;
@@ -154,14 +238,50 @@ const removeCartItem = (index) => {
 };
 
 const submitFinalBooking = async () => {
-  if (!customerInfo.fullName || !customerInfo.phone) {
-    return Swal.fire(
-      "Thiếu thông tin",
-      "Vui lòng nhập Họ Tên và Số Điện Thoại!",
-      "warning",
-    );
+  validateFullName();
+  validatePhone();
+  validateEmail();
+  if (errors.fullName || errors.phone || errors.email) {
+    return;
   }
 
+  // BƯỚC XÁC NHẬN THÔNG TIN
+  const isConfirm = await Swal.fire({
+    title: "Xác nhận thông tin đặt bàn",
+    html: `
+      <div style="text-align: left; font-size: 15px; line-height: 1.6; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <div style="margin-bottom: 8px;"><b>👤 Khách hàng:</b> ${customerInfo.fullName}</div>
+        <div style="margin-bottom: 8px;"><b>📞 Số điện thoại:</b> ${customerInfo.phone}</div>
+        <div style="margin-bottom: 8px;"><b>⏰ Thời gian:</b> ${bookingData.time} - ${formattedDate.value}</div>
+        <div style="margin-bottom: 8px;"><b>👥 Số người:</b> ${bookingData.people}</div>
+        <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+          <b>💰 Tạm tính:</b> ${formatPrice(totalAmount.value)}<br/>
+          <b style="color: #7d161a; font-size: 18px;">🔥 Tiền cọc (40%): ${formatPrice(depositAmount.value)}</b>
+        </div>
+      </div>
+      <div style="margin-top: 15px; font-size: 13px; color: #6c757d; font-style: italic;">
+        * Vui lòng kiểm tra kỹ thông tin. Nếu sai sót, nhà hàng xin phép không chịu trách nhiệm! :))))
+      </div>
+    `,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#7d161a",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Đúng rồi, Đặt bàn luôn!",
+    cancelButtonText: "Từ từ, để sửa lại",
+    customClass: {
+      popup: "rounded-4",
+    },
+  });
+
+  // Nếu khách bấm "Từ từ" hoặc bấm ra ngoài popup -> Dừng hàm lại luôn
+  if (!isConfirm.isConfirmed) {
+    return;
+  }
+
+  // ==========================================================
+  // NẾU KHÁCH ĐÃ CHỐT -> BẮT ĐẦU HIỆN LOADING VÀ GỌI API BE
+  // ==========================================================
   isSubmitting.value = true;
   try {
     const payload = {
@@ -183,71 +303,51 @@ const submitFinalBooking = async () => {
       })),
     };
 
-    // 1. GỌI API ĐẶT BÀN LÊN BACKEND (Sẽ tạo Phiếu, Hóa đơn và trả về JSON)
+    // 1. GỌI API ĐẶT BÀN LÊN BACKEND
     const response = await axiosClient.post("/dat-ban/tao-moi", payload);
-    const resultData = response.data; // Đây chính là Map<String, Object> BE trả về
+    const resultData = response.data;
 
     // 2. KIỂM TRA LUỒNG TIỀN CỌC TỪ KẾT QUẢ BACKEND
     if (resultData.trangThaiHoaDon === 1 && resultData.tienCoc > 0) {
-      // 2.1 Hiện thông báo xác nhận cọc
-      const confirm = await Swal.fire({
-        title: "Xác nhận đặt cọc",
-        html: `Để giữ bàn và chuẩn bị món ăn, bạn cần thanh toán trước khoản cọc:<br/>
-               <b style="color:#7d161a; font-size: 24px;">${formatPrice(resultData.tienCoc)}</b>`,
-        icon: "info",
-        showCancelButton: true,
-        confirmButtonColor: "#7d161a",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Đồng ý & Thanh toán",
-        cancelButtonText: "Hủy đặt bàn",
+      Swal.fire({
+        title: "Đang kết nối cổng thanh toán VNPay...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
       });
 
-      if (confirm.isConfirmed) {
-        // 2.2 Gọi API tạo link VNPay
-        Swal.fire({
-          title: "Đang kết nối cổng thanh toán VNPay...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
+      try {
+        const vnpayRawResponse = await fetch(
+          `http://localhost:8080/api/vnpay/create-payment-deposit/${resultData.idHoaDon}`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
           },
-        });
+        );
 
-        // DÙNG FETCH THUẦN ĐỂ KHÔNG BỊ RỚT SESSION (Nhớ sửa lại URL cổng 8080 cho đúng với BE của bạn)
-        try {
-          const vnpayRawResponse = await fetch(
-            `http://localhost:8080/api/vnpay/create-payment-deposit/${resultData.idHoaDon}`,
-            {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            },
-          );
-
-          if (vnpayRawResponse.ok) {
-            const vnpayData = await vnpayRawResponse.json();
-            if (vnpayData && vnpayData.url) {
-              // Chuyển hướng trình duyệt sang trang VNPay
-              window.location.href = vnpayData.url;
-            } else {
-              Swal.fire(
-                "Lỗi",
-                "Không lấy được đường dẫn thanh toán từ Server",
-                "error",
-              );
-            }
+        if (vnpayRawResponse.ok) {
+          const vnpayData = await vnpayRawResponse.json();
+          if (vnpayData && vnpayData.url) {
+            resetForm();
+            window.location.href = vnpayData.url;
           } else {
-            Swal.fire("Lỗi", "Máy chủ VNPay không phản hồi", "error");
+            Swal.fire(
+              "Lỗi",
+              "Không lấy được đường dẫn thanh toán từ Server",
+              "error",
+            );
           }
-        } catch (vnpayError) {
-          Swal.fire(
-            "Lỗi mạng",
-            "Không thể kết nối đến máy chủ thanh toán",
-            "error",
-          );
-          console.error(vnpayError);
+        } else {
+          Swal.fire("Lỗi", "Máy chủ VNPay không phản hồi", "error");
         }
-      } else {
-        Swal.fire("Đã hủy", "Giao dịch đặt bàn đã bị hủy bỏ.", "info");
-        // (Tùy chọn: Ở đây bạn có thể gọi thêm API xóa cái Hóa đơn & Phiếu vừa tạo nếu khách Hủy)
+      } catch (vnpayError) {
+        Swal.fire(
+          "Lỗi mạng",
+          "Không thể kết nối đến máy chủ thanh toán",
+          "error",
+        );
+        console.error(vnpayError);
       }
     } else {
       // 3. LUỒNG KHÔNG CẦN CỌC (Trạng thái = 0)
@@ -256,9 +356,7 @@ const submitFinalBooking = async () => {
         "Lịch hẹn của bạn đã được ghi nhận. Nhà hàng sẽ liên hệ xác nhận trong ít phút!",
         "success",
       );
-
-      resetForm(); 
-      
+      resetForm();
       router.push("/");
     }
   } catch (error) {
@@ -279,7 +377,6 @@ const resetForm = () => {
   bookingData.date = "";
   bookingData.time = "";
 
-  // Chỉ reset thông tin nhập tay, KHÔNG reset idKhachHang nếu họ đang đăng nhập
   const userStr = localStorage.getItem("user");
   if (!userStr) {
     customerInfo.fullName = "";
@@ -288,11 +385,26 @@ const resetForm = () => {
   }
   customerInfo.note = "";
 
+  errors.people = "";
+  errors.date = "";
+  errors.time = "";
+  errors.fullName = "";
+  errors.phone = "";
+  errors.email = "";
+
   cart.value = [];
   localStorage.removeItem("cart");
   sessionStorage.removeItem("pendingBooking");
   step.value = 1;
 };
+
+const minDate = computed(() => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+});
 </script>
 
 <template>
@@ -344,7 +456,7 @@ const resetForm = () => {
             </div>
           </div>
 
-          <form @submit.prevent="checkAvailability">
+          <form @submit.prevent="checkAvailability" novalidate>
             <div class="row g-4 mb-4">
               <div class="col-md-6">
                 <label class="form-label text-muted small fw-bold"
@@ -358,6 +470,13 @@ const resetForm = () => {
                   placeholder="Nhập số người"
                   required
                 />
+                <span
+                  v-if="errors.people"
+                  class="text-danger small mt-1 d-block"
+                >
+                  <i class="fas fa-exclamation-circle me-1"></i
+                  >{{ errors.people }}
+                </span>
               </div>
               <div class="col-md-6">
                 <label class="form-label text-muted small fw-bold"
@@ -366,9 +485,14 @@ const resetForm = () => {
                 <input
                   type="date"
                   v-model="bookingData.date"
+                  :min="minDate"
                   class="form-control form-control-lg custom-input"
                   required
                 />
+                <span v-if="errors.date" class="text-danger small mt-1 d-block">
+                  <i class="fas fa-exclamation-circle me-1"></i
+                  >{{ errors.date }}
+                </span>
               </div>
             </div>
 
@@ -383,10 +507,18 @@ const resetForm = () => {
               >
                 <option value="" disabled selected>Chọn giờ</option>
                 <option value="17:00">17:00</option>
+                <option value="17:30">17:30</option>
                 <option value="18:00">18:00</option>
+                <option value="18:30">18:30</option>
                 <option value="19:00">19:00</option>
+                <option value="19:30">19:30</option>
                 <option value="20:00">20:00</option>
+                <option value="20:30">20:30</option>
+                <option value="21:00">21:00</option>
               </select>
+              <span v-if="errors.time" class="text-danger small mt-1 d-block">
+                <i class="fas fa-exclamation-circle me-1"></i>{{ errors.time }}
+              </span>
             </div>
 
             <button
@@ -445,8 +577,8 @@ const resetForm = () => {
               "
             >
               <div
-                class="panel-header text-white px-4 py-3"
-                style="background-color: #7d161a"
+                class="panel-header text-white px-4 d-flex align-items-center"
+                style="background-color: #7d161a; height: 60px"
               >
                 <h5 class="mb-0 fw-bold text-uppercase fs-6">
                   Thông tin khách hàng
@@ -465,8 +597,8 @@ const resetForm = () => {
                 <div class="row g-4 mb-4">
                   <div class="col-sm-6">
                     <label class="form-label text-muted small fw-bold mb-1"
-                      ><i class="fas fa-user text-danger me-2"></i> KHÁCH
-                      HÀNG</label
+                      ><i class="fas fa-user text-danger me-2"></i> KHÁCH HÀNG
+                      <span class="text-danger">*</span></label
                     >
                     <input
                       type="text"
@@ -475,11 +607,17 @@ const resetForm = () => {
                       placeholder="Nhập họ và tên..."
                       :readonly="!!customerInfo.idKhachHang"
                     />
+                    <span
+                      v-if="errors.fullName"
+                      class="text-danger small mt-1 d-block"
+                    >
+                      {{ errors.fullName }}
+                    </span>
                   </div>
                   <div class="col-sm-6">
                     <label class="form-label text-muted small fw-bold mb-1"
                       ><i class="fas fa-phone-alt text-danger me-2"></i> SỐ ĐIỆN
-                      THOẠI</label
+                      THOẠI <span class="text-danger">*</span></label
                     >
                     <input
                       type="tel"
@@ -488,22 +626,34 @@ const resetForm = () => {
                       placeholder="Nhập SĐT..."
                       :readonly="!!customerInfo.idKhachHang"
                     />
+                    <span
+                      v-if="errors.phone"
+                      class="text-danger small mt-1 d-block"
+                    >
+                      {{ errors.phone }}
+                    </span>
                   </div>
                 </div>
 
                 <div class="row g-4 mb-4">
                   <div class="col-12">
                     <label class="form-label text-muted small fw-bold mb-1"
-                      ><i class="fas fa-envelope text-danger me-2"></i>
-                      EMAIL</label
+                      ><i class="fas fa-envelope text-danger me-2"></i> EMAIL
+                      <span class="text-danger">*</span></label
                     >
                     <input
                       type="email"
                       v-model="customerInfo.email"
                       class="form-control custom-input border-0 border-bottom bg-transparent px-1 rounded-0 fw-bold text-dark fs-6"
-                      placeholder="Nhập email của bạn (không bắt buộc)..."
+                      placeholder="Nhập email của bạn ..."
                       :readonly="!!customerInfo.idKhachHang"
                     />
+                    <span
+                      v-if="errors.email"
+                      class="text-danger small mt-1 d-block"
+                    >
+                      {{ errors.email }}
+                    </span>
                   </div>
                 </div>
 
@@ -598,7 +748,7 @@ const resetForm = () => {
                   class="btn btn-sm text-white border-0 fw-bold px-0"
                   style="background: transparent"
                 >
-                  Thêm món
+                  Thêm món / Sửa món
                 </button>
               </div>
 
