@@ -236,6 +236,7 @@ const routes = [
         component: () => import("./pages/guest/viewPages/home.vue"),
         meta: { requiresAuth: false }
     },
+    
     {
         path: "/menu",
         name: "menu",
@@ -255,6 +256,15 @@ const routes = [
         component: () => import("@/pages/admin/order/screens/OrderDetailPage.vue"),
         meta: { requiresAuth: true, requiredRole: ['ADMIN', 'EMPLOYEE'] }
     },
+    {
+    path: "/admin/parameters",
+    name: "parametersManager",
+    component: () => import("@/pages/admin/parameters/screens/parametersManager.vue"),
+    meta: { 
+        requiresAuth: true, 
+        requiredRole: ['ADMIN'] // chỉ ADMIN được vào
+    }
+},
     {
         path: "/admin/payment/:id",
         name: "paymentScreen",
@@ -303,6 +313,9 @@ const routes = [
         path: "/test",
         name: "test",
         component: () => import("./components/testConnection.vue")
+    },
+    {
+    path: "/admin/statistics",
     },
     {
         path: "/manage/unit",

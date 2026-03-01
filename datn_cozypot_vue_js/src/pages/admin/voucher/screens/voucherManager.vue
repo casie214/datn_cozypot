@@ -85,13 +85,24 @@
             </div>
 
             <div class="d-flex justify-content-end mb-3 gap-2">
-                <button class="btn-red-dark" @click="handleActionWithAuth(() => exportExcel(), 'ADMIN')">
-                    <i class="fas fa-file-excel me-2"></i> Xuất Excel
-                </button>
+                <div class="icon-tooltip">
 
-                <button class="btn-red-dark" @click="handleActionWithAuth(() => openFormAdd(), 'ADMIN')">
-                    <i class="fas fa-plus me-2"></i> Thêm phiếu giảm giá
-                </button>
+                    <!-- Xuất Excel -->
+                    <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="exportExcel"
+                        type="button">
+                        <i class="fas fa-file-excel"></i>
+                        <span class="tooltip-text">Xuất Excel</span>
+                    </button>
+                </div>
+                <div class="icon-tooltip">
+
+                    <!-- Thêm mới -->
+                    <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openFormAdd"
+                        type="button">
+                        <i class="fas fa-plus"></i>
+                        <span class="tooltip-text">Thêm phiếu giảm giá</span>
+                    </button>
+                </div>
             </div>
 
             <div class="table-container shadow-sm bg-white rounded overflow-hidden">
