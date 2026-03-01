@@ -6,7 +6,18 @@ import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+
+import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
+import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
+import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
+import com.example.datn_cozypot_spring_boot.entity.NhanVien;
+import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -15,8 +26,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +51,12 @@ public class DatBanController {
     KhuVucRepository khuVucRepository;
     @Autowired
     private HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    @Autowired
+    private ChiTietHoaDonRepository chiTietHoaDonRepository;
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
+    @Autowired
+    private LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -106,6 +125,74 @@ public Page<DatBanListResponse> searchDatBan(
         datBanService.updateCheckIn(datBanUpdateRequest);
     }
 
+
+    @PutMapping("/chi-tiet-hoa-don/{id}/trang-thai")
+    @Transactional
+    public ResponseEntity<?> updateTrangThaiMon(@PathVariable Integer id, @RequestParam Integer trangThai, @RequestParam(required = false) Integer idNhanVien) {
+        ChiTietHoaDon chiTiet = chiTietHoaDonRepository.findById(id).orElse(null);
+        if (chiTiet == null) {
+            return ResponseEntity.badRequest().body("Không tìm thấy chi tiết hóa đơn");
+        }
+
+        // 2. Lưu lại thông tin trước khi cập nhật để ghi log
+        Integer trangThaiCuCuaMon = chiTiet.getTrangThaiMon();
+        HoaDonThanhToan hoaDon = chiTiet.getIdHoaDon();
+        Integer trangThaiBillHienTai = hoaDon.getTrangThaiHoaDon();
+        String tenMon = getTenMonFromEntity(chiTiet);
+
+        // 3. Cập nhật trạng thái mới
+        chiTiet.setTrangThaiMon(trangThai);
+        chiTietHoaDonRepository.save(chiTiet);
+
+        // 4. LOGIC GHI LỊCH SỬ HÓA ĐƠN
+        String hanhDong = "";
+        String lyDo = "Cập nhật trạng thái món ăn";
+
+        if (trangThai == 2) {
+            hanhDong = "Lên món: " + tenMon + " x" + chiTiet.getSoLuong();
+            lyDo = "Đã phục vụ tại bàn";
+        } else if (trangThai == 0) {
+            hanhDong = "Hủy món: " + tenMon + " x" + chiTiet.getSoLuong();
+            lyDo = "Nhân viên xóa trực tiếp";
+        } else if (trangThai == 1 && trangThaiCuCuaMon == 2) {
+            hanhDong = "Hoàn tác lên món: " + tenMon;
+            lyDo = "Trả lại trạng thái chờ cung ứng";
+        }
+
+        if (!hanhDong.isEmpty()) {
+            // Gọi hàm ghi log đã viết ở các bước trước
+            // Lưu ý: trangThaiTruocDo và trangThaiMoi ở đây là trạng thái của HÓA ĐƠN (vẫn là 4 - Đang phục vụ)
+            ghiLichSu(hoaDon, idNhanVien, hanhDong, lyDo, trangThaiBillHienTai, trangThaiBillHienTai);
+        }
+
+        return ResponseEntity.ok("Cập nhật thành công");
+    }
+
+    private String getTenMonFromEntity(ChiTietHoaDon ct) {
+        if (ct.getIdChiTietMonAn() != null) return ct.getIdChiTietMonAn().getTenMon();
+        if (ct.getIdSetLau() != null) return ct.getIdSetLau().getTenSetLau();
+        return "Món không xác định";
+    }
+
+    private void ghiLichSu(HoaDonThanhToan hoaDon, Integer idNhanVien, String hanhDong, String lyDo, Integer trangThaiCu, Integer trangThaiMoi) {
+        LichSuHoaDon lichSu = new LichSuHoaDon();
+        lichSu.setIdHoaDon(hoaDon);
+
+        // Tìm nhân viên thực hiện (nếu có idNhanVien truyền lên từ FE)
+        if (idNhanVien != null) {
+            NhanVien nv = nhanVienRepository.findById(idNhanVien).orElse(null);
+            lichSu.setIdNhanVien(nv);
+        }
+
+        lichSu.setHanhDong(hanhDong);
+        lichSu.setLyDoThucHien(lyDo);
+        lichSu.setThoiGianThucHien(Instant.now());
+        lichSu.setTrangThaiTruocDo(trangThaiCu);
+        lichSu.setTrangThaiMoi(trangThaiMoi);
+
+        lichSuHoaDonRepository.save(lichSu);
+    }
+
     @PutMapping("/update-trang-thai-phieu")
     public ResponseEntity<?> updateTrangThai(
             @RequestBody @Valid UpdateTrangThaiPhieuRequest request
@@ -165,4 +252,38 @@ public Page<DatBanListResponse> searchDatBan(
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @PostMapping("/add-phieu-dat-ban")
+    public ResponseEntity<CreatePhieuDatBanFullResponse> createFull(
+            @RequestBody CreatePhieuDatBanFullRequest req) {
+
+        CreatePhieuDatBanFullResponse response = datBanService.createFull(req);
+        return ResponseEntity.ok(response);
+    }
+
+    // GET /api/khach-hang/all
+    // Lấy toàn bộ danh sách → dùng cho multiselect khi mở modal
+    @GetMapping("/all-khach-hang")
+    public ResponseEntity<List<KhachHangSelectDTO>> getAll() {
+        return ResponseEntity.ok(datBanService.getAllForSelect());
+    }
+
+    // GET /api/khach-hang/search?keyword=0912...
+    // Tìm theo tên hoặc SĐT → dùng cho filter realtime trong multiselect
+    @GetMapping("/search-khach")
+    public ResponseEntity<List<KhachHangSelectDTO>> search(
+            @RequestParam(required = false, defaultValue = "") String keyword) {
+        return ResponseEntity.ok(datBanService.searchByKeyword(keyword));
+    }
+
+    // GET /api/khach-hang/sdt/0912345678
+    // Tìm đúng 1 khách theo SĐT
+    @GetMapping("/sdt/{soDienThoai}")
+    public ResponseEntity<?> findBySdt(@PathVariable String soDienThoai) {
+        KhachHangSelectDTO result = datBanService.findBySoDienThoai(soDienThoai);
+        if (result == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(result);
+    }
+
 }

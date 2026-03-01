@@ -546,7 +546,7 @@ public class PhieuGiamGiaService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setFrom("CozyPot <email_cua_ban@gmail.com>");
-            helper.setTo("admin@cozypot.vn"); // hoặc email KH
+            helper.setTo("linhnnth03605@fpt.edu.vn"); // hoặc email KH
             helper.setSubject("[CozyPot] Voucher đã hết hạn");
 
             String html = """
