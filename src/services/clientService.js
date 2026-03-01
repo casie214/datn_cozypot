@@ -7,6 +7,7 @@ const clientService = {
         keyword: params.keyword || null,
         trangThai: params.trangThai !== undefined ? params.trangThai : null,
         tuNgay: params.tuNgay || null,
+        gioiTinh: params.gioiTinh !== undefined ? params.gioiTinh : null,
         page: params.page || 0,
         size: params.size || 10
       }

@@ -103,6 +103,7 @@ const cart = ref([]);
 onMounted(() => {
   // 3.1. LUÔN LẤY THÔNG TIN USER ĐÃ ĐĂNG NHẬP TRƯỚC (QUÉT MỌI KEY CÓ THỂ CÓ)
   const userStr = localStorage.getItem("user");
+  console.log(userStr)
   if (userStr) {
     try {
       const userObj = JSON.parse(userStr);
@@ -115,7 +116,7 @@ onMounted(() => {
         userObj.dienThoai ||
         userObj.phone ||
         "";
-      customerInfo.email = userObj.email || userObj.username || "";
+      customerInfo.email = userObj.email || "";
     } catch (e) {
       console.error("Lỗi parse thông tin user:", e);
     }

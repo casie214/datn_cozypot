@@ -8,7 +8,7 @@ const staffService = {
         keyword: params.keyword || null,
         trangThai: params.trangThai || null,
         tuNgay: params.tuNgay || null,
-        page: params.page || 0,
+gioiTinh: params.gioiTinh !== undefined ? params.gioiTinh : null,        page: params.page || 0,
         size: params.size || 10
       }
     });
@@ -72,7 +72,7 @@ const staffService = {
 
     return `${baseUrl}/nhan-vien/print-pdf?${queryString}`;
   },
-// 9. Quét mã QR từ file ảnh (Hỗ trợ nhập liệu CCCD)
+  // 9. Quét mã QR từ file ảnh (Hỗ trợ nhập liệu CCCD)
   scanQR: (file) => {
     const data = new FormData();
     data.append('file', file);
@@ -80,7 +80,24 @@ const staffService = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+  // 10. Tải file mẫu nhập liệu (Export Template)
+  exportTemplate: (filters) => {
+    return axiosClient.get('/nhan-vien/export-template', {
+      params: {
+        listId: filters.listId || null // Gửi chuỗi ID lên Backend
+      },
+      responseType: 'blob',
+    });
+  },
 
+  // 11. Nhập dữ liệu từ file Excel (Import)
+  importExcel: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axiosClient.post('/nhan-vien/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 
 };
 export default staffService;
