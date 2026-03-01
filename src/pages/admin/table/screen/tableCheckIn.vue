@@ -247,19 +247,18 @@ const handleCheckInGuest = async (khach) => {
 
   const timeInfo = checkTimeStatus(khach.thoiGianDat);
   if (timeInfo.isEarly) {
-    const confirm = await Swal.fire({
-      title: 'Khách đến sớm!',
-      text: `Khách đang đến sớm hơn lịch hẹn ${timeInfo.minutes} phút. Mở thông tin bàn?`,
-      icon: 'warning',
-      showCancelButton: true,
+    await Swal.fire({
+      title: 'Chưa đến giờ nhận bàn!',
+      text: `Khách đến sớm ${timeInfo.minutes} phút...`,
+      icon: 'error',
       confirmButtonColor: '#7d161a',
-      confirmButtonText: 'Đồng ý'
+      confirmButtonText: 'Đã hiểu'
     });
-    if (!confirm.isConfirmed) return;
+    return;
   }
 
   selectedPhieu.value = khach; 
-  await openManageModal(ban); 
+  await openManageModal(ban, null, khach);
 };
 
 const handleSplitTableLogic = async (khach, banGoc) => {
@@ -457,7 +456,7 @@ const fetchDanhSachBanGopHople = async () => {
   }
 };
 
-const openManageModal = async (ban, forceStatus = null) => {
+const openManageModal = async (ban, forceStatus = null, targetKhach = null) => {
   const bId = ban.id || ban.idBanAn;
   
   selectedBan.value = { 
@@ -467,52 +466,69 @@ const openManageModal = async (ban, forceStatus = null) => {
   
   modalView.value = 'info';
   activeHoaDonId.value = null;
-  listMonDaChon.value = []; 
-  selectedPhieu.value = null;
+  listMonDaChon.value = [];
 
   try {
-    const resPhieu = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${bId}`);
+    const maPhieuCuaKhach = targetKhach ? (targetKhach.idDatBan || targetKhach.idPhieu || targetKhach.id) : null;
+    let apiUrl = `/hoa-don-thanh-toan/active-by-ban/${bId}`;
+    
+    if (maPhieuCuaKhach) {
+        apiUrl += `?idPhieu=${maPhieuCuaKhach}`; 
+    }
+    
+    const resPhieu = await axiosClient.get(apiUrl);
     
     if (resPhieu.data) {
       const data = resPhieu.data;
-      selectedPhieu.value = {
-        id: data.id, 
-        idHoaDon: data.idHoaDon || data.id, 
-        maDatBan: data.maPhieu || 'N/A',
-        tenKhachHang: data.tenKhachHang || 'Khách tại quán',
-        idKhachHang: data.idKhachHang, 
-        thoiGianDat: data.thoiGianDat,
-        soNguoi: data.soNguoi,
-        tongTienChuaGiam: data.tongTienChuaGiam || 0,
-        soTienDaGiam: data.soTienDaGiam || 0,
-        tienCoc: data.tienCoc || 0,
-        tongTienThanhToan: data.tongTienThanhToan || 0,
-        vatApDung: data.vatApDung || 10
-      };
-
-      const listFromApiRaw = data.chiTiet || data.chiTietHoaDon || data.chiTietMonAn || [];
-      const listFromApi = listFromApiRaw.filter(mon => mon.trangThaiMon !== 0);
       
-      if (listFromApi.length > 0) {
-        listMonDaChon.value = listFromApi.map((mon) => {
-            const isSet = mon.type === 'SET' || mon.idSetLau != null;
-            const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
-            return {
-                dbDetailId: mon.idChiTietHd, 
-                originalId: originalId,
-                type: isSet ? 'SET' : 'FOOD', 
-                uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
-                name: mon.tenMon,
-                quantity: mon.soLuong,
-                price: mon.donGia || 0,
-                note: mon.ghiChu || '',
-                served: mon.trangThaiMon === 2 
-            };
-        });
+      if (maPhieuCuaKhach && data.id !== maPhieuCuaKhach) {
+        handleEmptyTableState(targetKhach);
+      } else {
+        // 🚨 CHÚ Ý ĐOẠN NÀY: Cập nhật selectedPhieu an toàn hơn
+        selectedPhieu.value = {
+          id: targetKhach ? maPhieuCuaKhach : data.id, 
+          idHoaDon: data.idHoaDon, // CÓ THỂ LÀ NULL (BÌNH THƯỜNG)
+          maDatBan: targetKhach ? (targetKhach.maDatBan || targetKhach.maPhieu) : (data.maPhieu || data.maDatBan || 'N/A'),
+          tenKhachHang: targetKhach ? targetKhach.tenKhachHang : (data.tenKhachHang || 'Khách tại quán'),
+          idKhachHang: targetKhach ? targetKhach.idKhachHang : data.idKhachHang, 
+          thoiGianDat: targetKhach ? targetKhach.thoiGianDat : data.thoiGianDat,
+          soNguoi: targetKhach ? (targetKhach.soNguoi || targetKhach.soLuongKhach) : data.soNguoi,
+          tongTienChuaGiam: data.tongTienChuaGiam || 0,
+          soTienDaGiam: data.soTienDaGiam || 0,
+          tienCoc: targetKhach ? targetKhach.tienCoc : (data.tienCoc || 0),
+          tongTienThanhToan: data.tongTienThanhToan || 0,
+          vatApDung: data.vatApDung || 10,
+          // 🚨 THÊM TRƯỜNG NÀY: Để UI biết được trạng thái thực sự của phiếu
+          trangThai: targetKhach ? targetKhach.trangThai : data.trangThai 
+        };
+
+        const listFromApiRaw = data.chiTiet || data.chiTietHoaDon || data.chiTietMonAn || [];
+        const listFromApi = listFromApiRaw.filter(mon => mon.trangThaiMon !== 0);
+        
+        if (listFromApi.length > 0) {
+          listMonDaChon.value = listFromApi.map((mon) => {
+              const isSet = mon.type === 'SET' || mon.idSetLau != null;
+              const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
+              return {
+                  dbDetailId: mon.idChiTietHd, 
+                  originalId: originalId,
+                  type: isSet ? 'SET' : 'FOOD', 
+                  uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
+                  name: mon.tenMon,
+                  quantity: mon.soLuong,
+                  price: mon.donGia || 0,
+                  note: mon.ghiChu || '',
+                  served: mon.trangThaiMon === 2 
+              };
+          });
+        }
       }
+    } else {
+        handleEmptyTableState(targetKhach);
     }
   } catch (e) {
-    console.log("Bàn trống");
+    console.log("Bàn trống hoặc API lỗi:", e);
+    handleEmptyTableState(targetKhach);
   }
   
   if (getTrangThaiTheoNgay(bId) === 1) {
@@ -521,6 +537,30 @@ const openManageModal = async (ban, forceStatus = null) => {
 
   isShowModal.value = true;
 };
+
+
+// Hàm phụ (Giữ nguyên như lúc nãy)
+const handleEmptyTableState = (targetKhach) => {
+    if (targetKhach) {
+      selectedPhieu.value = {
+        id: targetKhach.idDatBan || targetKhach.idPhieu || targetKhach.id,
+        idHoaDon: null, // ĐÚNG, CHƯA CÓ HÓA ĐƠN
+        maDatBan: targetKhach.maDatBan || targetKhach.maPhieu || 'N/A',
+        tenKhachHang: targetKhach.tenKhachHang || 'Khách vãng lai',
+        idKhachHang: targetKhach.idKhachHang || null,
+        thoiGianDat: targetKhach.thoiGianDat,
+        soNguoi: targetKhach.soNguoi || targetKhach.soLuongKhach || targetKhach.soLuong || 1,
+        tongTienChuaGiam: targetKhach.tongTien || 0,
+        soTienDaGiam: targetKhach.giamGia || 0,
+        tienCoc: targetKhach.tienCoc || 0,
+        tongTienThanhToan: 0,
+        vatApDung: 10,
+        trangThai: targetKhach.trangThai // QUAN TRỌNG
+      };
+    } else {
+      selectedPhieu.value = null;
+    }
+}
 
 // Hàm toggle chọn bàn gộp
 const toggleGopBan = (ban) => {
@@ -593,7 +633,13 @@ const handleCloseFoodList = async () => {
   modalView.value = 'info';
   const bId = selectedBan.value.id || selectedBan.value.idBanAn;
   try {
-    const resPhieu = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${bId}`);
+    let apiUrl = `/hoa-don-thanh-toan/active-by-ban/${bId}`;
+    
+    // 🚨 SỬA LẠI ĐOẠN NÀY: Dùng selectedPhieu.value.id thay vì targetKhach
+    if (selectedPhieu.value && selectedPhieu.value.id) {
+        apiUrl += `?idPhieu=${selectedPhieu.value.id}`; 
+    }
+    const resPhieu = await axiosClient.get(apiUrl);
     if (resPhieu.data) {
       if (selectedPhieu.value) {
           selectedPhieu.value.tongTienChuaGiam = resPhieu.data.tongTienChuaGiam || 0;
@@ -991,13 +1037,21 @@ const handleSwitchTable = async (banMoi) => {
   }
 };
 
+const hasItems = computed(() => {
+  return listMonDaChon.value.length > 0;
+});
+
+// Biến kiểm tra các món CÓ SẴN đã lên hết chưa
 const isAllItemsServed = computed(() => {
-  // Nếu chưa gọi món nào -> Mặc định là hợp lệ (được thanh toán)
   if (listMonDaChon.value.length === 0) return true; 
-  
-  // Nếu có món -> Bắt buộc mọi món phải có trạng thái "served" (Đã lên)
   return listMonDaChon.value.every(item => item.served);
 });
+
+// Biến tổng hợp quyết định có cho phép thanh toán hay không
+const canPay = computed(() => {
+  return hasItems.value && isAllItemsServed.value;
+});
+
 
 const toggleItemServed = async (item) => {
   try {
@@ -1012,13 +1066,19 @@ const toggleItemServed = async (item) => {
 const markAllServed = async () => {
   const unservedItems = listMonDaChon.value.filter(item => !item.served);
   if (unservedItems.length === 0) return;
+  
   try {
     Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    await Promise.all(unservedItems.map(item => axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=2`)));
+    
+    // 🚨 THAY THẾ PROMISE.ALL BẰNG VÒNG LẶP FOR...OF
+    for (const item of unservedItems) {
+      await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=2&idNhanVien=${getCurrentStaffId()||1}`);
+    }
+    
     listMonDaChon.value.forEach(item => item.served = true);
     Swal.fire({ icon: 'success', title: 'Thành công', timer: 1000, showConfirmButton: false });
   } catch (error) {
-    Swal.fire('Lỗi', 'Lỗi!', 'error');
+    Swal.fire('Lỗi', 'Lỗi khi cập nhật món!', 'error');
   }
 };
 
@@ -1036,8 +1096,76 @@ const handleDeleteItem = async (item, index) => {
   }
 };
 
+const handleCancelWaitingTicket = async (khach) => {
+  const now = dayjs(currentTime.value);
+  const target = dayjs(khach.thoiGianDat);
+  const diffMinutes = target.diff(now, "minute");
+
+  // Nếu còn nhiều hơn 60 phút -> Được hoàn tiền
+  const isRefundable = diffMinutes > 60; 
+
+  let title = "";
+  let text = "";
+  let confirmText = "";
+
+  if (isRefundable) {
+      title = "Xác nhận Hủy (Hoàn cọc)";
+      text = `Khách hủy trước lịch hẹn ${Math.floor(diffMinutes/60)}h${diffMinutes%60}p. Hợp lệ để HỦY PHIẾU VÀ HOÀN TRẢ 100% tiền cọc.`;
+      confirmText = "Xác nhận & hoàn tiền";
+  } else {
+      title = "Xác nhận Hủy (Mất cọc)";
+      text = `Khách báo hủy quá sát giờ (chỉ còn ${diffMinutes} phút). Phiếu sẽ bị hủy và KHÔNG HOÀN TRẢ tiền cọc.`;
+      confirmText = "Xác nhận hủy (Status 8)";
+  }
+
+  const confirm = await Swal.fire({
+      title: title,
+      text: text,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: isRefundable ? "#28a745" : "#d33", // Xanh nếu hoàn, Đỏ nếu mất cọc
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: confirmText,
+      cancelButtonText: "Đóng lại"
+  });
+
+  if (confirm.isConfirmed) {
+      try {
+          Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+          
+          // Gọi API xuống Backend
+          const idPhieuCanHuy = khach.idDatBan || khach.idPhieu || khach.id;
+
+          if (!idPhieuCanHuy) {
+              Swal.fire('Lỗi', 'Không tìm thấy ID của phiếu này!', 'error');
+              return;
+          }
+          const payload = {
+              idPhieu: idPhieuCanHuy,
+              isRefundable: isRefundable,
+              idNhanVien: getCurrentStaffId() || 1
+          };
+          
+          // Tạo API mới ở Backend để xử lý vụ này
+          await axiosClient.put('/hoa-don-thanh-toan/huy-phieu-cho', payload);
+          
+          Swal.fire({ icon: 'success', title: 'Đã hủy phiếu!', timer: 1500, showConfirmButton: false });
+          
+          // Tải lại danh sách
+          await handleFetchAllCheckIn();
+          await fetchAllBan();
+          await fetchTableStatus();
+      } catch (error) {
+          Swal.fire('Lỗi', error.response?.data?.message || 'Không thể hủy phiếu lúc này', 'error');
+      }
+  }
+};
+
 const isServing = computed(() => {
-  return selectedBan.value && selectedBan.value.trangThai === 1;
+  return selectedBan.value && 
+         selectedBan.value.trangThai === 1 && 
+         selectedPhieu.value && 
+         selectedPhieu.value.idHoaDon !== null;
 });
 
 watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, immediate: true });
@@ -1166,17 +1294,28 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <div class="card-body">
                           <p class="time-info"><i class="fa-regular fa-calendar me-2"></i>{{ formatDate(khach.thoiGianDat) }}</p>
                           
-                          <div class="card-footer mb-3">
-                            <button
-                              class="btn btn-checkable w-100"
-                              :style="checkTimeStatus(khach.thoiGianDat).isEarly ? 'background-color: #e67e22 !important;' : ''"
-                              @click="handleCheckInGuest(khach)"
-                            >
-                              <i class="fa-solid fa-check me-1"></i>
-                              {{ checkTimeStatus(khach.thoiGianDat).isEarly ? "Khách đến sớm (Vào ngay)" : "Check-in ngay" }}
-                            </button>
-                          </div>
+                          <div class="card-footer mb-3 d-flex gap-2"> <button
+                            class="btn btn-checkable flex-grow-1"
+                            :disabled="checkTimeStatus(khach.thoiGianDat).isEarly"
+                            :style="checkTimeStatus(khach.thoiGianDat).isEarly ? 'background-color: #6c757d !important; cursor: not-allowed; opacity: 0.7; color: white !important;' : ''"
+                            @click="handleCheckInGuest(khach)"
+                          >
+                            <i class="fa-solid" :class="checkTimeStatus(khach.thoiGianDat).isEarly ? 'fa-clock' : 'fa-check'"></i>
+                            <span class="ms-1">
+                              {{ checkTimeStatus(khach.thoiGianDat).isEarly ? `Còn ${checkTimeStatus(khach.thoiGianDat).minutes}p` : "Check-in" }}
+                            </span>
+                          </button>
 
+                          <button 
+                            class="btn btn-outline-danger px-3 d-flex align-items-center justify-content-center" 
+                            style="border-radius: 8px;"
+                            @click="handleCancelWaitingTicket(khach)" 
+                            title="Hủy phiếu này"
+                          >
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
+
+                        </div>
                           <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                             <span class="fw-bold" :class="getCountdown(khach.thoiGianDat).startsWith('-') ? 'text-danger' : 'text-danger'">
                               <i class="fa-regular fa-clock me-1"></i>
@@ -1347,7 +1486,12 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="payment-group mt-4 pt-3 border-top">
             <h6 class="section-title mb-2">Quyết toán hóa đơn</h6>
             
-            <div v-if="!isAllItemsServed" class="alert alert-warning py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px;">
+            <div v-if="!hasItems" class="alert alert-danger py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px; background-color: #fff1f0; border: 1px solid #ffccc7; color: #cf1322;">
+              <i class="fa-solid fa-cart-arrow-down me-1"></i> 
+              Bàn chưa có món nào! Vui lòng <strong>Thêm món</strong> trước khi thanh toán.
+            </div>
+
+            <div v-if="hasItems && !isAllItemsServed" class="alert alert-warning py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px;">
               <i class="fa-solid fa-triangle-exclamation me-1"></i> 
               Vui lòng vào <strong>"Xem đơn hàng"</strong> và xác nhận đã lên đủ món để mở khóa thanh toán.
             </div>
@@ -1381,7 +1525,8 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                      <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Hiện không có bàn liên quan đủ điều kiện để gộp.</small>
                  </div>
             </div>
-            <div class="payment-grid" :class="{ 'disabled-payment': !isAllItemsServed }">
+
+            <div class="payment-grid" :class="{ 'disabled-payment': !canPay }">
               <button class="btn-pay cash-btn" @click="handlePaymentCash">
                 <i class="fa-solid fa-money-bill-1-wave"></i>
                 <span>Tiền mặt</span>

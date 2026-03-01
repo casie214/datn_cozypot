@@ -59,10 +59,7 @@
 
                 <input type="file" ref="qrFileInput" class="d-none" @change="onQRFileChange" accept="image/*" />
 
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-exclamation-circle fs-5 me-2"></i>
-                  <strong style="font-size: 0.85rem;">{{ qrErrorMessage }}</strong>
-                </div>
+
                 <div v-show="isScanning" id="reader" class="mt-2 border rounded-3 overflow-hidden shadow-sm"></div>
 
                 <div v-if="qrErrorMessage" class="alert alert-danger mt-2 py-1 px-2 small border-0 shadow-sm"
@@ -172,7 +169,7 @@
                       <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
-                        <input type="text" class="form-control" v-model="formData.soCccd"
+                        <input type="password" class="form-control" v-model="formData.soCccd"
                           :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
@@ -562,7 +559,7 @@ const validateForm = async () => {
       });
 
       if (res.data === true || res.data?.exists === true) {
-        errors[item.key] = `${item.label} này đã được sử dụng bởi nhân viên khác`;
+        errors[item.key] = `${item.label} này đã được sử dụng trên hệ thống`;
         if (item.key === 'soCccd') qrErrorMessage.value = "Số CCCD đã tồn tại!";
         ok = false;
         break;
@@ -666,35 +663,26 @@ const handleSave = async () => {
 
   } catch (e) {
     console.error("Chi tiết lỗi lưu:", e.response?.data);
-
     const resData = e.response?.data;
-
-    // Kiểm tra nếu Backend trả về lỗi Validation (giống cái Object em vừa gửi)
-    if (resData && resData.code === "VALIDATION_ERORR" && resData.errors) {
-
-      // Duyệt qua danh sách lỗi từ Backend gửi về
-      // resData.errors lúc này là { ngaySinh: 'Ngày sinh phải là một ngày trong quá khứ' }
+    const errorMsg = resData?.message || "Lỗi hệ thống, vui lòng thử lại sau!";
+    if (resData && (resData.code === "VALIDATION_ERORR" || resData.status === 400) && resData.errors) {
       Object.keys(resData.errors).forEach(key => {
-        // Gán tin nhắn lỗi vào Object errors để UI bôi đỏ ô input
         errors[key] = resData.errors[key];
       });
-
       toast.error("Thông tin nhập vào chưa đúng, vui lòng kiểm tra các ô báo đỏ!");
 
-      // Tự động cuộn đến chỗ lỗi đầu tiên cho người dùng dễ thấy
       nextTick(() => {
         const firstError = document.querySelector('.is-invalid');
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
-
-    } else {
-      // Các lỗi hệ thống khác (500, 404,...)
-      const errorMsg = resData?.message || "Lỗi hệ thống, vui lòng thử lại sau!";
+    }
+    else {
       toast.error(errorMsg);
       Swal.fire({
         icon: 'error',
-        title: 'Lỗi máy chủ',
-        text: errorMsg
+        title: 'Thông báo',
+        text: errorMsg,
+        confirmButtonColor: '#800000',
       });
     }
   } finally {
@@ -711,8 +699,15 @@ const handleSave = async () => {
 onMounted(async () => {
   try {
     const roleRes = await staffService.getActiveRoles();
-    listRoles.value = roleRes.data;
-
+    listRoles.value = roleRes.data.map(role => {
+      if (role.tenVaiTro === 'ADMIN') {
+        return { ...role, tenVaiTro: 'Quản trị viên' };
+      }
+      if (role.tenVaiTro === 'EMPLOYEE') {
+        return { ...role, tenVaiTro: 'Nhân viên' };
+      }
+      return role;
+    });
     if (staffId.value) {
       const res = await staffService.getDetail(staffId.value);
       Object.assign(formData, res.data);

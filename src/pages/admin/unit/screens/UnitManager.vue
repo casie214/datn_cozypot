@@ -6,6 +6,8 @@ import Swal from 'sweetalert2';
 import UnitAddScreen from './UnitAddScreen.vue';
 import UnitUpdateScreen from './UnitUpdateScreen.vue';
 import Multiselect from '@vueform/multiselect';
+import { usePermission } from "@/components/permissionHelper";
+const { handleActionWithAuth } = usePermission();
 
 const sortOptions = [
   { value: 'id_desc', label: 'Mới nhất' },
@@ -67,10 +69,10 @@ const handleRefresh = async () => {
 };
 
 const handleEditValue = async (valItem, parentUnit) => {
-    // Sử dụng SweetAlert với HTML custom để tạo form sửa nhanh
-    const { value: formValues } = await Swal.fire({
-        title: `Cập nhật: ${valItem.giaTri} ${parentUnit.tenDonVi}`,
-        html: `
+  // Sử dụng SweetAlert với HTML custom để tạo form sửa nhanh
+  const { value: formValues } = await Swal.fire({
+    title: `Cập nhật: ${valItem.giaTri} ${parentUnit.tenDonVi}`,
+    html: `
             <div style="text-align: left">
                 <label class="fw-bold">Giá trị mới:</label>
                 <input id="swal-input1" class="swal2-input" style="margin: 5px 0 15px 0; width: 100%" value="${valItem.giaTri}">
@@ -82,49 +84,49 @@ const handleEditValue = async (valItem, parentUnit) => {
                 </select>
             </div>
         `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonColor: '#8B0000',
-        confirmButtonText: 'Lưu thay đổi',
-        cancelButtonText: 'Hủy',
-        preConfirm: () => {
-            return {
-                giaTri: document.getElementById('swal-input1').value,
-                trangThai: parseInt(document.getElementById('swal-input2').value)
-            }
-        }
-    });
-
-    if (formValues) {
-        // Kiểm tra dữ liệu rỗng
-        if (!formValues.giaTri.trim()) {
-            return Swal.fire('Lỗi', 'Giá trị không được để trống', 'error');
-        }
-
-        try {
-            // Gọi API Update Single
-            await foodApi.updateSingleUnit(valItem.id, {
-                id: valItem.id,
-                giaTri: formValues.giaTri,
-                trangThai: formValues.trangThai
-            });
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Đã cập nhật!',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 1500
-            });
-
-            // Refresh lại list để cập nhật giao diện
-            await fetchAllData();
-        } catch (error) {
-            console.error(error);
-            Swal.fire('Lỗi', 'Không thể cập nhật. Vui lòng thử lại', 'error');
-        }
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonColor: '#8B0000',
+    confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy',
+    preConfirm: () => {
+      return {
+        giaTri: document.getElementById('swal-input1').value,
+        trangThai: parseInt(document.getElementById('swal-input2').value)
+      }
     }
+  });
+
+  if (formValues) {
+    // Kiểm tra dữ liệu rỗng
+    if (!formValues.giaTri.trim()) {
+      return Swal.fire('Lỗi', 'Giá trị không được để trống', 'error');
+    }
+
+    try {
+      // Gọi API Update Single
+      await foodApi.updateSingleUnit(valItem.id, {
+        id: valItem.id,
+        giaTri: formValues.giaTri,
+        trangThai: formValues.trangThai
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Đã cập nhật!',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1500
+      });
+
+      // Refresh lại list để cập nhật giao diện
+      await fetchAllData();
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Lỗi', 'Không thể cập nhật. Vui lòng thử lại', 'error');
+    }
+  }
 };
 </script>
 
@@ -144,21 +146,16 @@ const handleEditValue = async (valItem, parentUnit) => {
           <label>Lọc theo danh mục</label>
           <div class="multiselect-wrapper" style="width: 220px;">
             <Multiselect v-model="categoryFilter" :options="listCategories" label="tenDanhMuc" valueProp="id"
-              placeholder="-- Tất cả --" :searchable="true" :can-clear="true" no-results-text="Không tìm thấy kết quả" />
+              placeholder="-- Tất cả --" :searchable="true" :can-clear="true"
+              no-results-text="Không tìm thấy kết quả" />
           </div>
         </div>
 
         <div class="filter-item">
           <label>Sắp xếp</label>
           <div class="multiselect-wrapper-sm">
-          <Multiselect 
-            v-model="sortOption" 
-            :options="sortOptions" 
-            :searchable="true"
-            :canClear="false"
-            :no-results-text="'Không tìm thấy kết quả nào'"
-            class="custom-filter-multiselect"
-          />
+            <Multiselect v-model="sortOption" :options="sortOptions" :searchable="true" :canClear="false"
+              :no-results-text="'Không tìm thấy kết quả nào'" class="custom-filter-multiselect" />
           </div>
         </div>
 
@@ -169,12 +166,15 @@ const handleEditValue = async (valItem, parentUnit) => {
     </div>
 
     <div class="action-row" style="margin-left: auto; display: flex; gap: 10px;">
-      <button class="btn-action-icon btn-add-only" @click="isModalOpen = true" title="Thêm định lượng mới">
+      <button class="btn-action-icon btn-add-only" @click="handleActionWithAuth(() => { isModalOpen = true }, 'ADMIN')"
+        title="Thêm định lượng mới">
         <i class="fas fa-plus"></i>
       </button>
-      <button class="btn-action-icon" @click="exportToExcel" title="Xuất Excel">
+
+      <button class="btn-action-icon" @click="handleActionWithAuth(() => exportToExcel(), 'ADMIN')" title="Xuất Excel">
         <i class="fas fa-file-excel"></i>
       </button>
+
       <button class="btn-action-icon btn-refresh-only" @click="handleRefreshListBtn" title="Tải lại">
         <i class="fas fa-sync-alt"></i>
       </button>
@@ -214,7 +214,8 @@ const handleEditValue = async (valItem, parentUnit) => {
               </td>
               <td class="text-muted">{{ unit.moTa || '---' }}</td>
               <td class="text-center">
-                <button class="btn-icon" @click.stop="openUpdateModal(unit)" title="Chỉnh sửa">
+                <button class="btn-icon" @click.stop="handleActionWithAuth(() => openUpdateModal(unit), 'ADMIN')"
+                  title="Chỉnh sửa">
                   <i class="fas fa-pen"></i>
                 </button>
               </td>
@@ -223,26 +224,21 @@ const handleEditValue = async (valItem, parentUnit) => {
             <tr v-if="expandedRows.includes(unit.id)" class="detail-row">
               <td colspan="5">
                 <div class="detail-content">
-                  
+
                   <div class="detail-section">
                     <h6 class="detail-title"><i class="fas fa-ruler-combined"></i> Các giá trị định lượng:</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <span 
-                            v-for="v in unit.values" 
-                            :key="v.id" 
-                            class="status-badge value-badge clickable-badge"
-                            :class="{ 'inactive': v.trangThai === 0 }"
-                            @click="handleEditValue(v, unit)"
-                            title="Click để sửa hoặc tắt trạng thái"
-                        >
-                            {{ v.giaTri }}
-                            <i v-if="v.trangThai === 0" class="fas fa-eye-slash ms-1 small-icon"></i>
-                        </span>
-                        
-                        <span v-if="!unit.values?.length" class="text-muted fst-italic">Chưa có giá trị nào</span>
+                      <span v-for="v in unit.values" :key="v.id" class="status-badge value-badge clickable-badge"
+                        :class="{ 'inactive': v.trangThai === 0 }" @click="handleEditValue(v, unit)"
+                        title="Click để sửa hoặc tắt trạng thái">
+                        {{ v.giaTri }}
+                        <i v-if="v.trangThai === 0" class="fas fa-eye-slash ms-1 small-icon"></i>
+                      </span>
+
+                      <span v-if="!unit.values?.length" class="text-muted fst-italic">Chưa có giá trị nào</span>
                     </div>
                     <small class="text-muted fst-italic mt-1 d-block" style="font-size: 0.8rem;">
-                        * Click vào giá trị để chỉnh sửa nhanh hoặc ẩn/hiện.
+                      * Click vào giá trị để chỉnh sửa nhanh hoặc ẩn/hiện.
                     </small>
                   </div>
 
@@ -250,9 +246,10 @@ const handleEditValue = async (valItem, parentUnit) => {
                     <h6 class="detail-title"><i class="fas fa-tags"></i> Danh mục áp dụng:</h6>
                     <div class="d-flex flex-wrap gap-2">
                       <span v-for="catId in unit.listIdDanhMuc" :key="catId" class="status-badge category-badge">
-                        {{ listCategories.find(c => c.id === catId)?.tenDanhMuc }}
+                        {{listCategories.find(c => c.id === catId)?.tenDanhMuc}}
                       </span>
-                      <span v-if="!unit.listIdDanhMuc?.length" class="text-muted fst-italic">Chưa áp dụng danh mục nào</span>
+                      <span v-if="!unit.listIdDanhMuc?.length" class="text-muted fst-italic">Chưa áp dụng danh mục
+                        nào</span>
                     </div>
                   </div>
 
@@ -452,39 +449,40 @@ const handleEditValue = async (valItem, parentUnit) => {
 }
 
 .clickable-badge {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #bdc3c7;
-    background-color: white;
-    color: #2c3e50;
-    position: relative;
-    padding-right: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #bdc3c7;
+  background-color: white;
+  color: #2c3e50;
+  position: relative;
+  padding-right: 12px;
 }
 
 .clickable-badge:hover {
-    background-color: #8B0000;
-    color: white;
-    border-color: #8B0000;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  background-color: #8B0000;
+  color: white;
+  border-color: #8B0000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Style khi trạng thái = 0 (Ngừng hoạt động) */
 .clickable-badge.inactive {
-    background-color: #f1f3f5;
-    color: #adb5bd;
-    border-color: #e9ecef;
-    text-decoration: line-through; /* Gạch ngang chữ */
+  background-color: #f1f3f5;
+  color: #adb5bd;
+  border-color: #e9ecef;
+  text-decoration: line-through;
+  /* Gạch ngang chữ */
 }
 
 .clickable-badge.inactive:hover {
-    background-color: #e9ecef;
-    color: #495057;
-    text-decoration: none;
+  background-color: #e9ecef;
+  color: #495057;
+  text-decoration: none;
 }
 
 .small-icon {
-    font-size: 0.75rem;
-    margin-left: 5px;
+  font-size: 0.75rem;
+  margin-left: 5px;
 }
 </style>
