@@ -347,7 +347,7 @@ public class HoaDonThanhToanController {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
 
             // 2. Chuyển trạng thái phiếu về 0 (Đã hủy)
-            phieu.setTrangThai(0);
+            phieu.setTrangThai(2);
             phieuDatBanRepository.save(phieu);
 
             // 3. Tìm hóa đơn ăn theo phiếu này

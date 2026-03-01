@@ -248,7 +248,7 @@ public class DatBanService {
             phieuMoi.setIdBanAn(banPhu);
             phieuMoi.setThoiGianDat(java.time.LocalDateTime.now());
             phieuMoi.setSoLuongKhach(banPhu.getSoNguoiToiDa());
-            phieuMoi.setTrangThai(3);
+            phieuMoi.setTrangThai(3); // 🚨 Đã check-in / Đang sử dụng
             phieuMoi.setHinhThucDat(2);
             phieuMoi.setNguoiTao("Hệ thống");
 
@@ -256,20 +256,19 @@ public class DatBanService {
                 phieuMoi.setMaDatBan(request.getMaDatBanGoc());
             }
 
-            // 🚨 TẠO BIẾN KHÁCH HÀNG ĐỂ DÙNG CHUNG CHO CẢ PHIẾU VÀ HÓA ĐƠN
+            // GÁN ID KHÁCH HÀNG CHO PHIẾU
             KhachHang kh = null;
             if (request.getIdKhachHang() != null) {
                 kh = khachHangRepository.findById(request.getIdKhachHang()).orElse(null);
-                phieuMoi.setIdKhachHang(kh); // Gán cho Phiếu
+                phieuMoi.setIdKhachHang(kh);
             }
             phieuMoi = phieuDatBanRepository.save(phieuMoi);
 
-            // C. Tạo Hóa đơn mới cho bàn phụ
+            // TẠO HÓA ĐƠN CHO BÀN PHỤ
             HoaDonThanhToan hoaDonMoi = new HoaDonThanhToan();
             hoaDonMoi.setIdPhieuDatBan(phieuMoi);
             hoaDonMoi.setIdBanAn(banPhu);
 
-            // 🚨 BỔ SUNG DÒNG NÀY: GÁN ID KHÁCH HÀNG CHO HÓA ĐƠN
             if (kh != null) {
                 hoaDonMoi.setIdKhachHang(kh);
             }
@@ -284,7 +283,6 @@ public class DatBanService {
             Double vatFromRequest = request.getVatApDung();
             float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 10.0f;
             hoaDonMoi.setVatApDung(finalVat);
-
 
             if (request.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
@@ -318,18 +316,18 @@ public class DatBanService {
         }
 
         // =========================================================================
-        // 5. CẬP NHẬT ĐỒNG BỘ TRẠNG THÁI HÓA ĐƠN & GHI LOG
+        // 5. 🚨 CẬP NHẬT ĐỒNG BỘ TRẠNG THÁI HÓA ĐƠN & GHI LOG
         // =========================================================================
         if (request.getId() != null) {
             HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(request.getId());
+            PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId()).orElse(null); // Lấy phiếu ra để đồng bộ
 
-            if (hoaDon != null) {
+            if (hoaDon != null && phieu != null) {
                 Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
                 Integer trangThaiMoi = trangThaiCu;
                 String hanhDongLog = "";
                 String lyDoLog = "Cập nhật hệ thống";
 
-                // Xử lý đổi trạng thái Hóa đơn
                 if (request.getTrangThaiHoaDon() != null) {
                     trangThaiMoi = request.getTrangThaiHoaDon();
                     hoaDon.setTrangThaiHoaDon(trangThaiMoi);
@@ -340,26 +338,35 @@ public class DatBanService {
                     } else if (trangThaiMoi == 6) {
                         hanhDongLog = "Đã thanh toán";
                         lyDoLog = "Hoàn tất thanh toán tại quầy";
-                        hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS)); // Sửa lại thành LocalDateTime cho đồng bộ
+                        hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
+
+                        // 🚨 ĐỒNG BỘ PHIẾU: Hóa đơn thanh toán xong -> Phiếu Hoàn thành (4)
+                        phieu.setTrangThai(4);
+
                     } else if (trangThaiMoi == 8) {
                         hanhDongLog = "Hủy hóa đơn";
                         lyDoLog = "Hủy phiếu đặt bàn / Hủy hóa đơn";
+
+                        // 🚨 ĐỒNG BỘ PHIẾU: Hủy hóa đơn -> Phiếu bị Hủy (2)
+                        phieu.setTrangThai(2);
                     }
+                    phieuDatBanRepository.save(phieu); // Lưu lại phiếu
+
                 } else if (request.getTrangThaiPhieu() != null) {
                     if (request.getTrangThaiPhieu() == 3 && trangThaiCu < 4) {
-                        trangThaiMoi = 4; // Trạng thái Phục vụ
+                        trangThaiMoi = 4; // Trạng thái Phục vụ của Hóa Đơn
                         hoaDon.setTrangThaiHoaDon(trangThaiMoi);
                         hanhDongLog = "Khách nhận bàn";
                         lyDoLog = "Nhân viên xác nhận khách đã vào bàn";
                     }
                 }
 
-                // Ghi log lịch sử thay đổi trạng thái
+                // Ghi log
                 if (!hanhDongLog.isEmpty()) {
                     ghiLichSu(hoaDon, request.getIdNhanVien(), hanhDongLog, lyDoLog, trangThaiCu, trangThaiMoi);
                 }
 
-                // XỬ LÝ TIỀN MẶT (CASH)
+                // Tiền mặt
                 if (request.getTienMat() != null && request.getTienMat().compareTo(BigDecimal.ZERO) > 0) {
                     BigDecimal tienHienTai = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : BigDecimal.ZERO;
                     hoaDon.setTienKhachDua(tienHienTai.add(request.getTienMat()));
