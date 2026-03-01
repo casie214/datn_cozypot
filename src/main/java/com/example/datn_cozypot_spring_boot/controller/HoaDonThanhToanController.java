@@ -8,15 +8,16 @@ import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResp
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanResponse;
-import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
-import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
-import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
+import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
+import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
 import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -26,11 +27,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,6 +46,8 @@ public class HoaDonThanhToanController {
     private final LichSuThanhToanService lichSuThanhToanService;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
     private final PhieuDatBanRepository phieuDatBanRepository;
+    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
+    private final LichSuHoaDonRepository lichSuHoaDonRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -59,7 +61,6 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) Integer trangThaiHoanTien,
             @RequestParam(required = false) String tuNgay,
             @RequestParam(required = false) String denNgay,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
@@ -72,7 +73,7 @@ public class HoaDonThanhToanController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai,trangThaiHoanTien, start, end, pageable);
+        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
     }
 
     @GetMapping("/get-by-id/{id}")
@@ -84,6 +85,29 @@ public class HoaDonThanhToanController {
         return ResponseEntity.notFound().build();
     }
 
+    @GetMapping("/hoa-don/{idHoaDon}")
+    public ResponseEntity<?> getHistory(@PathVariable Integer idHoaDon) {
+        List<LichSuHoaDon> list = lichSuHoaDonRepository.findByIdHoaDon_Id(idHoaDon);
+
+        // Map sang DTO để có tên nhân viên và format thời gian chuẩn
+        List<Map<String, Object>> response = list.stream().map(log -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("hanhDong", log.getHanhDong());
+            map.put("thoiGianThucHien", log.getThoiGianThucHien()); // Instant hoặc LocalDateTime
+            map.put("lyDoThucHien", log.getLyDoThucHien());
+
+            // Lấy tên nhân viên từ object NhanVien
+            if (log.getIdNhanVien() != null) {
+                map.put("tenNhanVien", log.getIdNhanVien().getHoTenNhanVien());
+            } else {
+                map.put("tenNhanVien", "Hệ thống");
+            }
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/xac-nhan-thanh-toan")
     public ResponseEntity<?> xacNhanThanhToan(@RequestBody LichSuHoaDonRequest request) {
         try {
@@ -91,6 +115,19 @@ public class HoaDonThanhToanController {
             return ResponseEntity.ok("Thanh toán thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/hoan-tat")
+    public ResponseEntity<?> hoanTatHoaDon(@RequestBody LichSuHoaDonRequest request) {
+        try {
+            hoaDonThanhToanService.hoanTatHoaDon(request);
+            return ResponseEntity.ok("Hoàn tất hóa đơn và giải phóng bàn thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 
@@ -164,40 +201,53 @@ public class HoaDonThanhToanController {
     }
 
     @GetMapping("/active-by-ban/{idBanAn}")
-    public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
-        // 1. Lấy danh sách phiếu đang hoạt động từ Repository
+    public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(
+            @PathVariable Integer idBanAn,
+            @RequestParam(required = false) Integer idPhieu) { // 🚨 1. Bổ sung tham số idPhieu (không bắt buộc)
+
+        // 1. Lấy danh sách phiếu đang hoạt động
         List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
         if (list == null || list.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
 
-        // 2. Lấy phiếu mới nhất
-        PhieuDatBan phieu = list.get(0);
+        // 🚨 2. LOGIC TÌM ĐÚNG PHIẾU
+        PhieuDatBan phieu = null;
 
-        // 3. Mapping sang DTO
+        // Nếu Frontend có gửi idPhieu lên -> Ép tìm chính xác phiếu đó
+        if (idPhieu != null) {
+            phieu = list.stream()
+                    .filter(p -> p.getId().equals(idPhieu))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // Nếu không truyền idPhieu (Bấm từ sơ đồ bàn) hoặc không tìm thấy -> Lấy cái đầu tiên
+        if (phieu == null) {
+            phieu = list.get(0);
+        }
+
+        // 3. Khởi tạo và mapping thông tin cơ bản sang Response DTO
         PhieuDatBanResponse res = new PhieuDatBanResponse();
         res.setId(phieu.getId());
-
-        // ĐOẠN LẤY MÃ PHIẾU: Bạn hãy kiểm tra lại Entity, thường là một trong các tên sau:
-        // phieu.getMaPhieuDatBan() hoặc phieu.getMaDatBan() hoặc phieu.getMaPhieu()
         res.setMaPhieu(phieu.getMaDatBan());
-
         res.setThoiGianDat(phieu.getThoiGianDat());
-        res.setSoNguoi(phieu.getIdBanAn().getSoNguoiToiDa());
+        res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
 
-        // 4. Mapping thông tin Khách hàng (Thêm kiểm tra null để an toàn)
+        // 4. Mapping thông tin Khách hàng
         if (phieu.getIdKhachHang() != null) {
+            res.setIdKhachHang(phieu.getIdKhachHang().getId());
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
             res.setSdtKhachHang(phieu.getIdKhachHang().getSoDienThoai());
         } else {
-            // Nếu là khách vãng lai hoặc không có data khách hàng
+            res.setIdKhachHang(null);
             res.setTenKhachHang("Khách vãng lai");
             res.setSdtKhachHang("N/A");
         }
 
-        // 5. Mapping thông tin Bàn ăn và Khu vực
+        // 5. Mapping thông tin Bàn ăn và Khu vực hiển thị UI
         if (phieu.getIdBanAn() != null) {
             res.setIdBanAn(phieu.getIdBanAn().getId());
             res.setMaBan(phieu.getIdBanAn().getMaBan());
@@ -208,6 +258,119 @@ public class HoaDonThanhToanController {
             }
         }
 
+        // 6. LOGIC QUAN TRỌNG: Lấy Hóa đơn... (Giữ nguyên y hệt code cũ của bạn từ đoạn này trở đi)
+        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
+
+        // Nếu chưa tìm thấy qua Phiếu, thử tìm qua Bàn đang hoạt động (Đảm bảo không bị lọt hóa đơn)
+        if (hoaDon == null) {
+            hoaDon = hoaDonThanhToanRepository.findActiveBillByBanAn(idBanAn).orElse(null);
+        }
+
+        if (hoaDon != null) {
+            // 🚨 GÁN ID VÀ THÔNG TIN TÀI CHÍNH CỦA HÓA ĐƠN Ở ĐÂY
+            res.setIdHoaDon(hoaDon.getId());
+            res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO);
+            res.setSoTienDaGiam(hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO);
+            res.setTienCoc(hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO);
+            res.setTongTienThanhToan(hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO);
+            res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
+
+            // Lấy tất cả các món trong chi tiết hóa đơn
+            List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
+
+            if (chiTietHD != null && !chiTietHD.isEmpty()) {
+                List<PhieuDatBanResponse.ChiTietMonResponse> dsMon = chiTietHD.stream().map(item -> {
+                    String tenMon = "Không xác định";
+                    Integer originalId = null;
+                    String type = "";
+                    Integer idMonAn = null;
+                    Integer idSet = null;
+
+                    // Kiểm tra xem là món lẻ hay set lẩu để lấy thông tin đúng
+                    if (item.getIdChiTietMonAn() != null) {
+                        tenMon = item.getIdChiTietMonAn().getTenMon();
+                        originalId = item.getIdChiTietMonAn().getId();
+                        type = "FOOD";
+                        idMonAn = originalId;
+                    } else if (item.getIdSetLau() != null) {
+                        tenMon = item.getIdSetLau().getTenSetLau();
+                        originalId = item.getIdSetLau().getId();
+                        type = "SET";
+                        idSet = originalId;
+                    }
+
+                    // Khởi tạo đối tượng rỗng và dùng Setter
+                    PhieuDatBanResponse.ChiTietMonResponse chiTietDTO = new PhieuDatBanResponse.ChiTietMonResponse();
+
+                    // Set 8 trường thông tin món
+                    chiTietDTO.setId(originalId);
+                    chiTietDTO.setTenMon(tenMon);
+                    chiTietDTO.setSoLuong(item.getSoLuong());
+                    chiTietDTO.setDonGia(item.getDonGiaTaiThoiDiemBan());
+                    chiTietDTO.setThanhTien(item.getThanhTien());
+                    chiTietDTO.setType(type);
+                    chiTietDTO.setIdChiTietMonAn(idMonAn);
+                    chiTietDTO.setIdSetLau(idSet);
+
+                    // Setup để thao tác Front-end không lỗi
+                    chiTietDTO.setIdChiTietHd(item.getId());
+                    chiTietDTO.setTrangThaiMon(item.getTrangThaiMon());
+
+                    return chiTietDTO;
+                }).collect(Collectors.toList());
+
+                res.setChiTiet(dsMon);
+            } else {
+                res.setChiTiet(new ArrayList<>()); // Ép mảng rỗng thay vì null để Vue không bị lỗi
+            }
+        } else {
+            // Hóa đơn null -> Setup giá trị mặc định để Frontend không bị "Undefined"
+            res.setTongTienChuaGiam(BigDecimal.ZERO);
+            res.setSoTienDaGiam(BigDecimal.ZERO);
+            res.setTienCoc(BigDecimal.ZERO);
+            res.setTongTienThanhToan(BigDecimal.ZERO);
+            res.setChiTiet(new ArrayList<>());
+        }
+
         return ResponseEntity.ok(res);
+    }
+
+    @PutMapping("/huy-phieu-cho")
+    @Transactional
+    public ResponseEntity<?> huyPhieuChoChuaCheckIn(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer idPhieu = Integer.parseInt(payload.get("idPhieu").toString());
+            Boolean isRefundable = Boolean.parseBoolean(payload.get("isRefundable").toString());
+
+            // 1. Tìm phiếu đặt bàn
+            PhieuDatBan phieu = phieuDatBanRepository.findById(idPhieu)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
+
+            // 2. Chuyển trạng thái phiếu về 0 (Đã hủy)
+            phieu.setTrangThai(0);
+            phieuDatBanRepository.save(phieu);
+
+            // 3. Tìm hóa đơn ăn theo phiếu này
+            HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(idPhieu);
+
+            if (hoaDon != null) {
+                if (isRefundable) {
+                    // HOÀN TIỀN (Trạng thái 9)
+                    hoaDon.setTrangThaiHoaDon(9);
+                    // Đẩy toàn bộ tiền cọc sang cột tiền hoàn trả
+                    BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+                    hoaDon.setTienHoanTra(tienCoc);
+                } else {
+                    // KHÔNG HOÀN TIỀN (Trạng thái 8)
+                    hoaDon.setTrangThaiHoaDon(8);
+                    hoaDon.setTienHoanTra(BigDecimal.ZERO);
+                }
+                hoaDonThanhToanRepository.save(hoaDon);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Hủy phiếu thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi Backend: " + e.getMessage()));
+        }
     }
 }
