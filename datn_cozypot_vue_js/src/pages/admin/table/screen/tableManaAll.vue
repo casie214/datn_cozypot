@@ -11,7 +11,9 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { provide } from "vue";
 import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.css";
+import { usePermission } from "@/components/permissionHelper";
 
+const { handleActionWithAuth } = usePermission();
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
 const listKhuVuc = ref([]);
@@ -281,8 +283,8 @@ onUnmounted(() => {
         </div>
 
         <div>
-          <button class="btn" @click="openAddModal">Thêm bàn</button>
-          <button class="btn ms-2" @click="openAddTangModal">Thêm tầng</button>
+          <button class="btn" @click="handleActionWithAuth(() => openAddModal(), 'ADMIN')">Thêm bàn</button>
+          <button class="btn ms-2" @click="handleActionWithAuth(() => openAddTangModal(), 'ADMIN')">Thêm tầng</button>
         </div>
       </div>
 

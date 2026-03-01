@@ -56,16 +56,13 @@ public class KhachHang {
     @Column(name = "gioi_tinh")
     private Boolean gioiTinh;
 
-    // --- Bổ sung các trường mới ---
-
-    // Mở rộng lên 500 để lưu tên file ảnh thoải mái
     @Size(max = 500)
     @Column(name = "anh_dai_dien", length = 500)
     private String anhDaiDien;
-    // Thêm vào bên trong class KhachHang
+
     @Column(name = "trang_thai")
     private Integer trangThai;
-    // PHẢI SỬA: Nâng từ 50 lên 100 để khớp với SQL bạn vừa chạy
+
     @Size(max = 100)
     @Column(name = "ten_dang_nhap", length = 100)
     private String tenDangNhap;
@@ -74,7 +71,6 @@ public class KhachHang {
     @Column(name = "mat_khau_dang_nhap", length = 255)
     private String matKhauDangNhap;
 
-    // Đảm bảo authProvider map đúng cột trong SQL
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", length = 50)
     private AuthProvider authProvider;
@@ -101,8 +97,7 @@ public class KhachHang {
         }
     }
 
-    // Sửa lại dòng khai báo trong KhachHang.java
     @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<DiaChiKhachHang> danhSachDiaChi = new ArrayList<>(); // Thêm khởi tạo này
+    private List<DiaChiKhachHang> danhSachDiaChi = new ArrayList<>();
 }

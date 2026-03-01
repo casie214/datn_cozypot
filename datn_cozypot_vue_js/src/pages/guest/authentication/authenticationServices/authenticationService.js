@@ -11,35 +11,58 @@ export const useAuthStore = defineStore('auth', {
 
     actions: {
         async login(username, password, isClient) {
-            try {
+    console.log(">>> Đang kết nối server...");
+    try {
+        const endpoint = isClient ? '/auth/client/login' : '/auth/admin/login';
+        
+        // Dùng destructing lấy thẳng data từ response của axios
+        const { data } = await axiosClient.post(endpoint, { username, password });
 
-                const endpoint = isClient ? '/auth/client/login' : '/auth/admin/login';
+        if (!data?.accessToken) {
+            throw new Error("Không nhận được mã xác thực từ máy chủ.");
+        }
 
-                const payload = {
-                    username: username,
-                    password: password
-                };
+        // 1. Chuẩn hóa User Info
+        const safeUserInfo = {
+            id: data.id || null,
+            username: data.username || '',
+            hoTen: data.hoTen || 'Người dùng'
+        };
 
-                const response = await axiosClient.post(endpoint, payload);
+        // 2. Cập nhật Store đồng thời (Pinia)
+        this.token = data.accessToken;
+        this.refreshToken = data.refreshToken || '';
+        this.role = data.role || '';
+        this.user = safeUserInfo;
 
-                const { accessToken, refreshToken, role, ...userInfo } = response.data;
+        // 3. Lưu vào LocalStorage một cách hệ thống
+        const storageItems = {
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken || '',
+            role: data.role || '',
+            user: JSON.stringify(safeUserInfo)
+        };
+        
+        // Chạy vòng lặp để set thay vì viết từng dòng
+        Object.entries(storageItems).forEach(([key, value]) => {
+            localStorage.setItem(key, value);
+        });
 
-                this.token = accessToken;
-                this.role = role;
-                this.user = userInfo;
+        return true;
 
-                localStorage.setItem('accessToken', accessToken);
-                localStorage.setItem('refreshToken', refreshToken);
-                localStorage.setItem('role', role);
-                localStorage.setItem('user', JSON.stringify(userInfo));
-                
-
-                return true;
-            } catch (error) {
-                console.error("Login Error:", error);
-                throw error;
-            }
-        },
+    } catch (error) {
+        // Xử lý lỗi tinh tế hơn
+        const errorMsg = error.response?.data?.message || error.response?.data || error.message;
+        
+        if (error.response?.status === 401) {
+            console.warn(">>> Đăng nhập thất bại: Sai thông tin");
+            throw new Error("Tài khoản hoặc mật khẩu không đúng.");
+        }
+        
+        console.error(">>> Lỗi hệ thống:", errorMsg);
+        throw new Error(errorMsg);
+    }
+},
 
         async register(payload) {
             try {

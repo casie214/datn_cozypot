@@ -33,7 +33,7 @@ public class GoogleAuthService {
     @Value("${google.redirect.uri}")
     private String redirectUri;
 
-    public Map<String, String> loginWithGoogle(String code) {
+    public Map<String, Object> loginWithGoogle(String code) {
         RestTemplate restTemplate = new RestTemplate();
 
         String tokenEndpoint = "https://oauth2.googleapis.com/token";
@@ -60,26 +60,18 @@ public class GoogleAuthService {
         String name = userInfo.optString("name", "Google User");
         String picture = userInfo.optString("picture", "");
 
-        KhachHang khachHang = khachHangRepository.findKhachHangByEmail(email)
-                .orElseGet(() -> {
-                    KhachHang newKh = new KhachHang();
-                    newKh.setEmail(email);
-                    newKh.setTenKhachHang(name);
-                    newKh.setAnhDaiDien(picture);
-                    newKh.setTrangThai(1);
-                    newKh.setMatKhauDangNhap(passwordEncoder.encode(UUID.randomUUID().toString()));
-                    return khachHangRepository.save(newKh);
-                });
+        KhachHang khachHang = khachHangRepository.findKhachHangByEmail(email).orElseThrow(() -> new RuntimeException("Tài khoản gmail này chưa tồn tại trong hệ thống CozyPot"));
 
         String appAccessToken = tokenProvider.generateToken(khachHang.getEmail(), "USER");
         String appRefreshToken = jwtUtils.generateRefreshToken(khachHang.getEmail());
-
+        System.out.println("Đang đăng nhập cho khách hàng: " + khachHang.getTenKhachHang() + " - ID: " + khachHang.getId());
         return Map.of(
                 "accessToken", appAccessToken,
                 "refreshToken", appRefreshToken,
                 "role", "USER",
-                "email", email,
-                "name", name
+                "id", khachHang.getId(),
+                "email", khachHang.getEmail(),
+                "username", khachHang.getTenDangNhap()
         );
     }
 }

@@ -25,6 +25,7 @@ export const useStaffLogic = () => {
       keyword: filters.keyword ? filters.keyword.trim() : null,
       trangThai: filters.trangThai !== null ? filters.trangThai : null,
       tuNgay: filters.tuNgay || null,
+       gioiTinh: filters.gioiTinh,
       page: pagination.currentPage - 1,
       size: pagination.pageSize
     };

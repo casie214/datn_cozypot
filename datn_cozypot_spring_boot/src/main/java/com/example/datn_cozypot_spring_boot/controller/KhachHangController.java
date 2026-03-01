@@ -28,12 +28,13 @@ public class KhachHangController {
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) Boolean gioiTinh, // ✅ 1. Thêm mới tham số này
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(service.getAll(keyword, trangThai, tuNgay, page, size));
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(service.getAll(keyword, trangThai, gioiTinh, tuNgay, page, size));
     }
-
     // 2. Xem chi tiết khách hàng
     @GetMapping("/{id}")
     public ResponseEntity<?> getDetail(@PathVariable Integer id) {
@@ -71,7 +72,7 @@ public class KhachHangController {
         } else {
             System.out.println("Số lượng địa chỉ nhận được: " + request.getDanhSachDiaChi().size());
             request.getDanhSachDiaChi().forEach(dc ->
-                    System.out.println(" - Địa chỉ: " + dc.getThongTinDiaChi() + " | ID: " + dc.getId())
+                    System.out.println(" - Địa chỉ: " + dc.getDiaChiChiTiet() + " | ID: " + dc.getId())
             );
         }
         // ---------------------
@@ -108,11 +109,12 @@ public class KhachHangController {
     public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer trangThai,
+            @RequestParam(required = false) Boolean gioiTinh,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(required = false) List<Integer> listId) {
         try {
             // Gọi service và truyền đủ 4 tham số thực tế
-            return service.exportExcel(keyword, trangThai, tuNgay, listId);
+            return service.exportExcel(keyword, trangThai, gioiTinh, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
