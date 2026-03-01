@@ -30,6 +30,7 @@ const trangThaiList = [
   { value: "0", label: "Chờ xác nhận" },
   { value: "1", label: "Đã xác nhận" },
   { value: "2", label: "Đã hủy" },
+  { value: "5", label: "Quá hạn" },
 ];
 
 const selectedPhieu = ref(null);

@@ -39,24 +39,30 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer
 //             Pageable pageable
 //     );
 
-@Query("""
+    @Query("""
 SELECT p FROM PhieuDatBan p
 LEFT JOIN p.idKhachHang kh
-WHERE (:soDienThoai IS NULL OR (kh IS NOT NULL AND kh.soDienThoai LIKE %:soDienThoai%))
+WHERE (:soDienThoai IS NULL 
+        OR (kh IS NOT NULL AND kh.soDienThoai LIKE %:soDienThoai%))
 AND (:trangThai IS NULL OR p.trangThai = :trangThai)
 AND (
-  :start IS NULL OR 
-  (p.thoiGianDat >= :start AND p.thoiGianDat < :end)
+    :start IS NULL OR 
+    (p.thoiGianDat >= :start AND p.thoiGianDat < :end)
 )
+ORDER BY 
+    CASE 
+        WHEN p.trangThai IN (2,5) THEN 1
+        ELSE 0
+    END,
+    p.thoiGianDat DESC
 """)
-Page<PhieuDatBan> search(
-    @Param("soDienThoai") String soDienThoai,
-    @Param("trangThai") Integer trangThai,
-    @Param("start") LocalDateTime start,
-    @Param("end") LocalDateTime end,
-    Pageable pageable
-);
-
+    Page<PhieuDatBan> search(
+            @Param("soDienThoai") String soDienThoai,
+            @Param("trangThai") Integer trangThai,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            Pageable pageable
+    );
 
 
     @Modifying
@@ -153,5 +159,25 @@ Page<PhieuDatBan> search(
 
     @Query("SELECT p FROM PhieuDatBan p WHERE p.idBanAn.id = :idBanAn AND p.trangThai IN (2, 3) ORDER BY p.id DESC")
     List<PhieuDatBan> findActivePhieuByBanAn(@Param("idBanAn") Integer idBanAn);
+
+    boolean existsByIdBanAnAndThoiGianDat(
+            BanAn idBanAn,
+            LocalDateTime thoiGianDat);
+
+    @Query("""
+SELECT COUNT(p) > 0
+FROM PhieuDatBan p
+WHERE p.idBanAn = :ban
+AND p.trangThai != 3
+AND (
+    p.thoiGianDat BETWEEN :start AND :end
+)
+""")
+    boolean existsByTimeRange(
+            @Param("ban") BanAn ban,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+
 
 }
