@@ -87,4 +87,12 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
     Optional<KhachHang> findKhachHangByEmail(String identifier);
     Optional<KhachHang> findByTenDangNhap(String tenDangNhap);
+
+    Optional<KhachHang> findBySoDienThoai(String soDienThoai);
+
+    @Query("SELECT kh FROM KhachHang kh WHERE " +
+            "kh.tenKhachHang LIKE %:keyword% OR " +
+            "kh.soDienThoai LIKE %:keyword% OR " +
+            "kh.email LIKE %:keyword%")
+    List<KhachHang> searchByKeyword(@Param("keyword") String keyword);
 }

@@ -324,9 +324,9 @@
                                             Giảm %
                                         </div>
 
-                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 2 }"
-                                            @click="!isReadOnly && (formData.loaiGiamGia = 2)">
-                                            <input type="radio" class="d-none" :value="2"
+                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 0 }"
+                                            @click="!isReadOnly && (formData.loaiGiamGia = 0)">
+                                            <input type="radio" class="d-none" :value="0"
                                                 v-model="formData.loaiGiamGia" />
                                             <i class="fa-solid fa-money-bill-wave me-2"></i>
                                             Giảm tiền
@@ -904,7 +904,7 @@ const validateForm = () => {
     }
 
     // Giảm tiền
-    if (formData.loaiGiamGia === 2) {
+    if (formData.loaiGiamGia === 0) {
 
         if (formData.giaTriGiamToiDa !== formData.giaTriGiam) {
             errors.giaTriGiamToiDa =
@@ -1104,7 +1104,7 @@ const handleSearch = async () => {
             });
         }
 
-        if (filters.loaiGiamGia === 2) {
+        if (filters.loaiGiamGia === 0) {
             rawData = rawData.filter(pg => {
                 return (!filters.tienMin || pg.giaTriGiam >= filters.tienMin)
                     && (!filters.tienMax || pg.giaTriGiam <= filters.tienMax);
@@ -1538,7 +1538,7 @@ watch(
 watch(
     () => formData.giaTriGiam,
     () => {
-        if (formData.loaiGiamGia === 2) {
+        if (formData.loaiGiamGia === 0) {
             formData.giaTriGiamToiDa = formData.giaTriGiam;
         }
     }

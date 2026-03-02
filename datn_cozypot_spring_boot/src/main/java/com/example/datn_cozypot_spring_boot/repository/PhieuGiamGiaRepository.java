@@ -104,5 +104,5 @@ ORDER BY p.id DESC
     );
 
 
-
+    Optional<PhieuGiamGia> findByCodeGiamGiaAndTrangThai(String codeGiamGia, int i);
 }

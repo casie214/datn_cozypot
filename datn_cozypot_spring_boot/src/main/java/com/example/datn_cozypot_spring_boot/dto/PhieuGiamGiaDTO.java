@@ -27,8 +27,4 @@ public class PhieuGiamGiaDTO {
 
     private Integer idDotKhuyenMai;
 
-
-
-
-
 }

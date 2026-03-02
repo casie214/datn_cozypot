@@ -45,6 +45,108 @@ const setTimeWindow = (val) => {
   handleFetchAllCheckIn();
 };
 
+const isShowDiscountModal = ref(false);
+const activeVoucherTab = ref('PUBLIC'); // 'PUBLIC' hoặc 'PERSONAL'
+const publicVouchers = ref([]); 
+const personalVouchers = ref([]); 
+const maGiamGiaInput = ref("");
+
+const hasDiscountInGroup = computed(() => {
+  const mainHasDiscount = (selectedPhieu.value?.soTienDaGiam || 0) > 0;
+  const subHasDiscount = listHoaDonGop.value.some(hd => (hd.soTienDaGiam || 0) > 0);
+  return mainHasDiscount || subHasDiscount;
+});
+
+// 🚨 THÊM BIẾN NÀY: Lấy tổng tiền món hiện tại để check điều kiện tối thiểu
+const currentRawTotal = computed(() => {
+  let tongTienTho = billSummary.value?.tong || 0; 
+  listHoaDonGop.value.forEach(hd => { tongTienTho += (hd.canThu || 0); });
+  return tongTienTho;
+});
+
+const openDiscountModal = async () => {
+  if (!selectedPhieu.value?.idHoaDon) {
+    return Swal.fire('Lưu ý', 'Cần có hóa đơn (đã gọi món) để áp dụng mã!', 'warning');
+  }
+  if (hasDiscountInGroup.value) {
+    return Swal.fire('Lưu ý', 'Nhóm bàn này đã được áp dụng một mã giảm giá. Vui lòng hủy mã cũ trước khi áp dụng mã mới!', 'warning');
+  }
+
+  try {
+    const res = await axiosClient.get(`/phieu-giam-gia/search?page=0&size=100`);
+    if (res.data && res.data.content) {
+      const currentKhachId = selectedPhieu.value?.idKhachHang;
+      
+      // 1. Lọc mã Công cộng (doiTuong = 0)
+      publicVouchers.value = res.data.content.filter(vc => vc.trangThai === 1 && vc.doiTuong === 0);
+      
+      // 2. Lọc mã Cá nhân (doiTuong = 1 và ID khách có trong danh sách)
+      personalVouchers.value = res.data.content.filter(vc => {
+        if (vc.trangThai === 1 && vc.doiTuong === 1 && currentKhachId) {
+            return vc.danhSachKhachHang.some(k => k.id === currentKhachId);
+        }
+        return false;
+      });
+    }
+    
+    maGiamGiaInput.value = "";
+    activeVoucherTab.value = 'PUBLIC'; // Mở modal mặc định ở tab Công cộng
+    isShowDiscountModal.value = true;
+  } catch (error) {
+    Swal.fire('Lỗi', 'Không thể lấy danh sách ưu đãi', 'error');
+  }
+};
+
+const applyVoucher = async (voucher = null) => {
+  const codeToApply = voucher ? voucher.codeGiamGia : maGiamGiaInput.value;
+  if (!codeToApply) return Swal.fire('Lỗi', 'Vui lòng nhập mã giảm giá!', 'warning');
+
+  if (voucher && currentRawTotal.value < voucher.donHangToiThieu) {
+    return Swal.fire('Chưa đạt điều kiện', `Đơn hàng cần tối thiểu ${voucher.donHangToiThieu.toLocaleString()}đ!`, 'warning');
+  }
+
+  try {
+    Swal.fire({ title: 'Đang áp dụng...', didOpen: () => Swal.showLoading() });
+    const payload = {
+      idHoaDon: selectedPhieu.value.idHoaDon,
+      idKhachHang: selectedPhieu.value.idKhachHang || null,
+      idPhieuGiamGia: voucher ? voucher.id : null,
+      codeGiamGia: codeToApply, 
+      tongTienHienTai: currentRawTotal.value 
+    };
+
+    await axiosClient.post('/phieu-giam-gia/ap-dung', payload);
+    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã áp dụng giảm giá!', timer: 1500, showConfirmButton: false });
+    isShowDiscountModal.value = false;
+    
+    // 🚨 GỌI HÀM NÀY ĐỂ TẢI DỮ LIỆU MÀ KHÔNG BỊ ĐẨY RA NGOÀI
+    await refreshTableData(); 
+  } catch (error) {
+    Swal.fire('Lỗi', error.response?.data?.message || 'Mã không hợp lệ hoặc đơn chưa đạt tối thiểu!', 'error');
+  }
+};
+
+const removeVoucher = async () => {
+  const confirm = await Swal.fire({ title: 'Hủy áp dụng mã?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Đồng ý' });
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'Đang hủy...', didOpen: () => Swal.showLoading() });
+    await axiosClient.post(`/phieu-giam-gia/huy-ap-dung/${selectedPhieu.value.idHoaDon}`);
+    
+    if (selectedPhieu.value) {
+        selectedPhieu.value.soTienDaGiam = 0;
+    }
+
+    Swal.fire({ icon: 'success', title: 'Đã hủy mã', timer: 1000, showConfirmButton: false });
+    
+    // 🚨 GỌI HÀM NÀY ĐỂ TẢI DỮ LIỆU MÀ KHÔNG BỊ ĐẨY RA NGOÀI
+    await refreshTableData(); 
+  } catch (error) {
+    Swal.fire('Lỗi', 'Không thể hủy mã lúc này!', 'error');
+  }
+};
+
 const checkTimeStatus = (dbTime) => {
   if (!dbTime) return { isEarly: false, minutes: 0 };
   const now = dayjs(currentTime.value);
@@ -731,17 +833,18 @@ const closeModal = () => {
   listHoaDonGop.value = [];
 };
 
-const handleCloseFoodList = async () => {
-  modalView.value = 'info';
+const refreshTableData = async () => {
+  const tienGiamCu = selectedPhieu.value?.soTienDaGiam || 0;
   const bId = selectedBan.value.id || selectedBan.value.idBanAn;
+  
   try {
     let apiUrl = `/hoa-don-thanh-toan/active-by-ban/${bId}`;
-    
-    // 🚨 SỬA LẠI ĐOẠN NÀY: Dùng selectedPhieu.value.id thay vì targetKhach
     if (selectedPhieu.value && selectedPhieu.value.id) {
         apiUrl += `?idPhieu=${selectedPhieu.value.id}`; 
     }
+    
     const resPhieu = await axiosClient.get(apiUrl);
+    
     if (resPhieu.data) {
       if (selectedPhieu.value) {
           selectedPhieu.value.tongTienChuaGiam = resPhieu.data.tongTienChuaGiam || 0;
@@ -749,6 +852,18 @@ const handleCloseFoodList = async () => {
           selectedPhieu.value.tienCoc = resPhieu.data.tienCoc || 0;
           selectedPhieu.value.tongTienThanhToan = resPhieu.data.tongTienThanhToan || 0;
       }
+      
+      // KIỂM TRA RỚT VOUCHER
+      if (tienGiamCu > 0 && (resPhieu.data.soTienDaGiam || 0) === 0) {
+          Swal.fire({
+             icon: 'warning',
+             title: 'Đã hủy ưu đãi!',
+             text: 'Tổng tiền món hiện tại không còn đủ điều kiện áp dụng mã giảm giá cũ. Hệ thống đã tự động gỡ ưu đãi này ra khỏi hóa đơn.',
+             confirmButtonColor: '#7d161a',
+             confirmButtonText: 'Đã hiểu'
+          });
+      }
+
       if (resPhieu.data.chiTiet) {
         listMonDaChon.value = resPhieu.data.chiTiet.filter(m => m.trangThaiMon !== 0).map((mon) => {
             const isSet = mon.type === 'SET' || mon.idSetLau != null;
@@ -770,6 +885,15 @@ const handleCloseFoodList = async () => {
   } catch (error) {
     console.error("Lỗi đồng bộ", error);
   }
+};
+
+const handleCloseFoodList = async () => {
+  modalView.value = 'info'; 
+  setTimeout(() => {
+      const modalBody = document.querySelector('.modal-body-custom');
+      if (modalBody) modalBody.scrollTop = 0;
+  }, 50);
+  await refreshTableData();
 };
 
 const hoveredTableId = ref(null);
@@ -1311,7 +1435,7 @@ const handleCancelWaitingTicket = async (khach) => {
   } else {
       title = "Xác nhận Hủy (Mất cọc)";
       text = `Khách báo hủy quá sát giờ (chỉ còn ${diffMinutes} phút). Phiếu sẽ bị hủy và KHÔNG HOÀN TRẢ tiền cọc.`;
-      confirmText = "Xác nhận hủy (Status 8)";
+      confirmText = "Xác nhận hủy";
   }
 
   const confirm = await Swal.fire({
@@ -1586,331 +1710,162 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
     <div class="modal-box" :class="{ 'modal-fullscreen': ['addFood', 'changeTable'].includes(modalView) }">
       <div class="modal-header-custom">
         <h4 class="modal-title-custom">
-          {{ modalView === "info" ? `Check-in bàn ${selectedBan?.maBan}` : "Thêm món ăn" }}
+          <template v-if="modalView === 'info'">Check-in bàn {{ selectedBan?.maBan }}</template>
+          <template v-else-if="modalView === 'addFood'">Thêm món ăn - Bàn {{ selectedBan?.maBan }}</template>
+          <template v-else-if="modalView === 'viewOrder'">Xem đơn hàng - Bàn {{ selectedBan?.maBan }}</template>
+          <template v-else-if="modalView === 'orderHistory'">Lịch sử đơn - Bàn {{ selectedBan?.maBan }}</template>
+          <template v-else-if="modalView === 'changeTable'">Đổi bàn / Tách bàn</template>
+          <template v-else-if="modalView === 'viewQR'">QR Code Gọi Món</template>
         </h4>
         <button class="close-btn" @click="closeModal">✕</button>
       </div>
 
-      <div class="modal-body-custom">
-        <div v-if="modalView === 'info'">
-
-          <div class="quick-switch-wrapper" v-if="danhSachBanCungDoan.length > 0">
-
-              <div  class="group-tabs-container">
-
-                <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-layer-group me-1"></i> Các bàn trong đoàn:</small>
-
-                <div class="d-flex gap-2 flex-wrap">
-
-                  <button class="btn btn-sm px-3 quick-tab-btn active" disabled>
-
-                    {{ selectedBan?.maBan }}
-
-                  </button>
-
-                  <button v-for="ban in danhSachBanCungDoan" :key="ban.id"
-
-                          class="btn btn-sm btn-outline-secondary px-3 quick-tab-btn"
-
-                          @click="quickSwitchTable(ban)">
-
-                    {{ ban.maBan }}
-
-                  </button>
-
-                </div>
-
-              </div>
-
-          </div>
-          
-          <div v-if="selectedPhieu" class="alert alert-danger p-3 mb-3 border-0 shadow-sm" style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{ selectedPhieu?.maDatBan || 'N/A' }}</div>
-                <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{ selectedPhieu?.tenKhachHang }}</div>
-                <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{ formatDate(selectedPhieu?.thoiGianDat) }}</div>
-              </div>
-              <span class="badge bg-danger p-2">ĐÃ ĐẶT CHỖ</span>
-            </div>
-          </div>
-
-          <h6 class="section-title">Thông tin bàn</h6>
-          <div class="info-row">
-            <span>Mã bàn:</span>
-            <strong>{{ selectedBan?.maBan }}</strong>
-          </div>
-          <div class="info-row">
-            <span>Sức chứa:</span>
-            <strong>{{ selectedBan?.soCho }} người</strong>
-          </div>
-          <div class="info-row align-items-center">
-            <span>Trạng thái:</span>
-            <span class="badge-status">{{ getStatusText(selectedBan?.trangThai) }}</span>
-          </div>
-          <div class="info-row">
-            <span>Vị trí:</span>
-            <strong>Tầng {{ selectedBan?.soTang }}</strong>
-          </div>
-          <div class="info-row">
-            <span>Nhân viên:</span>
-            <strong>{{ currentStaffName || 'Chưa xác định' }}</strong>
-          </div>
-
-          <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3 shadow-sm">
-            <div class="d-flex justify-content-between mb-2">
-              <span class="text-success fw-bold"><i class="fa-solid fa-utensils me-1"></i> Thực đơn đã chọn:</span>
-              <span class="badge bg-success">{{ listMonDaChon.length }} món</span>
-            </div>
-            
-            <ul class="summary-list mb-3">
-              <li v-for="item in listMonDaChon" :key="item.id">
-                {{ item.name }} 
-                <span class="text-muted">x{{ item.quantity }}
-                  <span class="text-muted" style="float: right;"><strong>{{ (item.price * item.quantity).toLocaleString() }} đ</strong></span>
-                </span>
-              </li>
-            </ul>
-
-            <div class="financial-breakdown border-top pt-2 mt-2">
-              <div class="d-flex justify-content-between text-muted small mb-1">
-                <span>Tạm tính (Tiền món):</span>
-                <span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span>
-              </div>
-              
-              <div v-if="billSummary?.giam > 0" class="d-flex justify-content-between text-success small mb-1">
-                <span>Khuyến mãi / Giảm giá:</span>
-                <span>- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
-              </div>
-              
-              <div class="d-flex justify-content-between text-muted small mb-1">
-                <span>Thuế VAT:</span>
-                <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
-              </div>
-              
-              <div v-if="billSummary?.coc > 0" class="d-flex justify-content-between text-primary small mb-1 fw-bold">
-                <span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span>
-                <span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span>
-              </div>
-              
-              <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
-                <span class="fw-bold text-dark text-uppercase" style="font-size: 14px;">Tiền món bàn này:</span>
-                <span class="fw-bold text-danger" style="font-size: 16px;">{{ (billSummary?.canThu || 0).toLocaleString() }} đ</span>
-              </div>
-            </div>
-          </div>
-
-          <hr class="my-3" />
-
-          <div v-if="selectedPhieu?.id" class="action-buttons">
-            <button :disabled="!isServing" class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood">
-              <i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i>
-              <span v-if="listMonDaChon.length === 0">Thêm món</span>
-              <span v-else> Đã chọn {{ listMonDaChon.length }} món </span>
-            </button>
-            <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewQR'">
-                <i class="fa-solid fa-qrcode me-1"></i> QR đặt món
-            </button>
-            <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'">
-              <i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng
-            </button>
-            <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory">
-                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn
-            </button>
-            <button :disabled="!isServing" class="btn-action" @click="openChangeTableView">
-              <i class="fa-solid fa-repeat me-1"></i> Đổi bàn
-            </button>
-          </div>
-          <div v-else class="text-center text-muted mb-3">
-            <small><i>Bàn trống. Cần Check-in phiếu đặt để thực hiện các thao tác thêm món.</i></small>
-          </div>
-
-          <hr class="my-3" />
-          <h6 class="section-title mb-3">Thao tác tiếp đón</h6>
-          
-          <div class="d-flex gap-2">
-            <button 
-                v-if="getTrangThaiTheoNgay(selectedBan?.id) !== 1" 
-                class="btn btn-update-status flex-grow-1" 
-                @click="handleDirectCheckIn"
-            >
-              <i class="fa-solid fa-bell-concierge me-2"></i> Xác nhận Check-in
-            </button>
-            
-            <div 
-                v-else 
-                class="alert alert-success p-2 mb-0 text-center flex-grow-1 d-flex align-items-center justify-content-center" 
-                style="background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px;"
-            >
-              <i class="fa-solid fa-check-circle me-2"></i> Bàn đã Check-in
-            </div>
-
-            <button 
-                v-if="selectedPhieu?.id" 
-                class="btn px-4" 
-                style="background-color: #fff; color: #dc3545; border: 1px solid #dc3545; font-weight: bold; border-radius: 8px;" 
-                @click="handleCancelTicket"
-            >
-              <i class="fa-solid fa-ban me-1"></i> Hủy phiếu
-            </button>
-          </div>
-
-          <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="payment-group mt-4 pt-3 border-top">
-            <h6 class="section-title mb-2">Quyết toán hóa đơn</h6>
-
-            <div v-if="selectedPhieu?.idHoaDon && (selectedPhieu?.vatApDung || 0) === 0" 
-                class="alert alert-warning py-2 px-3 text-center mb-3 shadow-sm" 
-                style="font-size: 13px; border-radius: 8px; border-left: 5px solid #ffc107; background-color: #fffbe6;">
-              <i class="fa-solid fa-lock me-1"></i> 
-              Đây là <b>Bàn phụ (0% VAT)</b>. Vui lòng chuyển sang bàn chính để thanh toán gộp.
-            </div>
-            
-            <div v-if="!hasItems" class="alert alert-danger py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px; background-color: #fff1f0; border: 1px solid #ffccc7; color: #cf1322;">
-              <i class="fa-solid fa-cart-arrow-down me-1"></i> 
-              Bàn chưa có món nào! Vui lòng <strong>Thêm món</strong> trước khi thanh toán.
-            </div>
-
-            <div v-if="hasItems && !isAllItemsServed" class="alert alert-warning py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px;">
-              <i class="fa-solid fa-triangle-exclamation me-1"></i> 
-              Vui lòng vào <strong>"Xem đơn hàng"</strong> và xác nhận đã lên đủ món để mở khóa thanh toán.
-            </div>
-
-            <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="merge-payment-box mb-3 p-3 rounded" style="background-color: #fff5f5; border: 1px dashed #7d161a;">
-                 <div class="d-flex justify-content-between align-items-center mb-2">
-                     <h6 class="fw-bold mb-0" style="color: #7d161a;"><i class="fa-solid fa-link me-1"></i> Gộp bàn thanh toán</h6>
-                     <span class="badge rounded-pill" style="background-color: #7d161a;">{{ listBanGop.length }} bàn đã chọn</span>
-                 </div>
-                 
-                 <div v-if="listBanCoKhachKhac.length > 0">
-                     <p class="small text-muted mb-2">Các bàn sau có cùng khách và đủ điều kiện gộp:</p>
-                     <div class="d-flex gap-2 flex-wrap">
-                         <button v-for="ban in listBanCoKhachKhac" :key="ban.id"
-                                 class="btn btn-sm d-flex flex-column align-items-center justify-content-center p-2 transition-all custom-merge-btn"
-                                 style="min-width: 80px; border-radius: 8px;"
-                                 :class="listBanGop.some(b => b.id === ban.id) ? 'is-selected shadow' : 'bg-white'"
-                                 @click="toggleGopBan(ban)">
-                             <span class="fw-bold fs-6">{{ ban.maBan }}</span>
-                             <small style="font-size: 11px;">+{{ ban._hoaDonInfo.canThu.toLocaleString() }}đ</small>
-                         </button>
-                     </div>
-                     
-                     <div v-if="listBanGop.length > 0" class="mt-3 pt-2 border-top">
-                         <div class="d-flex justify-content-between align-items-center mb-1">
-                             <span class="text-muted small">Cộng dồn tiền món:</span>
-                             <span class="text-dark small fw-bold">
-                                {{ (((grandTotalToPay || 0) + (billSummary?.coc || 0)) - (totalVatToPay || 0)).toLocaleString() }} đ
-                             </span>
-                         </div>
-                         <div class="d-flex justify-content-between align-items-center mb-2">
-                             <span class="text-muted small">VAT ({{ billSummary?.vatRate || 0 }}%):</span>
-                             <span class="text-dark small fw-bold">
-                                +{{ (totalVatToPay || 0).toLocaleString() }} đ
-                             </span>
-                         </div>
-                         <div class="d-flex justify-content-between align-items-center border-top pt-2" style="border-top-color: #7d161a !important;">
-                             <span class="text-dark fw-bold" style="font-size: 14px;">TỔNG THANH TOÁN:</span>
-                             <span class="text-danger fw-bold fs-5">
-                                {{ (grandTotalToPay || 0).toLocaleString() }} đ
-                             </span>
-                         </div>
-                     </div>
-                 </div>
-                 
-                 <div v-else class="text-center py-2">
-                     <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Hiện không có bàn liên quan đủ điều kiện để gộp.</small>
-                 </div>
-            </div>
-
-            
-
-            <div class="payment-grid" :class="{ 'disabled-payment': !canPay }">
-              <button class="btn-pay cash-btn" @click="handlePaymentCash">
-                <i class="fa-solid fa-money-bill-1-wave"></i>
-                <span>Tiền mặt</span>
-              </button>
-              
-              <div class="d-flex gap-2">
-                <button class="btn-pay vnpay-btn" @click="handlePaymentVNPayFull">
-                  <i class="fa-solid fa-qrcode"></i>
-                  <span>VNPay</span>
-                </button>
-
-                <button class="btn-pay mixed-btn" @click="handlePaymentMixed">
-                  <i class="fa-solid fa-layer-group"></i>
-                  <span>Hỗn hợp</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="modalView === 'viewOrder'" class="order-view-container h-100 d-flex flex-column">
-          <div class="order-info-card mb-3">
-            <div class="row">
-              <div class="col-6 mb-2">
-                <span class="text-muted small">Khách hàng</span><br/>
-                <strong>{{ selectedPhieu?.tenKhachHang || 'Khách vãng lai' }}</strong>
-              </div>
-              <div class="col-6 mb-2">
-                <span class="text-muted small">Bàn</span><br/>
-                <strong>{{ selectedBan?.maBan }}</strong>
-              </div>
-              <div class="col-6">
-                <span class="text-muted small">Trạng thái</span><br/>
-                <span class="badge bg-warning text-dark px-3 py-1 mt-1" style="border-radius: 12px;">Đang phục vụ</span>
-              </div>
-              <div class="col-6">
-                <span class="text-muted small">Ngày tạo</span><br/>
-                <strong>{{ formatDate(selectedPhieu?.thoiGianDat) }}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-utensils me-2"></i> Danh sách món</h6>
-            <button class="btn btn-sm btn-mark-all" @click="markAllServed">
-              <i class="fa-solid fa-check-double me-1"></i> Đã lên tất cả
-            </button>
-          </div>
-
-          <div class="order-items-list flex-grow-1 overflow-auto pe-2">
-            <div v-for="(item, index) in listMonDaChon" :key="item.dbDetailId" class="order-item-card" :class="{'served': item.served}">
-              
-              <div class="checkbox-wrapper" @click="toggleItemServed(item)">
-                <div class="custom-checkbox" :class="{'checked': item.served}">
-                  <i v-if="item.served" class="fa-solid fa-check"></i>
-                </div>
-              </div>
-
-              <div class="item-icon-box">
-                <i v-if="item.type === 'SET'" class="fa-solid fa-bowl-food"></i>
-                <i v-else class="fa-solid fa-burger"></i>
-              </div>
-
-              <div class="item-details flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                  <span class="fw-bold item-name">{{ item.name }}</span>
-                  
-                  <button class="btn btn-sm btn-delete-item" @click.stop="handleDeleteItem(item, index)" title="Hủy món này">
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
+      <div class="modal-body-custom p-3 d-flex flex-column h-100">
+        
+        <div v-if="modalView === 'info'" class="h-100 d-flex flex-column">
+            <div class="flex-grow-1 overflow-auto pe-2">
+                <div class="quick-switch-wrapper mb-3" v-if="danhSachBanCungDoan.length > 0">
+                    <div class="group-tabs-container">
+                        <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-layer-group me-1"></i> Các bàn trong đoàn:</small>
+                        <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm px-3 quick-tab-btn active" disabled>{{ selectedBan?.maBan }}</button>
+                        <button v-for="ban in danhSachBanCungDoan" :key="ban.id" class="btn btn-sm btn-outline-secondary px-3 quick-tab-btn" @click="quickSwitchTable(ban)">{{ ban.maBan }}</button>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="d-flex justify-content-between align-items-center text-muted small mt-1">
-                  <span>SL: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Giá: {{ item.price.toLocaleString() }} đ</span>
-                  <div class="d-flex align-items-center gap-3">
-                    <span class="badge" :class="item.served ? 'bg-success' : 'bg-secondary'">
-                      {{ item.served ? 'Đã lên' : 'Chưa lên' }}
-                    </span>
-                    <span class="fw-bold text-dark text-end" style="min-width: 100px;">Tổng: {{ (item.price * item.quantity).toLocaleString() }} đ</span>
-                  </div>
+                <div v-if="selectedPhieu" class="alert alert-danger p-3 mb-3 border-0 shadow-sm" style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
+                    <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="mb-1"><i class="fa-solid fa-ticket me-2"></i><strong>Mã phiếu:</strong> {{ selectedPhieu?.maDatBan || 'N/A' }}</div>
+                        <div class="mb-1"><i class="fa-solid fa-user me-2"></i><strong>Khách:</strong> {{ selectedPhieu?.tenKhachHang }}</div>
+                        <div><i class="fa-solid fa-clock me-2"></i><strong>Giờ vào:</strong> {{ formatDate(selectedPhieu?.thoiGianDat) }}</div>
+                    </div>
+                    <span class="badge bg-danger p-2">ĐÃ ĐẶT CHỖ</span>
+                    </div>
                 </div>
-              </div>
 
+                <h6 class="section-title">Thông tin bàn</h6>
+                <div class="info-row"><span>Mã bàn:</span><strong>{{ selectedBan?.maBan }}</strong></div>
+                <div class="info-row"><span>Sức chứa:</span><strong>{{ selectedBan?.soCho }} người</strong></div>
+                <div class="info-row align-items-center"><span>Trạng thái:</span><span class="badge-status">{{ getStatusText(selectedBan?.trangThai) }}</span></div>
+                <div class="info-row"><span>Vị trí:</span><strong>Tầng {{ selectedBan?.soTang }}</strong></div>
+                <div class="info-row"><span>Nhân viên:</span><strong>{{ currentStaffName || 'Chưa xác định' }}</strong></div>
+
+                <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3 shadow-sm">
+                    <div class="d-flex justify-content-between mb-2">
+                    <span class="text-success fw-bold"><i class="fa-solid fa-utensils me-1"></i> Thực đơn đã chọn:</span>
+                    <span class="badge bg-success">{{ listMonDaChon.length }} món</span>
+                    </div>
+                    <ul class="summary-list mb-3">
+                    <li v-for="item in listMonDaChon" :key="item.id">{{ item.name }} <span class="text-muted">x{{ item.quantity }}<span class="text-muted" style="float: right;"><strong>{{ (item.price * item.quantity).toLocaleString() }} đ</strong></span></span></li>
+                    </ul>
+                    <div class="financial-breakdown border-top pt-2 mt-2">
+                    <div class="d-flex justify-content-between text-muted small mb-1"><span>Tạm tính (Tiền món):</span><span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span></div>
+                    <div v-if="(billSummary?.giam || 0) > 0" class="d-flex justify-content-between align-items-center text-success small mb-1">
+                        <span>Khuyến mãi / Giảm giá:</span>
+                        <div class="d-flex align-items-center">
+                            <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>                    
+                    <div class="d-flex justify-content-between text-muted small mb-1"><span>Thuế VAT:</span><span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span></div>
+                    <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-primary small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
+                    <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
+                        <span class="fw-bold text-dark text-uppercase" style="font-size: 14px;">Tiền món bàn này:</span>
+                        <span class="fw-bold text-danger" style="font-size: 16px;">{{ (billSummary?.canThu || 0).toLocaleString() }} đ</span>
+                    </div>
+
+                    <div v-if="(billSummary?.giam || 0) === 0" class="mt-3">
+                        <button class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; font-size: 13px;" @click="openDiscountModal">
+                            <i class="fa-solid fa-tags me-1"></i> Áp dụng ưu đãi
+                        </button>
+                    </div>
+                    </div>
+                </div>
+
+                <hr class="my-3" />
+
+                <div v-if="selectedPhieu?.id" class="action-buttons">
+                    <button :disabled="!isServing" class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood"><i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i><span v-if="listMonDaChon.length === 0">Thêm món</span><span v-else> Đã chọn {{ listMonDaChon.length }} món </span></button>
+                    <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewQR'"><i class="fa-solid fa-qrcode me-1"></i> QR đặt món</button>
+                    <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'"><i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng</button>
+                    <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn</button>
+                    <button :disabled="!isServing" class="btn-action" @click="openChangeTableView"><i class="fa-solid fa-repeat me-1"></i> Đổi bàn</button>
+                </div>
+                <div v-else class="text-center text-muted mb-3"><small><i>Bàn trống. Cần Check-in phiếu đặt để thực hiện các thao tác thêm món.</i></small></div>
+
+                <hr class="my-3" />
+                <h6 class="section-title mb-3">Thao tác tiếp đón</h6>
+                
+                <div class="d-flex gap-2">
+                    <button v-if="getTrangThaiTheoNgay(selectedBan?.id) !== 1" class="btn btn-update-status flex-grow-1" @click="handleDirectCheckIn"><i class="fa-solid fa-bell-concierge me-2"></i> Xác nhận Check-in</button>
+                    <div v-else class="alert alert-success p-2 mb-0 text-center flex-grow-1 d-flex align-items-center justify-content-center" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px;"><i class="fa-solid fa-check-circle me-2"></i> Bàn đã Check-in</div>
+                    <button v-if="selectedPhieu?.id" class="btn px-4" style="background-color: #fff; color: #dc3545; border: 1px solid #dc3545; font-weight: bold; border-radius: 8px;" @click="handleCancelTicket"><i class="fa-solid fa-ban me-1"></i> Hủy phiếu</button>
+                </div>
+
+                <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="payment-group mt-4 pt-3 border-top">
+                    <h6 class="section-title mb-2">Quyết toán hóa đơn</h6>
+                    <div v-if="selectedPhieu?.idHoaDon && (selectedPhieu?.vatApDung || 0) === 0" class="alert alert-warning py-2 px-3 text-center mb-3 shadow-sm" style="font-size: 13px; border-radius: 8px; border-left: 5px solid #ffc107; background-color: #fffbe6;"><i class="fa-solid fa-lock me-1"></i> Đây là <b>Bàn phụ (0% VAT)</b>. Vui lòng chuyển sang bàn chính để thanh toán gộp.</div>
+                    <div v-if="!hasItems" class="alert alert-danger py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px; background-color: #fff1f0; border: 1px solid #ffccc7; color: #cf1322;"><i class="fa-solid fa-cart-arrow-down me-1"></i> Bàn chưa có món nào! Vui lòng <strong>Thêm món</strong> trước khi thanh toán.</div>
+                    <div v-if="hasItems && !isAllItemsServed" class="alert alert-warning py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px;"><i class="fa-solid fa-triangle-exclamation me-1"></i> Vui lòng vào <strong>"Xem đơn hàng"</strong> và xác nhận đã lên đủ món để mở khóa thanh toán.</div>
+
+                    <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="merge-payment-box mb-3 p-3 rounded" style="background-color: #fff5f5; border: 1px dashed #7d161a;">
+                        <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="fw-bold mb-0" style="color: #7d161a;"><i class="fa-solid fa-link me-1"></i> Gộp bàn thanh toán</h6><span class="badge rounded-pill" style="background-color: #7d161a;">{{ listBanGop.length }} bàn đã chọn</span></div>
+                        <div v-if="listBanCoKhachKhac.length > 0">
+                            <p class="small text-muted mb-2">Các bàn sau có cùng khách và đủ điều kiện gộp:</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button v-for="ban in listBanCoKhachKhac" :key="ban.id" class="btn btn-sm d-flex flex-column align-items-center justify-content-center p-2 transition-all custom-merge-btn" style="min-width: 80px; border-radius: 8px;" :class="listBanGop.some(b => b.id === ban.id) ? 'is-selected shadow' : 'bg-white'" @click="toggleGopBan(ban)"><span class="fw-bold fs-6">{{ ban.maBan }}</span><small style="font-size: 11px;">+{{ ban._hoaDonInfo.canThu.toLocaleString() }}đ</small></button>
+                            </div>
+                            <div v-if="listBanGop.length > 0" class="mt-3 pt-2 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-muted small">Cộng dồn tiền món:</span><span class="text-dark small fw-bold">{{ (((grandTotalToPay || 0) + (billSummary?.coc || 0)) - (totalVatToPay || 0)).toLocaleString() }} đ</span></div>
+                                <div class="d-flex justify-content-between align-items-center mb-2"><span class="text-muted small">VAT ({{ billSummary?.vatRate || 0 }}%):</span><span class="text-dark small fw-bold">+{{ (totalVatToPay || 0).toLocaleString() }} đ</span></div>
+                                <div class="d-flex justify-content-between align-items-center border-top pt-2" style="border-top-color: #7d161a !important;"><span class="text-dark fw-bold" style="font-size: 14px;">TỔNG THANH TOÁN:</span><span class="text-danger fw-bold fs-5">{{ (grandTotalToPay || 0).toLocaleString() }} đ</span></div>
+                            </div>
+                        </div>
+                        <div v-else class="text-center py-2"><small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Hiện không có bàn liên quan đủ điều kiện để gộp.</small></div>
+                    </div>
+
+                    <div class="payment-grid" :class="{ 'disabled-payment': !canPay }">
+                    <button class="btn-pay cash-btn" @click="handlePaymentCash"><i class="fa-solid fa-money-bill-1-wave"></i><span>Tiền mặt</span></button>
+                    <div class="d-flex gap-2">
+                        <button class="btn-pay vnpay-btn" @click="handlePaymentVNPayFull"><i class="fa-solid fa-qrcode"></i><span>VNPay</span></button>
+                        <button class="btn-pay mixed-btn" @click="handlePaymentMixed"><i class="fa-solid fa-layer-group"></i><span>Hỗn hợp</span></button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else-if="modalView === 'viewOrder'" class="order-view-container h-100 d-flex flex-column m-0">
+          <div class="order-info-card mb-3 flex-shrink-0">
+            <div class="row">
+              <div class="col-6 mb-2"><span class="text-muted small">Khách hàng</span><br/><strong>{{ selectedPhieu?.tenKhachHang || 'Khách vãng lai' }}</strong></div>
+              <div class="col-6 mb-2"><span class="text-muted small">Bàn</span><br/><strong>{{ selectedBan?.maBan }}</strong></div>
+              <div class="col-6"><span class="text-muted small">Trạng thái</span><br/><span class="badge bg-warning text-dark px-3 py-1 mt-1" style="border-radius: 12px;">Đang phục vụ</span></div>
+              <div class="col-6"><span class="text-muted small">Ngày tạo</span><br/><strong>{{ formatDate(selectedPhieu?.thoiGianDat) }}</strong></div>
             </div>
           </div>
 
-          <div class="order-summary-card mt-3" style="background-color: #fff9f9; border: 1px solid #ffccd5;">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-shrink-0">
+            <h6 class="mb-0 fw-bold"><i class="fa-solid fa-utensils me-2"></i> Danh sách món</h6>
+            <button class="btn btn-sm btn-mark-all" @click="markAllServed"><i class="fa-solid fa-check-double me-1"></i> Đã lên tất cả</button>
+          </div>
+
+          <div class="order-items-list flex-grow-1 overflow-auto pe-2 mb-3" style="min-height: 100px;">
+            <div v-for="(item, index) in listMonDaChon" :key="item.dbDetailId" class="order-item-card" :class="{'served': item.served}">
+              <div class="checkbox-wrapper" @click="toggleItemServed(item)"><div class="custom-checkbox" :class="{'checked': item.served}"><i v-if="item.served" class="fa-solid fa-check"></i></div></div>
+              <div class="item-icon-box"><i v-if="item.type === 'SET'" class="fa-solid fa-bowl-food"></i><i v-else class="fa-solid fa-burger"></i></div>
+              <div class="item-details flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-1"><span class="fw-bold item-name">{{ item.name }}</span><button class="btn btn-sm btn-delete-item" @click.stop="handleDeleteItem(item, index)" title="Hủy món này"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="d-flex justify-content-between align-items-center text-muted small mt-1"><span>SL: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Giá: {{ item.price.toLocaleString() }} đ</span><div class="d-flex align-items-center gap-3"><span class="badge" :class="item.served ? 'bg-success' : 'bg-secondary'">{{ item.served ? 'Đã lên' : 'Chưa lên' }}</span><span class="fw-bold text-dark text-end" style="min-width: 100px;">Tổng: {{ (item.price * item.quantity).toLocaleString() }} đ</span></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-summary-card flex-shrink-0" style="background-color: #fff9f9; border: 1px solid #ffccd5;">
             <h6 class="fw-bold mb-3" style="color: #7d161a;"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Chi tiết thanh toán</h6>
             
             <div class="d-flex justify-content-between mb-2 text-muted small">
@@ -1918,9 +1873,14 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 <span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span>
             </div>
             
-            <div v-if="billSummary?.giam > 0" class="d-flex justify-content-between mb-2 text-success small">
+            <div v-if="(billSummary?.giam || 0) > 0" class="d-flex justify-content-between align-items-center mb-2 text-success small">
                 <span>Khuyến mãi / Giảm giá:</span>
-                <span>- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
+                <div class="d-flex align-items-center">
+                    <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="d-flex justify-content-between mb-2 text-muted small">
@@ -1928,7 +1888,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
             </div>
 
-            <div v-if="billSummary?.coc > 0" class="d-flex justify-content-between mb-3 fw-bold" style="color: #007bff;">
+            <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between mb-3 fw-bold" style="color: #007bff;">
                 <span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc trước:</span>
                 <span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span>
             </div>
@@ -1937,15 +1897,17 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 <h5 class="fw-bold mb-0">Tiền món bàn này:</h5>
                 <h5 class="fw-bold text-danger mb-0">{{ (billSummary?.canThu || 0).toLocaleString() }} đ</h5>
             </div>
-        </div>
 
-          <div class="d-flex justify-content-between mt-3 pt-3 border-top">
-            <button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
-              <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
-            </button>
-            <button class="btn btn-update-status px-4" @click="modalView = 'info'" :disabled="!isAllItemsServed">
-              Tiến hành thanh toán <i class="fa-solid fa-arrow-right ms-1"></i>
-            </button>
+            <div v-if="(billSummary?.giam || 0) === 0" class="mt-3">
+                <button class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; font-size: 13px;" @click="openDiscountModal">
+                    <i class="fa-solid fa-tags me-1"></i> Áp dụng ưu đãi
+                </button>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3 pt-3 border-top flex-shrink-0 gap-2">
+            <button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại</button>
+            <button class="btn btn-update-status px-4" @click="modalView = 'info'" :disabled="!isAllItemsServed">Tiến hành thanh toán <i class="fa-solid fa-arrow-right ms-1"></i></button>
           </div>
         </div>
 
@@ -1954,173 +1916,175 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
               <h5 class="fw-bold"><i class="fa-solid fa-history me-2"></i>Lịch sử đơn hàng - Bàn {{ selectedBan?.maBan }}</h5>
               <p class="text-muted small">Mã hóa đơn: #{{ selectedPhieu?.idHoaDon }}</p>
           </div>
-
           <div class="timeline-wrapper flex-grow-1 overflow-auto pe-2">
-              <div v-if="orderHistory.length === 0" class="text-center py-5">
-                  <i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i>
-                  <p>Chưa có dữ liệu lịch sử cho đơn hàng này</p>
-              </div>
-
+              <div v-if="orderHistory.length === 0" class="text-center py-5"><i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i><p>Chưa có dữ liệu lịch sử cho đơn hàng này</p></div>
               <div v-else class="timeline">
                   <div v-for="(log, index) in orderHistory" :key="index" class="timeline-item">
-                      <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}">
-                          <i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i>
-                      </div>
-                      
+                      <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}"><i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i></div>
                       <div class="timeline-card shadow-sm">
-                          <div class="d-flex justify-content-between align-items-start">
-                              <h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6>
-                              <span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span>
-                          </div>
-                          
-                          <div class="log-meta mb-2">
-                              <small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small>
-                              <small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small>
-                          </div>
-
-                          <div class="log-details p-2 bg-light rounded">
-                              <p class="mb-0 small text-secondary">
-                                  <i class="fa-solid fa-info-circle me-1"></i> 
-                                  {{ log.lyDo || 'Không có ghi chú thêm' }}
-                              </p>
-                          </div>
+                          <div class="d-flex justify-content-between align-items-start"><h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6><span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span></div>
+                          <div class="log-meta mb-2"><small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small><small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small></div>
+                          <div class="log-details p-2 bg-light rounded"><p class="mb-0 small text-secondary"><i class="fa-solid fa-info-circle me-1"></i> {{ log.lyDo || 'Không có ghi chú thêm' }}</p></div>
                       </div>
                   </div>
               </div>
           </div>
-
-          <div class="mt-3 pt-3 border-top">
-              <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
-                  <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
-              </button>
-            </div>
+          <div class="mt-3 pt-3 border-top"><button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn</button></div>
         </div>
 
         <div v-else-if="modalView === 'changeTable'" class="change-table-container h-100 d-flex flex-column p-3" style="background-color: #f8f9fa;">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-             <div class="alert alert-secondary mb-0 border-0 shadow-sm flex-grow-1 me-4 d-flex align-items-center">
-                <i class="fa-solid fa-person-walking-arrow-right me-2 text-danger fs-5"></i>
-                <span>
-                  Đang chuyển đoàn <strong class="text-primary fs-5 mx-1">{{ selectedPhieu?.soNguoi || 1 }}</strong> khách 
-                  từ bàn <strong class="text-danger fs-5 mx-1">{{ selectedBan?.maBan }}</strong> sang bàn trống.
-                </span>
-              </div>
-             
-             <div class="d-flex bg-white p-1 rounded shadow-sm border">
-              <button 
-                v-for="tang in danhSachTang" 
-                :key="'modal-tang-' + tang"
-                class="btn px-4 py-2 fw-bold" 
-                :class="modalActiveFloor === tang ? 'btn-active' : 'text-muted'" 
-                @click="modalActiveFloor = tang" 
-                style="border-radius: 6px; border: none;"
-              >
-                Tầng {{ tang }}
-              </button>
-            </div>
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
+             <div class="alert alert-secondary mb-0 border-0 shadow-sm flex-grow-1 me-4 d-flex align-items-center"><i class="fa-solid fa-person-walking-arrow-right me-2 text-danger fs-5"></i><span>Đang chuyển đoàn <strong class="text-primary fs-5 mx-1">{{ selectedPhieu?.soNguoi || 1 }}</strong> khách từ bàn <strong class="text-danger fs-5 mx-1">{{ selectedBan?.maBan }}</strong> sang bàn trống.</span></div>
+             <div class="d-flex bg-white p-1 rounded shadow-sm border"><button v-for="tang in danhSachTang" :key="'modal-tang-' + tang" class="btn px-4 py-2 fw-bold" :class="modalActiveFloor === tang ? 'btn-active' : 'text-muted'" @click="modalActiveFloor = tang" style="border-radius: 6px; border: none;">Tầng {{ tang }}</button></div>
           </div>
-
           <div class="floor-plan-layout flex-grow-1 overflow-hidden d-flex gap-3">
              <div class="floor-plan-section flex-grow-1 bg-white shadow-sm border rounded">
-                <div class="grid-container h-100">
+                <div class="grid-container h-100 overflow-auto">
                    <div class="grid-canvas">
-                      <div v-for="ban in modalBanTheoTang" :key="ban.id"
-                           class="table-card"
-                           :class="{
-                              'highlight-red': getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id,
-                              'is-hovered': modalHoveredTableId === ban.id,
-                              'is-dimmed': (getTrangThaiTheoNgay(ban.id) !== 0 || ban.id === selectedBan?.id) && modalHoveredTableId !== ban.id,
-                              'current-table': ban.id === selectedBan?.id
-                           }"
-                           :style="{
-                              gridColumnStart: ban.column, gridRowStart: ban.row,
-                              gridColumnEnd: 'span 3', gridRowEnd: 'span 2',
-                              cursor: (getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id) ? 'pointer' : 'not-allowed'
-                           }"
-                           @click="(getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id) ? handleSwitchTable(ban) : null"
-                      >
-                         <div class="table-content text-center pt-2">
-                            <strong class="fs-5">{{ ban.maBan }}</strong>
-                            <div class="text-muted small mb-2"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho }} chỗ</div>
-                            
-                            <div v-if="ban.id === selectedBan?.id" class="status-tag bg-primary text-white w-100 rounded-pill"><i class="fa-solid fa-location-dot"></i> Đang ở đây</div>
-                            <div v-else-if="getTrangThaiTheoNgay(ban.id) === 0" class="status-tag status-empty w-100 rounded-pill"><i class="fa-solid fa-check"></i> Trống (Chọn)</div>
-                            <div v-else class="status-tag bg-secondary text-white w-100 rounded-pill"><i class="fa-solid fa-ban"></i> Không khả dụng</div>
-                         </div>
+                      <div v-for="ban in modalBanTheoTang" :key="ban.id" class="table-card" :class="{'highlight-red': getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id, 'is-hovered': modalHoveredTableId === ban.id, 'is-dimmed': (getTrangThaiTheoNgay(ban.id) !== 0 || ban.id === selectedBan?.id) && modalHoveredTableId !== ban.id, 'current-table': ban.id === selectedBan?.id}" :style="{gridColumnStart: ban.column, gridRowStart: ban.row, gridColumnEnd: 'span 3', gridRowEnd: 'span 2', cursor: (getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id) ? 'pointer' : 'not-allowed'}" @click="(getTrangThaiTheoNgay(ban.id) === 0 && ban.id !== selectedBan?.id) ? handleSwitchTable(ban) : null">
+                         <div class="table-content text-center pt-2"><strong class="fs-5">{{ ban.maBan }}</strong><div class="text-muted small mb-2"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho }} chỗ</div><div v-if="ban.id === selectedBan?.id" class="status-tag bg-primary text-white w-100 rounded-pill"><i class="fa-solid fa-location-dot"></i> Đang ở đây</div><div v-else-if="getTrangThaiTheoNgay(ban.id) === 0" class="status-tag status-empty w-100 rounded-pill"><i class="fa-solid fa-check"></i> Trống (Chọn)</div><div v-else class="status-tag bg-secondary text-white w-100 rounded-pill"><i class="fa-solid fa-ban"></i> Không khả dụng</div></div>
                       </div>
                    </div>
                 </div>
              </div>
-
              <div class="bg-white shadow-sm border rounded p-3 d-flex flex-column" style="width: 350px;">
-                <h6 class="fw-bold mb-3 pb-2 border-bottom text-success"><i class="fa-solid fa-list-check me-2"></i> Bàn trống có thể đổi</h6>
-                
+                <h6 class="fw-bold mb-3 pb-2 border-bottom text-success flex-shrink-0"><i class="fa-solid fa-list-check me-2"></i> Bàn trống có thể đổi</h6>
                 <div class="overflow-auto flex-grow-1 pe-2" style="max-height: calc(100vh - 250px);">
-                   <div v-if="listBanTrong.length === 0" class="text-center text-muted mt-5">
-                      <i class="fa-solid fa-box-open fa-3x mb-3 text-light"></i>
-                      <p>Hiện không có bàn nào trống!</p>
-                   </div>
-                   
+                   <div v-if="listBanTrong.length === 0" class="text-center text-muted mt-5"><i class="fa-solid fa-box-open fa-3x mb-3 text-light"></i><p>Hiện không có bàn nào trống!</p></div>
                    <div v-else class="row g-2">
                       <div v-for="ban in listBanTrong" :key="ban.id" class="col-6">
-                         <div class="mini-table-card border rounded p-3 text-center transition-all" 
-                              style="cursor: pointer;"
-                              :class="{'border-danger bg-light': modalHoveredTableId === ban.id}"
-                              @mouseenter="onHoverEmptyTable(ban)" 
-                              @mouseleave="onLeaveEmptyTable"
-                              @click="handleSwitchTable(ban)">
-                            
-                            <div class="fw-bold text-success fs-5">{{ ban.maBan }}</div>
-                            <div class="small text-muted mb-1"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho }} chỗ</div>
-                            <div class="badge bg-light text-dark border">Tầng {{ ban.soTang }}</div>
-                         </div>
+                         <div class="mini-table-card border rounded p-3 text-center transition-all" style="cursor: pointer;" :class="{'border-danger bg-light': modalHoveredTableId === ban.id}" @mouseenter="onHoverEmptyTable(ban)" @mouseleave="onLeaveEmptyTable" @click="handleSwitchTable(ban)"><div class="fw-bold text-success fs-5">{{ ban.maBan }}</div><div class="small text-muted mb-1"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho }} chỗ</div><div class="badge bg-light text-dark border">Tầng {{ ban.soTang }}</div></div>
                       </div>
                    </div>
                 </div>
              </div>
           </div>
-
-          <div class="mt-3 pt-3 border-top bg-white px-3 py-2 rounded shadow-sm d-flex justify-content-between">
-             <button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'">
-                <i class="fa-solid fa-arrow-left me-1"></i> Hủy đổi bàn
-             </button>
-          </div>
+          <div class="mt-3 pt-3 border-top bg-white px-3 py-2 rounded shadow-sm d-flex justify-content-between flex-shrink-0"><button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'"><i class="fa-solid fa-arrow-left me-1"></i> Hủy đổi bàn</button></div>
         </div>
 
         <div v-else-if="modalView === 'viewQR'" class="qr-container h-100 d-flex flex-column align-items-center p-4" style="background-color: #f8f9fa;">
-            <h5 class="fw-bold mb-2 text-center" style="color: #7d161a;">
-                <i class="fa-solid fa-qrcode me-2"></i>Mã QR Đặt Món Bàn {{ selectedBan?.maBan }}
-            </h5>
-            <p class="text-center text-muted small mb-4">
-                Khuyến khích khách hàng quét mã này để tự chọn món. Đơn hàng sẽ tự động đồng bộ vào hóa đơn hiện tại.
-            </p>
-
+            <h5 class="fw-bold mb-2 text-center" style="color: #7d161a;"><i class="fa-solid fa-qrcode me-2"></i>Mã QR Đặt Món Bàn {{ selectedBan?.maBan }}</h5>
+            <p class="text-center text-muted small mb-4">Khuyến khích khách hàng quét mã này để tự chọn món. Đơn hàng sẽ tự động đồng bộ vào hóa đơn hiện tại.</p>
             <div class="qr-box p-3 bg-white shadow rounded border mb-4 d-flex justify-content-center align-items-center" style="width: 250px; height: 250px;">
-                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(customerOrderUrl)}&margin=10`" 
-                     alt="QR Code" 
-                     class="img-fluid" />
+                <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(customerOrderUrl)}&margin=10`" alt="QR Code" class="img-fluid" />
             </div>
-
             <div class="input-group mb-4 w-100 shadow-sm">
                 <span class="input-group-text bg-white"><i class="fa-solid fa-link text-muted"></i></span>
                 <input type="text" class="form-control bg-light" :value="customerOrderUrl" readonly style="font-size: 13px;">
-                <button class="btn btn-outline-secondary" style="background-color: white;" @click="copyToClipboard(customerOrderUrl)">
-                    <i class="fa-regular fa-copy text-primary"></i> Copy
-                </button>
+                <button class="btn btn-outline-secondary" style="background-color: white;" @click="copyToClipboard(customerOrderUrl)"><i class="fa-regular fa-copy text-primary"></i> Copy</button>
             </div>
-
             <div class="mt-auto w-100 pt-3 border-top">
-                <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
-                </button>
+                <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn</button>
             </div>
         </div>
 
-        <div v-else class="h-100 full-modal-content">
+        <div v-else-if="modalView === 'addFood'" class="h-100 full-modal-content">
           <FoodList :initial-items="listMonDaChon" @close="handleCloseFoodList" @save="handleSaveFood" />
         </div>
       </div>
     </div>
+    <div v-if="isShowDiscountModal" class="modal-overlay" style="z-index: 10000;">
+          <div class="modal-box" style="max-width: 500px; height: 85vh;">
+            <div class="modal-header-custom bg-light">
+              <h5 class="modal-title-custom m-0 text-danger"><i class="fa-solid fa-tags me-2"></i>Chọn ưu đãi</h5>
+              <button class="close-btn" @click="isShowDiscountModal = false">✕</button>
+            </div>
+
+            <div class="modal-body-custom p-0 bg-light d-flex flex-column h-100">
+              
+              <div class="d-flex border-bottom bg-white px-3 pt-2">
+                  <button class="btn btn-link text-decoration-none fw-bold px-3 py-2 border-bottom border-3"
+                          :class="activeVoucherTab === 'PUBLIC' ? 'border-danger text-danger' : 'border-transparent text-muted'"
+                          @click="activeVoucherTab = 'PUBLIC'">
+                      <i class="fa-solid fa-bullhorn me-1"></i> Mã chung ({{ publicVouchers.length }})
+                  </button>
+                  <button class="btn btn-link text-decoration-none fw-bold px-3 py-2 border-bottom border-3"
+                          :class="activeVoucherTab === 'PERSONAL' ? 'border-danger text-danger' : 'border-transparent text-muted'"
+                          @click="activeVoucherTab = 'PERSONAL'">
+                      <i class="fa-solid fa-gift me-1"></i> Ưu đãi của tôi ({{ personalVouchers.length }})
+                  </button>
+              </div>
+
+              <div class="flex-grow-1 overflow-auto p-3">
+                  <div v-show="activeVoucherTab === 'PUBLIC'">
+                      <div class="input-group mb-4 shadow-sm">
+                          <input type="text" class="form-control" v-model="maGiamGiaInput" placeholder="Nhập mã công khai..." style="text-transform: uppercase;">
+                          <button class="btn btn-danger fw-bold" @click="applyVoucher(null)">Áp dụng</button>
+                      </div>
+                      
+                      <div v-if="publicVouchers.length === 0" class="text-center py-5 text-muted">
+                          <i class="fa-solid fa-box-open fa-3x mb-3 opacity-50"></i>
+                          <p>Hiện không có chương trình khuyến mãi chung nào.</p>
+                      </div>
+
+                      <div v-for="vc in publicVouchers" :key="vc.id" class="card mb-3 border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid red !important;">
+                          <div class="card-body p-3 d-flex align-items-center">
+                              <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                  <i class="fa-solid fa-percent fs-5"></i>
+                              </div>
+                              <div class="flex-grow-1">
+                                  <h6 class="fw-bold mb-1 text-dark" style="font-size: 14px;">{{ vc.codeGiamGia }}</h6>
+                                  <p class="text-muted small mb-0">{{ vc.tenPhieuGiamGia }}</p>
+                                  <p class="text-danger small fw-bold mb-0 mt-1">Giảm: {{ vc.loaiGiamGia === 1 ? vc.giaTriGiam + '%' : vc.giaTriGiam.toLocaleString() + 'đ' }}
+                                      <span v-if="vc.loaiGiamGia === 1 && vc.giaTriGiamToiDa > 0" class="text-muted fw-normal" style="font-size: 11px;">
+                                          (Tối đa: {{ vc.giaTriGiamToiDa.toLocaleString() }}đ)
+                                      </span>
+                                  </p>
+                                  <small class="text-muted" style="font-size: 11px;">Đơn tối thiểu: {{ vc.donHangToiThieu.toLocaleString() }}đ</small>
+                              </div>
+                              <div>
+                                  <button class="btn btn-sm rounded-pill px-3 fw-bold" 
+                                          :class="currentRawTotal >= vc.donHangToiThieu ? 'btn-outline-danger' : 'btn-outline-secondary disabled'"
+                                          :disabled="currentRawTotal < vc.donHangToiThieu"
+                                          @click="applyVoucher(vc)">
+                                      {{ currentRawTotal >= vc.donHangToiThieu ? 'Dùng' : 'Chưa đủ ĐK' }}
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div v-show="activeVoucherTab === 'PERSONAL'">
+                      <div v-if="!selectedPhieu?.idKhachHang" class="alert alert-warning text-center" style="font-size: 13px;">
+                          <i class="fa-solid fa-triangle-exclamation me-1"></i> Bàn này là <b>Khách vãng lai</b>, không có ưu đãi cá nhân.
+                      </div>
+                      
+                      <div v-else-if="personalVouchers.length === 0" class="text-center py-5 text-muted">
+                          <i class="fa-solid fa-gift fa-3x mb-3 opacity-50"></i>
+                          <p>Khách hàng này hiện không có mã ưu đãi cá nhân nào.</p>
+                      </div>
+
+                      <div v-else v-for="vc in personalVouchers" :key="vc.id" class="card mb-3 border-0 shadow-sm" style="border-radius: 12px; border-left: 5px solid #ff9800 !important; background: linear-gradient(to right, #fff, #fffbf2);">
+                          <div class="card-body p-3 d-flex align-items-center">
+                              <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                  <i class="fa-solid fa-crown fs-5"></i>
+                              </div>
+                              <div class="flex-grow-1">
+                                  <h6 class="fw-bold mb-1 text-dark" style="font-size: 14px;">{{ vc.codeGiamGia }}</h6>
+                                  <p class="text-muted small mb-0">{{ vc.tenPhieuGiamGia }}</p>
+                                  <p class="text-danger small fw-bold mb-0 mt-1">Giảm: {{ vc.loaiGiamGia === 1 ? vc.giaTriGiam + '%' : vc.giaTriGiam.toLocaleString() + 'đ' }}
+                                      <span v-if="vc.loaiGiamGia === 1 && vc.giaTriGiamToiDa > 0" class="text-muted fw-normal" style="font-size: 11px;">
+                                          (Tối đa: {{ vc.giaTriGiamToiDa.toLocaleString() }}đ)
+                                      </span>
+                                  </p>
+                                  <small class="text-muted" style="font-size: 11px;">Đơn tối thiểu: {{ vc.donHangToiThieu.toLocaleString() }}đ</small>
+                              </div>
+                              <div>
+                                  <button class="btn btn-sm rounded-pill px-3 fw-bold" 
+                                          :class="currentRawTotal >= vc.donHangToiThieu ? 'btn-outline-danger' : 'btn-outline-secondary disabled'"
+                                          :disabled="currentRawTotal < vc.donHangToiThieu"
+                                          @click="applyVoucher(vc)">
+                                      {{ currentRawTotal >= vc.donHangToiThieu ? 'Dùng' : 'Chưa đủ ĐK' }}
+                                  </button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
   </div>
 </template>
 
