@@ -17,6 +17,7 @@ import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonS
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -73,6 +74,15 @@ public class HoaDonThanhToanController {
 
         Pageable pageable = PageRequest.of(page, size);
         return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
+    }
+
+    @GetMapping("/get-by-id/{id}")
+    public ResponseEntity<HoaDonThanhToanResponse> getById(@PathVariable Integer id) {
+        HoaDonThanhToanResponse response = hoaDonThanhToanService.getHoaDonById(id);
+        if (response != null) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/hoa-don/{idHoaDon}")
@@ -191,7 +201,10 @@ public class HoaDonThanhToanController {
     }
 
     @GetMapping("/active-by-ban/{idBanAn}")
-    public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(@PathVariable Integer idBanAn) {
+    public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(
+            @PathVariable Integer idBanAn,
+            @RequestParam(required = false) Integer idPhieu) { // 🚨 1. Bổ sung tham số idPhieu (không bắt buộc)
+
         // 1. Lấy danh sách phiếu đang hoạt động
         List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
 
@@ -199,8 +212,21 @@ public class HoaDonThanhToanController {
             return ResponseEntity.noContent().build();
         }
 
-        // 2. Lấy phiếu mới nhất của bàn đó
-        PhieuDatBan phieu = list.get(0);
+        // 🚨 2. LOGIC TÌM ĐÚNG PHIẾU
+        PhieuDatBan phieu = null;
+
+        // Nếu Frontend có gửi idPhieu lên -> Ép tìm chính xác phiếu đó
+        if (idPhieu != null) {
+            phieu = list.stream()
+                    .filter(p -> p.getId().equals(idPhieu))
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // Nếu không truyền idPhieu (Bấm từ sơ đồ bàn) hoặc không tìm thấy -> Lấy cái đầu tiên
+        if (phieu == null) {
+            phieu = list.get(0);
+        }
 
         // 3. Khởi tạo và mapping thông tin cơ bản sang Response DTO
         PhieuDatBanResponse res = new PhieuDatBanResponse();
@@ -209,13 +235,14 @@ public class HoaDonThanhToanController {
         res.setThoiGianDat(phieu.getThoiGianDat());
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
-        res.setIdKhachHang(phieu.getIdKhachHang().getId());
 
-        // 4. Mapping thông tin Khách hàng (An toàn khi khách vãng lai)
+        // 4. Mapping thông tin Khách hàng
         if (phieu.getIdKhachHang() != null) {
+            res.setIdKhachHang(phieu.getIdKhachHang().getId());
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
             res.setSdtKhachHang(phieu.getIdKhachHang().getSoDienThoai());
         } else {
+            res.setIdKhachHang(null);
             res.setTenKhachHang("Khách vãng lai");
             res.setSdtKhachHang("N/A");
         }
@@ -231,8 +258,7 @@ public class HoaDonThanhToanController {
             }
         }
 
-        // 6. LOGIC QUAN TRỌNG: Lấy Hóa đơn và Chi tiết món ăn để gửi về Frontend
-        // Tìm hóa đơn gắn với Phiếu đặt bàn này
+        // 6. LOGIC QUAN TRỌNG: Lấy Hóa đơn... (Giữ nguyên y hệt code cũ của bạn từ đoạn này trở đi)
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
 
         // Nếu chưa tìm thấy qua Phiếu, thử tìm qua Bàn đang hoạt động (Đảm bảo không bị lọt hóa đơn)
@@ -307,5 +333,44 @@ public class HoaDonThanhToanController {
         }
 
         return ResponseEntity.ok(res);
+    }
+
+    @PutMapping("/huy-phieu-cho")
+    @Transactional
+    public ResponseEntity<?> huyPhieuChoChuaCheckIn(@RequestBody Map<String, Object> payload) {
+        try {
+            Integer idPhieu = Integer.parseInt(payload.get("idPhieu").toString());
+            Boolean isRefundable = Boolean.parseBoolean(payload.get("isRefundable").toString());
+
+            // 1. Tìm phiếu đặt bàn
+            PhieuDatBan phieu = phieuDatBanRepository.findById(idPhieu)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
+
+            // 2. Chuyển trạng thái phiếu về 0 (Đã hủy)
+            phieu.setTrangThai(2);
+            phieuDatBanRepository.save(phieu);
+
+            // 3. Tìm hóa đơn ăn theo phiếu này
+            HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(idPhieu);
+
+            if (hoaDon != null) {
+                if (isRefundable) {
+                    // HOÀN TIỀN (Trạng thái 9)
+                    hoaDon.setTrangThaiHoaDon(9);
+                    // Đẩy toàn bộ tiền cọc sang cột tiền hoàn trả
+                    BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+                    hoaDon.setTienHoanTra(tienCoc);
+                } else {
+                    // KHÔNG HOÀN TIỀN (Trạng thái 8)
+                    hoaDon.setTrangThaiHoaDon(8);
+                    hoaDon.setTienHoanTra(BigDecimal.ZERO);
+                }
+                hoaDonThanhToanRepository.save(hoaDon);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Hủy phiếu thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi Backend: " + e.getMessage()));
+        }
     }
 }

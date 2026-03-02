@@ -62,30 +62,12 @@
     color: white;
 }
 
-/* --- TỐI ƯU NÚT BỎ LỌC (RESET FILTER) --- */
-.btn-reset-filter {
-    background-color: var(--white);
-    color: #6c757d;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    height: 40px; /* Khớp với chiều cao các input khác */
-    padding: 0 20px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Khoảng cách giữa icon và chữ */
-    cursor: pointer;
-    width: fit-content; /* Không để dài 100% nếu không cần thiết */
-    min-width: 120px;
-    font-weight: 500;
-    margin-left: auto; /* Đẩy nút về bên phải để cân bằng với các input */
-}.text-primary-red {
+.text-primary-red {
     color: #8b0000;
 }
 
 .smallest {
-    font-size: 11px;
+    font-size: 14px;
 }
 
 /* Hộp chứa danh sách sản phẩm */
@@ -95,7 +77,7 @@
     transition: all 0.2s;
 }
 
-.vocher-manager-wrapper {
+.voucher-manager-wrapper {
     background: white;
     padding: 20px;
     min-height: 100vh;
@@ -158,10 +140,26 @@
 
 .bg-light-soft { background-color: #f8f9fa; }
 .bg-danger-soft { background-color: #fff5f5; }
-.text-primary-red { color: #8b0000; }
-.btn-red-dark { background: #8b0000; color: white; border: none; padding: 10px 20px; border-radius: 8px; transition: 0.3s; }
-.btn-red-dark:hover { background: #8b0000; transform: translateY(-2px); }
+.btn-red-dark {
+    background-color: #ffffff;
+    color: #8B0000; /* đỏ đô */
+    border: 2px solid #8B0000;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
 
+.btn-red-dark:hover {
+    background-color: #8B0000;
+    color: #ffffff;
+}
+
+.btn-red-dark:focus {
+    background-color: #8B0000;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
 .item-row:hover { background-color: #f1f1f1; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -255,45 +253,8 @@
 }
 
 
-.btn-reset-filter:hover {
-    background-color: #f8f9fa;
-    color: #8b0000;
-    border-color: #8b0000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
 
-/* Hiệu ứng xoay icon nhẹ khi hover */
-.btn-reset-filter:hover i {
-    transform: rotate(180deg);
-    transition: transform 0.5s ease;
-}
 
-/* --- TỐI ƯU NÚT THÊM MỚI (ADD BUTTON) --- */
-.btn-red-dark {
-    background-color: var(--dark-red);
-    color: var(--white) !important;
-    border-radius: 8px;
-    padding: 10px 20px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 6px rgba(96, 0, 0, 0.2);
-    margin-top: 10px; /* Tạo khoảng cách với filter card phía trên */
-}
-
-.btn-red-dark:hover {
-    background-color: #8b0000;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
-}
-
-.btn-red-dark:active {
-    transform: translateY(0);
-}
 
 .app-content{
   background-color: white;
@@ -326,13 +287,6 @@
     border-color: #c0392b;
 }
 
-/* Chỉnh vị trí icon Pen (Bút chì) nếu Switch làm nó bị lệch */
-.action-group {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    justify-content: center;
-}
 
 .edit-icon {
     font-size: 1.2rem;
@@ -362,7 +316,43 @@
  
 box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
+/* Ô select */
+.select2-container--default .select2-selection--single {
+    background-color: #fff !important;
+    border: 1px solid #8B0000 !important;
+}
 
+/* Text hiển thị */
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #8B0000 !important;
+}
+
+/* Mũi tên */
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #8B0000 transparent transparent transparent !important;
+}
+
+/* Option đang được chọn (bỏ nền xanh) */
+.select2-container--default .select2-results__option--highlighted {
+    background-color: #8B0000 !important;
+    color: white !important;
+        border-color: #8B0000 transparent transparent transparent !important;
+
+}
+.custom-multiselect-theme {
+  --ms-border-color: #ced4da;
+  --ms-ring-color: rgba(128, 0, 0, 0.2);
+  --ms-option-bg-selected: #800000;
+  --ms-option-color-selected: #fff;
+  --ms-tag-bg: #800000;
+}
+/* Option được chọn */
+.select2-container--default .select2-results__option--selected {
+    background-color: #8B0000 !important;
+    color: white !important;
+        border-color: #8B0000 transparent transparent transparent !important;
+
+}
 .filter-label {
   font-size: 13px;
   color: #888;
@@ -376,33 +366,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   padding: 8px 12px;
   color: gray;
 }
-/* --- TÙY CHỈNH NÚT THÊM MỚI (Btn Red Dark) --- */
-.btn-red-dark {
-    color: var(--white) !important;
-    border-radius: 8px;
-    padding: 10px 24px;
-    border: 1px solid var(--dark-red);
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 6px rgba(123, 18, 28, 0.2);
-    background-color: #8b0000;
-}
 
-.btn-red-dark:hover {
-    background-color: #8b0000;
-    border-color: #8b0000;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
-    color: white !important;
-}
-
-.btn-red-dark:active {
-    transform: translateY(0);
-}
 
 /* --- TÙY CHỈNH NÚT BỎ LỌC (Btn Reset/Refresh) --- */
 /* Class này áp dụng cho nút có icon xoay trong bộ lọc */
@@ -436,11 +400,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     transition: transform 0.5s ease;
 }
 
-.btn-red-dark:hover {
-  background-color:#8b0000;
-  
-font-weight: bold;
-}
+
 
 /* Nút bấm */
 .btn-red-btn-outline-secondary {
@@ -477,22 +437,8 @@ font-weight: bold;
     box-shadow: 0 0 0 0.25rem rgba(123, 18, 28, 0.25);
 }
 
-.action-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-}
 .btn-red-btn-outline-secondary:hover {
   background-color: #8b0000;
-}
-
-/* Table styling */
-.table-container {
-  background: var(--white);
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
 .custom-table thead {
@@ -575,7 +521,7 @@ font-weight: bold;
 
 .custom-table th {
   padding: 15px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   border: none;
   text-transform: uppercase;
@@ -586,14 +532,6 @@ font-weight: bold;
   font-size: 14px;
   vertical-align: middle;
   border-bottom: 1px solid #eee;
-}
-
-/* Switch & Eye icon */
-.action-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* gap: 15px; */
 }
 
 .eye-icon {
@@ -626,27 +564,6 @@ font-weight: bold;
   white-space: nowrap; /* Giúp bảng to ra, không bị xuống dòng chữ */
 }
 
-.custom-table th {
-  background-color: #8b0000 !important;
-  color: #fff !important;
-  text-align: center;
-  font-size: 12px; /* Chữ nhỏ lại một chút cho chuyên nghiệp */
-}
-
-.custom-table td {
-  text-align: center;
-  font-size: 13px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-/* Định dạng icon trong cột Chi tiết */
-.action-group {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  color: #333;
-}
-
 .eye-icon, .edit-icon {
   cursor: pointer;
   font-size: 16px;
@@ -666,7 +583,7 @@ font-weight: bold;
   width: 100%;
   overflow-x: auto; /* Cho phép cuộn ngang nếu màn hình quá nhỏ */
   background: #fff;
-  border-radius: 8px;
+  border-radius: 25px;
 }
 
 .text-muted {
@@ -679,14 +596,12 @@ font-weight: bold;
     opacity: 0.5;
 }
 
-.action-group i {
-    margin: 0 8px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.2s;
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
-
-
 /* voucherStyle.css */
 
 .filter-sub-card {
@@ -723,13 +638,6 @@ font-weight: bold;
    font-weight: normal;
 }
 
-/* Toast Notification */
-.toast-container {
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 9999;
-}
 /* Wrapper chung cho cả 2 bảng */
 .customer-table-wrapper {
     background: #ffffff;
@@ -786,20 +694,6 @@ font-weight: bold;
     color: #842029;
 }
 
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #ffffff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    margin-bottom: 10px;
-    animation: slideIn 0.4s ease forwards;
-}
-
 .custom-toast.error { border-left-color: #e74c3c; }
 .custom-toast.error i { color: #e74c3c; }
 
@@ -808,14 +702,7 @@ font-weight: bold;
 .custom-toast-content p { margin: 4px 0 0; font-size: 14px; color: #555; }
 .custom-toast .close-btn { margin-left: auto; font-size: 20px; color: #999; cursor: pointer; }
 
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateX(100%); }
-}.search-customer .btn {
+.search-customer .btn {
     border-left: 0;
 }
 
@@ -824,38 +711,9 @@ font-weight: bold;
     cursor: not-allowed;
 }
 
-
-
-
-/* Toast Notification Container */
-.toast-container {
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 9999;
+.rounded {
+    border-radius: 20px !important;
 }
-
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #ffffff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    margin-bottom: 10px;
-    animation: slideIn 0.4s ease forwards;
-}
-
-
-
-.custom-toast.error { border-left-color: #e74c3c; }
-.custom-toast.error i { color: #e74c3c; }
-.custom-toast i { font-size: 32px; color: #e74c3c; }
-.custom-toast .close { margin-left: auto; cursor: pointer; color: #999; }
-
 /* Modal Confirm */
 .voucher-manager-wrapper.modal-overlay {
     position: fixed;
@@ -933,39 +791,87 @@ font-weight: bold;
     color: #800000;
     /* Màu đỏ sẫm tiêu đề */
 }
+/* ===== SELECT2 FILTER STYLE ===== */
 
+.select2-container--default .select2-selection--single {
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    padding: 6px 12px;
+}
+
+.select2-container--default.select2-container--focus 
+.select2-selection--single {
+    border-color: #8b0000;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.15);
+}
+
+.select2-dropdown {
+    border-radius: 10px;
+}
+
+.select2-container--default 
+.select2-results__option--highlighted {
+    background-color: #8b0000;
+}
+.global-loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(3px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-box {
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease;
+}
+
+.loading-box i {
+    color: #800000;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
 .badge-neutral {
     background-color: #F1F3F4;
     color: #444;
     font-weight: 500;
+    font-size: 14px;
 }
 .fw-bold {
     font-weight: 400 !important;
 }
-.custom-input {
-    border-radius: 8px;
-    padding: 10px 12px;
-    border: 1px solid #dee2e6;
-}
-
-.custom-input:focus {
-    border-color: #800000;
-    box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.1);
-}
 
 .btn-red-dark {
-    background-color: #800000;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    transition: all 0.3s;
+    background-color: #ffffff;
+    color: #8B0000; /* đỏ đô */
+    border: 2px solid #8B0000;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .btn-red-dark:hover {
-    background-color: #600000;
-    transform: translateY(-1px);
+    background-color: #8B0000;
+    color: #ffffff;
 }
 
+.btn-red-dark:focus {
+    background-color: #8B0000;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
 .table-responsive {
     border: 1px solid white;
     border-radius: 8px;
@@ -1041,34 +947,11 @@ font-weight: bold;
 .input-group:focus-within input {
     border-color: #d32f2f;
 }
-
 .toast-container {
     position: fixed;
     top: 30px;
     right: 30px;
     z-index: 9999;
-}
-
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #fff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    margin-bottom: 15px;
-    animation: slideIn 0.4s ease forwards;
-}
-
-.custom-toast.error {
-    border-left-color: #e74c3c;
-}
-
-.custom-toast.error i {
-    color: #e74c3c;
 }
 
 .modal-overlay {
@@ -1099,11 +982,6 @@ font-weight: bold;
 
 .is-invalid {
     border-color: #dc3545 !important;
-}
-
-.disabled-icon {
-    opacity: 0.3;
-    cursor: not-allowed;
 }
 
 .transition-all {
@@ -1206,7 +1084,7 @@ font-weight: bold;
     width: 100%;
     background: #fff;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 8px
 }
 
 

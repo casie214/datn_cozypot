@@ -64,7 +64,9 @@ public class AuthController {
                 nv.getId(),
                 nv.getTenDangNhap(),
                 nv.getHoTenNhanVien(),
-                nv.getSdtNhanVien()));
+                nv.getEmail(),         // Bổ sung email
+                nv.getSdtNhanVien()    // SDT đã có
+        ));
     }
 
     @PostMapping("/client/login")
@@ -100,7 +102,8 @@ public class AuthController {
                 kh.getId(),
                 kh.getTenDangNhap(),
                 kh.getTenKhachHang(),
-                kh.getSoDienThoai()
+                kh.getEmail(),         // Bổ sung email
+                kh.getSoDienThoai()    // SDT đã có
         ));
     }
 
