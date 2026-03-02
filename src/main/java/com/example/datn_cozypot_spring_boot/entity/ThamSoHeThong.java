@@ -3,12 +3,7 @@ package com.example.datn_cozypot_spring_boot.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
+import lombok.*;
 
 import java.time.Instant;
 
@@ -17,8 +12,14 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "tham_so_he_thong")
+@Table(
+        name = "tham_so_he_thong",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UQ_ma_tham_so", columnNames = "ma_tham_so")
+        }
+)
 public class ThamSoHeThong {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tham_so", nullable = false)
@@ -31,14 +32,12 @@ public class ThamSoHeThong {
 
     @Size(max = 100)
     @NotNull
-    @Nationalized
     @Column(name = "ten_tham_so", nullable = false, length = 100)
     private String tenThamSo;
 
     @Size(max = 255)
     @NotNull
-    @Nationalized
-    @Column(name = "gia_tri", nullable = false)
+    @Column(name = "gia_tri", nullable = false, length = 255)
     private String giaTri;
 
     @Size(max = 50)
@@ -46,16 +45,22 @@ public class ThamSoHeThong {
     private String kieuDuLieu;
 
     @Size(max = 255)
-    @Nationalized
     @Column(name = "mo_ta")
     private String moTa;
 
-    @ColumnDefault("getdate()")
     @Column(name = "ngay_cap_nhat")
     private Instant ngayCapNhat;
 
-    @ColumnDefault("1")
     @Column(name = "trang_thai")
-    private Integer trangThai;
+    private Integer trangThai = 1;
 
+    // 🔥 Tự động set ngày khi insert/update
+    @PrePersist
+    @PreUpdate
+    public void updateTimestamp() {
+        this.ngayCapNhat = Instant.now();
+        if (this.trangThai == null) {
+            this.trangThai = 1;
+        }
+    }
 }

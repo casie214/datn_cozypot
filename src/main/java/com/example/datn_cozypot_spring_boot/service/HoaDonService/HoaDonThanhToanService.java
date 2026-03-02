@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,9 @@ public class HoaDonThanhToanService {
 
     @Autowired
     BanAnRepository banAnRepo;
+
+    @Autowired
+    PhieuDatBanRepository phieuDatBanRepository;
 
     @Autowired
     DanhMucChiTietRepository chiTietDanhMucChiTietRepository;
@@ -120,6 +124,12 @@ public class HoaDonThanhToanService {
             banAnRepo.save(hd.getIdBanAn());
         }
 
+        if (hd.getIdPhieuDatBan() != null) {
+            PhieuDatBan phieu = hd.getIdPhieuDatBan();
+            phieu.setTrangThai(2);
+            phieuDatBanRepository.save(phieu);
+        }
+
         hoaDonThanhToanRepository.save(hd);
 
         LichSuHoaDon log = new LichSuHoaDon();
@@ -159,7 +169,7 @@ public class HoaDonThanhToanService {
         Instant now = Instant.now();
 
         hd.setTrangThaiHoaDon(6);
-        hd.setThoiGianThanhToan(now);
+        hd.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
         hoaDonThanhToanRepository.save(hd);
 
         if (hd.getIdBanAn() != null){
