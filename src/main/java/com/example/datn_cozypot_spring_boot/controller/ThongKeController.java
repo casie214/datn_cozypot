@@ -29,9 +29,12 @@ public class ThongKeController {
     @Autowired
     private ThongKeService thongKeService;
     @GetMapping("/doanh-thu")
-    public ThongKeDoanhThuDTO layDoanhThu(@RequestParam(name = "loai", defaultValue = "Tháng này") String loai) {
-        // Gọi hàm xử lý chung và truyền tham số "loai" vào
-        return thongKeService.layThongKeTheoLoai(loai);
+    public ThongKeDoanhThuDTO layDoanhThu(
+            @RequestParam(name = "loai", defaultValue = "Tháng này") String loai,
+            @RequestParam(required = false) String tuNgay,
+            @RequestParam(required = false) String denNgay
+    ) {
+        return thongKeService.layThongKeTheoLoai(loai, tuNgay, denNgay);
     }
 
     @GetMapping("/trang-thai-don-hang")
