@@ -17,13 +17,9 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Trạng thái</label>
-                            <select v-model="status" class="form-select custom-input">
-                                <option value="">Tất cả</option>
-                                <option value="1">Hoạt động</option>
-                                <option value="0">Ngưng hoạt động</option>
-                            </select>
+                            <Multiselect v-model="status" :options="statusOptions" label="label" track-by="value"
+                                placeholder="Chọn trạng thái" :allow-empty="true" :close-on-select="true" />
                         </div>
-
                         <div class="col-md-3 d-flex align-items-end gap-2">
                             <button class="btn-reset-filter w-100" @click="resetFilters">
                                 <i class="fas fa-sync-alt"></i> Làm mới
@@ -67,8 +63,20 @@
                             </td>
 
                             <td class="text-center">
-                                <button class="btn-icon"><i class="fas fa-eye"></i></button>
-                                <button class="btn-icon"><i class="fas fa-pen"></i></button>
+                                <div class="action-wrapper">
+                                    <button class="btn-icon" @click="openViewModal(item)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+
+                                    <button class="btn-icon" @click="openEditModal(item)">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input custom-red-switch" type="checkbox"
+                                            :checked="item.trangThai === 1" @change="toggleStatus(item)" />
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -132,27 +140,327 @@
                 </div>
             </div>
         </div>
+        <!-- EDIT MODAL -->
+        <div v-if="showModal" class="modal-overlay">
+            <div class="custom-modal">
 
+                <div class="modal-header">
+                    <h5>Chỉnh sửa tham số</h5>
+                    <button class="close-btn" @click="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Mã tham số</label>
+                        <input type="text" class="form-control" v-model="editingItem.maThamSo" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tên tham số</label>
+                        <input type="text" class="form-control" v-model="editingItem.tenThamSo">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá trị</label>
+                        <input type="text" class="form-control" v-model="editingItem.giaTri">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kiểu dữ liệu</label>
+
+                        <Multiselect v-model="editingItem.kieuDuLieu" :options="dataTypeOptions" label="label"
+                            track-by="value" placeholder="Chọn kiểu dữ liệu" :allow-empty="false"
+                            :open-direction="'bottom'" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea type="text" class="form-control" v-model="editingItem.moTa"></textarea>
+                    </div>
+
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn-cancel" @click="closeModal">Hủy</button>
+                    <button class="btn-save" @click="handleSave">Lưu</button>
+                </div>
+
+            </div>
+        </div>
+        <!-- VIEW MODAL -->
+        <div v-if="showViewModal" class="modal-overlay">
+            <div class="custom-modal">
+
+                <div class="modal-header">
+                    <h5>Chi tiết tham số</h5>
+                    <button class="close-btn" @click="closeViewModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Mã tham số</label>
+                        <input type="text" class="form-control" v-model="editingItem.maThamSo" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tên tham số</label>
+                        <input type="text" class="form-control" v-model="editingItem.tenThamSo" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Giá trị</label>
+                        <input type="text" class="form-control" v-model="editingItem.giaTri" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kiểu dữ liệu</label>
+                        <input type="text" class="form-control" v-model="editingItem.kieuDuLieu" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" v-model="editingItem.moTa" disabled></textarea>
+                    </div>
+
+
+                    <div class="mb-3">
+                        <label class="form-label">Trạng thái</label>
+                        <input type="text" class="form-control"
+                            :value="editingItem.trangThai === 1 ? 'Hoạt động' : 'Ngưng hoạt động'" disabled>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn-cancel" @click="closeViewModal">
+                        Đóng
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        <!-- SUCCESS TOAST -->
+        <div v-if="showToast" class="toast-success">
+            <i class="fa-solid fa-circle-check"></i>
+            <div class="toast-content">
+                <h4>{{ toastTitle }}</h4>
+                <p>{{ toastMessage }}</p>
+            </div>
+        </div>
+        <!-- CONFIRM MODAL -->
+        <transition name="fade">
+            <div v-if="showConfirmModal" class="confirm-overlay">
+                <div class="confirm-modal">
+
+                    <div class="confirm-icon">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+
+                    <h2>Xác nhận lưu dữ liệu</h2>
+                    <p>
+                        Xác nhận thay đổi thông tin tham số
+                    </p>
+
+                    <div class="confirm-actions">
+                        <button class="btn-cancel" @click="showConfirmModal = false" :disabled="confirmLoading">
+                            Hủy bỏ
+                        </button>
+
+                        <button class="btn-confirm" @click="confirmSave" :disabled="confirmLoading">
+                            <span v-if="!confirmLoading">Xác nhận</span>
+                            <span v-else>
+                                <i class="fa fa-spinner fa-spin"></i>
+                                Đang xử lý...
+                            </span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch ,onUnmounted} from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
+import axios from 'axios'
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.css'
+const dataTypeOptions = ref([
+    { label: "String", value: "STRING" },
+    { label: "Integer", value: "INTEGER" },
+    { label: "Double", value: "DOUBLE" },
+    { label: "Boolean", value: "BOOLEAN" },
+    { label: "Date", value: "DATE" },
+        { label: "DECIMAL", value: "DECIMAL" },
 
+])
 const keyword = ref('')
-const status = ref('')
+const status = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(5)
+const showToast = ref(false)
+const toastTitle = ref('')
+const toastMessage = ref('')
+const pendingEditItem = ref(null)
+const handleSave = () => {
+    pendingEditItem.value = { ...editingItem.value }
+    showConfirmModal.value = true
+}
+const userRole = ref(null)
 
-const list = ref([
-    { id: 1, maThamSo: 'VAT', tenThamSo: 'Thuế VAT', giaTri: '10', kieuDuLieu: 'Double', trangThai: 1 },
-    { id: 2, maThamSo: 'MIN_RESERVE', tenThamSo: 'Thời gian đặt trước tối thiểu', giaTri: '30', kieuDuLieu: 'Integer', trangThai: 1 },
-    { id: 3, maThamSo: 'MAX_HOLD_TIME', tenThamSo: 'Thời gian giữ bàn', giaTri: '15', kieuDuLieu: 'Integer', trangThai: 0 },
-    { id: 4, maThamSo: 'TIME_OUT', tenThamSo: 'Timeout', giaTri: '60', kieuDuLieu: 'Integer', trangThai: 1 },
-    { id: 5, maThamSo: 'POINT_RATE', tenThamSo: 'Tỷ lệ tích điểm', giaTri: '5', kieuDuLieu: 'Double', trangThai: 1 },
-    { id: 6, maThamSo: 'MAX_ORDER', tenThamSo: 'Giới hạn đơn', giaTri: '20', kieuDuLieu: 'Integer', trangThai: 0 }
-])
+onMounted(() => {
+    fetchSystemParams()
 
+    const token = localStorage.getItem("token")
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            userRole.value = payload.role || payload.roles
+        } catch (e) {
+            console.error("Lỗi decode token")
+        }
+    }
+})
+
+const isAdmin = computed(() => userRole.value === "ADMIN")
+const confirmSave = async () => {
+    try {
+        confirmLoading.value = true
+
+        await axios.put(
+            `http://localhost:8080/api/tham-so-he-thong/${pendingEditItem.value.id}`,
+            {
+                ...pendingEditItem.value,
+                kieuDuLieu: pendingEditItem.value.kieuDuLieu.value
+            },
+            authConfig()
+        )
+
+        await fetchSystemParams()
+
+        showConfirmModal.value = false
+        showModal.value = false
+
+        showSuccessToast(
+            "Cập nhật thành công",
+            `Tham số "${pendingEditItem.value.tenThamSo}" đã được cập nhật`
+        )
+
+    } catch (error) {
+        console.error("Lỗi cập nhật", error)
+    } finally {
+        confirmLoading.value = false
+        pendingEditItem.value = null
+    }
+}
+const showSuccessToast = (title, message) => {
+    toastTitle.value = title
+    toastMessage.value = message
+    showToast.value = true
+
+    setTimeout(() => {
+        showToast.value = false
+    }, 4000)
+}
+const list = ref([]) // ❌ bỏ dữ liệu fake
+const fetchSystemParams = async () => {
+    try {
+        const token = localStorage.getItem('token')
+
+        const response = await axios.get(
+            'http://localhost:8080/api/tham-so-he-thong',
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        )
+
+        list.value = response.data
+
+    } catch (error) {
+        console.error('Lỗi khi load tham số hệ thống:', error)
+    }
+}
+
+const authConfig = () => ({
+    headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+    }
+})
+const showConfirmModal = ref(false)
+const confirmLoading = ref(false)
+const showModal = ref(false)
+const editingItem = ref({})
+const showViewModal = ref(false)
+
+const openViewModal = (item) => {
+    editingItem.value = { ...item }
+    showViewModal.value = true
+}
+
+const closeViewModal = () => {
+    showViewModal.value = false
+}
+const openEditModal = (item) => {
+    editingItem.value = {
+        ...item, moTa: item.moTa || '', kieuDuLieu: dataTypeOptions.value.find(
+            opt => opt.value === item.kieuDuLieu
+        )
+    } // clone để tránh sửa trực tiếp
+    showModal.value = true
+}
+
+const closeModal = () => {
+    showModal.value = false
+}
+const saveEdit = async () => {
+    try {
+        await axios.put(
+            `http://localhost:8080/api/tham-so-he-thong/${editingItem.value.id}`,
+            editingItem.value,
+            authConfig()
+        )
+
+        await fetchSystemParams()
+        showModal.value = false
+
+        showSuccessToast(
+            "Cập nhật thành công",
+            `Tham số "${editingItem.value.tenThamSo}" đã được cập nhật`
+        )
+
+    } catch (error) {
+        console.error("Lỗi cập nhật", error)
+    }
+}
+const toggleStatus = async (item) => {
+    const oldStatus = item.trangThai
+    item.trangThai = item.trangThai === 1 ? 0 : 1
+
+    try {
+        await axios.put(
+            `http://localhost:8080/api/tham-so-he-thong/update-status/${item.maThamSo}`,
+            { trangThai: item.trangThai },
+            authConfig()
+        )
+
+        showSuccessToast(
+            "Cập nhật trạng thái thành công",
+            `Tham số "${item.tenThamSo}" đã được ${item.trangThai === 1 ? "kích hoạt" : "ngưng hoạt động"}`
+        )
+
+    } catch (error) {
+        item.trangThai = oldStatus
+        console.error("Lỗi cập nhật trạng thái", error)
+    }
+}
 const changePage = (step) => {
     const newPage = currentPage.value + step
     if (newPage >= 1 && newPage <= totalPages.value) {
@@ -170,9 +478,9 @@ const filteredList = computed(() => {
             item.tenThamSo.toLowerCase().includes(keyword.value.toLowerCase())
 
         const matchStatus =
-            status.value === '' ||
-            item.trangThai.toString() === status.value
-
+            !status.value ||
+            status.value.value === '' ||
+            item.trangThai.toString() === status.value.value
         return matchKeyword && matchStatus
     })
 })
@@ -186,28 +494,30 @@ const paginatedList = computed(() => {
     return filteredList.value.slice(start, start + pageSize.value)
 })
 
-const toggleStatus = (item) => {
-    item.trangThai = item.trangThai === 1 ? 0 : 1
-}
-
 const resetFilters = () => {
     keyword.value = ''
-    status.value = ''
+    status.value = null
     currentPage.value = 1
 }
 watch([keyword, status], () => {
     currentPage.value = 1
 })
-
+onMounted(() => {
+    fetchSystemParams()
+})
+const statusOptions = ref([
+    { label: "Tất cả", value: "" },
+    { label: "Hoạt động", value: "1" },
+    { label: "Ngưng hoạt động", value: "0" }
+])
 </script>
 
-<style scoped>
+<style >
 /* ================= WRAPPER ================= */
 .manager-wrapper {
-    background: #fff;
-    padding-left: 10px;
-    padding-right: 20px;
-
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 18px;
 }
 
 /* ================= TITLE ================= */
@@ -216,7 +526,24 @@ watch([keyword, status], () => {
     font-weight: 700;
 }
 
-/* ===== TABLE CARD ===== */
+/* ================= FILTER CARD ================= */
+.filter-card {
+    border-radius: 18px;
+    border: 1px solid #e5e7eb;
+}
+
+.custom-input {
+    border-radius: 12px;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+}
+
+.custom-input:focus {
+    border-color: #8B0000;
+    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
+}
+
+/* ================= TABLE ================= */
 .table-responsive {
     background: #ffffff;
     border-radius: 18px;
@@ -224,53 +551,42 @@ watch([keyword, status], () => {
     border: 1px solid #e5e7eb;
 }
 
-/* ===== HEADER ===== */
 .custom-table {
     margin-bottom: 0;
 }
 
 .custom-table thead {
-    background: #8B0D0D;
-    color: #fff;
+    background: #8B0000;
+    color: #ffffff;
 }
 
 .custom-table thead th {
-    padding: 18px 20px;
+    padding: 16px;
     font-weight: 600;
     font-size: 14px;
     border: none;
 }
 
-/* ===== BODY ===== */
 .custom-table tbody tr {
-    background: #f9fafb;
     border-bottom: 1px solid #e5e7eb;
-    height: 56px;
+    transition: 0.2s;
+}
+
+.custom-table tbody tr:hover {
+    background: #f9fafb;
 }
 
 .custom-table td {
-    padding: 16px 20px;
     font-size: 14px;
     vertical-align: middle;
+
 }
 
-/* Hover nhẹ */
-.custom-table tbody tr:hover {
-    background: #f3f4f6;
-}
-
-/* STT mảnh */
-.custom-table td:first-child {
-    width: 60px;
-    text-align: center;
-    font-weight: 400;
-}
-
-/* ===== STATUS BADGE ===== */
+/* ================= STATUS BADGE ================= */
 .status-active {
-    background: #d1fae5;
-    color: #065f46;
-    padding: 8px 16px;
+    background: #dcfce7;
+    color: #166534;
+    padding: 6px 14px;
     border-radius: 999px;
     font-weight: 500;
     font-size: 13px;
@@ -278,22 +594,22 @@ watch([keyword, status], () => {
 
 .status-inactive {
     background: #fee2e2;
-    color: #b91c1c;
-    padding: 8px 16px;
+    color: #991b1b;
+    padding: 6px 14px;
     border-radius: 999px;
     font-weight: 500;
     font-size: 13px;
 }
 
-/* ===== ACTION ICON ===== */
+/* ================= ACTION BUTTON ================= */
 .btn-icon {
     border: none;
-    background: #e5e7eb;
-    width: 38px;
-    height: 38px;
+    background: white;
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
     margin: 0 4px;
-    transition: 0.2s;
+    transition: 0.2s ease;
 }
 
 .btn-icon i {
@@ -301,231 +617,43 @@ watch([keyword, status], () => {
 }
 
 .btn-icon:hover {
-    background: #8B0D0D;
+    background: #8B0000;
+    transform: scale(1.1);
 }
 
 .btn-icon:hover i {
-    color: #fff;
+    color: #ffffff;
 }
 
+/* ================= PAGINATION ================= */
 .pagination-wrapper {
-    background: #ffffff;
-    padding: 20px 25px;
+    padding: 18px 24px;
     border-top: 1px solid #e5e7eb;
+    background: #ffffff;
 }
 
 /* Dropdown */
 .pagination-wrapper select {
     border-radius: 10px;
     padding: 6px 10px;
+    border: 1px solid #d1d5db;
 }
 
-/* Nút page */
+/* Page buttons */
 .btn-page {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     border: 1px solid #d1d5db;
-    background: #fff;
-    color: #8B0D0D;
-    transition: 0.2s;
-}
-
-.btn-page:hover:not(:disabled) {
-    background: #8B0D0D;
-    color: #fff;
-    border-color: #8B0D0D;
-}
-
-.btn-page:disabled {
-    opacity: 0.4;
-}
-
-/* Page number */
-.page-number {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    margin: 0 6px;
-    border: 1px solid #d1d5db;
-    cursor: pointer;
-}
-
-.page-number.active {
-    background: #8B0D0D;
-    color: #fff;
-    border-color: #8B0D0D;
-}
-
-/* Tooltip box */
-.icon-tooltip .tooltip-text {
-    position: absolute;
-    bottom: 135%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: #fff;
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 6px;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
-    pointer-events: none;
-    z-index: 1000;
-}
-
-/* Arrow */
-.icon-tooltip .tooltip-text::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 6px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
-}
-
-/* Hover show */
-.icon-tooltip:hover .tooltip-text {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(-4px);
-}
-
-/* INPUT */
-.custom-input {
-    border-radius: 12px;
-    padding: 10px;
-}
-
-/* MAIN BUTTON */
-.btn-main {
-    background: #8B0000;
-    color: white;
-    border-radius: 10px;
-    padding: 8px 18px;
-    font-weight: 600;
-}
-
-.btn-main:hover {
-    background: #6f0000;
-}
-
-/* REFRESH BUTTON */
-.btn-refresh {
-    background: #f3f3f3;
-    border-radius: 10px;
-}
-
-/* TABLE */
-.custom-table thead {
-    background: #8B0000;
-    color: white;
-}
-
-.custom-table th {
-    padding: 14px;
-    font-weight: 600;
-}
-
-.custom-table td {
-    padding: 14px;
-}
-
-/* ACTION */
-.btn-action {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-/* TOGGLE SWITCH */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 42px;
-    height: 22px;
-}
-
-.switch input {
-    display: none;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    background-color: #ccc;
-    border-radius: 22px;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transition: 0.3s;
-}
-
-.slider:before {
-    content: "";
-    position: absolute;
-    height: 18px;
-    width: 18px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    border-radius: 50%;
-    transition: 0.3s;
-}
-
-input:checked+.slider {
-    background-color: #8B0000;
-}
-
-input:checked+.slider:before {
-    transform: translateX(20px);
-}
-
-/* ACTION ICON STYLE */
-.btn-action {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 6px;
-    border-radius: 8px;
-    transition: 0.2s ease;
-}
-
-.btn-view i {
-    color: #333;
-}
-
-.btn-edit i {
-    color: #333;
-}
-
-.btn-action:hover {
-    background-color: #f3f3f3;
-    transform: scale(1.1);
-}
-
-.btn-page {
-    border: 1px solid #8B0000;
-    background: white;
+    background: #ffffff;
     color: #8B0000;
-    padding: 4px 10px;
-    border-radius: 8px;
     transition: 0.2s;
 }
 
 .btn-page:hover:not(:disabled) {
     background: #8B0000;
-    color: white;
+    color: #ffffff;
+    border-color: #8B0000;
 }
 
 .btn-page:disabled {
@@ -533,11 +661,325 @@ input:checked+.slider:before {
     cursor: not-allowed;
 }
 
+/* Page number */
 .page-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    margin: 0 4px;
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.page-number:hover {
+    background: #f3f4f6;
+}
+
+.page-number.active {
     background: #8B0000;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 8px;
+    color: #ffffff;
+    border-color: #8B0000;
+}
+
+/* ================= RESET BUTTON ================= */
+.btn-reset-filter {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.btn-reset-filter:hover {
+    background: #8B0000;
+    color: #ffffff;
+}
+
+/* ================= MODAL ================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.custom-modal {
+    background: #ffffff;
+    width: 500px;
+    border-radius: 16px;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h5 {
+    color: #8B0000;
     font-weight: 600;
+}
+
+.close-btn {
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-cancel {
+    background: #f3f4f6;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+}
+
+.btn-save {
+    background: #8B0000;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+}
+
+.btn-save:hover {
+    opacity: 0.9;
+}
+
+@keyframes fadeIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ================= CUSTOM RED SWITCH ================= */
+
+.form-switch .form-check-input.custom-red-switch {
+    width: 2.5em;
+    height: 1.2em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+/* OFF */
+.form-switch .form-check-input.custom-red-switch {
+    background-color: #e9ecef;
+}
+
+/* ON - đỏ đô */
+.form-switch .form-check-input.custom-red-switch:checked {
+    background-color: #8B0000;
+    border-color: #8B0000;
+}
+
+/* Focus */
+.form-switch .form-check-input.custom-red-switch:focus {
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
+
+/* ================= SUCCESS TOAST ================= */
+
+.toast-success {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #ffffff;
+    border-left: 6px solid #8B0000;
+    padding: 16px 20px;
+    border-radius: 14px;
+    width: 380px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.4s ease;
+    z-index: 99999;
+}
+
+.toast-success i {
+    font-size: 28px;
+    color: #8B0000;
+}
+
+.toast-success h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.toast-success p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #555;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ===== OVERLAY ===== */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* ===== MODAL ===== */
+.confirm-modal {
+    width: 500px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px 30px;
+    text-align: center;
+    animation: scaleIn 0.25s ease;
+}
+
+/* ICON */
+.confirm-icon {
+    font-size: 28px;
+    color: #1e2a38;
+    margin-bottom: 15px;
+}
+
+.confirm-modal h2 {
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.confirm-modal p {
+    color: #6c757d;
+    font-size: 15px;
+    margin-bottom: 30px;
+}
+
+/* BUTTONS */
+.confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn-cancel {
+    background: #eee;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.btn-confirm {
+    background: #a50000;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* ANIMATION */
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.multiselect {
+    border-radius: 12px;
+}
+
+.multiselect__option--highlight {
+    background: #8B0000 !important;
+}
+
+.multiselect__tag {
+    background: #8B0000;
+}
+
+.action-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.multiselect {
+    min-height: 44px;
+}
+
+.multiselect__tags {
+    border-radius: 12px;
+    border: 1px solid #d1d5db;
+}
+
+.multiselect:focus-within .multiselect__tags {
+    border-color: #8B0000;
+    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
+}
+
+.multiselect--active .multiselect__tags {
+    border-color: #8B0000 !important;
+    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1) !important;
+}
+
+.multiselect__option--selected {
+    background: #8B0000 !important;
+    color: #ffffff !important;
+}
+
+.multiselect__option--highlight {
+    background: #8B0000 !important;
+    color: #ffffff !important;
 }
 </style>
