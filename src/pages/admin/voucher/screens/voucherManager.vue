@@ -162,7 +162,7 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <div class="action-group d-flex justify-content-center gap-2">
+                                <div class="action-group d-flex justify-content-center gap-3">
 
                                     <div class="icon-tooltip">
                                         <i class="fas fa-eye view-icon" @click="openFormView(pg.id)"></i>
@@ -172,8 +172,7 @@
                                     <div class="icon-tooltip">
                                         <i class="fas fa-pen edit-icon"
                                             :class="{ 'disabled-icon': getStatusDisplay(pg).text === 'Hết hạn' }"
-                                            @click="getStatusDisplay(pg).text !== 'Hết hạn' && handleActionWithAuth(() => openFormEdit(pg.id), 'ADMIN')">
-                                        </i>
+                                            @click="getStatusDisplay(pg).text !== 'Hết hạn' && openFormEdit(pg.id)"></i>
                                         <span class="tooltip-text">Chỉnh sửa</span>
                                     </div>
 
@@ -181,16 +180,17 @@
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input custom-red-switch" type="checkbox"
                                                 :checked="pg.trangThai === 1" :disabled="isExpired(pg.ngayKetThuc)"
-                                                @click.prevent="!isExpired(pg.ngayKetThuc) && handleActionWithAuth(() => triggerToggleStatus(pg), 'ADMIN')" />
+                                                @click.prevent="!isExpired(pg.ngayKetThuc) && triggerToggleStatus(pg)" />
                                         </div>
 
                                         <span class="tooltip-text">
                                             {{ isExpired(pg.ngayKetThuc)
                                                 ? 'Phiếu giảm giá đã hết hạn'
-                                            : 'Bật / Tắt phiếu giảm giá' }}
+                                                : 'Bật / Tắt phiếu giảm giá' }}
                                         </span>
                                     </div>
                                 </div>
+
                             </td>
                         </tr>
                         <tr v-if="listPhieuGiamGia.length === 0">
@@ -655,9 +655,6 @@ import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
-import { usePermission } from "@/components/permissionHelper";
-const { handleActionWithAuth } = usePermission();
-
 const formatCurrency = (value) => {
     if (!value) return '0 đ'
     return value.toLocaleString('vi-VN') + ' đ'
