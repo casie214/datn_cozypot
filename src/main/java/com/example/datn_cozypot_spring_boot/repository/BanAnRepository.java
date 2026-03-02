@@ -36,4 +36,7 @@ LEFT JOIN PhieuDatBan p
 
 
     List<BanAn> findByTrangThai(int i);
+
+    @Query("SELECT b FROM BanAn b WHERE b.soNguoiToiDa >= :soNguoi")
+    List<BanAn> findBanPhuHopChoDatBan(@Param("soNguoi") Integer soNguoi);
 }

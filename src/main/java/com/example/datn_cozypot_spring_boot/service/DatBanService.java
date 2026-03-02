@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanRequest;
 import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
@@ -20,6 +21,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -59,6 +62,8 @@ public class DatBanService {
     @Autowired
     private EmailDatBanService emailDatBanService;
 
+    @Autowired
+    private ChiTietHoaDonRepository chiTietHoaDonRepository;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
@@ -548,6 +553,173 @@ public class DatBanService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         kv.setTrangThai(0);
         khuVucRepository.save(kv);
+    }
+
+    private BanAn timBanTrongDauTien(DatBanRequest request) {
+        LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
+        LocalDateTime thoiGianKhachVe = thoiGianKhachDen.plusHours(2); // Mặc định giữ bàn 2 tiếng
+
+        List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
+        if (danhSachBanPhuHop.isEmpty()) return null;
+
+        LocalDateTime startOfDay = request.getNgayDat().atStartOfDay();
+        LocalDateTime endOfDay = request.getNgayDat().atTime(23, 59, 59);
+        List<PhieuDatBan> cacPhieuTrongNgay = phieuDatBanRepository.findPhieuDatBanTrongNgay(startOfDay, endOfDay);
+
+        for (BanAn ban : danhSachBanPhuHop) {
+            boolean isBanTrong = true;
+            for (PhieuDatBan phieu : cacPhieuTrongNgay) {
+                if (phieu.getIdBanAn() != null && phieu.getIdBanAn().getId().equals(ban.getId())) {
+                    LocalDateTime gioBatDau = phieu.getThoiGianDat();
+                    LocalDateTime gioKetThuc = gioBatDau.plusHours(2);
+
+                    if (thoiGianKhachDen.isBefore(gioKetThuc) && thoiGianKhachVe.isAfter(gioBatDau)) {
+                        isBanTrong = false;
+                        break;
+                    }
+                }
+            }
+            if (isBanTrong) return ban; // Thấy bàn trống phát là chốt luôn!
+        }
+        return null; // Không còn cái bàn nào
+    }
+
+    public boolean checkBanTrong(DatBanRequest request) {
+        return timBanTrongDauTien(request) != null;
+    }
+
+    @Transactional(rollbackOn = Exception.class)
+    public Map<String, Object> taoPhieuDatBanOnline(DatBanOnlineRequest request) {
+        // 1. Quét bàn trống
+        DatBanRequest checkReq = new DatBanRequest();
+        checkReq.setSoNguoi(request.getSoNguoi());
+        checkReq.setNgayDat(request.getThoiGianDat().toLocalDate());
+        checkReq.setGioDat(request.getThoiGianDat().toLocalTime());
+
+        BanAn banDuocChon = timBanTrongDauTien(checkReq);
+        if (banDuocChon == null) {
+            throw new RuntimeException("Rất tiếc, nhà hàng vừa hết bàn trống vào khung giờ này!");
+        }
+
+        // 2. Xử lý khách hàng
+        KhachHang khachHang = khachHangRepository.findBySoDienThoai(request.getPhone()).orElse(null);
+        if (khachHang == null) {
+            khachHang = new KhachHang();
+            khachHang.setTenKhachHang(request.getFullName());
+            khachHang.setSoDienThoai(request.getPhone());
+            khachHang.setEmail(request.getEmail());
+            khachHang.setTenDangNhap(request.getPhone());
+            khachHang.setMatKhauDangNhap("CozyPot@" + request.getPhone());
+            khachHang.setTrangThai(1);
+            khachHang.setAuthProvider(com.example.datn_cozypot_spring_boot.config.AuthProvider.LOCAL);
+            khachHang.setNgayTaoTaiKhoan(java.time.Instant.now());
+            khachHang = khachHangRepository.save(khachHang);
+        }
+
+        // 3. Tạo phiếu đặt bàn (Trạng thái 1: Pending)
+        PhieuDatBan phieu = new PhieuDatBan();
+        phieu.setIdBanAn(banDuocChon);
+        phieu.setIdKhachHang(khachHang);
+        phieu.setThoiGianDat(request.getThoiGianDat());
+        phieu.setHinhThucDat(1);
+        phieu.setSoLuongKhach(request.getSoNguoi());
+        phieu.setTrangThai(0);
+        phieu.setNguoiTao("Khách hàng");
+        phieu.setMaDatBan("PDB" + System.currentTimeMillis());
+        phieu.setNgayTao(java.time.LocalDateTime.now());
+        phieu = phieuDatBanRepository.save(phieu);
+
+        // Khóa bàn tạm thời (Chuyển sang 2: Đã đặt)
+        banDuocChon.setTrangThai(2);
+        banAnRepository.save(banDuocChon);
+
+        // 4. Tạo Hóa Đơn Thanh Toán
+        HoaDonThanhToan hoaDon = new HoaDonThanhToan();
+        hoaDon.setIdKhachHang(khachHang);
+        hoaDon.setIdBanAn(banDuocChon);
+        hoaDon.setIdPhieuDatBan(phieu);
+
+        String thongTinKhachNhap = String.format("[Hệ thống ghi nhận] Khách: %s | SĐT: %s | Email: %s. ",
+                request.getFullName(), request.getPhone(), request.getEmail() != null ? request.getEmail() : "Không có");
+        String ghiChuGoc = request.getGhiChu() != null ? "Ghi chú của khách: " + request.getGhiChu() : "";
+
+        hoaDon.setGhiChu(thongTinKhachNhap + ghiChuGoc);
+        hoaDon.setThoiGianTao(Instant.now());
+
+        // Nhận tiền từ Request
+        BigDecimal tongTien = request.getTongTien() != null ? request.getTongTien() : BigDecimal.ZERO;
+        BigDecimal tienCoc = request.getTienCoc() != null ? request.getTienCoc() : BigDecimal.ZERO;
+
+        hoaDon.setTongTienChuaGiam(tongTien);
+        hoaDon.setTongTienThanhToan(tongTien);
+        hoaDon.setTienCoc(tienCoc);
+        hoaDon.setSoTienDaGiam(BigDecimal.ZERO);
+
+        // XÁC ĐỊNH TRẠNG THÁI HÓA ĐƠN ĐỂ FRONTEND BIẾT CÓ CẦN GỌI VNPAY KHÔNG
+        int trangThaiBanDau = (tienCoc.compareTo(BigDecimal.ZERO) > 0) ? 1 : 0;
+        hoaDon.setTrangThaiHoaDon(trangThaiBanDau);
+
+        hoaDon = hoaDonThanhToanRepository.save(hoaDon);
+
+        // 5. Lưu Chi Tiết Món Ăn (Nếu có)
+        if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
+            for (PhieuDatBanRequest.ChiTietMonAnRequest mon : request.getChiTiet()) {
+                ChiTietHoaDon ct = new ChiTietHoaDon();
+                ct.setIdHoaDon(hoaDon);
+
+                if (mon.getIdChiTietMonAn() != null) {
+                    DanhMucChiTiet dmct = new DanhMucChiTiet();
+                    dmct.setId(mon.getIdChiTietMonAn());
+                    ct.setIdChiTietMonAn(dmct);
+                }
+
+                if (mon.getIdSetLau() != null) {
+                    SetLau sl = new SetLau();
+                    sl.setId(mon.getIdSetLau());
+                    ct.setIdSetLau(sl);
+                }
+
+                ct.setSoLuong(mon.getSoLuong());
+                ct.setDonGiaTaiThoiDiemBan(mon.getDonGia());
+                ct.setThanhTien(mon.getDonGia().multiply(new BigDecimal(mon.getSoLuong())));
+                ct.setTrangThaiMon(1); // Mặc định là 1 (Chờ chế biến)
+
+                // 👉 SỬA 1: Bổ sung thêm ngày giờ tạo để khớp CSDL (tránh bị lỗi null value)
+                ct.setNgayGioTao(java.time.LocalDateTime.now());
+
+                chiTietHoaDonRepository.save(ct);
+            }
+        }
+
+        // 6. Ghi log Lịch Sử Hóa Đơn
+        // 👉 SỬA 2: Tách thành 2 block Insert (Tạo mới -> Chờ cọc) để lưu vết lịch sử đầy đủ
+        LichSuHoaDon logTaoMoi = new LichSuHoaDon();
+        logTaoMoi.setIdHoaDon(hoaDon);
+        logTaoMoi.setHanhDong("Tạo hóa đơn online");
+        logTaoMoi.setLyDoThucHien(String.format("Khách %s (%s/%s) tạo đơn đặt bàn qua Website", request.getFullName(), request.getPhone(), request.getEmail()));
+        logTaoMoi.setTrangThaiTruocDo(null);
+        logTaoMoi.setTrangThaiMoi(0); // Luôn ghi log bắt đầu từ 0
+        logTaoMoi.setThoiGianThucHien(Instant.now());
+        lichSuHoaDonRepository.save(logTaoMoi);
+
+        if (trangThaiBanDau == 1) { // Nếu có tiền cọc thì chèn thêm 1 dòng Log nữa
+            LichSuHoaDon logChoCoc = new LichSuHoaDon();
+            logChoCoc.setIdHoaDon(hoaDon);
+            logChoCoc.setHanhDong("Yêu cầu thanh toán cọc");
+            logChoCoc.setLyDoThucHien("Hệ thống yêu cầu cọc để giữ bàn");
+            logChoCoc.setTrangThaiTruocDo(0);
+            logChoCoc.setTrangThaiMoi(1);
+            logChoCoc.setThoiGianThucHien(Instant.now());
+            lichSuHoaDonRepository.save(logChoCoc);
+        }
+
+        // 7. Trả kết quả về cho Controller
+        Map<String, Object> result = new HashMap<>();
+        result.put("idHoaDon", hoaDon.getId());
+        result.put("tienCoc", hoaDon.getTienCoc());
+        result.put("trangThaiHoaDon", hoaDon.getTrangThaiHoaDon());
+
+        return result;
     }
 
     @Transactional
