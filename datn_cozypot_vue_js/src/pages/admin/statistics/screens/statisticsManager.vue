@@ -25,19 +25,24 @@
                     <div v-if="activeTab === 'Tùy chỉnh'" class="date-picker-row">
                         <div class="input-item">
                             <label>Từ ngày</label>
-                            <input type="date" v-model="startDate" @change="loadThongKe" />
+                            <input type="date" v-model="startDate" />
                         </div>
+
                         <div class="input-item">
                             <label>Đến ngày</label>
-                            <input type="date" v-model="endDate" @change="loadThongKe" />
+                            <input type="date" v-model="endDate" />
                         </div>
+
+                        <button class="btn-apply" @click="applyCustomFilter">
+                            Áp dụng
+                        </button>
                     </div>
                 </div>
 
                 <div class="filter-actions">
                     <div class="filter-tabs">
                         <button v-for="tab in ['Hôm nay', 'Tuần này', 'Tháng này', 'Năm nay', 'Tùy chỉnh']" :key="tab"
-                            @click="activeTab = tab" :class="['tab-btn', activeTab === tab ? 'active' : '']">
+                            @click="changeTab(tab)" :class="['tab-btn', activeTab === tab ? 'active' : '']">
                             {{ tab }}
                         </button>
                     </div>
@@ -72,7 +77,7 @@
             <div class="chart-box small">
                 <h6>Trạng thái đơn hàng</h6>
                 <div class="chart-container">
-                                        <Pie v-if="trangThaiData.length" :data="pieChartData" :options="pieOptions" />
+                    <Pie v-if="trangThaiData.length" :data="pieChartData" :options="pieOptions" />
 
                     <div v-else class="loading-chart">Đang tải...</div>
                 </div>
@@ -207,7 +212,7 @@
 
             </div>
         </div>
-        
+
     </div>
 </template>
 
@@ -223,8 +228,10 @@ const activeTab = ref('Tháng này');
 
 const changeTab = (tabName) => {
     activeTab.value = tabName;
-    // Phải gọi lại hàm lấy dữ liệu ở đây!
-    layDuLieuTuServer(tabName);
+
+    if (tabName !== 'Tùy chỉnh') {
+        loadThongKe();
+    }
 }
 // Thêm vào trong phần <script setup>
 const formatCurrency = (value) => {
@@ -326,6 +333,21 @@ const chartKhungGioData = computed(() => ({
         }
     ]
 }));
+const applyCustomFilter = () => {
+    if (!startDate.value || !endDate.value) {
+        alert("Vui lòng chọn đầy đủ ngày");
+        return;
+    }
+
+    if (startDate.value > endDate.value) {
+        alert("Từ ngày không được lớn hơn đến ngày");
+        return;
+    }
+
+    console.log("Đang lọc từ:", startDate.value, "đến", endDate.value);
+
+    loadThongKe();
+};
 const chartKhungGioOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -429,7 +451,7 @@ const loadTrangThai = async () => {
 onMounted(() => {
     loadThongKe()
     loadTrangThai()
-        loadKenhDat()
+    loadKenhDat()
 
 })
 
@@ -664,6 +686,7 @@ const getStatusClass = (status) => {
     if (status === 8) return "status cancel"
     return "status pending"
 }
+
 </script>
 
 <style scoped>
@@ -1117,12 +1140,13 @@ const getStatusClass = (status) => {
     font-size: 1.25rem;
     font-weight: 700;
 }
+
 .invoice-section {
     margin-top: 2rem;
     background: white;
     padding: 1.5rem;
     border-radius: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .invoice-header {
@@ -1178,6 +1202,7 @@ const getStatusClass = (status) => {
     background: #fff7ed;
     color: #ea580c;
 }
+
 /* Charts */
 .charts-row {
     display: grid;
@@ -1390,5 +1415,22 @@ const getStatusClass = (status) => {
 
 .text-orange {
     color: #f97316;
+}
+.btn-apply {
+    align-self: flex-end;
+    height: 34px;
+    padding: 0 14px;
+    background: #8b0000;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-apply:hover {
+    background: #a00000;
 }
 </style>
