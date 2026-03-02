@@ -335,9 +335,7 @@ const routes = [
     name: "test",
     component: () => import("./components/testConnection.vue"),
   },
-  {
-    path: "/admin/statistics",
-  },
+
   {
     path: "/manage/unit",
     name: "unitManager",

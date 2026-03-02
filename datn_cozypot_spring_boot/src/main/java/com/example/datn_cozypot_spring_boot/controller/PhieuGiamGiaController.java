@@ -3,6 +3,7 @@ package com.example.datn_cozypot_spring_boot.controller;
 import com.example.datn_cozypot_spring_boot.dto.KhuyenMaiThongKeResponse;
 import com.example.datn_cozypot_spring_boot.dto.PhieuGiamGiaDTO;
 import com.example.datn_cozypot_spring_boot.dto.PhieuGiamGiaResponseDTO;
+import com.example.datn_cozypot_spring_boot.dto.request.ApDungVoucherRequest;
 import com.example.datn_cozypot_spring_boot.entity.PhieuGiamGia;
 import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/phieu-giam-gia")
@@ -121,6 +124,52 @@ public class PhieuGiamGiaController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body("Lỗi khi xóa: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/ap-dung")
+    public ResponseEntity<?> apDungVoucher(@RequestBody ApDungVoucherRequest request) {
+        try {
+            // Gọi hàm logic đã viết ở Service
+            service.apDungVoucher(request);
+
+            // Trả về thành công
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Áp dụng mã giảm giá thành công");
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            // Các lỗi nghiệp vụ (Vd: Chưa đủ tiền, mã hết hạn...)
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error); // Trả về HTTP 400
+
+        } catch (Exception e) {
+            // Lỗi code/server
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Đã xảy ra lỗi hệ thống: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error); // Trả về HTTP 500
+        }
+    }
+
+    @PostMapping("/huy-ap-dung/{idHoaDon}")
+    public ResponseEntity<?> huyVoucher(@PathVariable Integer idHoaDon) {
+        try {
+            service.huyVoucher(idHoaDon);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Hủy mã giảm giá thành công");
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Đã xảy ra lỗi hệ thống: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
         }
     }
 }

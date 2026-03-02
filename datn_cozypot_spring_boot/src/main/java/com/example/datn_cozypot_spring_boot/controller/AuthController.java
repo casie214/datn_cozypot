@@ -29,7 +29,7 @@ import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping ("/api/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
     private final NhanVienRepository repository;
     private final KhachHangRepository khachHangRepository;
@@ -44,18 +44,18 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> loginAdmin(@RequestBody LoginRequest req) {
-        NhanVien nv = nhanVienRepository.findNhanVienByTenDangNhap(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
+        NhanVien nv = nhanVienRepository.findByEmail(req.getUsername())
+                .orElseThrow(() -> new RuntimeException("Email nhân viên không tồn tại"));
         if (nv.getTrangThaiLamViec() != 1) {
             return ResponseEntity.status(403).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
         }
         if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Sai mật khẩu");
+            return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
         }
 
         String role = nv.getIdVaiTro().getTenVaiTro();
-        String accessToken = tokenProvider.generateToken(nv.getTenDangNhap(), role);
-        String refreshToken = jwtUtils.generateRefreshToken(nv.getTenDangNhap());
+        String accessToken = tokenProvider.generateToken(nv.getEmail(), role);
+        String refreshToken = jwtUtils.generateRefreshToken(nv.getEmail());
 
         return ResponseEntity.ok(new AuthResponse(
                 accessToken,
@@ -73,8 +73,8 @@ public class AuthController {
     public ResponseEntity<?> loginClient(@RequestBody LoginRequest req) {
 
         KhachHang kh = khachHangRepository
-                .findByEmailOrTenDangNhap(req.getUsername(), req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Tài khoản hoặc Email không tồn tại"));
+                .findByEmail(req.getUsername())
+                .orElseThrow(() -> new RuntimeException("Email khách hàng không tồn tại"));
         if (kh.getTrangThai() != 1) {
             return ResponseEntity.status(403).body("Tài khoản khách hàng đã bị ngừng hoạt động");
         }
@@ -83,9 +83,14 @@ public class AuthController {
             return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
         }
 
-        String identifier = (kh.getTenDangNhap() != null && !kh.getTenDangNhap().isEmpty())
-                ? kh.getTenDangNhap()
-                : kh.getEmail();
+//        String identifier = (kh.getTenDangNhap() != null && !kh.getTenDangNhap().isEmpty())
+//                ? kh.getTenDangNhap()
+//                : kh.getEmail();
+//
+//        String accessToken = tokenProvider.generateToken(identifier, "USER");
+//        String refreshToken = jwtUtils.generateRefreshToken(identifier);
+
+        String identifier = kh.getEmail();
 
         String accessToken = tokenProvider.generateToken(identifier, "USER");
         String refreshToken = jwtUtils.generateRefreshToken(identifier);
@@ -103,11 +108,11 @@ public class AuthController {
     }
 
 
-
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok(Collections.singletonMap("message", "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra!"));    }
+        return ResponseEntity.ok(Collections.singletonMap("message", "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra!"));
+    }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
@@ -142,7 +147,7 @@ public class AuthController {
 
         try {
             if (tokenProvider.validateToken(requestRefreshToken)) {
-                String username = tokenProvider.getUsernameFromToken(requestRefreshToken);
+                String username = tokenProvider.getEmailFromToken(requestRefreshToken);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 String fullRole = userDetails.getAuthorities().stream()
@@ -206,6 +211,6 @@ public class AuthController {
     }
 
     private String generateRandomPassword() {
-        return String.valueOf((int)((Math.random() * 899999) + 100000)); // Tạo số ngẫu nhiên 6 chữ số
+        return String.valueOf((int) ((Math.random() * 899999) + 100000)); // Tạo số ngẫu nhiên 6 chữ số
     }
 }
