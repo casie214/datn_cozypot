@@ -32,16 +32,18 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                 (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
                 (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
                 (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
-                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
-            ) THEN 1 END) AS tongHoaDon,
+            (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+                                        OR
+                                        (:loai = N'Tùy chỉnh' AND CAST(thoi_gian_thanh_toan AS DATE) BETWEEN :tuNgay AND :denNgay)            ) THEN 1 END) AS tongHoaDon,
 
             -- GIÁ TRỊ TRUNG BÌNH ĐƠN
             ISNULL(AVG(CASE WHEN trang_thai_hoa_don = 7 AND (
                 (:loai = N'Hôm nay' AND CAST(thoi_gian_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
                 (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
                 (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
-                (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
-            ) THEN tong_tien_thanh_toan END), 0) AS giaTriTrungBinhDon,
+            (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+                                                                   OR
+                                                                   (:loai = N'Tùy chỉnh' AND CAST(thoi_gian_thanh_toan AS DATE) BETWEEN :tuNgay AND :denNgay)            ) THEN tong_tien_thanh_toan END), 0) AS giaTriTrungBinhDon,
 
             -- TỔNG TIỀN CỌC (Lấy từ các đơn đã cọc hoặc đã xong: 2, 3, 4, 5, 6, 7)
             ISNULL(SUM(CASE WHEN trang_thai_hoa_don IN (2,3,4,5,6,7) AND (
@@ -73,11 +75,17 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                 (:loai = N'Tuần này' AND thoi_gian_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
                 (:loai = N'Tháng này' AND MONTH(thoi_gian_thanh_toan) = MONTH(GETDATE()) AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
                 (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE()))
+                        OR (:loai = N'Tùy chỉnh'\s
+                            AND CAST(thoi_gian_thanh_toan AS DATE)\s
+                                BETWEEN :tuNgay AND :denNgay)
             ) THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuThucNhan
         FROM hoa_don_thanh_toan
         """, nativeQuery = true)
-    Map<String, Object> layDuLieuThongKeChiTiet(@Param("loai") String loai);
-
+    Map<String, Object> layDuLieuThongKeChiTiet(
+            @Param("loai") String loai,
+            @Param("tuNgay") String tuNgay,
+            @Param("denNgay") String denNgay
+    );
     @Query(value = """
     SELECT 
         m.thang,

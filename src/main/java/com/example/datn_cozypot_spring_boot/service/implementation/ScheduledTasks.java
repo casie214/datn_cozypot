@@ -18,13 +18,13 @@ public class ScheduledTasks {
     private ThongKeService thongKeService;
 
     // Chạy vào lúc 23:55 mỗi ngày
-    @Scheduled(cron = "0 14 14 * * *")
+    @Scheduled(cron = "0 55 23 * * *") // 23:55 mỗi ngày
     public void autoReportToAdmin() {
         try {
             // 1. Lấy DTO thống kê cho ngày hôm nay
             // Giả sử tham số "Ngày" sẽ lấy dữ liệu trong ngày hiện tại
-            ThongKeDoanhThuDTO thongKeHomNay = thongKeService.layThongKeTheoLoai("Ngày");
-
+            ThongKeDoanhThuDTO thongKeHomNay =
+                    thongKeService.layThongKeTheoLoai("Hôm nay", null, null);
             // 2. Tạo file Excel từ DTO vừa lấy được
             byte[] excelFile = thongKeService.generateExcelData(thongKeHomNay);
 

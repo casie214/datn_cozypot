@@ -33,8 +33,9 @@ public class ThongKeService {
     @Autowired
     private HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
-    public ThongKeDoanhThuDTO layThongKeTheoLoai(String loai) {
-        Map<String, Object> data = thongKeRepository.layDuLieuThongKeChiTiet(loai);
+    public ThongKeDoanhThuDTO layThongKeTheoLoai(String loai, String tuNgay, String denNgay){
+        Map<String, Object> data =
+                thongKeRepository.layDuLieuThongKeChiTiet(loai, tuNgay, denNgay);
         ThongKeDoanhThuDTO dto = new ThongKeDoanhThuDTO();
 
         if (data != null) {
