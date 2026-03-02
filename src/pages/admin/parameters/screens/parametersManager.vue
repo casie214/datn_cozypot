@@ -18,7 +18,9 @@
                         <div class="col-md-3">
                             <label class="form-label">Trạng thái</label>
                             <Multiselect v-model="status" :options="statusOptions" label="label" track-by="value"
-                                placeholder="Chọn trạng thái" :allow-empty="true" :close-on-select="true" />
+                                placeholder="Chọn trạng thái" :allow-empty="true" :close-on-select="true"
+                                :select-label="''" :deselect-label="''"
+                                @select="() => { /* Logic xử lý ngay khi chọn nếu cần */ }" />
                         </div>
                         <div class="col-md-3 d-flex align-items-end gap-2">
                             <button class="btn-reset-filter w-100" @click="resetFilters">
@@ -64,11 +66,11 @@
 
                             <td class="text-center">
                                 <div class="action-wrapper">
-                                    <button class="btn-icon" @click="openViewModal(item)">
+                                    <button type="button" class="btn-icon" @click="openViewModal(item)">
                                         <i class="fas fa-eye"></i>
                                     </button>
 
-                                    <button class="btn-icon" @click="openEditModal(item)">
+                                    <button type="button" class="btn-icon" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
                                     </button>
 
@@ -160,19 +162,32 @@
 
                     <div class="mb-3">
                         <label class="form-label">Tên tham số</label>
-                        <input type="text" class="form-control" v-model="editingItem.tenThamSo">
+                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.tenThamSo }"
+                            v-model="editingItem.tenThamSo">
+                        <div class="invalid-feedback">
+                            {{ errors.tenThamSo }}
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Giá trị</label>
-                        <input type="text" class="form-control" v-model="editingItem.giaTri">
+                        <input type="text" class="form-control" :class="{ 'is-invalid': errors.giaTri }"
+                            v-model="editingItem.giaTri">
+
+                        <div class="invalid-feedback">
+                            {{ errors.giaTri }}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Kiểu dữ liệu</label>
 
                         <Multiselect v-model="editingItem.kieuDuLieu" :options="dataTypeOptions" label="label"
-                            track-by="value" placeholder="Chọn kiểu dữ liệu" :allow-empty="false"
-                            :open-direction="'bottom'" />
+                            track-by="value" :close-on-select="true" :allow-empty="false"
+                            placeholder="Chọn kiểu dữ liệu" :class="{ 'is-invalid': errors.kieuDuLieu }" />
+
+                        <div class="text-danger mt-1" v-if="errors.kieuDuLieu">
+                            {{ errors.kieuDuLieu }}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Mô tả</label>
@@ -214,7 +229,25 @@
 
                     <div class="mb-3">
                         <label class="form-label">Giá trị</label>
-                        <input type="text" class="form-control" v-model="editingItem.giaTri" disabled>
+                        <!-- INTEGER / DOUBLE / DECIMAL -->
+                        <input v-if="['INTEGER', 'DOUBLE', 'DECIMAL'].includes(editingItem.kieuDuLieu?.value)"
+                            type="number" class="form-control" :class="{ 'is-invalid': errors.giaTri }"
+                            v-model="editingItem.giaTri">
+
+                        <!-- DATE -->
+                        <input v-else-if="editingItem.kieuDuLieu?.value === 'DATE'" type="date" class="form-control"
+                            :class="{ 'is-invalid': errors.giaTri }" v-model="editingItem.giaTri">
+
+                        <!-- BOOLEAN -->
+                        <select v-else-if="editingItem.kieuDuLieu?.value === 'BOOLEAN'" class="form-control"
+                            :class="{ 'is-invalid': errors.giaTri }" v-model="editingItem.giaTri">
+                            <option value="true">true</option>
+                            <option value="false">false</option>
+                        </select>
+
+                        <!-- STRING default -->
+                        <input v-else type="text" class="form-control" :class="{ 'is-invalid': errors.giaTri }"
+                            v-model="editingItem.giaTri">
                     </div>
 
                     <div class="mb-3">
@@ -291,13 +324,15 @@ import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import axios from 'axios'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
+// Thêm dòng này vào cụm khai báo ref ở đầu script
+const errors = ref({})
 const dataTypeOptions = ref([
     { label: "String", value: "STRING" },
     { label: "Integer", value: "INTEGER" },
     { label: "Double", value: "DOUBLE" },
     { label: "Boolean", value: "BOOLEAN" },
     { label: "Date", value: "DATE" },
-        { label: "DECIMAL", value: "DECIMAL" },
+    { label: "Decimal", value: "DECIMAL" },
 
 ])
 const keyword = ref('')
@@ -308,7 +343,66 @@ const showToast = ref(false)
 const toastTitle = ref('')
 const toastMessage = ref('')
 const pendingEditItem = ref(null)
+
+const validateEditForm = () => {
+    errors.value = {}
+
+    if (!editingItem.value.tenThamSo?.trim()) {
+        errors.value.tenThamSo = "Tên tham số không được để trống"
+    }
+
+    if (!editingItem.value.giaTri?.toString().trim()) {
+        errors.value.giaTri = "Giá trị không được để trống"
+    }
+
+    if (!editingItem.value.kieuDuLieu) {
+        errors.value.kieuDuLieu = "Vui lòng chọn kiểu dữ liệu"
+    }
+
+    if (editingItem.value.giaTri && editingItem.value.kieuDuLieu) {
+        const value = editingItem.value.giaTri
+        const type = editingItem.value.kieuDuLieu?.value
+        switch (type) {
+            case "INTEGER":
+                if (!/^-?\d+$/.test(value)) {
+                    errors.value.giaTri = "Giá trị phải là số nguyên"
+                }
+                break
+
+            case "DOUBLE":
+            case "DECIMAL":
+                if (!/^-?\d+(\.\d+)?$/.test(value)) {
+                    errors.value.giaTri = "Giá trị phải là số"
+                }
+                break
+
+            case "BOOLEAN":
+                if (typeof value !== "string" ||
+                    !["true", "false"].includes(value.toLowerCase())) {
+                    errors.value.giaTri = "Chỉ được nhập true hoặc false"
+                }
+                break
+
+            case "DATE":
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                    errors.value.giaTri = "Định dạng ngày yyyy-MM-dd"
+                }
+                break
+
+            case "STRING":
+                if (value.length > 255) {
+                    errors.value.giaTri = "Không vượt quá 255 ký tự"
+                }
+                break
+        }
+    }
+
+    return Object.keys(errors.value).length === 0
+}
+
 const handleSave = () => {
+    if (!validateEditForm()) return
+
     pendingEditItem.value = { ...editingItem.value }
     showConfirmModal.value = true
 }
@@ -397,7 +491,35 @@ const authConfig = () => ({
 const showConfirmModal = ref(false)
 const confirmLoading = ref(false)
 const showModal = ref(false)
-const editingItem = ref({})
+const editingItem = ref({
+    id: null,
+    maThamSo: '',
+    tenThamSo: '',
+    giaTri: '',
+    kieuDuLieu: null,
+    moTa: '',
+    trangThai: 1
+})
+
+const filteredList = computed(() => {
+    return list.value.filter(item => {
+        if (!item) return false
+
+        const ma = item.maThamSo?.toLowerCase() || ""
+        const ten = item.tenThamSo?.toLowerCase() || ""
+
+        const matchKeyword =
+            ma.includes(keyword.value.toLowerCase()) ||
+            ten.includes(keyword.value.toLowerCase())
+
+        const matchStatus =
+            !status.value ||
+            status.value.value === '' ||
+            item.trangThai?.toString() === status.value.value
+
+        return matchKeyword && matchStatus
+    })
+})
 const showViewModal = ref(false)
 
 const openViewModal = (item) => {
@@ -471,19 +593,6 @@ const goToPage = (page) => {
     if (page < 1 || page > totalPages.value) return
     currentPage.value = page
 }
-const filteredList = computed(() => {
-    return list.value.filter(item => {
-        const matchKeyword =
-            item.maThamSo.toLowerCase().includes(keyword.value.toLowerCase()) ||
-            item.tenThamSo.toLowerCase().includes(keyword.value.toLowerCase())
-
-        const matchStatus =
-            !status.value ||
-            status.value.value === '' ||
-            item.trangThai.toString() === status.value.value
-        return matchKeyword && matchStatus
-    })
-})
 
 const totalPages = computed(() =>
     Math.ceil(filteredList.value.length / pageSize.value)
@@ -502,9 +611,7 @@ const resetFilters = () => {
 watch([keyword, status], () => {
     currentPage.value = 1
 })
-onMounted(() => {
-    fetchSystemParams()
-})
+
 const statusOptions = ref([
     { label: "Tất cả", value: "" },
     { label: "Hoạt động", value: "1" },
@@ -512,7 +619,7 @@ const statusOptions = ref([
 ])
 </script>
 
-<style >
+<style>
 /* ================= WRAPPER ================= */
 .manager-wrapper {
     background: #ffffff;
@@ -954,32 +1061,38 @@ const statusOptions = ref([
     gap: 5px;
 }
 
+/* Loại bỏ khoảng trống thừa và căn chỉnh độ cao đồng nhất với bootstrap input */
 .multiselect {
-    min-height: 44px;
+    min-height: 38px !important; /* Độ cao chuẩn của form-control bootstrap */
+    margin-bottom: 0 !important;
 }
 
 .multiselect__tags {
-    border-radius: 12px;
-    border: 1px solid #d1d5db;
+    min-height: 38px !important;
+    padding: 6px 40px 0 8px !important; /* Căn chỉnh lại padding bên trong */
+    border-radius: 12px !important;
+    border: 1px solid #d1d5db !important;
 }
 
-.multiselect:focus-within .multiselect__tags {
-    border-color: #8B0000;
-    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
+.multiselect__placeholder {
+    margin-bottom: 0 !important;
+    padding-top: 2px !important;
 }
 
-.multiselect--active .multiselect__tags {
-    border-color: #8B0000 !important;
-    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1) !important;
+.multiselect__select {
+    height: 36px !important;
 }
 
-.multiselect__option--selected {
-    background: #8B0000 !important;
-    color: #ffffff !important;
+/* Đảm bảo Multiselect không làm hỏng dòng khi nằm trong d-flex */
+.col-md-3 .multiselect {
+    display: block;
+    width: 100%;
+}
+.is-invalid {
+    border-color: #dc3545 !important;
 }
 
-.multiselect__option--highlight {
-    background: #8B0000 !important;
-    color: #ffffff !important;
+.invalid-feedback {
+    display: block;
 }
 </style>
