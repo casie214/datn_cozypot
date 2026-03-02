@@ -22,13 +22,12 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(String email, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(username)
-                .claim("role", role)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(new Date().getTime() + jwtExpirationInMs))
                 .signWith(getSignInKey())
@@ -47,8 +46,8 @@ public class JwtTokenProvider {
             return false;
         }
     }
-
-    public String getUsernameFromToken(String token) {
+    //Laáy email từ token getUsernameFromToken
+    public String getEmailFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignInKey())
                 .build()
