@@ -54,8 +54,22 @@ const getEventColor = (type) => {
 // Tính tiền
 const subTotal = computed(() => selectedOrder.value?.tongTienHangRaw || 0);
 const discount = computed(() => selectedOrder.value?.soTienDaGiam || 0);
-const deposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
-const finalTotal = computed(() => selectedOrder.value?.tongTienRaw || 0);
+const rawDeposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
+const deposit = computed(() => {
+  const code = selectedOrder.value?.trangThaiCode;
+  if (code === 0 || code === 1) {
+    return 0;
+  }
+  return rawDeposit.value;
+});
+const finalTotal = computed(() => {
+  const baseTotal = selectedOrder.value?.tongTienRaw || 0;
+  const code = selectedOrder.value?.trangThaiCode;
+  if (code === 0 || code === 1) {
+    return baseTotal + rawDeposit.value;
+  }
+  return baseTotal;
+});
 
 const appliedVAT = computed(() => {
   if (
@@ -69,7 +83,8 @@ const appliedVAT = computed(() => {
 
 const taxAmount = computed(() => {
   if (subTotal.value === 0) return 0;
-  return finalTotal.value + deposit.value + discount.value - subTotal.value;
+  const baseTotal = selectedOrder.value?.tongTienRaw || 0;
+  return baseTotal + rawDeposit.value + discount.value - subTotal.value;
 });
 
 const isReadOnly = computed(() => {

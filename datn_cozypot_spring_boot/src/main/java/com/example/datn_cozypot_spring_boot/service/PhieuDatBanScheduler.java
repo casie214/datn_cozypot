@@ -1,13 +1,7 @@
 package com.example.datn_cozypot_spring_boot.service;
 
-import com.example.datn_cozypot_spring_boot.entity.BanAn;
-import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
-import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
-import com.example.datn_cozypot_spring_boot.entity.PhieuDatBan;
-import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
-import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
-import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
-import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +19,7 @@ public class PhieuDatBanScheduler {
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
     private final BanAnRepository banAnRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
+    private final ChiTietHoaDonRepository chiTietHoaDonRepository;
 
     @Scheduled(fixedRate = 30000)
     @Transactional
@@ -49,6 +44,15 @@ public class PhieuDatBanScheduler {
 
                 // Hủy Hóa Đơn (Trạng thái = 8)
                 hoaDon.setTrangThaiHoaDon(8);
+
+                List<ChiTietHoaDon> listMonAn = chiTietHoaDonRepository.findByIdHoaDon(hoaDon.getId());
+                if (listMonAn != null && !listMonAn.isEmpty()) {
+                    for (ChiTietHoaDon chiTiet : listMonAn) {
+                        chiTiet.setTrangThaiMon(0);
+                    }
+                    chiTietHoaDonRepository.saveAll(listMonAn);
+                }
+
                 hoaDonThanhToanRepository.save(hoaDon);
 
                 // 📝 3. Ghi log vào Timeline Lịch sử hóa đơn
@@ -80,5 +84,54 @@ public class PhieuDatBanScheduler {
         log.setTrangThaiTruocDo(cu);
         log.setTrangThaiMoi(moi);
         lichSuHoaDonRepository.save(log);
+    }
+
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void autoCancelUnpaidDeposits() {
+        // Mốc thời gian: Hiện tại trừ đi 15 phút (Tính từ lúc tạo đơn)
+        Instant limitTime = Instant.now().minus(15, java.time.temporal.ChronoUnit.MINUTES);
+
+        // Tìm các hóa đơn đang ở trạng thái 1 (Chờ cọc) và đã quá 15 phút
+        List<HoaDonThanhToan> expiredDeposits = hoaDonThanhToanRepository.findAllByTrangThaiHoaDonAndThoiGianTaoBefore(1, limitTime);
+
+        for (HoaDonThanhToan hoaDon : expiredDeposits) {
+            System.out.println("Hệ thống tự động hủy đơn do không cọc: Hóa đơn ID " + hoaDon.getId());
+
+            Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
+
+            hoaDon.setTrangThaiHoaDon(8);
+
+            PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
+            if (phieu != null) {
+                phieu.setTrangThai(2);
+                phieuDatBanRepository.save(phieu);
+            }
+
+            if (hoaDon.getIdBanAn() != null) {
+                BanAn ban = hoaDon.getIdBanAn();
+                ban.setTrangThai(0);
+                banAnRepository.save(ban);
+            }
+
+            List<ChiTietHoaDon> listMonAn = chiTietHoaDonRepository.findByIdHoaDon(hoaDon.getId());
+            if (listMonAn != null && !listMonAn.isEmpty()) {
+                for (ChiTietHoaDon chiTiet : listMonAn) {
+                    chiTiet.setTrangThaiMon(0);
+                }
+                chiTietHoaDonRepository.saveAll(listMonAn);
+            }
+
+            hoaDonThanhToanRepository.save(hoaDon);
+
+            ghiLichSu(
+                    hoaDon,
+                    null,
+                    "Hủy tự động (Quá hạn cọc)",
+                    "Khách không thanh toán cọc trong vòng 15 phút kể từ lúc đặt",
+                    trangThaiCu,
+                    8
+            );
+        }
     }
 }
