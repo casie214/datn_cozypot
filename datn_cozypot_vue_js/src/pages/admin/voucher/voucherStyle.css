@@ -62,25 +62,7 @@
     color: white;
 }
 
-/* --- TỐI ƯU NÚT BỎ LỌC (RESET FILTER) --- */
-.btn-reset-filter {
-    background-color: var(--white);
-    color: #6c757d;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    height: 40px; /* Khớp với chiều cao các input khác */
-    padding: 0 20px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Khoảng cách giữa icon và chữ */
-    cursor: pointer;
-    width: fit-content; /* Không để dài 100% nếu không cần thiết */
-    min-width: 120px;
-    font-weight: 500;
-    margin-left: auto; /* Đẩy nút về bên phải để cân bằng với các input */
-}.text-primary-red {
+.text-primary-red {
     color: #8b0000;
 }
 
@@ -95,7 +77,7 @@
     transition: all 0.2s;
 }
 
-.vocher-manager-wrapper {
+.voucher-manager-wrapper {
     background: white;
     padding: 20px;
     min-height: 100vh;
@@ -158,7 +140,6 @@
 
 .bg-light-soft { background-color: #f8f9fa; }
 .bg-danger-soft { background-color: #fff5f5; }
-.text-primary-red { color: #8b0000; }
 .btn-red-dark {
     background-color: #ffffff;
     color: #8B0000; /* đỏ đô */
@@ -272,18 +253,6 @@
 }
 
 
-.btn-reset-filter:hover {
-    background-color: #f8f9fa;
-    color: #8b0000;
-    border-color: #8b0000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-/* Hiệu ứng xoay icon nhẹ khi hover */
-.btn-reset-filter:hover i {
-    transform: rotate(180deg);
-    transition: transform 0.5s ease;
-}
 
 
 
@@ -318,13 +287,6 @@
     border-color: #c0392b;
 }
 
-/* Chỉnh vị trí icon Pen (Bút chì) nếu Switch làm nó bị lệch */
-.action-group {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    justify-content: center;
-}
 
 .edit-icon {
     font-size: 1.2rem;
@@ -475,17 +437,9 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     box-shadow: 0 0 0 0.25rem rgba(123, 18, 28, 0.25);
 }
 
-.action-group {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-}
 .btn-red-btn-outline-secondary:hover {
   background-color: #8b0000;
 }
-
-
 
 .custom-table thead {
   background-color: #8b0000;
@@ -580,14 +534,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   border-bottom: 1px solid #eee;
 }
 
-/* Switch & Eye icon */
-.action-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* gap: 15px; */
-}
-
 .eye-icon {
   cursor: pointer;
   font-size: 18px;
@@ -618,16 +564,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   white-space: nowrap; /* Giúp bảng to ra, không bị xuống dòng chữ */
 }
 
-
-
-/* Định dạng icon trong cột Chi tiết */
-.action-group {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  color: #333;
-}
-
 .eye-icon, .edit-icon {
   cursor: pointer;
   font-size: 16px;
@@ -650,12 +586,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   border-radius: 25px;
 }
 
-/* Table styling */
-.table-container {
-  background: var(--white);
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-}
 .text-muted {
     color: #6c757d !important;
 }
@@ -666,14 +596,12 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     opacity: 0.5;
 }
 
-.action-group i {
-    margin: 0 8px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.2s;
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
-
-
 /* voucherStyle.css */
 
 .filter-sub-card {
@@ -710,13 +638,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
    font-weight: normal;
 }
 
-/* Toast Notification */
-.toast-container {
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 9999;
-}
 /* Wrapper chung cho cả 2 bảng */
 .customer-table-wrapper {
     background: #ffffff;
@@ -773,20 +694,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     color: #842029;
 }
 
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #ffffff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    margin-bottom: 10px;
-    animation: slideIn 0.4s ease forwards;
-}
-
 .custom-toast.error { border-left-color: #e74c3c; }
 .custom-toast.error i { color: #e74c3c; }
 
@@ -795,14 +702,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 .custom-toast-content p { margin: 4px 0 0; font-size: 14px; color: #555; }
 .custom-toast .close-btn { margin-left: auto; font-size: 20px; color: #999; cursor: pointer; }
 
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateX(100%); }
-}.search-customer .btn {
+.search-customer .btn {
     border-left: 0;
 }
 
@@ -811,40 +711,9 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     cursor: not-allowed;
 }
 
-
-
-
-/* Toast Notification Container */
-.toast-container {
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 9999;
-}
 .rounded {
     border-radius: 20px !important;
 }
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #ffffff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    margin-bottom: 10px;
-    animation: slideIn 0.4s ease forwards;
-}
-
-
-
-.custom-toast.error { border-left-color: #e74c3c; }
-.custom-toast.error i { color: #e74c3c; }
-.custom-toast i { font-size: 32px; color: #e74c3c; }
-.custom-toast .close { margin-left: auto; cursor: pointer; color: #999; }
-
 /* Modal Confirm */
 .voucher-manager-wrapper.modal-overlay {
     position: fixed;
@@ -982,16 +851,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 .fw-bold {
     font-weight: 400 !important;
 }
-.custom-input {
-    border-radius: 8px;
-    padding: 10px 12px;
-    border: 1px solid #dee2e6;
-}
-
-.custom-input:focus {
-    border-color: #800000;
-    box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.1);
-}
 
 .btn-red-dark {
     background-color: #ffffff;
@@ -1088,34 +947,11 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 .input-group:focus-within input {
     border-color: #d32f2f;
 }
-
 .toast-container {
     position: fixed;
     top: 30px;
     right: 30px;
     z-index: 9999;
-}
-
-.custom-toast {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: #fff;
-    border-left: 6px solid #e74c3c;
-    padding: 16px 20px;
-    border-radius: 12px;
-    width: 380px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    margin-bottom: 15px;
-    animation: slideIn 0.4s ease forwards;
-}
-
-.custom-toast.error {
-    border-left-color: #e74c3c;
-}
-
-.custom-toast.error i {
-    color: #e74c3c;
 }
 
 .modal-overlay {
@@ -1146,11 +982,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 
 .is-invalid {
     border-color: #dc3545 !important;
-}
-
-.disabled-icon {
-    opacity: 0.3;
-    cursor: not-allowed;
 }
 
 .transition-all {
@@ -1253,7 +1084,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     width: 100%;
     background: #fff;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: 8px
 }
 
 

@@ -5,35 +5,50 @@ import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ThamSoHeThongService {
 
     private final ThamSoHeThongRepository repository;
 
-    public Integer getInteger(String maThamSo, Integer defaultValue) {
-        try {
-            return repository.findByMaThamSo(maThamSo)
-                    .map(p -> Integer.parseInt(p.getGiaTri()))
-                    .orElse(defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+    public List<ThamSoHeThong> getAll() {
+        return repository.findAll();
     }
 
-    public Double getDouble(String maThamSo, Double defaultValue) {
-        try {
-            return repository.findByMaThamSo(maThamSo)
-                    .map(p -> Double.parseDouble(p.getGiaTri()))
-                    .orElse(defaultValue);
-        } catch (Exception e) {
-            return defaultValue;
-        }
+    public ThamSoHeThong update(Integer id, ThamSoHeThong request) {
+        ThamSoHeThong ts = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+
+        ts.setTenThamSo(request.getTenThamSo());
+        ts.setGiaTri(request.getGiaTri());
+        ts.setMoTa(request.getMoTa());
+        ts.setKieuDuLieu(request.getKieuDuLieu());
+
+        return repository.save(ts);
     }
 
-    public String getString(String maThamSo, String defaultValue) {
-        return repository.findByMaThamSo(maThamSo)
-                .map(ThamSoHeThong::getGiaTri)
+    public void updateStatus(String maThamSo, Integer trangThai) {
+        ThamSoHeThong ts = repository.findByMaThamSo(maThamSo)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+
+        ts.setTrangThai(trangThai);
+        repository.save(ts);
+    }
+
+    // 🔥 Method dùng cho hệ thống
+    public Double getDouble(String ma, Double defaultValue) {
+        return repository.findByMaThamSo(ma)
+                .filter(t -> t.getTrangThai() == 1)
+                .map(t -> Double.parseDouble(t.getGiaTri()))
+                .orElse(defaultValue);
+    }
+
+    public Integer getInteger(String ma, Integer defaultValue) {
+        return repository.findByMaThamSo(ma)
+                .filter(t -> t.getTrangThai() == 1)
+                .map(t -> Integer.parseInt(t.getGiaTri()))
                 .orElse(defaultValue);
     }
 }
