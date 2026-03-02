@@ -8,6 +8,7 @@ import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository;
 import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository;
+import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,8 @@ public class HoaDonThanhToanService {
     private NhanVienRepository nhanVienRepository;
     @Autowired
     private KhachHangRepository khachHangRepository;
+    @Autowired
+    private PhieuGiamGiaService phieuGiamGiaService;
 
     public Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable){
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
@@ -386,14 +389,27 @@ public class HoaDonThanhToanService {
                 .map(ChiTietHoaDon::getThanhTien)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 4.3. Lấy các thông số phụ phí của Hóa đơn hiện tại
+        // 🚨 BƯỚC QUAN TRỌNG 1: Lưu tổng tiền món vào DB trước
+        hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
+        hoaDon = hoaDonThanhToanRepository.save(hoaDon);
+
+        // 🚨 BƯỚC QUAN TRỌNG 2: Gọi hàm kiểm tra Voucher
+        // Lúc này DB đã có tổng tiền mới, hàm kiểm tra sẽ đối chiếu cực kỳ chuẩn xác
+        phieuGiamGiaService.kiemTraLaiDieuKienVoucher(hoaDon.getId());
+
+        // 🚨 BƯỚC QUAN TRỌNG 3: Fetch lại hóa đơn từ DB
+        // Vì nếu khách bị rớt Voucher, hàm trên đã lén set soTienDaGiam = 0 rồi. Phải lấy lại để tính toán!
+        hoaDon = hoaDonThanhToanRepository.findById(hoaDon.getId())
+                .orElseThrow(() -> new RuntimeException("Lỗi đồng bộ hóa đơn"));
+
+        // 4.3. Lấy các thông số phụ phí CẬP NHẬT NHẤT
         BigDecimal giamGia = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
         BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
 
-        // Lấy % VAT (Nếu DB bạn có cột vat_ap_dung, nếu không thì mặc định là 10%)
+        // Lấy % VAT
         BigDecimal vatPhanTram = hoaDon.getVatApDung() != null ? BigDecimal.valueOf(hoaDon.getVatApDung()) : BigDecimal.TEN;
 
-        // 4.4. Công thức toán học (Nghiệp vụ chuẩn)
+        // 4.4. Công thức toán học
         // A. Tiền sau giảm = Tổng tiền - Giảm giá
         BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
         if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
@@ -404,17 +420,16 @@ public class HoaDonThanhToanService {
         // C. Cần thanh toán = Tiền sau giảm + VAT - Tiền cọc đã đưa
         BigDecimal tongTienThanhToan = tienSauGiam.add(tienVat).subtract(tienCoc);
 
-        // Nếu cọc nhiều hơn tiền ăn -> Không cần thu thêm (Số tiền = 0). (Số tiền dư có thể xử lý hoàn trả sau)
+        // Nếu cọc nhiều hơn tiền ăn -> Không cần thu thêm
         if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) {
             tongTienThanhToan = BigDecimal.ZERO;
         }
 
         // 4.5. Cập nhật lại thực thể và Lưu
-        hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
         hoaDon.setTongTienThanhToan(tongTienThanhToan);
-
         hoaDonThanhToanRepository.save(hoaDon);
-        System.out.println("✅ Đã cập nhật lại tài chính cho Hóa đơn ID: " + hoaDon.getId() + " | Khách cần trả thêm: " + tongTienThanhToan);
+
+        System.out.println("✅ Đã cập nhật lại tài chính cho Hóa đơn ID: " + hoaDon.getId() + " | Giảm giá: " + giamGia + " | Cần trả thêm: " + tongTienThanhToan);
     }
 
     private String getTenMonFromEntity(ChiTietHoaDon ct) {
