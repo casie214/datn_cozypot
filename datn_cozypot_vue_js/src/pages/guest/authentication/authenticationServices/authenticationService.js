@@ -27,6 +27,7 @@ export const useAuthStore = defineStore('auth', {
                     id: data.id || null,
                     username: data.username || '',
                     hoTen: data.hoTen || 'Người dùng',
+                    sdt: data.sdt || '',
                     email: email,
                 };
 
