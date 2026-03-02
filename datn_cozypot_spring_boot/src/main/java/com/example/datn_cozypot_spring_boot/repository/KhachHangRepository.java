@@ -1,6 +1,5 @@
 package com.example.datn_cozypot_spring_boot.repository;
 
-import com.example.datn_cozypot_spring_boot.entity.BanAn;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -87,15 +86,5 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     );
 
     Optional<KhachHang> findKhachHangByEmail(String identifier);
-
-    Optional<KhachHang> findBySoDienThoai(String soDienThoai);
-
-    // Tìm theo tên hoặc SĐT (dùng cho multiselect search)
-    @Query("SELECT k FROM KhachHang k WHERE " +
-            "(:keyword IS NULL OR :keyword = '' OR " +
-            "LOWER(k.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "k.soDienThoai LIKE CONCAT('%', :keyword, '%'))" +
-            " ORDER BY k.tenKhachHang")
-    List<KhachHang> searchByKeyword(@Param("keyword") String keyword);
     Optional<KhachHang> findByTenDangNhap(String tenDangNhap);
 }
