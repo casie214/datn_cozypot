@@ -24,9 +24,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final KhachHangRepository khachHangRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // tìm trong bảng nhân viên trước
-        Optional<NhanVien> nhanVien = nhanVienRepository.findNhanVienByTenDangNhap(identifier);
+        Optional<NhanVien> nhanVien = nhanVienRepository.findByEmail(email);
         // thấy thì trả về ADMIN/EMPLOYEE
         if (nhanVien.isPresent()) {
             NhanVien nv = nhanVien.get();
@@ -36,15 +36,14 @@ public class CustomUserDetailsService implements UserDetailsService {
             );
 
             return new User(
-                    nv.getTenDangNhap(),
+                    nv.getEmail(),
                     nv.getMatKhauDangNhap(),
                     authorities
             );
         }
 
         // hoặc tìm trong bảng khách hàng
-        Optional<KhachHang> khachHang = khachHangRepository.findByTenDangNhap(identifier);
-        // thấy thì trả UserDetails quyền USER
+        Optional<KhachHang> khachHang = khachHangRepository.findByEmail(email);
         if (khachHang.isPresent()) {
             KhachHang kh = khachHang.get();
             List<GrantedAuthority> authorities = Collections.singletonList(
@@ -53,11 +52,11 @@ public class CustomUserDetailsService implements UserDetailsService {
             String password = (kh.getMatKhauDangNhap() == null) ? "" : kh.getMatKhauDangNhap();
 
             return new User(
-                    kh.getTenDangNhap(),
+                    kh.getEmail(),
                     password,
                     authorities
             );
         }
-        throw new UsernameNotFoundException("Không tìm thấy người dùng với thông tin: " + identifier);
+        throw new UsernameNotFoundException("Không tìm thấy người dùng với thông tin: " + email);
     }
 }

@@ -30,7 +30,6 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
             @Param("tuNgay") LocalDate tuNgay,
             Pageable pageable);
 
-    // SỬA DÒNG NÀY: Từ existsBySoDienThoai thành existsBySdtNhanVien
     boolean existsByTenDangNhap(String tenDangNhap);
 
     boolean existsByEmail(String email);
