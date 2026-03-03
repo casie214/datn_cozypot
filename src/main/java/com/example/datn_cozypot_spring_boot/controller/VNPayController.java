@@ -372,10 +372,9 @@ public class VNPayController {
                     hoaDon.setTrangThaiHoaDon(2);
                     hoaDonThanhToanRepository.save(hoaDon);
 
-                    // 2. Chuyển phiếu đặt bàn thành Đã xác nhận (2)
                     if (hoaDon.getIdPhieuDatBan() != null) {
                         PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
-                        phieu.setTrangThai(2);
+                        phieu.setTrangThai(0);
                         phieuDatBanRepository.save(phieu);
                     }
 

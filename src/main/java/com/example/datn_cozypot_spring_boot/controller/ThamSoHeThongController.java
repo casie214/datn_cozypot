@@ -37,4 +37,9 @@ public class ThamSoHeThongController {
 
         service.updateStatus(maThamSo, body.get("trangThai"));
     }
+
+    @GetMapping("/get-all-system")
+    public List<ThamSoHeThong> getAllSystem() {
+        return service.getAll();
+    }
 }
