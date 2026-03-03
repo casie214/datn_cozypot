@@ -16,6 +16,8 @@ public class DatBanOnlineRequest {
     private Integer soNguoi;
     private String ghiChu;
 
+    private Integer idBanAn;
+
     private BigDecimal tongTien;
     private BigDecimal tienCoc;
     private List<PhieuDatBanRequest.ChiTietMonAnRequest> chiTiet;
