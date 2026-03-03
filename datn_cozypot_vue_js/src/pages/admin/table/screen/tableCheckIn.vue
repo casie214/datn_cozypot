@@ -761,43 +761,54 @@ const toggleGopBan = (ban) => {
 };
 
 const billSummary = computed(() => {
+  // 1. Tổng tiền món
   const tong = listMonDaChon.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // 2. Trừ giảm giá
   const giam = selectedPhieu.value?.soTienDaGiam || 0;
   let sauGiam = tong - giam;
   if (sauGiam < 0) sauGiam = 0;
   
-  // Dùng ?? để giữ giá trị 0% nếu bàn phụ truyền lên
+  // 3. Tính thuế VAT (trên số tiền đã trừ khuyến mãi)
   const vatRate = selectedPhieu.value?.vatApDung ?? 10; 
+  const tienVat = sauGiam * (vatRate / 100);
   
+  // 4. Trừ đi tiền cọc
   const coc = selectedPhieu.value?.tienCoc || 0;
   
-  let canThu = sauGiam - coc;
+  // 5. Tính số tiền cần thu của bàn này: Tiền món + VAT - Cọc
+  let canThu = sauGiam + tienVat - coc; 
   if (canThu < 0) canThu = 0;
   
-  return { tong, giam, coc, canThu, vatRate }; 
+  // 🚨 XUẤT ĐẦY ĐỦ CÁC TRƯỜNG ĐỂ GIAO DIỆN VÀ CÁC HÀM DƯỚI DÙNG
+  return { tong, giam, coc, canThu, vatRate, tienVat, sauGiam }; 
+});
+
+const totalVatToPay = computed(() => {
+  // Gom tiền món của bàn chính + bàn phụ
+  let tongTienTruocVat = billSummary.value.sauGiam; 
+  listHoaDonGop.value.forEach(hd => { 
+      tongTienTruocVat += hd.canThu; // Bàn phụ vốn dĩ VAT = 0 nên canThu của nó chính là tiền món
+  });
+  
+  // Tính VAT tổng
+  return tongTienTruocVat * ((billSummary.value.vatRate ?? 10) / 100);
 });
 
 // Tổng tiền sau gộp
 const grandTotalToPay = computed(() => {
-  let tongTienCacBan = billSummary.value.canThu + (billSummary.value.coc || 0); 
+  // Lấy tổng tiền món + VAT của bàn chính (đã trừ mã giảm giá)
+  let tongTienTruocVat = billSummary.value.sauGiam + billSummary.value.tienVat; 
   
-  listHoaDonGop.value.forEach(hd => {
-      tongTienCacBan += hd.canThu;
-  });
+  // Cộng thêm tiền của các bàn gộp (bàn gộp đã tự tính toán canThu của nó)
+  listHoaDonGop.value.forEach(hd => { tongTienTruocVat += hd.canThu; });
 
-  const vatRate = billSummary.value.vatRate;
-  const tienVat = tongTienCacBan * (vatRate / 100);
-
-  const tongTienSauCung = (tongTienCacBan + tienVat) - (billSummary.value.coc || 0);
+  // Cuối cùng mới trừ đi tiền Cọc của bàn chính
+  const tongTienSauCung = tongTienTruocVat - (billSummary.value.coc || 0);
+  
   return tongTienSauCung > 0 ? tongTienSauCung : 0;
 });
 
-// BỔ SUNG BIẾN NÀY ĐỂ GIAO DIỆN KHÔNG BỊ UNDEFINED KHI .toLocaleString()
-const totalVatToPay = computed(() => {
-  let tongTienCacBan = billSummary.value.canThu + (billSummary.value.coc || 0); 
-  listHoaDonGop.value.forEach(hd => { tongTienCacBan += hd.canThu; });
-  return tongTienCacBan * ((billSummary.value.vatRate ?? 10) / 100);
-});
 
 const modalActiveFloor = ref(1);
 const modalHoveredTableId = ref(null);
@@ -987,7 +998,7 @@ const handleSaveFood = async (itemsArray) => {
 };
 
 const handlePaymentCash = async () => {
-  const amountToPay = grandTotalToPay.value; 
+  const amountToPay = grandTotalToPay.value;
   const confirm = await Swal.fire({
     title: 'Xác nhận thanh toán TIỀN MẶT?',
     html: `Tổng tiền (đã bao gồm các bàn gộp): <br><br>
@@ -1068,6 +1079,7 @@ const copyToClipboard = async (text) => {
 
 const handlePaymentVNPayFull = async () => {
   const amountToPay = grandTotalToPay.value;
+  if (amountToPay <= 0) return Swal.fire('Lưu ý', 'Hóa đơn 0đ, vui lòng chọn Hoàn tất (0đ) để đóng bàn!', 'info');
   const confirm = await Swal.fire({
     title: 'Thanh toán VNPay Gộp?',
     text: `Chuyển cổng VNPay với tổng tiền ${amountToPay.toLocaleString()} đ. Đồng ý?`,
@@ -1105,6 +1117,7 @@ const handlePaymentVNPayFull = async () => {
 
 const handlePaymentMixed = async () => {
   const totalInvoice = grandTotalToPay.value;
+  if (totalInvoice <= 0) return Swal.fire('Lưu ý', 'Hóa đơn 0đ, vui lòng chọn Hoàn tất (0đ) để đóng bàn!', 'info');
   const { value: cashAmountStr } = await Swal.fire({
     title: 'Thanh toán hỗn hợp (Gộp)',
     input: 'number',
@@ -1771,7 +1784,11 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                             </button>
                         </div>
                     </div>                    
-                    <div class="d-flex justify-content-between text-muted small mb-1"><span>Thuế VAT:</span><span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span></div>
+                    <div class="d-flex justify-content-between text-muted small mb-1">
+                      <span>Thuế VAT:</span>
+                      <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
+                      <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
+                    </div>
                     <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-primary small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
                     <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
                         <span class="fw-bold text-dark text-uppercase" style="font-size: 14px;">Tiền món bàn này:</span>
@@ -1829,11 +1846,25 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     </div>
 
                     <div class="payment-grid" :class="{ 'disabled-payment': !canPay }">
-                    <button class="btn-pay cash-btn" @click="handlePaymentCash"><i class="fa-solid fa-money-bill-1-wave"></i><span>Tiền mặt</span></button>
-                    <div class="d-flex gap-2">
-                        <button class="btn-pay vnpay-btn" @click="handlePaymentVNPayFull"><i class="fa-solid fa-qrcode"></i><span>VNPay</span></button>
-                        <button class="btn-pay mixed-btn" @click="handlePaymentMixed"><i class="fa-solid fa-layer-group"></i><span>Hỗn hợp</span></button>
-                    </div>
+                      <button class="btn-pay cash-btn" @click="handlePaymentCash">
+                        <i class="fa-solid" :class="grandTotalToPay <= 0 ? 'fa-check-circle' : 'fa-money-bill-1-wave'"></i>
+                        <span>{{ grandTotalToPay <= 0 ? 'Hoàn tất (0đ)' : 'Tiền mặt' }}</span>
+                      </button>
+                      
+                      <div class="d-flex gap-2">
+                        <button class="btn-pay vnpay-btn" 
+                                :class="{ 'opacity-50 disabled': grandTotalToPay <= 0 }"
+                                :disabled="grandTotalToPay <= 0"
+                                @click="handlePaymentVNPayFull">
+                          <i class="fa-solid fa-qrcode"></i><span>VNPay</span>
+                        </button>
+                        <button class="btn-pay mixed-btn" 
+                                :class="{ 'opacity-50 disabled': grandTotalToPay <= 0 }"
+                                :disabled="grandTotalToPay <= 0"
+                                @click="handlePaymentMixed">
+                          <i class="fa-solid fa-layer-group"></i><span>Hỗn hợp</span>
+                        </button>
+                      </div>
                     </div>
                 </div>
             </div>
@@ -1886,6 +1917,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
             <div class="d-flex justify-content-between mb-2 text-muted small">
                 <span>Thuế VAT:</span>
                 <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
+                <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
             </div>
 
             <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between mb-3 fw-bold" style="color: #007bff;">
