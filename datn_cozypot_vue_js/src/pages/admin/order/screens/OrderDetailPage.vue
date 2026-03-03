@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import relativeTime from "dayjs/plugin/relativeTime";
 import logoUrl from "@/assets/images/logo_upscaled.jpg";
+import Swal from "sweetalert2";
+import axiosClient from "@/services/axiosClient";
 
 dayjs.locale("vi");
 dayjs.extend(relativeTime);
@@ -185,6 +187,67 @@ onMounted(async () => {
     router.push({ name: 'orderManager' });
   }
 });
+
+const handleConfirmOrder = async (idHoaDon) => {
+  console.log("👉 BƯỚC 1: Đã bấm nút! ID Hóa đơn nhận được là:", idHoaDon);
+
+  if (!idHoaDon) {
+      Swal.fire('Lỗi', 'Không tìm thấy ID hóa đơn để xác nhận!', 'error');
+      return;
+  }
+
+  try {
+      console.log("👉 BƯỚC 2: Chuẩn bị bật Swal xác nhận");
+      const confirm = await Swal.fire({
+        title: 'Xác nhận đơn hàng?',
+        html: 'Trạng thái hóa đơn sẽ chuyển sang <b>Xác nhận (3)</b>, phiếu đặt bàn sang <b>(1)</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
+        cancelButtonText: 'Hủy bỏ'
+      });
+
+      console.log("👉 BƯỚC 3: Người dùng đã chọn:", confirm.isConfirmed);
+      if (!confirm.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Đang xử lý & Gửi email...',
+        text: 'Vui lòng không đóng trình duyệt lúc này.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      console.log("👉 BƯỚC 4: Chuẩn bị gọi API bằng axiosClient...");
+      
+      // Kiểm tra xem axiosClient có bị undefined không
+      if (!axiosClient) {
+          console.error("🚨 LỖI: axiosClient chưa được import hoặc bị undefined!");
+      }
+
+      const response = await axiosClient.put(`/hoa-don-thanh-toan/xac-nhan-va-gui-mail/${idHoaDon}`);
+      console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Hoàn tất!',
+        text: 'Đã xác nhận đơn và gửi email thành công.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      await handleViewDetail(idHoaDon);
+
+  } catch (error) {
+      console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi xử lý',
+        text: error.response?.data?.message || error.message || 'Không thể xác nhận đơn lúc này.'
+      });
+  }
+};
 
 </script>
 
@@ -557,6 +620,14 @@ onMounted(async () => {
         </div>
 
         <div class="d-flex gap-2">
+          <button
+              v-if="selectedOrder?.trangThaiCode === 0 || selectedOrder?.trangThaiCode === 2"
+              class="btn px-4 py-2 fw-medium text-white shadow-sm" style="background-color: #8b0000"
+              @click="handleConfirmOrder(selectedOrder?.dbId)" 
+          >
+              <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi mail
+          </button>
+
           <button
             class="btn btn-white border px-4 py-2 fw-medium"
             @click="onBack"
