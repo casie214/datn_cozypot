@@ -80,7 +80,10 @@ const visiblePages = computed(() => {
     <main class="flex-grow-1 p-4 main-offset">
       <h1 class="page-title mb-4">Quản lý hóa đơn</h1>
 
-      <div class="card border-0 shadow-sm mb-4">
+      <div
+        class="card shadow-sm mb-4"
+        style="border: 1px solid #dee2e6 !important; border-radius: 8px"
+      >
         <div class="card-body">
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -139,23 +142,28 @@ const visiblePages = computed(() => {
             </div>
 
             <div class="col-md-1">
-              <div class="d-flex flex-column gap-1">
-                <button
-                  class="btn btn-outline-custom btn-sm w-100"
-                  @click="handleReset"
-                  title="Làm mới"
-                >
-                  <i class="fas fa-undo"></i> Hủy
-                </button>
-              </div>
+              <button
+                class="btn btn-outline-custom w-100"
+                style="height: 38px"
+                @click="handleReset"
+                title="Làm mới"
+              >
+                <i class="fas fa-undo"></i> Hủy
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card border-0 shadow-sm">
+      <div
+        class="card shadow-sm"
+        style="border: 1px solid #dee2e6 !important; border-radius: 8px"
+      >
         <div class="card-body p-0">
-          <div class="table-responsive">
+          <div
+            class="table-responsive"
+            style="border-radius: 8px 8px 0 0; overflow: hidden"
+          >
             <table class="table table-hover align-middle mb-0">
               <thead class="table-header-red">
                 <tr>
@@ -193,27 +201,18 @@ const visiblePages = computed(() => {
                   <td class="fw-bold">{{ order.tienCoc }}</td>
                   <td>{{ order.trangThai }}</td>
                   <td class="text-center">
-                    <div class="d-flex justify-content-center gap-2">
-                      <button
-                        class="btn btn-icon"
-                        title="Xem chi tiết"
+                    <div class="icon-tooltip">
+                      <i
+                        style="cursor: pointer"
+                        class="fas fa-eye view-icon"
                         @click="
                           router.push({
                             name: 'OrderDetail',
                             params: { id: order.dbId },
                           })
                         "
-                      >
-                        👁️
-                      </button>
-
-                      <!-- <button
-                        class="btn btn-icon"
-                        title="In hóa đơn"
-                        @click="handlePrintOrder(order.id)"
-                      >
-                        🖨️
-                      </button> -->
+                      ></i>
+                      <span class="tooltip-text">Xem chi tiết</span>
                     </div>
                   </td>
                 </tr>
@@ -222,7 +221,14 @@ const visiblePages = computed(() => {
           </div>
         </div>
 
-        <div class="card-footer bg-white border-0 py-3" v-if="totalPages > 0">
+        <div
+          class="card-footer bg-white py-3"
+          v-if="totalPages > 0"
+          style="
+            border-top: 1px solid #dee2e6 !important;
+            border-radius: 0 0 8px 8px;
+          "
+        >
           <div
             class="d-flex justify-content-between align-items-center flex-wrap gap-3 px-2"
           >
@@ -391,5 +397,46 @@ const visiblePages = computed(() => {
 .custom-multiselect-theme :global(.multiselect-is-active) {
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1) !important;
   border-color: #8b0000 !important;
+}
+
+.icon-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-tooltip .tooltip-text {
+  position: absolute;
+  bottom: 135%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+.icon-tooltip .tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+/* Hover show */
+.icon-tooltip:hover .tooltip-text {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
 }
 </style>
