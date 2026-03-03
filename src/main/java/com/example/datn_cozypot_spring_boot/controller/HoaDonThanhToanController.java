@@ -9,10 +9,8 @@ import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhTo
 import com.example.datn_cozypot_spring_boot.dto.LichSuThanhToanDTO.LichSuThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.phieuDatBan.PhieuDatBanResponse;
 import com.example.datn_cozypot_spring_boot.entity.*;
-import com.example.datn_cozypot_spring_boot.repository.ChiTietHoaDonRepository;
-import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
-import com.example.datn_cozypot_spring_boot.repository.LichSuHoaDonRepository;
-import com.example.datn_cozypot_spring_boot.repository.PhieuDatBanRepository;
+import com.example.datn_cozypot_spring_boot.repository.*;
+import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonService;
@@ -25,6 +23,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -48,6 +48,8 @@ public class HoaDonThanhToanController {
     private final PhieuDatBanRepository phieuDatBanRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
+    private final DatBanService datBanService;
+    private final NhanVienRepository nhanVienRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -128,6 +130,40 @@ public class HoaDonThanhToanController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/xac-nhan-va-gui-mail/{idHoaDon}")
+    public ResponseEntity<?> xacNhanVaGuiMail(@PathVariable Integer idHoaDon) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+
+            System.out.println(username + "FUCK ALL HUMAN");
+
+
+            NhanVien nv = nhanVienRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin nhân viên thao tác!"));
+
+            Integer idNhanVien = nv.getId();
+
+            datBanService.xacNhanVaGuiMail(idHoaDon, idNhanVien);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Đã xác nhận hóa đơn và gửi email thành công!"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAILED",
+                    "message", e.getMessage()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "ERROR",
+                    "message", "Lỗi hệ thống: " + e.getMessage()
+            ));
         }
     }
 

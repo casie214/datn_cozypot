@@ -121,4 +121,6 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 
 
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
+
+    Optional<HoaDonThanhToan> findByMaHoaDon(String idHoaDon);
 }
