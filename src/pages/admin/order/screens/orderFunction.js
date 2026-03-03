@@ -19,10 +19,18 @@ import {
   BeHoanTatHoaDon,
 } from "./orderService";
 
+const today = dayjs().format("YYYY-MM-DD");
+const currentPage = ref(0);
+const pageSize = ref(5);
+const filters = ref({
+  search: "",
+  status: "Tất cả",
+  fromDate: today,
+  toDate: "",
+});
+
 export function useOrderManager() {
-  const currentPage = ref(0);
   const totalPages = ref(0);
-  const pageSize = ref(5);
   const totalElements = ref(0);
 
   const selectedOrder = ref(null);
@@ -36,7 +44,6 @@ export function useOrderManager() {
   const selectedHistoryOrder = ref(null);
   const historyEvents = ref([]);
   const paymentHistory = ref([]);
-  const today = dayjs().format("YYYY-MM-DD");
 
   const Toast = Swal.mixin({
     toast: true,
@@ -70,13 +77,6 @@ export function useOrderManager() {
     warningMessage: "",
     reason: "",
     isSafe: false,
-  });
-
-  const filters = ref({
-    search: "",
-    status: "Tất cả",
-    fromDate: today,
-    toDate: "",
   });
 
   const formatDateTime = (dateString) => {
@@ -171,7 +171,7 @@ export function useOrderManager() {
         ban: item.tenBan,
         loai: mapOrderType(item.hinhThucDat),
         soLuongKhach: item.soLuongKhach,
-        tongTien: formatCurrency(item.tongTienThanhToan),
+        tongTien: formatCurrency(item.tongTienChuaGiam),
         tongTienRaw: item.tongTienThanhToan,
         tongTienHangRaw: item.tongTienChuaGiam || 0,
         soTienDaGiam: item.soTienDaGiam || 0,
@@ -646,7 +646,7 @@ export function useOrderManager() {
 
   onMounted(async () => {
     await fetchConfig();
-    await performSearch(true);
+    await performSearch(false);
     // await fetchOrders();
     // console.log("Giờ hiện tại:", dayjs().format("HH:mm:ss DD/MM/YYYY"));
   });

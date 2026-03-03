@@ -83,8 +83,7 @@ const appliedVAT = computed(() => {
 
 const taxAmount = computed(() => {
   if (subTotal.value === 0) return 0;
-  const baseTotal = selectedOrder.value?.tongTienRaw || 0;
-  return baseTotal + rawDeposit.value + discount.value - subTotal.value;
+  return subTotal.value * (appliedVAT.value / 100);
 });
 
 const isReadOnly = computed(() => {
