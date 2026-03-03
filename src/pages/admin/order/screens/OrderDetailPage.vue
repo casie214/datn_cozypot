@@ -258,8 +258,8 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <!-- Thong tin chung -->
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card border-0 shadow-sm mb-4">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+        <div class="card border-0 mb-0">
           <div class="card-header bg-white border-bottom py-3">
             <span class="fw-bold"
               ><i class="fa-solid fa-clock-rotate-left me-2"></i>Trạng thái hóa
@@ -362,8 +362,8 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <!-- Bảng món -->
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom py-3 fw-bold">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+        <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
           🍴 Thông tin món đã đặt
         </div>
         <div class="card-body p-0">
@@ -432,8 +432,8 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <div class="row g-4 mb-4 align-items-stretch">
         <div class="col-md-6 d-flex flex-column gap-4">
-          <div class="card border-0 shadow-sm flex-grow-1">
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+          <div class="card border-0 shadow-sm flex-grow-1" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               🕒 Lịch sử hóa đơn
             </div>
             <div
@@ -480,9 +480,10 @@ const handleConfirmOrder = async (idHoaDon) => {
 
           <div
             v-if="paymentHistory && paymentHistory.length > 0"
-            class="card border-0 shadow-sm"
+            class="card border-0 shadow-sm mt-4"
+            style="border-radius: 15px; overflow: hidden;"
           >
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💳 Lịch sử thanh toán
             </div>
             <div class="card-body p-3">
@@ -543,8 +544,8 @@ const handleConfirmOrder = async (idHoaDon) => {
         </div>
 
         <div class="col-md-6">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+          <div class="card border-0 shadow-sm h-100" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💰 Tổng kết đơn hàng
             </div>
             <div class="card-body p-4 d-flex flex-column">
@@ -1127,7 +1128,7 @@ const handleConfirmOrder = async (idHoaDon) => {
 .stepper-line-background,
 .stepper-line-progress {
   position: absolute;
-  top: 17px;
+  top: 23px;
   left: 65px; /* Xuất phát từ giữa hình tròn đầu tiên (130 / 2) */
   height: 4px;
 }
@@ -1142,9 +1143,9 @@ const handleConfirmOrder = async (idHoaDon) => {
 
 /* Style cho các vòng tròn */
 .step-circle {
-  width: 38px;
-  height: 38px;
-  font-size: 0.9rem;
+  width: 50px; 
+  height: 50px; 
+  font-size: 1.3rem; 
   background-color: #fff;
   border: 3px solid #e9ecef;
   color: #adb5bd;
@@ -1169,8 +1170,9 @@ const handleConfirmOrder = async (idHoaDon) => {
   box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
 }
 .step-label {
-  font-size: 11px;
+  font-size: 13px; 
   text-align: center;
   letter-spacing: 0.5px;
+  margin-top: 6px;
 }
 </style>
