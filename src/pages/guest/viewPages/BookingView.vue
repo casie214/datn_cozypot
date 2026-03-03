@@ -10,12 +10,14 @@ const router = useRouter();
 const step = ref(1);
 const isLoading = ref(false);
 const isSubmitting = ref(false);
-
+const availableTables = ref([]);
+const hasCheckedTables = ref(false);
 // --- 2. DỮ LIỆU ĐẶT BÀN ---
 const bookingData = reactive({
   people: null,
   date: "",
   time: "",
+  tableId: "",
 });
 
 const customerInfo = reactive({
@@ -30,6 +32,7 @@ const errors = reactive({
   people: "",
   date: "",
   time: "",
+  tableId: "",
   fullName: "",
   phone: "",
   email: "",
@@ -97,13 +100,21 @@ const validateEmail = () => {
   }
 };
 
+const validateTable = () => {
+  if (!bookingData.tableId) {
+    errors.tableId = "Vui lòng chọn một bàn để tiếp tục.";
+  } else {
+    errors.tableId = "";
+  }
+};
+
 const cart = ref([]);
 
 // --- 3. LIFECYCLE: PHỤC HỒI DỮ LIỆU & TỰ ĐỘNG ĐIỀN THÔNG TIN ---
 onMounted(() => {
   // 3.1. LUÔN LẤY THÔNG TIN USER ĐÃ ĐĂNG NHẬP TRƯỚC (QUÉT MỌI KEY CÓ THỂ CÓ)
   const userStr = localStorage.getItem("user");
-  console.log(userStr)
+  console.log(userStr);
   if (userStr) {
     try {
       const userObj = JSON.parse(userStr);
@@ -202,15 +213,20 @@ const checkAvailability = async () => {
       payload,
     );
 
-    if (response.data === true) {
-      step.value = 2;
-    } else {
+    availableTables.value = response.data;
+    hasCheckedTables.value = true;
+
+    // Nếu mảng rỗng -> Báo lỗi hết bàn
+    if (availableTables.value.length === 0) {
       Swal.fire({
         icon: "error",
         title: "Hết bàn rồi!",
-        text: "Rất tiếc, nhà hàng đã hết bàn trống vào khung giờ này. Bạn vui lòng chọn giờ khác nhé!",
+        text: "Rất tiếc, nhà hàng đã hết bàn trống phù hợp vào khung giờ này. Bạn vui lòng chọn giờ hoặc giảm số lượng người nhé!",
         confirmButtonColor: "#7d161a",
       });
+    } else {
+      // Nếu có bàn trống -> Nhảy thẳng sang Màn 2
+      step.value = 2;
     }
   } catch (error) {
     Swal.fire("Lỗi", "Không thể kết nối đến máy chủ.", "error");
@@ -242,7 +258,8 @@ const submitFinalBooking = async () => {
   validateFullName();
   validatePhone();
   validateEmail();
-  if (errors.fullName || errors.phone || errors.email) {
+  validateTable();
+  if (errors.fullName || errors.phone || errors.email || errors.tableId) {
     return;
   }
 
@@ -287,6 +304,7 @@ const submitFinalBooking = async () => {
   try {
     const payload = {
       idKhachHang: customerInfo.idKhachHang,
+      idBanAn: bookingData.tableId,
       fullName: customerInfo.fullName,
       phone: customerInfo.phone,
       email: customerInfo.email,
@@ -684,7 +702,7 @@ const minDate = computed(() => {
                 </div>
 
                 <div class="row g-4 mb-4">
-                  <div class="col-12">
+                  <div class="col-sm-6">
                     <label class="form-label text-muted small fw-bold mb-1"
                       ><i class="fas fa-users text-danger me-2"></i> SỐ LƯỢNG
                       NGƯỜI ĐI</label
@@ -694,6 +712,51 @@ const minDate = computed(() => {
                     >
                       {{ bookingData.people }} người
                     </div>
+                  </div>
+
+                  <div class="col-sm-6">
+                    <label class="form-label text-muted small fw-bold mb-1"
+                      ><i class="fas fa-chair text-danger me-2"></i> CHỌN BÀN
+                      <span class="text-danger">*</span></label
+                    >
+                    <select
+                      v-model="bookingData.tableId"
+                      class="form-select custom-input mt-1"
+                      style="
+                        border: 0;
+                        border-bottom: 1px solid #ddd;
+                        border-radius: 0;
+                        background-color: transparent;
+                        padding-left: 4px;
+                        font-weight: bold;
+                        color: #212529;
+                        cursor: pointer;
+                        box-shadow: none;
+                      "
+                      onfocus="this.style.borderBottom = '2px solid #7d161a'"
+                      onblur="this.style.borderBottom = '1px solid #ddd'"
+                      @change="validateTable"
+                    >
+                      <option value="" disabled selected>
+                        -- Chọn bàn trống --
+                      </option>
+                      <option
+                        v-for="table in availableTables"
+                        :key="table.id"
+                        :value="table.id"
+                      >
+                        Bàn {{ table.maBan }} (Sức chứa:
+                        {{ table.soCho }} người)
+                      </option>
+                    </select>
+
+                    <span
+                      v-if="errors.tableId"
+                      class="text-danger small mt-1 d-block"
+                    >
+                      <i class="fas fa-exclamation-circle me-1"></i
+                      >{{ errors.tableId }}
+                    </span>
                   </div>
                 </div>
 
