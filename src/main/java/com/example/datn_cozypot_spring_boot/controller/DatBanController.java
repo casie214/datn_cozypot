@@ -236,11 +236,10 @@ public Page<DatBanListResponse> searchDatBan(
     }
 
     @PostMapping("/check-ban-trong")
-    public ResponseEntity<Boolean> checkBanTrong(@Valid @RequestBody DatBanRequest request) {
-        boolean conBan = datBanService.checkBanTrong(request);
-        return ResponseEntity.ok(conBan);
+    public ResponseEntity<List<BanAnResponse>> checkBanTrong(@RequestBody DatBanRequest request) {
+        List<BanAnResponse> danhSachBanTrong = datBanService.checkBanTrong(request);
+        return ResponseEntity.ok(danhSachBanTrong);
     }
-
     @PostMapping("/tao-moi")
     public ResponseEntity<?> taoPhieuDatBanOnline(@RequestBody DatBanOnlineRequest request) {
         try {
