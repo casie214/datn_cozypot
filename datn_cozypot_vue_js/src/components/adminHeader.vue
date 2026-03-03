@@ -32,7 +32,15 @@ const goToChangePassword = () => {
     router.push('/doi-mat-khau');
 }
 const goToProfile = () => {
-    alert("Chức năng đang phát triển");
+   showDropdown.value = false;
+    const role = authStore.role;
+    if (role === 'USER') {
+        router.push('/ho-so');
+    } else if (role === 'ADMIN' || role === 'EMPLOYEE') {
+        router.push('/admin/profile');
+    } else {
+        router.push('/login');
+    }
 }
 const closeDropdown = (e) => {
     if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
