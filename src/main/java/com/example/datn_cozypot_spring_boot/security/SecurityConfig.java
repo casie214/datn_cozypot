@@ -82,6 +82,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
 
+
+                        // Cho ADMIN và EMPLOYEE tự cập nhật profile
+                        .requestMatchers(HttpMethod.GET, "/api/nhan-vien/my-profile")
+                        .hasAnyRole("ADMIN", "EMPLOYEE")
+
+                        .requestMatchers(HttpMethod.PUT, "/api/nhan-vien/update-my-profile")
+                        .hasAnyRole("ADMIN", "EMPLOYEE")
+
                         // General API Rules
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")

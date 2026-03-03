@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.NhanVienRequest;
 import com.example.datn_cozypot_spring_boot.dto.NhanVienResponse;
+import com.example.datn_cozypot_spring_boot.dto.profile.NhanVienProfileRequest;
 import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.entity.VaiTro;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
@@ -88,40 +89,42 @@ public class NhanVienService {
             throw new RuntimeException("Lỗi khi lưu file ảnh: " + e.getMessage());
         }
     }
+
     public boolean checkDuplicate(String type, String value, Integer excludeId) {
         if (value == null || value.isBlank()) return false;
-        if ("email".equals(type)) {
-            boolean existsInNhanVien;
-            if (excludeId != null) {
-                existsInNhanVien = repo.existsByEmailAndIdNot(value, excludeId);
-            } else {
-                existsInNhanVien = repo.existsByEmail(value);
-            }
-            boolean existsInKhachHang = khachHangRepo.existsByEmail(value);
+        String val = value.trim();
 
-            return existsInNhanVien || existsInKhachHang;
-        }
-        if (excludeId != null) {
-            return switch (type) {
-                case "tenDangNhap" -> repo.existsByTenDangNhapAndIdNot(value, excludeId);
-                case "sdtNhanVien" -> repo.existsBySdtNhanVienAndIdNot(value, excludeId);
-                case "soCccd" -> repo.existsBySoCccdAndIdNot(value, excludeId);
-                default -> false;
-            };
-        } else {
-            return switch (type) {
-                case "tenDangNhap" -> repo.existsByTenDangNhap(value);
-                case "sdtNhanVien" -> repo.existsBySdtNhanVien(value);
-                case "soCccd" -> repo.existsBySoCccd(value);
-                default -> false;
-            };
-        }
+        return switch (type) {
+            case "email" -> {
+                // 1. Kiểm tra trong bảng NHÂN VIÊN (Phải loại trừ chính mình)
+                boolean existsInNV = (excludeId != null)
+                        ? repo.existsByEmailAndIdNot(val, excludeId) // repo ở đây là NhanVienRepository
+                        : repo.existsByEmail(val);
+
+                // 2. Kiểm tra trong bảng KHÁCH HÀNG (Chỉ cần kiểm tra xem có ai dùng chưa)
+                boolean existsInKH = khachHangRepo.existsByEmail(val);
+
+                yield existsInNV || existsInKH;
+            }
+            case "sdtNhanVien" -> (excludeId != null)
+                    ? repo.existsBySdtNhanVienAndIdNot(val, excludeId)
+                    : repo.existsBySdtNhanVien(val);
+
+            case "tenDangNhap" -> (excludeId != null)
+                    ? repo.existsByTenDangNhapAndIdNot(val, excludeId)
+                    : repo.existsByTenDangNhap(val);
+
+            case "soCccd" -> (excludeId != null)
+                    ? repo.existsBySoCccdAndIdNot(val, excludeId)
+                    : repo.existsBySoCccd(val);
+            default -> false;
+        };
     }
 
     public Page<NhanVienResponse> getAll(String keyword, Integer trangThai, Boolean gioiTinh, LocalDate tuNgay, int page, int size) {
         Sort sort = Sort.by(Sort.Order.asc("trangThaiLamViec"), Sort.Order.desc("id"));
         Pageable pageable = PageRequest.of(page, size, sort);
-        return repo.searchNhanVien(keyword, trangThai,gioiTinh, tuNgay, pageable).map(this::convertToResponse);
+        return repo.searchNhanVien(keyword, trangThai, gioiTinh, tuNgay, pageable).map(this::convertToResponse);
     }
 
     public NhanVienResponse getDetail(Integer id) {
@@ -163,11 +166,12 @@ public class NhanVienService {
 
         return convertToResponse(savedNv);
     }
+
     @Transactional
     public NhanVienResponse update(Integer id, NhanVienRequest req, MultipartFile file) {
         NhanVien nv = repo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
         String currentPasswordInDb = nv.getMatKhauDangNhap();
-
+        String currentUsernameInDb = nv.getTenDangNhap();
         if (repo.existsByEmailAndIdNot(req.getEmail(), id))
             throw new RuntimeException("Email này đã được sử dụng");
         if (khachHangRepo.existsByEmail(req.getEmail()))
@@ -175,12 +179,13 @@ public class NhanVienService {
         if (repo.existsByTenDangNhapAndIdNot(req.getEmail(), id))
             throw new RuntimeException("Email này đã được sử dụng");
         mapRequestToEntity(req, nv);
-        nv.setTenDangNhap(req.getEmail());
-        if (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().trim().isEmpty()) {
-            nv.setMatKhauDangNhap(passwordEncoder.encode(req.getMatKhauDangNhap()));
-        } else {
-            nv.setMatKhauDangNhap(currentPasswordInDb);
-        }
+        nv.setTenDangNhap(currentUsernameInDb);
+        nv.setMatKhauDangNhap(currentPasswordInDb);
+//        if (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().trim().isEmpty()) {
+//            nv.setMatKhauDangNhap(passwordEncoder.encode(req.getMatKhauDangNhap()));
+//        } else {
+//            nv.setMatKhauDangNhap(currentPasswordInDb);
+//        }
         if (file != null && !file.isEmpty()) {
             nv.setAnhDaiDien(saveImage(file));
         }
@@ -294,27 +299,18 @@ public class NhanVienService {
         }
     }
 
-    // Sửa khai báo hàm: thêm String listId
     public ResponseEntity<Resource> exportTemplate(String listId) throws IOException {
-
-        // 1. Logic lấy dữ liệu: Có chọn thì lọc, không chọn thì lấy hết (hoặc lấy rỗng)
         List<NhanVien> listData;
-
         if (listId != null && !listId.trim().isEmpty()) {
-            // Chuyển chuỗi "1,2,3" từ Frontend thành List<Integer> [1, 2, 3]
             List<Integer> ids = Arrays.stream(listId.split(","))
                     .map(String::trim)
                     .map(Integer::parseInt)
                     .collect(Collectors.toList());
-            // Lấy đúng những người đã tích chọn
             listData = repo.findAllById(ids);
         } else {
-            // Nếu không truyền listId (bấm tải mẫu trống), bạn có thể lấy tất cả hoặc tạo list rỗng
             listData = repo.findAll();
         }
-
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
         String[] columns = {
                 "Họ và Tên", "Vai Trò", "SĐT", "Email", "Ngày Sinh",
                 "Giới Tính (Nam/Nữ)", "Số CCCD", "Ngày Cấp", "Nơi Cấp",
@@ -410,18 +406,18 @@ public class NhanVienService {
             nv.setEmail(email);
 
             String ns = getCellValue(row.getCell(4));
-            if(!ns.isEmpty()) nv.setNgaySinh(LocalDate.parse(ns, formatter));
+            if (!ns.isEmpty()) nv.setNgaySinh(LocalDate.parse(ns, formatter));
 
             nv.setGioiTinh("Nam".equalsIgnoreCase(getCellValue(row.getCell(5))));
             nv.setSoCccd(cccd);
 
             String nc = getCellValue(row.getCell(7));
-            if(!nc.isEmpty()) nv.setNgayCapCccd(LocalDate.parse(nc, formatter));
+            if (!nc.isEmpty()) nv.setNgayCapCccd(LocalDate.parse(nc, formatter));
 
             nv.setNoiCapCccd(getCellValue(row.getCell(8)));
 
             String nvl = getCellValue(row.getCell(9));
-            if(!nvl.isEmpty()) nv.setNgayVaoLam(LocalDate.parse(nvl, formatter));
+            if (!nvl.isEmpty()) nv.setNgayVaoLam(LocalDate.parse(nvl, formatter));
 
             nv.setDiaChi(getCellValue(row.getCell(10)));
 
@@ -468,6 +464,7 @@ public class NhanVienService {
                 return "";
         }
     }
+
     // Hàm kiểm tra xem dòng đó có thực sự chứa dữ liệu không
     private boolean isRowEmpty(Row row) {
         if (row == null) return true;
@@ -580,4 +577,71 @@ public class NhanVienService {
             e.printStackTrace();
             return null;
         }
-    }}
+    }
+
+    @Transactional
+    public NhanVienResponse updateMyProfile(String currentEmail, NhanVienProfileRequest req, MultipartFile file) {
+        // 1. Tìm nhân viên hiện tại
+        NhanVien nv = repo.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin tài khoản!"));
+
+        Integer myId = nv.getId();
+
+        // 2. Kiểm tra trùng lặp (Dùng hàm checkDuplicate đã có của bạn, nó sẽ tự loại trừ myId)
+        System.out.println("========== DEBUG EMAIL UPDATE ==========");
+        System.out.println("Current Email (token): [" + currentEmail + "]");
+        System.out.println("Email trong DB: [" + nv.getEmail() + "]");
+        System.out.println("Email request gửi lên: [" + req.getEmail() + "]");
+        System.out.println("My ID: " + myId);
+
+        System.out.println("existsByEmail: " + repo.existsByEmail(req.getEmail()));
+        System.out.println("existsByEmailAndIdNot: " + repo.existsByEmailAndIdNot(req.getEmail(), myId));
+        System.out.println("existsInKH: " + khachHangRepo.existsByEmail(req.getEmail()));
+
+        System.out.println("checkDuplicate result: " + checkDuplicate("email", req.getEmail(), myId));
+        System.out.println("========================================");
+        if (checkDuplicate("email", req.getEmail(), myId)) {
+            throw new RuntimeException("Email này đã được sử dụng bởi người khác!");
+        }
+
+        if (checkDuplicate("sdtNhanVien", req.getSdtNhanVien(), myId)) {
+            throw new RuntimeException("Số điện thoại này đã được sử dụng bởi người khác!");
+        }
+
+        if (checkDuplicate("tenDangNhap", req.getTenDangNhap(), myId)) {
+            throw new RuntimeException("Tên đăng nhập này đã được sử dụng bởi người khác!");
+        }
+
+        if (req.getSoCccd() != null && !req.getSoCccd().isBlank()) {
+            if (checkDuplicate("soCccd", req.getSoCccd(), myId)) {
+                throw new RuntimeException("Số CCCD này đã tồn tại trên hệ thống!");
+            }
+        }
+
+        // 3. Cập nhật thông tin
+        nv.setHoTenNhanVien(req.getHoTenNhanVien());
+        nv.setEmail(req.getEmail()); // Cập nhật email mới (nếu có)
+        nv.setSdtNhanVien(req.getSdtNhanVien());
+        nv.setTenDangNhap(req.getTenDangNhap());
+        nv.setNgaySinh(req.getNgaySinh());
+        nv.setGioiTinh(req.getGioiTinh());
+        nv.setDiaChi(req.getDiaChi());
+        nv.setSoCccd(req.getSoCccd());
+        nv.setNgayCapCccd(req.getNgayCapCccd());
+        nv.setNoiCapCccd(req.getNoiCapCccd());
+
+        // 4. Xử lý ảnh đại diện
+        if (file != null && !file.isEmpty()) {
+            nv.setAnhDaiDien(saveImage(file));
+        }
+
+        return convertToResponse(repo.save(nv));
+    }
+    public NhanVienResponse getProfileByEmail(String email) {
+        NhanVien nv = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với email: " + email));
+        return convertToResponse(nv);
+    }
+}
+
+
