@@ -104,7 +104,6 @@ public class DatBanService {
 
                 res.setTrangThai(0);
             }
-
             return res;
         }).toList();
     }
@@ -893,6 +892,67 @@ public class DatBanService {
     }
 
 
+    @Transactional
+    public void xacNhanVaGuiMail(Integer idHoaDon, Integer idNhanVien) {
+        // 1. Tìm hóa đơn
+        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
+        // 2. Tìm phiếu đặt bàn liên kết
+        PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
+        if (phieu == null) {
+            throw new RuntimeException("Hóa đơn này không có phiếu đặt bàn liên kết!");
+        }
 
+        // Kiểm tra xem trạng thái có hợp lệ không (Chỉ xử lý đơn mới tạo hoặc chờ cọc/đã cọc)
+        if (hoaDon.getTrangThaiHoaDon() != 0 && hoaDon.getTrangThaiHoaDon() != 2) {
+            throw new RuntimeException("Trạng thái hóa đơn không hợp lệ để xác nhận!");
+        }
+
+        Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
+
+        // 3. Cập nhật trạng thái
+        hoaDon.setTrangThaiHoaDon(3); // 3: Hóa đơn đã xác nhận
+        phieu.setTrangThai(1);        // 1: Phiếu đã xác nhận
+
+        // 4. Lưu vào CSDL
+        hoaDonThanhToanRepository.save(hoaDon);
+        phieuDatBanRepository.save(phieu);
+
+        // 5. Ghi lịch sử (Dùng lại hàm ghiLichSu có sẵn của bạn)
+        ghiLichSu(hoaDon, idNhanVien,
+                "Xác nhận & Gửi Mail",
+                "Nhân viên xác nhận đơn đặt bàn và gửi email cho khách",
+                trangThaiCu, 3);
+
+        // 6. Xử lý Gửi Email
+        KhachHang khachHang = hoaDon.getIdKhachHang();
+        BanAn banAn = hoaDon.getIdBanAn();
+
+        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
+            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                    .tenKhachHang(khachHang.getTenKhachHang())
+                    .soDienThoai(khachHang.getSoDienThoai())
+                    .email(khachHang.getEmail())
+                    .thoiGianDat(phieu.getThoiGianDat() != null ?
+                            phieu.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
+                    .tenBan(banAn != null ? banAn.getMaBan() : "Chưa xếp bàn")
+                    .khuVuc((banAn != null && banAn.getIdKhuVuc() != null) ?
+                            banAn.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + banAn.getIdKhuVuc().getTang() : "Chưa xác định")
+                    .soLuongKhach(phieu.getSoLuongKhach())
+                    .maPhieuDatBan(phieu.getMaDatBan() != null ? phieu.getMaDatBan() : "PDB-" + phieu.getId())
+                    .build();
+
+            try {
+                emailDatBanService.sendXacNhanDatBanSync(emailDto);
+                log.info("✅ Đã gửi mail xác nhận thành công cho hóa đơn: {}", idHoaDon);
+            } catch (Exception e) {
+                log.error("⚠️ Lỗi gửi mail cho hóa đơn {}: {}", idHoaDon, e.getMessage());
+                // Vẫn cho phép cập nhật trạng thái thành công, nhưng ném lỗi để FE biết mail có vấn đề
+                throw new RuntimeException("Xác nhận thành công nhưng lỗi khi gửi mail: " + e.getMessage());
+            }
+        } else {
+            throw new RuntimeException("Khách hàng chưa cung cấp địa chỉ Email để gửi!");
+        }
+    }
 }
