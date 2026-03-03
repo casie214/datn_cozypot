@@ -434,7 +434,7 @@ const loadTinhThanh = async () => {
       text: item.name
     }));
 
-   
+
   } catch (error) {
     console.error("Không thể lấy danh sách tỉnh:", error);
   }
@@ -695,7 +695,7 @@ const validateForm = async () => {
       if (!item.errors) {
         item.errors = { id_tinh_thanh: '', id_quan_huyen: '', id_phuong_xa: '', dia_chi_chi_tiet: '' };
       }
-      
+
       // Reset lỗi của từng dòng địa chỉ
       item.errors.id_tinh_thanh = '';
       item.errors.id_quan_huyen = '';
@@ -848,6 +848,7 @@ const handleSave = async () => {
     loading.value = false;
   }
 };
+
 onMounted(async () => {
   await loadTinhThanh(); // Load danh sách tỉnh đầu tiên
 
@@ -860,7 +861,10 @@ onMounted(async () => {
       // Map basic info
       const { danhSachDiaChi, ...rest } = data;
       Object.assign(formData, rest);
-
+      if (formData.anhDaiDien) {
+        previewUrl.value =
+          `http://localhost:8080/uploads/images/${formData.anhDaiDien}`;
+      }
       if (danhSachDiaChi && danhSachDiaChi.length > 0) {
         const mappedAddresses = [];
 

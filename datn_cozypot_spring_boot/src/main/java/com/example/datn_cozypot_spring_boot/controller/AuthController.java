@@ -44,16 +44,28 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> loginAdmin(@RequestBody LoginRequest req) {
-        NhanVien nv = nhanVienRepository.findByEmail(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Email nhân viên không tồn tại"));
-        if (nv.getTrangThaiLamViec() != 1) {
-            return ResponseEntity.status(403).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
-        }
-        if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
+        // 1. Tìm nhân viên theo Email
+        Optional<NhanVien> nvOpt = nhanVienRepository.findByEmail(req.getUsername());
+
+        // 2. Nếu không tìm thấy, trả về 404 thay vì văng lỗi 500
+        if (nvOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản nhân viên không tồn tại trên hệ thống.");
         }
 
-        String role = nv.getIdVaiTro().getTenVaiTro();
+        NhanVien nv = nvOpt.get();
+
+        // 3. Kiểm tra trạng thái làm việc
+        if (nv.getTrangThaiLamViec() != 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
+        }
+
+        // 4. Kiểm tra mật khẩu
+        if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Mật khẩu không chính xác. Vui lòng kiểm tra lại.");
+        }
+
+        // 5. Tạo Token
+        String role = nv.getIdVaiTro() != null ? nv.getIdVaiTro().getTenVaiTro() : "STAFF";
         String accessToken = tokenProvider.generateToken(nv.getEmail(), role);
         String refreshToken = jwtUtils.generateRefreshToken(nv.getEmail());
 
@@ -64,34 +76,34 @@ public class AuthController {
                 nv.getId(),
                 nv.getTenDangNhap(),
                 nv.getHoTenNhanVien(),
-                nv.getEmail(),         // Bổ sung email
-                nv.getSdtNhanVien()    // SDT đã có
+                nv.getEmail(),
+                nv.getSdtNhanVien()
         ));
     }
 
     @PostMapping("/client/login")
     public ResponseEntity<?> loginClient(@RequestBody LoginRequest req) {
+        // 1. Tìm khách hàng theo Email
+        Optional<KhachHang> khOpt = khachHangRepository.findByEmail(req.getUsername());
 
-        KhachHang kh = khachHangRepository
-                .findByEmail(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Email khách hàng không tồn tại"));
+        // 2. Nếu không tìm thấy, trả về 404
+        if (khOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản khách hàng không tồn tại trên hệ thống.");
+        }
+
+        KhachHang kh = khOpt.get();
+
+        // 3. Kiểm tra trạng thái khách hàng
         if (kh.getTrangThai() != 1) {
-            return ResponseEntity.status(403).body("Tài khoản khách hàng đã bị ngừng hoạt động");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản khách hàng đã bị khóa hoặc ngừng hoạt động.");
         }
 
+        // 4. Kiểm tra mật khẩu
         if (!passwordEncoder.matches(req.getPassword(), kh.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Mật khẩu không chính xác. Vui lòng kiểm tra lại.");
         }
-
-//        String identifier = (kh.getTenDangNhap() != null && !kh.getTenDangNhap().isEmpty())
-//                ? kh.getTenDangNhap()
-//                : kh.getEmail();
-//
-//        String accessToken = tokenProvider.generateToken(identifier, "USER");
-//        String refreshToken = jwtUtils.generateRefreshToken(identifier);
 
         String identifier = kh.getEmail();
-
         String accessToken = tokenProvider.generateToken(identifier, "USER");
         String refreshToken = jwtUtils.generateRefreshToken(identifier);
 
@@ -102,11 +114,10 @@ public class AuthController {
                 kh.getId(),
                 kh.getTenDangNhap(),
                 kh.getTenKhachHang(),
-                kh.getEmail(),         // Bổ sung email
-                kh.getSoDienThoai()    // SDT đã có
+                kh.getEmail(),
+                kh.getSoDienThoai()
         ));
     }
-
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
