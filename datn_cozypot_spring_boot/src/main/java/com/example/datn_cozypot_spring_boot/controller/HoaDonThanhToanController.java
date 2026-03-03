@@ -139,9 +139,6 @@ public class HoaDonThanhToanController {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String username = auth.getName();
 
-            System.out.println(username + "FUCK ALL HUMAN");
-
-
             NhanVien nv = nhanVienRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin nhân viên thao tác!"));
 
