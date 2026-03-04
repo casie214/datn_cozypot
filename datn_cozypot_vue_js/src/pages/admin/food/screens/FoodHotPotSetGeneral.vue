@@ -149,7 +149,6 @@ const getImg = (url) => {
       <table>
         <thead>
           <tr>
-
             <th>STT</th>
             <th>MÃ</th>
             <th>SET LẨU</th>
