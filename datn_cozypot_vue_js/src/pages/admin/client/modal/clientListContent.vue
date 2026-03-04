@@ -573,11 +573,12 @@ onMounted(handleSearch);
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 6px rgba(123, 18, 28, 0.2);
-  background-color: #8b0000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
 }
 
 .btn-red-dark:hover {
-  background-color: #8b0000;
+  transform: scale(1.04);
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   border-color: #8b0000;
   box-shadow: 0 6px 12px rgba(123, 18, 28, 0.3);
   color: white !important;
