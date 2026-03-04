@@ -68,6 +68,27 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                 (:loai = N'Tháng này' AND MONTH(thoi_gian_tao) = MONTH(GETDATE()) AND YEAR(thoi_gian_tao) = YEAR(GETDATE())) OR
                 (:loai = N'Năm nay' AND YEAR(thoi_gian_tao) = YEAR(GETDATE()))
             ) THEN 1 END) AS tongHoaDonHuy,
+                    -- SỐ BÀN ĐÃ ĐẶT (Trạng thái 1: chờ xác nhận, 2: đã cọc)
+                    COUNT(CASE WHEN trang_thai_hoa_don IN (1,2) AND (
+                        (:loai = N'Hôm nay' AND CAST(thoi_gian_tao AS DATE) = CAST(GETDATE() AS DATE)) OR
+                        (:loai = N'Tuần này' AND thoi_gian_tao >= DATEADD(DAY, -7, GETDATE())) OR
+                        (:loai = N'Tháng này' AND MONTH(thoi_gian_tao) = MONTH(GETDATE()) AND YEAR(thoi_gian_tao) = YEAR(GETDATE())) OR
+                        (:loai = N'Năm nay' AND YEAR(thoi_gian_tao) = YEAR(GETDATE())) OR
+                        (:loai = N'Tùy chỉnh' AND CAST(thoi_gian_tao AS DATE) BETWEEN :tuNgay AND :denNgay)
+                    ) THEN 1 END) AS tongBanDaDat,
+                    
+                    -- DOANH THU DỰ KIẾN (Đơn chưa hoàn thành nhưng có tiền)
+-- DOANH THU DỰ KIẾN (1 → 6 và món active 1,2)
+ISNULL(SUM(CASE WHEN h.trang_thai_hoa_don BETWEEN 1 AND 6
+    AND ct.trang_thai_mon IN (1,2)
+    AND (
+        (:loai = N'Hôm nay' AND CAST(h.thoi_gian_tao AS DATE) = CAST(GETDATE() AS DATE)) OR
+        (:loai = N'Tuần này' AND h.thoi_gian_tao >= DATEADD(DAY, -7, GETDATE())) OR
+        (:loai = N'Tháng này' AND MONTH(h.thoi_gian_tao) = MONTH(GETDATE()) AND YEAR(h.thoi_gian_tao) = YEAR(GETDATE())) OR
+        (:loai = N'Năm nay' AND YEAR(h.thoi_gian_tao) = YEAR(GETDATE())) OR
+        (:loai = N'Tùy chỉnh' AND CAST(h.thoi_gian_tao AS DATE) BETWEEN :tuNgay AND :denNgay)
+    )
+THEN ct.so_luong * ct.don_gia_tai_thoi_diem_ban ELSE 0 END),0) AS doanhThuDuKien,
 
             -- DOANH THU THỰC NHẬN
             ISNULL(SUM(CASE WHEN trang_thai_hoa_don = 7 AND (
@@ -79,8 +100,9 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                             AND CAST(thoi_gian_thanh_toan AS DATE)\s
                                 BETWEEN :tuNgay AND :denNgay)
             ) THEN tong_tien_thanh_toan ELSE 0 END), 0) AS doanhThuThucNhan
-        FROM hoa_don_thanh_toan
-        """, nativeQuery = true)
+            FROM hoa_don_thanh_toan h
+                         LEFT JOIN chi_tiet_hoa_don ct\s
+                             ON h.id_hoa_don = ct.id_hoa_don        """, nativeQuery = true)
     Map<String, Object> layDuLieuThongKeChiTiet(
             @Param("loai") String loai,
             @Param("tuNgay") String tuNgay,
@@ -190,4 +212,18 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
     ORDER BY trang_thai_hoa_don
 """, nativeQuery = true)
     List<Map<String, Object>> thongKeTrangThaiDonHang();
+
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM hoa_don_thanh_toan
+    WHERE trang_thai_hoa_don IN (1, 2)
+""", nativeQuery = true)
+    Long demHoaDonChoVaDaCoc();
+
+    @Query(value = """
+    SELECT ISNULL(SUM(tong_tien_thanh_toan),0)
+    FROM hoa_don_thanh_toan
+    WHERE trang_thai_hoa_don IN (1, 2)
+""", nativeQuery = true)
+    BigDecimal tongTienHoaDonChoVaDaCoc();
 }

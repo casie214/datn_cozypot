@@ -7,30 +7,6 @@
                 <small>Vui lòng chờ trong giây lát</small>
             </div>
         </div>
-        <div class="toast-container">
-            <div v-for="toast in toasts" :key="toast.id" class="custom-toast" :class="toast.type">
-                <i :class="toast.type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
-                <div class="toast-content">
-                    <h4>{{ toast.title }}</h4>
-                    <p>{{ toast.message }}</p>
-                </div>
-                <span class="close" @click="removeToast(toast.id)">&times;</span>
-            </div>
-        </div>
-
-        <div v-if="confirmModal.show" class="modal-overlay">
-            <div class="confirm-modal animate__animated animate__zoomIn">
-                <div class="confirm-icon">
-                    <i class="fa-solid fa-circle-question"></i>
-                </div>
-                <h4 class="mt-3">{{ confirmModal.title }}</h4>
-                <p class="text-muted">{{ confirmModal.message }}</p>
-                <div class="d-flex justify-content-center gap-2 mt-4">
-                    <button class="btn btn-light px-4" @click="confirmModal.show = false">Hủy bỏ</button>
-                    <button class="btn-red-dark px-4" @click="executeConfirm">Xác nhận</button>
-                </div>
-            </div>
-        </div>
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -393,11 +369,12 @@
                                     <label class="form-label fw-bold">Đơn tối thiểu <span
                                             class="text-danger">*</span></label>
                                     <input :value="formatNumberInput(formData.donHangToiThieu)"
-                                        @input="e => handleMoneyInput(e, 'donHangToiThieu')" type="text"
+                                        @input="e => formData.donHangToiThieu = parseNumber(e.target.value)" type="text"
                                         inputmode="numeric" class="form-control custom-input"
                                         :class="{ 'is-invalid': errors.donHangToiThieu }" :disabled="isReadOnly" />
                                     <div class="invalid-feedback">{{ errors.donHangToiThieu }}</div>
                                 </div>
+
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Ngày bắt đầu <span
@@ -658,6 +635,7 @@ import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
 import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
+import Swal from 'sweetalert2'
 const formatCurrency = (value) => {
     if (!value) return '0 đ'
     return value.toLocaleString('vi-VN') + ' đ'
@@ -721,10 +699,10 @@ const exportExcel = async () => {
         link.click();
         window.URL.revokeObjectURL(url);
 
-        showToast('Thành công', 'Xuất Excel thành công!');
+        showAlert('Thành công', 'Xuất Excel thành công!');
     } catch (error) {
         console.error(error);
-        showToast('Lỗi', 'Xuất Excel thất bại!', 'error');
+        showAlert('Lỗi', 'Xuất Excel thất bại!', 'error');
     }
 };
 
@@ -743,6 +721,7 @@ const cleanParams = (obj) => {
     });
     return cleaned;
 };
+
 
 
 // --- TRẠNG THÁI GIAO DIỆN ---
@@ -788,7 +767,93 @@ const filters = reactive({
     tienMin: null,
     tienMax: null
 });
+const showAlert = (title, text, icon = 'success') => {
+    Swal.fire({
+        icon,
+        title,
+        text,
+        timer: 2000,              // ⏳ 2 giây tự tắt
+        timerProgressBar: true,   // thanh chạy thời gian
+        showConfirmButton: false, // ❌ bỏ nút OK
+        background: '#fff',
+        color: '#333',
+        confirmButtonText: '✔ Đồng ý',
+        confirmButtonColor: '#8b0000', 
+    })
+}
 
+// ===== XÁC NHẬN =====
+const showConfirm = async (title, text) => {
+    const result = await Swal.fire({
+        title,
+        text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Xác nhận',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#800000',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+    })
+
+    return result.isConfirmed
+}
+
+const triggerSubmit = async () => {
+
+    clearErrors()
+
+    if (!validateForm()) {
+        showAlert(
+            "Lỗi nhập liệu",
+            "Vui lòng kiểm tra lại các trường thông tin",
+            "error"
+        )
+        return
+    }
+
+    const confirmed = await showConfirm(
+        "Xác nhận lưu dữ liệu",
+        "Hệ thống sẽ lưu phiếu và gửi email đến khách hàng."
+    )
+
+    if (!confirmed) return
+
+    try {
+        isSubmitting.value = true
+
+        formData.listEmails = listKhachHang.value
+            .filter(kh => formData.listIdKhachHang.includes(kh.id))
+            .map(kh => kh.email)
+
+        if (formData.doiTuong === 1 && formData.listEmails.length === 0) {
+            showAlert("Lỗi", "Không tìm thấy email khách hàng", "error")
+            return
+        }
+
+        if (selectedId.value) {
+            await voucherService.update(selectedId.value, formData)
+            showAlert("Thành công", "Phiếu đã được cập nhật")
+        } else {
+            await voucherService.create(formData)
+            showAlert("Thành công", "Tạo phiếu mới thành công")
+        }
+
+        closeForm()
+        handleSearch()
+
+    } catch (err) {
+        const message =
+            err.response?.data?.message ||
+            err.message ||
+            "Có lỗi xảy ra"
+
+        showAlert("Lỗi", message, "error")
+    }
+    finally {
+        isSubmitting.value = false
+    }
+}
 
 const pagination = reactive({
     currentPage: 1,
@@ -998,27 +1063,6 @@ const validateForm = () => {
     return isValid;
 };
 
-
-// --- HỆ THỐNG TOAST ---
-const toasts = ref([]);
-const showToast = (title, message, type = 'success') => {
-    const id = Date.now();
-    toasts.value.push({ id, title, message, type });
-    setTimeout(() => removeToast(id), 4000);
-};
-const removeToast = (id) => toasts.value = toasts.value.filter(t => t.id !== id);
-
-// --- MODAL XÁC NHẬN ---
-const confirmModal = reactive({ show: false, title: '', message: '', action: null });
-const triggerConfirm = (title, message, action) => {
-    Object.assign(confirmModal, { show: true, title, message, action });
-};
-const executeConfirm = async () => {
-    const action = confirmModal.action;
-    confirmModal.show = false;
-    if (action) await action();
-};
-
 const filteredCustomers = computed(() => {
     if (!Array.isArray(listKhachHang.value)) return [];
 
@@ -1150,7 +1194,7 @@ const handleSearch = async () => {
         pagination.totalElements = res.totalElements || 0;
     } catch (e) {
         console.error("Lỗi tải danh sách:", e);
-        showToast("Lỗi", "Không thể tải danh sách phiếu giảm giá", "error");
+        showAlert("Lỗi", "Không thể tải danh sách phiếu giảm giá", "error");
     }
 };
 const dotKhuyenMaiMap = computed(() => {
@@ -1214,7 +1258,7 @@ const loadDetail = async (id) => {
             : [];
 
     } catch (err) {
-        showToast("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
+        showAlert("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
     }
 };
 const isExpired = (ngayKetThuc) => {
@@ -1222,89 +1266,28 @@ const isExpired = (ngayKetThuc) => {
     return new Date(ngayKetThuc).getTime() < Date.now();
 };
 
-
-const triggerSubmit = () => {
-    clearErrors(); // ⭐ THÊM DÒNG NÀY
-
-    if (!validateForm()) {
-        showToast(
-            "Lỗi nhập liệu",
-            "Vui lòng kiểm tra lại các trường thông tin",
-            "error"
-        );
-        return;
-    }
-
-    triggerConfirm(
-        "Xác nhận lưu dữ liệu",
-        "Hệ thống sẽ lưu phiếu và gửi email thông báo tới các khách hàng được chọn.",
-        async () => {
-            try {
-                isSubmitting.value = true; // 🔥 BẬT LOADING
-
-                formData.listEmails = listKhachHang.value
-                    .filter(kh => formData.listIdKhachHang.includes(kh.id))
-                    .map(kh => kh.email);
-
-                if (formData.doiTuong === 1 && formData.listEmails.length === 0) {
-                    showToast("Lỗi", "Không tìm thấy email của khách hàng đã chọn", "error");
-                    isSubmitting.value = false;
-                    return;
-                }
-
-                if (selectedId.value) {
-                    await voucherService.update(selectedId.value, formData);
-                    showToast("Thành công", "Phiếu giảm giá đã được cập nhật.");
-                } else {
-                    await voucherService.create(formData);
-                    showToast("Thành công", "Phiếu giảm giá mới đã được tạo.");
-                }
-
-                closeForm();
-                handleSearch();
-            }
-            catch (err) {
-                clearErrors();
-                const message =
-                    err.response?.data?.message ||
-                    err.response?.data ||
-                    err.message ||
-                    "Có lỗi xảy ra";
-
-                // 🔥 Nếu BE trả về lỗi trùng code
-                if (message.toLowerCase().includes("code") &&
-                    message.toLowerCase().includes("tồn tại")) {
-
-                    errors.codeGiamGia = "Mã code đã tồn tại";
-                }
-
-                showToast("Lỗi", message, "error");
-
-
-            }
-            finally {
-                isSubmitting.value = false; // 🔥 TẮT LOADING
-            }
-        }
-    );
-};
 const isSubmitting = ref(false);
-const triggerToggleStatus = (pg) => {
-    const actionText = pg.trangThai === 1 ? 'ngừng hoạt động' : 'kích hoạt';
-    triggerConfirm(
+const triggerToggleStatus = async (pg) => {
+
+    const actionText = pg.trangThai === 1
+        ? 'ngừng hoạt động'
+        : 'kích hoạt'
+
+    const confirmed = await showConfirm(
         "Xác nhận thay đổi",
-        `Bạn có chắc muốn ${actionText} phiếu ${pg.maPhieuGiamGia}?`,
-        async () => {
-            try {
-                await voucherService.toggleStatus(pg.id, pg.trangThai);
-                showToast("Thành công", "Trạng thái đã được cập nhật.");
-                handleSearch();
-            } catch (e) {
-                showToast("Lỗi", "Không thể cập nhật trạng thái", "error");
-            }
-        }
-    );
-};
+        `Bạn có chắc muốn ${actionText} phiếu ${pg.maPhieuGiamGia}?`
+    )
+
+    if (!confirmed) return
+
+    try {
+        await voucherService.toggleStatus(pg.id, pg.trangThai)
+        showAlert("Thành công", "Trạng thái đã được cập nhật")
+        handleSearch()
+    } catch (e) {
+        showAlert("Lỗi", "Không thể cập nhật trạng thái", "error")
+    }
+}
 const resetCustomerFilter = () => {
     customerSearch.value = '';
 };
@@ -1366,7 +1349,7 @@ const loadCustomers = async () => {
 
     } catch (err) {
         console.error("Lỗi tải khách hàng", err);
-        showToast("Lỗi", "Không tải được danh sách khách hàng", "error");
+        showAlert("Lỗi", "Không tải được danh sách khách hàng", "error");
     }
 };
 
