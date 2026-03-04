@@ -194,18 +194,17 @@ const visiblePages = computed(() => {
                   <td>{{ order.trangThai }}</td>
                   <td class="text-center">
                     <div class="d-flex justify-content-center gap-2">
-                      <button
-                        class="btn btn-icon"
-                        title="Xem chi tiết"
-                        @click="
+
+                      <div class="icon-tooltip">
+                                        <i style="cursor: pointer;" class="fas fa-eye view-icon" 
+                                        @click="
                           router.push({
                             name: 'OrderDetail',
                             params: { id: order.dbId },
                           })
-                        "
-                      >
-                        👁️
-                      </button>
+                        "></i>
+                                        <span class="tooltip-text">Xem chi tiết</span>
+                      </div>
 
                       <!-- <button
                         class="btn btn-icon"
