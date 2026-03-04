@@ -482,7 +482,7 @@ onMounted(() => {
   <!-- 🔥 HẾT POPUP 🔥 -->
 </template>
 
-<style>
+<style scoped>
 .layout-table {
   display: flex;
   background-color: white;
@@ -508,21 +508,6 @@ hr {
 .btn {
   background-color: #7d161a;
   color: white;
-}
-
-.table-container {
-  border: 1px solid #dee2e6;
-  /* Viền bao ngoài */
-  border-radius: 15px;
-  /* Độ bo góc bạn muốn */
-  overflow: hidden;
-  /* Quan trọng: Cắt các góc nhọn của header/footer bên trong */
-}
-
-.table thead tr th {
-  background-color: #7d1619 !important;
-  color: white;
-  font-weight: 600;
 }
 
 /* From Uiverse.io by JaydipPrajapati1910 */
@@ -846,5 +831,17 @@ hr {
 /* Xóa viền xanh khi click (box-shadow) */
 .pagination .page-link:focus {
   box-shadow: 0 0 0 0.2rem rgba(125, 22, 26, 0.25);
+}
+
+.btn{
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  transform: scale(1.04);
 }
 </style>

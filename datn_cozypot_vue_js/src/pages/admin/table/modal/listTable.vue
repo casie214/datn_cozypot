@@ -281,7 +281,7 @@ onMounted(() => {
     <div class="list-card">
       <table class="table">
         <thead>
-          <tr class="table-dark">
+          <tr>
             <th>STT</th>
             <th>Bàn</th>
             <th>Số ghế</th>
@@ -546,15 +546,39 @@ onMounted(() => {
   margin-bottom: 0 !important;
 }
 
-.table thead tr th {
-  background-color: #7d161a;
+thead {
+    border-radius: 10px;
+    background-color: #8B0000 !important;
+}
+
+thead tr{
+    border-radius: 15px;
+    background-color: transparent !important;
+}
+
+thead tr th{
+    padding-left: 20px;
+    background-color: transparent !important;
+    color: white;
+}
+
+tr td{
+  padding-left: 20px;
+}
+
+thead tr:hover {
+    background-color: #8B0000 !important;
+}
+
+tr:hover {
+    background-color: lightgray;
 }
 
 .list-card {
   border-radius: 12px;
   overflow: hidden;
-  /* QUAN TRỌNG */
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-light) !important;
+  box-shadow: var(--shadow-premium) !important;
 }
 
 /* Body */
@@ -689,13 +713,9 @@ onMounted(() => {
 }
 
 .btn-active {
-  background: #7d161a;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: #fff;
   border: none;
-}
-
-.btn-active:hover {
-  background: #5f0f12;
 }
 
 /* ===== ANIMATION ===== */

@@ -98,6 +98,17 @@ gioiTinh: params.gioiTinh !== undefined ? params.gioiTinh : null,        page: p
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+  // 12. Lấy thông tin profile của người đang đăng nhập
+getMyProfile: () => {
+  return axiosClient.get('/nhan-vien/my-profile');
+},
+
+// 13. Cập nhật profile của chính mình
+updateMyProfile: (formData) => {
+  return axiosClient.put('/nhan-vien/update-my-profile', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+},
 
 };
 export default staffService;

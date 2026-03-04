@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.math.BigDecimal;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -64,6 +63,12 @@ public class DatBanService {
 
     @Autowired
     private ChiTietHoaDonRepository chiTietHoaDonRepository;
+
+    @Autowired
+    private com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository danhMucChiTietRepository;
+
+    @Autowired
+    private com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
@@ -512,6 +517,8 @@ public class DatBanService {
         ban.setIdKhuVuc(kv);
         ban.setSoNguoiToiDa(req.getSoNguoiToiDa());
         ban.setLoaiDatBan(req.getLoaiDatBan());
+        ban.setTrangThai(0);
+        ban.setTenBan("SC" + ban.getId());
 
         banAnRepository.save(ban);
     }
@@ -554,50 +561,59 @@ public class DatBanService {
         khuVucRepository.save(kv);
     }
 
-    private BanAn timBanTrongDauTien(DatBanRequest request) {
-        LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
-        LocalDateTime thoiGianKhachVe = thoiGianKhachDen.plusHours(2); // Mặc định giữ bàn 2 tiếng
-
+    public List<BanAn> timDanhSachBanTrong(DatBanRequest request) {
+        // Lấy danh sách bàn có sức chứa phù hợp
         List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
-        if (danhSachBanPhuHop.isEmpty()) return null;
+        if (danhSachBanPhuHop.isEmpty()) return new java.util.ArrayList<>();
 
-        LocalDateTime startOfDay = request.getNgayDat().atStartOfDay();
-        LocalDateTime endOfDay = request.getNgayDat().atTime(23, 59, 59);
-        List<PhieuDatBan> cacPhieuTrongNgay = phieuDatBanRepository.findPhieuDatBanTrongNgay(startOfDay, endOfDay);
+        // Tính toán khung giờ check TRÙNG HỆT như lúc Submit
+        LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
+        LocalDateTime start = thoiGianKhachDen.minusHours(2);
+        LocalDateTime end = thoiGianKhachDen.plusHours(2);
 
+        List<BanAn> danhSachBanTrong = new java.util.ArrayList<>();
+
+        // Duyệt qua từng bàn, dùng đúng hàm check SQL để xem có ai đặt chưa
         for (BanAn ban : danhSachBanPhuHop) {
-            boolean isBanTrong = true;
-            for (PhieuDatBan phieu : cacPhieuTrongNgay) {
-                if (phieu.getIdBanAn() != null && phieu.getIdBanAn().getId().equals(ban.getId())) {
-                    LocalDateTime gioBatDau = phieu.getThoiGianDat();
-                    LocalDateTime gioKetThuc = gioBatDau.plusHours(2);
+            // Dùng chung hàm với bước Submit -> Đảm bảo đồng nhất logic 100%
+            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
 
-                    if (thoiGianKhachDen.isBefore(gioKetThuc) && thoiGianKhachVe.isAfter(gioBatDau)) {
-                        isBanTrong = false;
-                        break;
-                    }
-                }
+            // Nếu KHÔNG bị trùng lịch thì mới ném vào danh sách cho FE hiển thị
+            if (!isTrung) {
+                danhSachBanTrong.add(ban);
             }
-            if (isBanTrong) return ban; // Thấy bàn trống phát là chốt luôn!
         }
-        return null; // Không còn cái bàn nào
+        return danhSachBanTrong;
     }
 
-    public boolean checkBanTrong(DatBanRequest request) {
-        return timBanTrongDauTien(request) != null;
+    public List<BanAnResponse> checkBanTrong(DatBanRequest request) {
+        List<BanAn> banTrongEntityList = timDanhSachBanTrong(request);
+        return banTrongEntityList.stream()
+                .map(BanAnResponse::new)
+                .collect(Collectors.toList());
     }
 
     @Transactional(rollbackOn = Exception.class)
     public Map<String, Object> taoPhieuDatBanOnline(DatBanOnlineRequest request) {
-        // 1. Quét bàn trống
-        DatBanRequest checkReq = new DatBanRequest();
-        checkReq.setSoNguoi(request.getSoNguoi());
-        checkReq.setNgayDat(request.getThoiGianDat().toLocalDate());
-        checkReq.setGioDat(request.getThoiGianDat().toLocalTime());
+        if (request.getIdBanAn() == null) {
+            throw new RuntimeException("Vui lòng chọn bàn trước khi tiếp tục!");
+        }
 
-        BanAn banDuocChon = timBanTrongDauTien(checkReq);
-        if (banDuocChon == null) {
-            throw new RuntimeException("Rất tiếc, nhà hàng vừa hết bàn trống vào khung giờ này!");
+        BanAn banDuocChon = banAnRepository.findById(request.getIdBanAn())
+                .orElseThrow(() -> new RuntimeException("Bàn ăn không tồn tại trong hệ thống!"));
+
+        if (banDuocChon.getSoNguoiToiDa() < request.getSoNguoi()) {
+            throw new RuntimeException("Bàn bạn chọn không đủ sức chứa cho " + request.getSoNguoi() + " người!");
+        }
+
+        // Kiểm tra xem bàn này có bị trùng giờ đặt không (trước và sau 2 tiếng)
+        LocalDateTime thoiGianKhachDen = request.getThoiGianDat();
+        LocalDateTime start = thoiGianKhachDen.minusHours(2);
+        LocalDateTime end = thoiGianKhachDen.plusHours(2);
+
+        boolean isTrung = phieuDatBanRepository.existsByTimeRange(banDuocChon, start, end);
+        if (isTrung) {
+            throw new RuntimeException("Rất tiếc, bàn này đã có người đặt trong khung giờ bạn chọn. Vui lòng chọn bàn hoặc giờ khác!");
         }
 
         // 2. Xử lý khách hàng
@@ -615,7 +631,7 @@ public class DatBanService {
             khachHang = khachHangRepository.save(khachHang);
         }
 
-        // 3. Tạo phiếu đặt bàn (Trạng thái 1: Pending)
+        // 3. Tạo phiếu đặt bàn (Trạng thái 0: Pending)
         PhieuDatBan phieu = new PhieuDatBan();
         phieu.setIdBanAn(banDuocChon);
         phieu.setIdKhachHang(khachHang);
@@ -660,38 +676,6 @@ public class DatBanService {
 
         hoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
-        // 5. Lưu Chi Tiết Món Ăn (Nếu có)
-        if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
-            for (PhieuDatBanRequest.ChiTietMonAnRequest mon : request.getChiTiet()) {
-                ChiTietHoaDon ct = new ChiTietHoaDon();
-                ct.setIdHoaDon(hoaDon);
-
-                if (mon.getIdChiTietMonAn() != null) {
-                    DanhMucChiTiet dmct = new DanhMucChiTiet();
-                    dmct.setId(mon.getIdChiTietMonAn());
-                    ct.setIdChiTietMonAn(dmct);
-                }
-
-                if (mon.getIdSetLau() != null) {
-                    SetLau sl = new SetLau();
-                    sl.setId(mon.getIdSetLau());
-                    ct.setIdSetLau(sl);
-                }
-
-                ct.setSoLuong(mon.getSoLuong());
-                ct.setDonGiaTaiThoiDiemBan(mon.getDonGia());
-                ct.setThanhTien(mon.getDonGia().multiply(new BigDecimal(mon.getSoLuong())));
-                ct.setTrangThaiMon(1); // Mặc định là 1 (Chờ chế biến)
-
-                // 👉 SỬA 1: Bổ sung thêm ngày giờ tạo để khớp CSDL (tránh bị lỗi null value)
-                ct.setNgayGioTao(java.time.LocalDateTime.now());
-
-                chiTietHoaDonRepository.save(ct);
-            }
-        }
-
-        // 6. Ghi log Lịch Sử Hóa Đơn
-        // 👉 SỬA 2: Tách thành 2 block Insert (Tạo mới -> Chờ cọc) để lưu vết lịch sử đầy đủ
         LichSuHoaDon logTaoMoi = new LichSuHoaDon();
         logTaoMoi.setIdHoaDon(hoaDon);
         logTaoMoi.setHanhDong("Tạo hóa đơn online");
@@ -701,6 +685,61 @@ public class DatBanService {
         logTaoMoi.setThoiGianThucHien(Instant.now());
         lichSuHoaDonRepository.save(logTaoMoi);
 
+        // 5. Lưu Chi Tiết Món Ăn (Nếu có)
+        if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
+            for (PhieuDatBanRequest.ChiTietMonAnRequest mon : request.getChiTiet()) {
+                ChiTietHoaDon ct = new ChiTietHoaDon();
+                ct.setIdHoaDon(hoaDon);
+
+                String tenMon = "Món không xác định"; // Biến lấy tên món để ghi log
+
+                if (mon.getIdChiTietMonAn() != null) {
+                    DanhMucChiTiet dmct = danhMucChiTietRepository.findById(mon.getIdChiTietMonAn()).orElse(null);
+                    if (dmct != null) {
+                        tenMon = dmct.getTenMon();
+                        ct.setIdChiTietMonAn(dmct);
+                    } else {
+                        DanhMucChiTiet temp = new DanhMucChiTiet();
+                        temp.setId(mon.getIdChiTietMonAn());
+                        ct.setIdChiTietMonAn(temp);
+                    }
+                }
+
+                if (mon.getIdSetLau() != null) {
+                    SetLau sl = setLauRepository.findById(mon.getIdSetLau()).orElse(null);
+                    if (sl != null) {
+                        tenMon = sl.getTenSetLau();
+                        ct.setIdSetLau(sl);
+                    } else {
+                        SetLau temp = new SetLau();
+                        temp.setId(mon.getIdSetLau());
+                        ct.setIdSetLau(temp);
+                    }
+                }
+
+                ct.setSoLuong(mon.getSoLuong());
+                ct.setDonGiaTaiThoiDiemBan(mon.getDonGia());
+                ct.setThanhTien(mon.getDonGia().multiply(new BigDecimal(mon.getSoLuong())));
+                ct.setTrangThaiMon(1); // Mặc định là 1 (Chờ chế biến)
+                ct.setNgayGioTao(java.time.LocalDateTime.now());
+
+                chiTietHoaDonRepository.save(ct);
+
+                // ==========================================
+                // 👉 GHI LOG CHO MỖI MÓN ĂN VỪA THÊM
+                // ==========================================
+                LichSuHoaDon logDatMon = new LichSuHoaDon();
+                logDatMon.setIdHoaDon(hoaDon);
+                logDatMon.setHanhDong("Thêm món ăn");
+                logDatMon.setLyDoThucHien(String.format("Khách đặt trước: %dx %s", mon.getSoLuong(), tenMon));
+                logDatMon.setTrangThaiTruocDo(0);
+                logDatMon.setTrangThaiMoi(0);
+                logDatMon.setThoiGianThucHien(Instant.now());
+                lichSuHoaDonRepository.save(logDatMon);
+            }
+        }
+
+        // 6. Ghi log Lịch Sử Hóa Đơn cọc
         if (trangThaiBanDau == 1) { // Nếu có tiền cọc thì chèn thêm 1 dòng Log nữa
             LichSuHoaDon logChoCoc = new LichSuHoaDon();
             logChoCoc.setIdHoaDon(hoaDon);
