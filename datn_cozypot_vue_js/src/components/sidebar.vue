@@ -7,8 +7,8 @@ const menuItems = ref([
     { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics', roles: ['ADMIN'] },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/tables' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
     { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
 
     {
         name: 'Thực đơn',

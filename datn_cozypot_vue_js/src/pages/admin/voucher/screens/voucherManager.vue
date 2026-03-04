@@ -626,10 +626,10 @@
                 <div class="mt-4 d-flex justify-content-end gap-2">
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
-                            class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
-                            style="height: 42px; background-color: #800000;" @click="closeForm">
-                            HỦY BỎ
-                        </button>
+    class="btn btn-outline-custom px-4 fw-bold d-flex align-items-center justify-content-center"
+    style="height: 42px;" @click="closeForm">
+    HỦY BỎ
+</button>
 
                         <button v-if="!isReadOnly" type="submit"
                             class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
@@ -656,7 +656,6 @@ import { ref, onMounted, reactive, computed, watch, nextTick } from 'vue';
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
-import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
 const formatCurrency = (value) => {
     if (!value) return '0 đ'
@@ -1650,3 +1649,6 @@ onMounted(async () => {
     });
 });
 </script>
+<style scoped>
+@import '../voucherStyle.css';
+</style>
