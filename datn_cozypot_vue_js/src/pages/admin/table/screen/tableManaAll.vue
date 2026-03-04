@@ -12,11 +12,14 @@ import { provide } from "vue";
 import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.css";
 import { usePermission } from "@/components/permissionHelper";
+import Swal from "sweetalert2";
 
 const { handleActionWithAuth } = usePermission();
 /* 1. KHỞI TẠO TRẠNG THÁI */
 const danhSachBan = ref([]);
 const listKhuVuc = ref([]);
+
+const refreshKey = ref(0);
 
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
 const fetchAllBan = async () => {
@@ -123,12 +126,12 @@ const tangForm = ref({
 const submitAddTang = async () => {
   try {
     if (!tangForm.value.tang || tangForm.value.tang <= 0) {
-      alert("Tầng phải > 0");
+      Swal.fire("Cảnh báo", "Tầng phải lớn hơn 0", "warning");
       return;
     }
 
     if (!tangForm.value.tenKhuVuc) {
-      alert("Nhập tên khu vực");
+      Swal.fire("Cảnh báo", "Vui lòng nhập tên khu vực", "warning");
       return;
     }
 
@@ -138,9 +141,10 @@ const submitAddTang = async () => {
       moTa: tangForm.value.moTa,
     });
 
-    alert("Thêm thành công");
+    Swal.fire("Thành công", "Thêm tầng và khu vực thành công!", "success"); // Sửa ở đây
 
     await handleFetchAllKhuVuc();
+  refreshKey.value += 1;
 
     tangForm.value = {
       tang: "",
@@ -153,7 +157,7 @@ const submitAddTang = async () => {
   console.log("FULL ERROR:", error);
   console.log("RESPONSE:", error.response);
   console.log("DATA:", error.response?.data);
-  alert(error.response?.data || error.message || "Có lỗi");
+  Swal.fire("Lỗi", error.response?.data || error.message || "Có lỗi xảy ra", "error");
 }
 };
 
@@ -189,12 +193,12 @@ const submitAddBan = async () => {
   try {
     // 1️⃣ Validate cơ bản
     if (!form.value.soNguoiToiDa) {
-      alert("Nhập số người tối đa");
+      Swal.fire("Cảnh báo", "Vui lòng nhập số người tối đa", "warning");
       return;
     }
 
     if (!form.value.tang) {
-      alert("Nhập tầng");
+      Swal.fire("Cảnh báo", "Vui lòng chọn hoặc nhập tầng", "warning");
       return;
     }
 
@@ -210,7 +214,7 @@ const submitAddBan = async () => {
     // Nếu không chọn khu vực → phải nhập tên mới
     if (!tenKhuVucFinal) {
       if (!newKhuVucName.value) {
-        alert("Nhập tên khu vực");
+        Swal.fire("Cảnh báo", "Vui lòng nhập tên khu vực mới", "warning");
         return;
       }
       tenKhuVucFinal = newKhuVucName.value.trim();
@@ -236,11 +240,12 @@ const submitAddBan = async () => {
 
     closeAddModal();
     await refreshData();
+    refreshKey.value += 1;
 
-    alert("Thêm thành công!");
+    Swal.fire("Thành công", "Thêm bàn mới thành công!", "success");
   } catch (error) {
     console.error("Lỗi thêm bàn:", error);
-    alert("Có lỗi xảy ra!");
+    Swal.fire("Lỗi", "Có lỗi xảy ra khi thêm bàn!", "error");
   }
 };
 
@@ -270,6 +275,7 @@ provide("listKhuVuc", listKhuVuc);
 onUnmounted(() => {
   clearInterval(timer);
 });
+
 </script>
 
 <template>
@@ -317,6 +323,7 @@ onUnmounted(() => {
 
       <div class="contain-frame mt-3">
         <router-view
+          :key="refreshKey"
           :selectedDate="selectedDate"
           :tableStatusMap="tableStatusMap"
         />
@@ -444,6 +451,10 @@ onUnmounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
+:global(.swal2-container) {
+  z-index: 99999 !important;
+}
+
 .layout-table {
   display: flex;
   background-color: white;
@@ -482,7 +493,7 @@ onUnmounted(() => {
 
 .btn-outline {
   background-color: white;
-  color: black;
+  color: white;
 }
 
 .form-group {

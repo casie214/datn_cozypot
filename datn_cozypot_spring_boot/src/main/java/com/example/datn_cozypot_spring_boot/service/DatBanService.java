@@ -517,6 +517,8 @@ public class DatBanService {
         ban.setIdKhuVuc(kv);
         ban.setSoNguoiToiDa(req.getSoNguoiToiDa());
         ban.setLoaiDatBan(req.getLoaiDatBan());
+        ban.setTrangThai(0);
+        ban.setTenBan("SC" + ban.getId());
 
         banAnRepository.save(ban);
     }

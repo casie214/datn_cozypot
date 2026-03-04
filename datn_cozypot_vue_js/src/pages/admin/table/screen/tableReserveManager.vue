@@ -22,6 +22,7 @@ const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
 const currentPage = ref(1); // Vue hiển thị từ trang 1
 const pageSize = ref(6);
+const refreshKey = ref(0); // Thêm biến này để ép component con tải lại
 
 const searchForm = ref({
   soDienThoai: "",
@@ -335,7 +336,7 @@ const submitCreate = async () => {
     const res = await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
-    await searchDatBan();
+    refreshKey.value += 1;
 
     // Hiện toast tuỳ theo có gửi mail không
     if (res.daGuiMail) {
@@ -432,7 +433,7 @@ onMounted(() => {
       </ul>
       <hr />
       <div class="contain-frame mt-3">
-        <router-view />
+        <router-view :key="refreshKey"/>
       </div>
     </div>
   </div>
