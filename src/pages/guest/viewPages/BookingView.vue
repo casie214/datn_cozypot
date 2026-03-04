@@ -139,13 +139,15 @@ onMounted(() => {
     const parsed = JSON.parse(savedForm);
     Object.assign(bookingData, parsed.bookingData);
 
-    // Chỉ ghi đè thông tin khách nếu trong nháp có (tránh làm mất thông tin user đã auto-fill)
-    if (parsed.customerInfo?.fullName)
-      customerInfo.fullName = parsed.customerInfo.fullName;
-    if (parsed.customerInfo?.phone)
-      customerInfo.phone = parsed.customerInfo.phone;
-    if (parsed.customerInfo?.email)
-      customerInfo.email = parsed.customerInfo.email;
+    // PHỤC HỒI LẠI DANH SÁCH BÀN TỪ NHÁP
+    if (parsed.availableTables) {
+      availableTables.value = parsed.availableTables;
+      hasCheckedTables.value = true;
+    }
+
+    if (parsed.customerInfo?.fullName) customerInfo.fullName = parsed.customerInfo.fullName;
+    if (parsed.customerInfo?.phone) customerInfo.phone = parsed.customerInfo.phone;
+    if (parsed.customerInfo?.email) customerInfo.email = parsed.customerInfo.email;
     if (parsed.customerInfo?.note) customerInfo.note = parsed.customerInfo.note;
 
     step.value = 2; // Nhảy thẳng vào màn 2
@@ -244,7 +246,11 @@ const goBack = () => {
 const goToMenu = () => {
   sessionStorage.setItem(
     "pendingBooking",
-    JSON.stringify({ bookingData, customerInfo }),
+    JSON.stringify({ 
+      bookingData, 
+      customerInfo,
+      availableTables: availableTables.value
+    }),
   );
   router.push("/menu");
 };

@@ -468,13 +468,15 @@ onUnmounted(() => {
 }
 
 .btn {
-  background-color: #7d161a;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white;
+  transition: 0.2s;
 }
 
 .btn:hover {
+  transform: scale(1.04);
   background-color: white;
-  color: black;
+  color: white;
   border: 1px solid #7d161a;
 }
 
