@@ -510,10 +510,13 @@ const navigateToLogin = () => router.push('/login');
 }
 
 .login-link-text {
-    color: #7d1f1f;
+    color: #e19e72;
     font-weight: 700;
     cursor: pointer;
     text-decoration: underline;
+}
+.login-link-text:hover {
+    color: #c0520e;
 }
 
 /* Validation Style */

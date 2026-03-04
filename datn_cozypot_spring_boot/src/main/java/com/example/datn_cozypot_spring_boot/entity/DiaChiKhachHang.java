@@ -19,7 +19,7 @@ public class DiaChiKhachHang {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_khach_hang")
     private KhachHang khachHang;
-
+    @Nationalized
     @Column(name = "ho_ten_nhan")
     private String hoTenNhan;
 
@@ -39,7 +39,7 @@ public class DiaChiKhachHang {
     @Column(name = "id_phuong_xa")
     private String idPhuongXa;
 
-    @Column(name = "dia_chi_chi_tiet")
+    @Column(name = "dia_chi_chi_tiet", columnDefinition = "NVARCHAR(500)")
     private String diaChiChiTiet;
 
 
