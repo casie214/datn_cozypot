@@ -10,13 +10,22 @@ const routes = [
         path: "/admin/client",
         name: "clientManager",
         component: () => import("@/pages/admin/client/screens/clientManager.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
     {
         path: "/login",
         name: "login",
-        component: () => import("@/pages/guest/authentication/loginPage.vue")
+        component: () => import("@/pages/guest/authentication/clientLogin.vue"),
+        meta: { requiresAuth: false },
+    },
+    {
+        path: "/login/admin", // Hoặc /staff/login tùy bạn chọn
+        name: "staffLogin",
+        component: () => import("@/pages/guest/authentication/staffLogin.vue"),
+        meta: { requiresAuth: false },
     },
     {
         path: "/register",
@@ -28,7 +37,7 @@ const routes = [
         name: "foodManager",
         component: () =>
 
-            import ("./pages/admin/food/screens/foodManager.vue"),
+            import("./pages/admin/food/screens/foodManager.vue"),
         meta: { requiresAuth: true, requiredRole: 'ADMIN' }
     },
     {
@@ -42,7 +51,7 @@ const routes = [
         name: "categoryManager",
         component: () =>
 
-            import ("./pages/admin/category/screens/categoryManager.vue"),
+            import("./pages/admin/category/screens/categoryManager.vue"),
         meta: { requiresAuth: true, requiredRole: 'ADMIN' }
     },
     {
@@ -53,19 +62,19 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
-    
+
     {
         path: "/admin/promotion",
         name: "promotionManager",
         component: () => import("@/pages/admin/promotion/screens/promotionManager.vue"),
-        meta: 
-        { 
-            requiresAuth: true, 
-            requiredRole: 'ADMIN' 
+        meta:
+        {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
         }
     },
     {
@@ -82,7 +91,7 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
@@ -94,7 +103,7 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'setlau',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
@@ -106,7 +115,7 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
@@ -119,7 +128,7 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
@@ -131,7 +140,7 @@ const routes = [
         meta: {
             parentMenu: 'foodManager',
             activeTab: 'chitietTD',
-            requiresAuth: true, 
+            requiresAuth: true,
             requiredRole: 'ADMIN'
         }
     },
@@ -140,46 +149,46 @@ const routes = [
         path: "/manage/table",
         name: "tableManager",
         component: () =>
-          import("@/pages/admin/table/screen/tableReserveManager.vue"),
+            import("@/pages/admin/table/screen/tableReserveManager.vue"),
         children: [
-          {
-            path: "",
-            component: ListReserve,
-          },
-          {
-            path: "calendar",
-            component: TableCalendar,
-          },
+            {
+                path: "",
+                component: ListReserve,
+            },
+            {
+                path: "calendar",
+                component: TableCalendar,
+            },
         ],
-      },
-      {
+    },
+    {
         path: "/manage/tableCheckIn",
         name: "tableCheckIn",
         component: () =>
-          import("@/pages/admin/table/screen/tableCheckIn.vue"),
-      },
-      {
+            import("@/pages/admin/table/screen/tableCheckIn.vue"),
+    },
+    {
         path: "/manage/all",
         name: "tableManaAll",
         component: () =>
-          import("@/pages/admin/table/screen/tableManaAll.vue"),
-      },
-      {
+            import("@/pages/admin/table/screen/tableManaAll.vue"),
+    },
+    {
         path: "/tableManage",
         component: () =>
-          import("@/pages/admin/table/screen/tableManaAll.vue"),
+            import("@/pages/admin/table/screen/tableManaAll.vue"),
         children: [
-          {
-            path: "trang-thai",
-            component: CardTable,
-          },
-          {
-            path: "danh-sach",
-            component: ListTable,
-          },
+            {
+                path: "trang-thai",
+                component: CardTable,
+            },
+            {
+                path: "danh-sach",
+                component: ListTable,
+            },
         ],
-      },
-    
+    },
+
     {
         path: "/",
         redirect: "/home"
@@ -189,47 +198,59 @@ const routes = [
         path: "/admin/orders",
         name: "orderManager",
         component: () => import("@/pages/admin/order/screens/OrderManager.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
 
     {
         path: "/admin/orders/detail/:id",
         name: "OrderDetail",
         component: () => import("@/pages/admin/order/screens/OrderDetailPage.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
 
     {
         path: "/admin/payment/:id",
         name: "paymentScreen",
         component: () => import("@/pages/admin/order/screens/PaymentScreen.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
 
     {
         path: "/admin/add-food/:id",
         name: "addFoodScreen",
         component: () => import("@/pages/admin/order/screens/AddFoodScreen.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
     {
         path: '/admin/voucher',
         name: 'AdminVoucher',
 
         component: () => import('@/pages/admin/voucher/screens/voucherManager.vue'),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
     {
         path: "/admin/promotions",
         name: "voucherManager",
         component: () => import("@/pages/admin/promotion/screens/KhuyenMaiThongKe.vue"),
-        meta: { requiresAuth: true, 
-            requiredRole: 'ADMIN' }
+        meta: {
+            requiresAuth: true,
+            requiredRole: 'ADMIN'
+        }
     },
 
 ];
@@ -244,13 +265,13 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
-    
+
     const isLoggedIn = !!authStore.token;
-    const userRole = authStore.role;    
+    const userRole = authStore.role;
 
 
     if (to.meta.requiresAuth) {
-        
+
         if (!isLoggedIn) {
             alert("Vui lòng đăng nhập để tiếp tục!");
             return next('/login');
@@ -259,7 +280,7 @@ router.beforeEach((to, from, next) => {
         if (to.meta.requiredRole) {
             if (userRole !== to.meta.requiredRole) {
                 alert("Bạn không có quyền truy cập trang này!");
-                return next(false); 
+                return next(false);
             }
         }
     }
