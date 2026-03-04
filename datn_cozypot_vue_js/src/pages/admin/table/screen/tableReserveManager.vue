@@ -11,8 +11,8 @@ import {
   searchCustomerByPhone,
   searchDatBanService,
 } from "@/services/tableManageService";
-import Multiselect from "@vueform/multiselect";
-import "@vueform/multiselect/themes/default.css";
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
 
 // dayjs.extend(utc);
 // dayjs.extend(timezone);
@@ -455,6 +455,7 @@ onMounted(() => {
         placeholder="Tìm theo tên hoặc SĐT..."
         no-options-text="Không có khách hàng"
         no-results-text="Không tìm thấy"
+        class="custom-filter-multiselect" 
         @open="
           () => {
             customerOptions = allCustomers;
@@ -697,6 +698,24 @@ hr {
   background: none;
   font-size: 22px;
   cursor: pointer;
+}
+
+.custom-filter-multiselect {
+    --ms-border-color: #ddd;
+    --ms-radius: 8px;
+    
+    /* Vòng sáng khi click vào */
+    --ms-ring-color: rgba(125, 22, 26, 0.15);
+    --ms-border-color-active: #7d161a;
+    
+    /* Màu sắc Option khi trỏ chuột (hover) */
+    --ms-option-bg-pointed: #fcf4f4;
+    --ms-option-color-pointed: #7d161a;
+    
+    /* Màu sắc Option khi đã chọn */
+    --ms-option-bg-selected: #7d161a;
+    --ms-option-color-selected: #ffffff;
+    --ms-option-bg-selected-pointed: #5f0f12;
 }
 
 

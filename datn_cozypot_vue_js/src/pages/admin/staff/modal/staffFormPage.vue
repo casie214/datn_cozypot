@@ -859,7 +859,7 @@ onMounted(async () => {
 }
 
 .gender-selector .btn-check:checked+.btn-outline-wine {
-  background-color: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   border-color: #800000;
   color: #fff;
 }
@@ -871,7 +871,7 @@ onMounted(async () => {
 }
 
 .btn-wine-sm {
-  background: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white;
   border: none;
   font-size: 13px;
@@ -897,7 +897,7 @@ onMounted(async () => {
 
 /* Nút bấm chính */
 .btn-main-custom {
-  background: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -907,7 +907,8 @@ onMounted(async () => {
 }
 
 .btn-main-custom:hover:not(:disabled) {
-  background: #600000;
+  transform: scale(1.04);
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   transform: translateY(-1px);
 }
 

@@ -97,7 +97,7 @@
 
 /* 6. HỆ THỐNG NÚT BẤM (BUTTONS) */
 .btn-red-dark {
-  background: var(--primary-red) !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   color: white !important;
   border: none !important;
   border-radius: 10px !important;
@@ -107,7 +107,8 @@
 }
 
 .btn-red-dark:hover {
-  background: var(--dark-red) !important;
+  transform: scale(1.04);
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   box-shadow: 0 5px 15px rgba(123, 18, 28, 0.25);
 }
 
