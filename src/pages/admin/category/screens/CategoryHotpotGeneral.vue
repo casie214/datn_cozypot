@@ -28,10 +28,24 @@ const sortOptions = [
   { value: 'status_active', label: 'Đang hoạt động trước' },
   { value: 'status_inactive', label: 'Ngưng hoạt động trước' }
 ];
-const handleRefreshListBtn = () => {
-  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
-  setTimeout(() => emit('close'), 1000);
-  setTimeout(() => { getAllHotpotType(); }, 500);
+
+const handleRefreshListBtn = async () => {
+  try {
+    // Gọi API lấy lại dữ liệu mới nhất
+    await getAllHotpotType(); 
+    
+    // Hiển thị thông báo nhỏ ở góc (Toast) cho chuyên nghiệp, không che màn hình
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Đã làm mới dữ liệu!',
+      showConfirmButton: false,
+      timer: 1500
+    });
+  } catch (error) {
+    Swal.fire('Lỗi', 'Không thể tải lại dữ liệu', 'error');
+  }
 };
 
 const addFormData = ref({});
@@ -163,9 +177,9 @@ const goToHotpotList = (item) => {
     </div>
 
     <CategoryHotpotAddModal :isOpen="isModalOpen" :formData="addFormData" @close="isModalOpen = false" @save="handleAdd"
-      @refresh="handleRefreshList" />
+      @refresh="handleRefreshListBtn" />
     <CategoryHotpotPutModal :isOpen="isModalUpdateOpen" :formData="addFormData" :itemList="selectedItem"
-      @close="isModalUpdateOpen = false" @save="handleAdd" @refresh="handleRefreshList" />
+      @close="isModalUpdateOpen = false" @save="handleAdd" @refresh="handleRefreshListBtn" />
   </div>
 </template>
 

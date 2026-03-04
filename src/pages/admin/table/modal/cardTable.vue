@@ -490,7 +490,7 @@ onUnmounted(() => {
 }
 
 .btn-active {
-  background-color: #7d161a !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white !important;
   border: 1px solid #7d161a !important;
 }

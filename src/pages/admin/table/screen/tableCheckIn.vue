@@ -1786,8 +1786,10 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     </div>                    
                     <div class="d-flex justify-content-between text-muted small mb-1">
                       <span>Thuế VAT:</span>
-                      <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
-                      <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
+                      <div class="">
+                        <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
+                        <span>: + {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
+                      </div>
                     </div>
                     <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-primary small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
                     <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
@@ -1796,7 +1798,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     </div>
 
                     <div v-if="(billSummary?.giam || 0) === 0" class="mt-3">
-                        <button class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; font-size: 13px;" @click="openDiscountModal">
+                        <button class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; font-size: 13px; background-color: #5c0a16 !important; color: white;" @click="openDiscountModal">
                             <i class="fa-solid fa-tags me-1"></i> Áp dụng ưu đãi
                         </button>
                     </div>
@@ -1943,26 +1945,45 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           </div>
         </div>
 
-        <div v-else-if="modalView === 'orderHistory'" class="history-container h-100 d-flex flex-column">
+        <div v-else-if="modalView === 'orderHistory'" class="history-container">
           <div class="history-header mb-4">
               <h5 class="fw-bold"><i class="fa-solid fa-history me-2"></i>Lịch sử đơn hàng - Bàn {{ selectedBan?.maBan }}</h5>
               <p class="text-muted small">Mã hóa đơn: #{{ selectedPhieu?.idHoaDon }}</p>
           </div>
-          <div class="timeline-wrapper flex-grow-1 overflow-auto pe-2">
-              <div v-if="orderHistory.length === 0" class="text-center py-5"><i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i><p>Chưa có dữ liệu lịch sử cho đơn hàng này</p></div>
+          <div class="mt-4 pt-3 mb-4 border-top">
+              <button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;">
+                  <i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn
+              </button>
+          </div>
+          
+          <div class="timeline-wrapper pe-2">
+              <div v-if="orderHistory.length === 0" class="text-center py-5">
+                  <i class="fa-solid fa-inbox fa-3x text-muted mb-3"></i>
+                  <p>Chưa có dữ liệu lịch sử cho đơn hàng này</p>
+              </div>
+              
               <div v-else class="timeline">
                   <div v-for="(log, index) in orderHistory" :key="index" class="timeline-item">
-                      <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}"><i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i></div>
+                      <div class="timeline-badge" :class="{'bg-success': log.trangThaiMoi === 4, 'bg-primary': log.trangThaiMoi === 6}">
+                          <i class="fa-solid" :class="log.hanhDong.includes('món') ? 'fa-utensils' : 'fa-check'"></i>
+                      </div>
                       <div class="timeline-card shadow-sm">
-                          <div class="d-flex justify-content-between align-items-start"><h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6><span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span></div>
-                          <div class="log-meta mb-2"><small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small><small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small></div>
-                          <div class="log-details p-2 bg-light rounded"><p class="mb-0 small text-secondary"><i class="fa-solid fa-info-circle me-1"></i> {{ log.lyDo || 'Không có ghi chú thêm' }}</p></div>
+                          <div class="d-flex justify-content-between align-items-start">
+                              <h6 class="fw-bold mb-1 text-dark">{{ log.hanhDong }}</h6>
+                              <span class="badge bg-light text-dark border">{{ log.hanhDong.split(':')[0] }}</span>
+                          </div>
+                          <div class="log-meta mb-2">
+                              <small class="text-muted me-3"><i class="fa-regular fa-clock me-1"></i>{{ formatHistoryTime(log.thoiGian || log.thoi_gian_thuc_hien) }}</small>
+                              <small class="text-muted"><i class="fa-regular fa-user me-1"></i>{{ log.nguoiThucHien || log.ten_nhan_vien || 'Hệ thống' }}</small>
+                          </div>
+                          <div class="log-details p-2 bg-light rounded">
+                              <p class="mb-0 small text-secondary"><i class="fa-solid fa-info-circle me-1"></i> {{ log.lyDo || 'Không có ghi chú thêm' }}</p>
+                          </div>
                       </div>
                   </div>
               </div>
           </div>
-          <div class="mt-3 pt-3 border-top"><button class="btn btn-outline-secondary w-100 fw-bold" @click="modalView = 'info'" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại thông tin bàn</button></div>
-        </div>
+      </div>
 
         <div v-else-if="modalView === 'changeTable'" class="change-table-container h-100 d-flex flex-column p-3" style="background-color: #f8f9fa;">
           <div class="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
@@ -2175,14 +2196,6 @@ hr {
   opacity: 0.8;
 }
 
-.table-container {
-  border: 1px solid #dee2e6;
-  /* Viền bao ngoài */
-  border-radius: 15px;
-  /* Độ bo góc bạn muốn */
-  overflow: hidden;
-  /* Quan trọng: Cắt các góc nhọn của header/footer bên trong */
-}
 
 .table thead tr th {
   background-color: #e9e9e9 !important;
@@ -2204,7 +2217,7 @@ hr {
 }
 
 .btn-active {
-  background-color: #7d161a !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white !important;
   border: 1px solid #7d161a;
   cursor: default;
@@ -2212,8 +2225,7 @@ hr {
 }
 
 .btn-active:hover {
-  background-color: #5c0a16 !important;
-  /* Đỏ đậm hơn một chút khi di chuột */
+  background: linear-gradient(135deg, #B71C1C 0%, #E65100 100%);
   color: white !important;
 }
 
@@ -2610,7 +2622,7 @@ hr {
 
 .modal-box {
   width: 100%;
-  max-width: 620px;
+  max-width: 920px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);

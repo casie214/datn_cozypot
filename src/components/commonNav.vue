@@ -44,8 +44,16 @@ const goToChangePassword = () => {
     router.push('/doi-mat-khau');
 }
 const goToProfile = () => {
-    alert("Chức năng đang phát triển");
-}
+    showDropdown.value = false;
+    const role = authStore.role;
+    if (role === 'USER') {
+        router.push('/ho-so');
+    } else if (role === 'ADMIN' || role === 'EMPLOYEE') {
+        router.push('/admin/profile');
+    } else {
+        router.push('/login');
+    }
+};
 
 const closeDropdown = (e) => {
     if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
@@ -101,7 +109,8 @@ onUnmounted(() => {
                                 <div class="dropdown-item" @click="goToProfile">
                                     <i class="fa-solid fa-id-card"></i> Hồ sơ cá nhân
                                 </div>
-                                <div class="dropdown-item" @click="router.push('/history')">
+                                <div v-if="authStore.role === 'USER'" class="dropdown-item"
+                                    @click="router.push('/history')">
                                     <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt bàn
                                 </div>
                                 <div class="dropdown-item" @click="goToChangePassword">
