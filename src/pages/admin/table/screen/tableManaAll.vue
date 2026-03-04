@@ -9,8 +9,8 @@ import {
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { provide } from "vue";
-import Multiselect from "vue-multiselect";
-import "vue-multiselect/dist/vue-multiselect.css";
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
 import { usePermission } from "@/components/permissionHelper";
 import Swal from "sweetalert2";
 
@@ -20,6 +20,11 @@ const danhSachBan = ref([]);
 const listKhuVuc = ref([]);
 
 const refreshKey = ref(0);
+
+const listLoaiDatBanOptions = [
+  { label: "Cho phép đặt online", value: 1 },
+  { label: "Không cho phép", value: 0 },
+];
 
 /* 3. FETCH DỮ LIỆU TỪ BACKEND */
 const fetchAllBan = async () => {
@@ -125,8 +130,11 @@ const tangForm = ref({
 
 const submitAddTang = async () => {
   try {
-    if (!tangForm.value.tang || tangForm.value.tang <= 0) {
-      Swal.fire("Cảnh báo", "Tầng phải lớn hơn 0", "warning");
+    // Chuyển giá trị nhập vào thành Number để kiểm tra chắc chắn
+    const parsedTang = Number(tangForm.value.tang);
+
+    if (!tangForm.value.tang || isNaN(parsedTang) || parsedTang <= 0) {
+      Swal.fire("Cảnh báo", "Tầng phải là một số hợp lệ và lớn hơn 0", "warning");
       return;
     }
 
@@ -136,15 +144,15 @@ const submitAddTang = async () => {
     }
 
     await createKhuVuc({
-      tang: Number(tangForm.value.tang),
+      tang: parsedTang, // Dùng số đã parse
       tenKhuVuc: tangForm.value.tenKhuVuc.trim(),
       moTa: tangForm.value.moTa,
     });
 
-    Swal.fire("Thành công", "Thêm tầng và khu vực thành công!", "success"); // Sửa ở đây
+    Swal.fire("Thành công", "Thêm tầng và khu vực thành công!", "success");
 
     await handleFetchAllKhuVuc();
-  refreshKey.value += 1;
+    refreshKey.value += 1;
 
     tangForm.value = {
       tang: "",
@@ -154,11 +162,9 @@ const submitAddTang = async () => {
 
     closeAddTangModal();
   } catch (error) {
-  console.log("FULL ERROR:", error);
-  console.log("RESPONSE:", error.response);
-  console.log("DATA:", error.response?.data);
-  Swal.fire("Lỗi", error.response?.data || error.message || "Có lỗi xảy ra", "error");
-}
+    console.log("FULL ERROR:", error);
+    Swal.fire("Lỗi", error.response?.data || error.message || "Có lỗi xảy ra", "error");
+  }
 };
 
 watch(selectedTang, (val) => {
@@ -347,14 +353,20 @@ onUnmounted(() => {
 
         <div class="form-group">
           <label>Tầng</label>
-          <Multiselect
-            v-model="selectedTang"
-            :options="listTang"
-            :taggable="true"
-            placeholder="Chọn hoặc nhập tầng mới"
-            @tag="(newTag) => (selectedTang = Number(newTag))"
-          />
+          <div class="multiselect-wrapper-sm">
+            <Multiselect 
+              v-model="selectedTang" 
+              :options="listTang" 
+              :searchable="true" 
+              :create-option="true" 
+              :canClear="true" 
+              placeholder="Chọn hoặc nhập tầng mới"
+              no-results-text="Không tìm thấy tầng này" 
+              class="custom-filter-multiselect" 
+            /> 
+          </div>
         </div>
+        
         <div v-if="isTangMoi" class="form-group">
           <label>Tên khu vực mới</label>
           <input
@@ -364,22 +376,18 @@ onUnmounted(() => {
           />
         </div>
 
-        <div class="form-group">
+        <div class="form-group" v-if="!isTangMoi">
           <label>Khu vực</label>
-          <select
-            class="form-select"
-            v-model="form.idKhuVuc"
-            :disabled="!form.tang || isTangMoi"
-          >
-            <option value="" disabled>-- Chọn khu vực --</option>
-            <option
-              v-for="khuVuc in khuVucTheoTang"
-              :key="khuVuc.id"
-              :value="khuVuc.id"
-            >
-              {{ khuVuc.tenKhuVuc }}
-            </option>
-          </select>
+          <Multiselect 
+            v-model="form.idKhuVuc" 
+            :options="khuVucTheoTang.map(kv => ({ value: kv.id, label: kv.tenKhuVuc }))" 
+            :searchable="true" 
+            :canClear="true" 
+            :disabled="!form.tang"
+            placeholder="-- Chọn khu vực --"
+            no-results-text="Không tìm thấy khu vực nào" 
+            class="custom-filter-multiselect" 
+          />
         </div>
 
         <!-- <div class="form-group">
@@ -408,16 +416,19 @@ onUnmounted(() => {
 
     <div class="modal-body">
 
+      
       <div class="form-group">
         <label>Tầng</label>
         <Multiselect
-  v-model="tangForm.tang"
-  :options="listTang"
-  :taggable="true"
-  placeholder="Chọn hoặc nhập tầng mới"
-  @tag="(newTag) => (tangForm.tang = Number(newTag))"
-/>
+          v-model="tangForm.tang"
+          :options="listTang"
+          :searchable="true"
+          :create-option="true"
+          placeholder="Chọn hoặc nhập tầng mới"
+          class="custom-filter-multiselect"
+        />
       </div>
+      
 
       <div class="form-group">
         <label>Tên khu vực</label>
@@ -572,5 +583,90 @@ textarea {
   border-radius: 6px;
   border: 1px solid #ccc;
   resize: none;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* Định dạng tổng thể */
+.custom-filter-multiselect {
+    --ms-border-color: #ddd;
+    --ms-radius: 8px; 
+    --ms-py: 6px; 
+    
+    /* Màu khi focus */
+    --ms-ring-color: rgba(125, 22, 26, 0.15);
+    --ms-border-color-active: #7d161a;
+    
+    /* Hover vào Option */
+    --ms-option-bg-pointed: #fcf4f4;
+    --ms-option-color-pointed: #7d161a;
+    
+    /* Option đã chọn (Màu đỏ giống ảnh 5) */
+    --ms-option-bg-selected: #7d161a;
+    --ms-option-color-selected: #ffffff;
+    --ms-option-bg-selected-pointed: #5f0f12;
+    
+    /* TAG ĐÃ CHỌN (MÀU XANH LÁ GIỐNG ẢNH 6) */
+    --ms-tag-bg: #7d161a; /* Đổi từ #38c172 thành #7d161a */
+    --ms-tag-color: #ffffff;
+    --ms-tag-radius: 4px;
+    --ms-tag-font-weight: 500;
+    
+    /* Nút Xóa (Clear all) */
+    --ms-clear-color: #999;
+    --ms-clear-color-hover: #dc3545;
+}
+
+/* Sửa text bị lệch */
+:deep(.multiselect-single-labelText),
+:deep(.multiselect-placeholder) {
+    font-size: 14px;
+    color: #495057;
+}
+
+/* Icon mũi tên thả xuống */
+:deep(.multiselect-caret) {
+    background-color: #666;
+}
+:deep(.multiselect.is-active .multiselect-caret) {
+    background-color: #7d161a;
+}
+
+.btn {
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white;
+  transition: 0.2s;
+  border: none; /* Đảm bảo không có viền đen khi focus */
+}
+
+/* Ngăn Bootstrap đổi màu khi click */
+.btn:focus,
+.btn:active,
+.btn:focus-visible {
+  color: white !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.btn:hover {
+  transform: scale(1.04);
+  color: white;
+}
+
+/* Tách riêng btn-outline để không bị đè màu trắng */
+.btn-outline {
+  background: white !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+}
+
+.btn-outline:hover {
+  background: #f1f1f1 !important;
+  color: #000 !important;
+  transform: scale(1.04);
 }
 </style>

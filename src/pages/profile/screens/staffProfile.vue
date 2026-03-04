@@ -785,7 +785,7 @@ onMounted(async () => {
 /* Gender Selector (Nút chọn giới tính) */
 .gender-selector .btn-outline-wine {
   border: 1px solid #800000;
-  color: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   border-radius: 10px;
   font-size: 14px;
   padding: 8px;
@@ -793,7 +793,7 @@ onMounted(async () => {
 }
 
 .gender-selector .btn-check:checked+.btn-outline-wine {
-  background-color: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important; 
   border-color: #800000;
   color: #fff;
 }

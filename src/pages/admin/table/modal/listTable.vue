@@ -7,8 +7,8 @@ import {
 } from "@/services/tableManageService";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import dayjs from "dayjs";
-import Multiselect from "vue-multiselect";
-import "vue-multiselect/dist/vue-multiselect.css";/* 1. KHỞI TẠO TRẠNG THÁI */
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
 
 import { usePermission } from "@/components/permissionHelper";
 const { handleActionWithAuth } = usePermission();
@@ -189,7 +189,6 @@ const danhSachBanFiltered = computed(() => {
   return danhSachBan.value.filter((ban) => {
     /* ===== SEARCH ===== */
     const keyword = searchKeyword.value.toLowerCase().trim();
-
     const matchSearch =
       !keyword ||
       ban.maBan?.toLowerCase().includes(keyword) ||
@@ -198,19 +197,23 @@ const danhSachBanFiltered = computed(() => {
       String(ban.soTang).includes(keyword);
 
     /* ===== FILTER TẦNG ===== */
+    // Vì mode="tags", filterTang.value là 1 mảng các string (VD: ["1", "2", "3"])
     const matchTang =
+      !filterTang.value || 
       filterTang.value.length === 0 ||
-      filterTang.value.some((t) => t.value === String(ban.soTang));
+      filterTang.value.includes(String(ban.soTang));
 
     /* ===== FILTER LOẠI ĐẶT BÀN ===== */
-
+    // filterLoaiDatBan.value cũng là mảng các string (VD: ["0", "1"])
     const matchLoaiDatBan =
+      !filterLoaiDatBan.value || 
       filterLoaiDatBan.value.length === 0 ||
-      filterLoaiDatBan.value.some((l) => l.value === String(ban.loaiDatBan));
+      filterLoaiDatBan.value.includes(String(ban.loaiDatBan));
 
     return matchSearch && matchTang && matchLoaiDatBan;
   });
 });
+
 const searchKeyword = ref("");
 const resetFilter = () => {
   filterTang.value = [];
@@ -259,27 +262,49 @@ onMounted(() => {
         </div>
         <!-- Lọc tầng -->
         <!-- ===== FILTER TẦNG ===== -->
-        <div class="dropdown-wrapper">
+        <div class="filter-item">
           <label>Lọc theo tầng</label>
-
-          <Multiselect v-model="filterTang" :options="listTangOptions" label="label" track-by="value" :multiple="true"
-            placeholder="Chọn tầng" :show-labels="false" class="custom-multiselect" />
+          <div class="multiselect-wrapper-sm">
+            <Multiselect 
+              v-model="filterTang" 
+              :options="listTangOptions" 
+              mode="tags" 
+              :searchable="true" 
+              :canClear="true" 
+              placeholder="Chọn tầng..."
+              no-results-text="Không tìm thấy kết quả nào" 
+              class="custom-filter-multiselect" 
+            /> 
+          </div>
         </div>
-        <div class="dropdown-wrapper">
-          <label>Lọc theo loại đặt bàn</label>
 
-          <Multiselect v-model="filterLoaiDatBan" :options="listLoaiDatBanOptions" label="label" track-by="value"
-            :multiple="true" placeholder="Chọn loại bàn" :show-labels="false" class="custom-multiselect" />
+        <div class="filter-item">
+          <label>Lọc theo loại đặt bàn</label>
+          <div class="multiselect-wrapper-sm">
+            <Multiselect 
+              v-model="filterLoaiDatBan" 
+              :options="listLoaiDatBanOptions" 
+              mode="tags" 
+              :searchable="true" 
+              :canClear="true" 
+              placeholder="Chọn loại..."
+              no-results-text="Không tìm thấy kết quả nào" 
+              class="custom-filter-multiselect" 
+            /> 
+          </div>
         </div>
         <div>
           <br />
           <!-- Reset -->
-          <button class="btn" @click="resetFilter">Reset</button>
+          <button class="btn" @click="resetFilter">
+            <i data-v-caf8f241="" class="fas fa-undo"></i>
+            Hủy bộ lọc
+          </button>
         </div>
       </div>
     </div>
     <div class="list-card">
-      <table class="table">
+      <table class="table shadow-sm">
         <thead>
           <tr>
             <th>STT</th>
@@ -421,11 +446,27 @@ onMounted(() => {
 }
 
 .dropdown-display {
+  min-width: 400px;
   border: 1px solid #ddd;
   padding: 8px 10px;
   border-radius: 8px;
-  cursor: pointer;
   background: #fff;
+}
+
+.btn:focus,
+.btn:active,
+.btn:focus-visible {
+    color: white !important;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-color: transparent !important; /* Xóa viền thừa */
+}
+
+/* Đảm bảo chữ luôn trắng kể cả khi trỏ chuột (hover) */
+.btn:hover {
+  transform: scale(1.04);
+    color: white !important;
 }
 
 .dropdown-menu-custom {
@@ -489,57 +530,35 @@ onMounted(() => {
 
 /* ===== CUSTOM MULTISELECT ===== */
 
-:deep(.custom-multiselect .multiselect__tags) {
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  font-size: 14px;
-  color: gray;
+.multiselect-wrapper {
+    width: 200px;
+    /* Điều chỉnh độ rộng cho vừa */
 }
 
-:deep(.custom-multiselect .multiselect__tags:hover) {
-  border-color: #7d161a;
+:deep(.multiselect) {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
 }
 
-:deep(.custom-multiselect .multiselect__input:focus) {
-  border: none;
-  outline: none;
+:deep(.multiselect.is-active) {
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.25);
+    border-color: #d32f2f;
 }
 
-/* Dropdown */
-:deep(.custom-multiselect .multiselect__content-wrapper) {
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+:deep(.multiselect-option.is-selected) {
+    background: #d32f2f;
 }
 
-/* Option hover */
-:deep(.custom-multiselect .multiselect__option--highlight) {
-  background: #7d161a !important;
-  color: white;
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #b71c1c;
 }
 
-/* Selected option */
-:deep(.custom-multiselect .multiselect__option--selected) {
-  background: #f5dada !important;
-  color: #7d161a !important;
-  font-weight: 500;
-}
 
-/* Tag (selected item) */
-:deep(.custom-multiselect .multiselect__tag) {
-  background: #7d161a;
-  border-radius: 6px;
-  font-size: 13px;
-}
+/* Màu chữ khi placeholder hiển thị */
 
-:deep(.custom-multiselect .multiselect__tag-icon:hover) {
-  background: #5f0f12;
-}
-
-/* Focus state */
-:deep(.custom-multiselect.multiselect--active .multiselect__tags) {
-  border-color: #7d161a;
-  box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
+:deep(.multiselect-placeholder) {
+    color: #495057;
 }
 
 .table {
@@ -691,16 +710,16 @@ tr:hover {
 
 /* BUTTONS */
 .btn {
-  padding: 8px 16px;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   border-radius: 8px;
   font-size: 14px;
+  color: white;
   cursor: pointer;
   transition: 0.2s;
-  border: 1px solid #5f0f12;
 }
 
 .btn:hover {
-  border: 1px solid #5f0f12 !important;
+  color:white;
 }
 
 .btn-outline {
@@ -740,4 +759,59 @@ tr:hover {
     opacity: 1;
   }
 }
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.multiselect-wrapper-sm {
+    width: 250px;
+}
+
+/* Định dạng tổng thể */
+.custom-filter-multiselect {
+    --ms-border-color: #ddd;
+    --ms-radius: 8px; 
+    --ms-py: 6px; 
+    
+    /* Màu khi focus */
+    --ms-ring-color: rgba(125, 22, 26, 0.15);
+    --ms-border-color-active: #7d161a;
+    
+    /* Hover vào Option */
+    --ms-option-bg-pointed: #fcf4f4;
+    --ms-option-color-pointed: #7d161a;
+    
+    /* Option đã chọn (Màu đỏ giống ảnh 5) */
+    --ms-option-bg-selected: #7d161a;
+    --ms-option-color-selected: #ffffff;
+    --ms-option-bg-selected-pointed: #5f0f12;
+    
+    /* TAG ĐÃ CHỌN (MÀU XANH LÁ GIỐNG ẢNH 6) */
+    --ms-tag-bg: #7d161a; /* Đổi từ #38c172 thành #7d161a */
+    --ms-tag-color: #ffffff;
+    --ms-tag-radius: 4px;
+    --ms-tag-font-weight: 500;
+    
+    /* Nút Xóa (Clear all) */
+    --ms-clear-color: #999;
+    --ms-clear-color-hover: #dc3545;
+}
+
+/* Sửa text bị lệch */
+:deep(.multiselect-single-labelText),
+:deep(.multiselect-placeholder) {
+    font-size: 14px;
+    color: #495057;
+}
+
+/* Icon mũi tên thả xuống */
+:deep(.multiselect-caret) {
+    background-color: #666;
+}
+:deep(.multiselect.is-active .multiselect-caret) {
+    background-color: #7d161a;
+}
+
 </style>
