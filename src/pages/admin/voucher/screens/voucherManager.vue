@@ -165,7 +165,7 @@
                                 <div class="action-group d-flex justify-content-center gap-3">
 
                                     <div class="icon-tooltip">
-                                        <i class="fas fa-eye view-icon" @click="openFormView(pg.id)"></i>
+                                        <i class="fas fa-eye edit-icon" @click="openFormView(pg.id)"></i>
                                         <span class="tooltip-text">Xem chi tiết</span>
                                     </div>
 
@@ -324,9 +324,9 @@
                                             Giảm %
                                         </div>
 
-                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 2 }"
-                                            @click="!isReadOnly && (formData.loaiGiamGia = 2)">
-                                            <input type="radio" class="d-none" :value="2"
+                                        <div class="option-card" :class="{ active: formData.loaiGiamGia === 0 }"
+                                            @click="!isReadOnly && (formData.loaiGiamGia = 0)">
+                                            <input type="radio" class="d-none" :value="0"
                                                 v-model="formData.loaiGiamGia" />
                                             <i class="fa-solid fa-money-bill-wave me-2"></i>
                                             Giảm tiền
@@ -358,13 +358,15 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Gía trị giảm <span
+                                    <label class="form-label fw-bold">Giá trị giảm <span
                                             class="text-danger">*</span></label>
-                                    <div class="input-group has-validation"> <input v-model.number="formData.giaTriGiam"
-                                            type="number" class="form-control custom-input"
-                                            :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly">
+                                    <div class="input-group has-validation"> <input
+                                            :value="formatNumberInput(formData.giaTriGiam)"
+                                            @input="e => formData.giaTriGiam = parseNumber(e.target.value)" type="text"
+                                            inputmode="numeric" class="form-control custom-input"
+                                            :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly" />
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                        }}</span>
+                                            }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -381,18 +383,19 @@
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Giảm tối đa <span
                                             class="text-danger">*</span></label>
-                                    <input v-model.number="formData.giaTriGiamToiDa" type="number"
-                                        class="form-control custom-input"
-                                        :class="{ 'is-invalid': errors.giaTriGiamToiDa }" :disabled="isReadOnly">
+                                    <input :value="formatNumberInput(formData.giaTriGiamToiDa)"
+                                        @input="e => formData.giaTriGiamToiDa = parseNumber(e.target.value)" type="text"
+                                        inputmode="numeric" class="form-control custom-input" />
                                     <div class="invalid-feedback">{{ errors.giaTriGiamToiDa }}</div>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Đơn tối thiểu <span
                                             class="text-danger">*</span></label>
-                                    <input v-model.number="formData.donHangToiThieu" type="number"
-                                        class="form-control custom-input"
-                                        :class="{ 'is-invalid': errors.donHangToiThieu }" :disabled="isReadOnly">
+                                    <input :value="formatNumberInput(formData.donHangToiThieu)"
+                                        @input="e => handleMoneyInput(e, 'donHangToiThieu')" type="text"
+                                        inputmode="numeric" class="form-control custom-input"
+                                        :class="{ 'is-invalid': errors.donHangToiThieu }" :disabled="isReadOnly" />
                                     <div class="invalid-feedback">{{ errors.donHangToiThieu }}</div>
                                 </div>
 
@@ -663,7 +666,14 @@ const doiTuongOptions = [
     { value: 0, label: 'Công khai' },
     { value: 1, label: 'Cá nhân' }
 ]
+const formatNumberInput = (value) => {
+    if (!value && value !== 0) return ''
+    return Number(value).toLocaleString('en-US') // 👉 đổi ở đây
+}
 
+const parseNumber = (value) => {
+    return Number(value.replace(/,/g, '')) || 0
+}
 const loaiGiamGiaOptions = [
     { value: 1, label: 'Giảm theo %' },
     { value: 2, label: 'Giảm theo tiền' }
@@ -904,7 +914,7 @@ const validateForm = () => {
     }
 
     // Giảm tiền
-    if (formData.loaiGiamGia === 2) {
+    if (formData.loaiGiamGia === 0) {
 
         if (formData.giaTriGiamToiDa !== formData.giaTriGiam) {
             errors.giaTriGiamToiDa =
@@ -1104,7 +1114,7 @@ const handleSearch = async () => {
             });
         }
 
-        if (filters.loaiGiamGia === 2) {
+        if (filters.loaiGiamGia === 0) {
             rawData = rawData.filter(pg => {
                 return (!filters.tienMin || pg.giaTriGiam >= filters.tienMin)
                     && (!filters.tienMax || pg.giaTriGiam <= filters.tienMax);
@@ -1538,7 +1548,7 @@ watch(
 watch(
     () => formData.giaTriGiam,
     () => {
-        if (formData.loaiGiamGia === 2) {
+        if (formData.loaiGiamGia === 0) {
             formData.giaTriGiamToiDa = formData.giaTriGiam;
         }
     }

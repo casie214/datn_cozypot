@@ -11,11 +11,6 @@
     min-height: 100vh;
 }
 
-.pagination-wrapper {
-    border-top: 1px solid #eee;
-    padding-top: 12px;
-}
-
 .pagination-wrapper select {
     border-radius: 8px;
     padding: 4px 8px;
@@ -140,26 +135,7 @@
 
 .bg-light-soft { background-color: #f8f9fa; }
 .bg-danger-soft { background-color: #fff5f5; }
-.btn-red-dark {
-    background-color: #ffffff;
-    color: #8B0000; /* đỏ đô */
-    border: 2px solid #8B0000;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
 
-.btn-red-dark:hover {
-    background-color: #8B0000;
-    color: #ffffff;
-}
-
-.btn-red-dark:focus {
-    background-color: #8B0000;
-    color: #ffffff;
-    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
-}
 .item-row:hover { background-color: #f1f1f1; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -299,13 +275,6 @@
     color: #c0392b;
 }
 
-
-
-.custom-table{
-    border: 1px solid #d0cece; 
-
-}
-
 .filter-card {
   background: var(--white);
   border-radius: 15px;
@@ -441,11 +410,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   background-color: #8b0000;
 }
 
-.custom-table thead {
-  background-color: #8b0000;
-  color: white;
-}
-
 /* Căn giữa toàn bộ cụm phân trang */
 .pagination-wrapper {
     display: flex;
@@ -454,8 +418,9 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     gap: 15px;
     margin-top: 30px;
     padding-bottom: 20px;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
 }
-
 /* Nút mũi tên Trước/Sau */
 .pg-btn {
     width: 40px;
@@ -519,20 +484,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     box-shadow: none;
 }
 
-.custom-table th {
-  padding: 15px;
-  font-size: 14px;
-  font-weight: 500;
-  border: none;
-  text-transform: uppercase;
-}
-
-.custom-table td {
-  padding: 15px;
-  font-size: 14px;
-  vertical-align: middle;
-  border-bottom: 1px solid #eee;
-}
 
 .eye-icon {
   cursor: pointer;
@@ -562,6 +513,21 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap; /* Giúp bảng to ra, không bị xuống dòng chữ */
+}
+
+.custom-table th {
+  padding: 15px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  text-transform: uppercase;
+}
+
+.custom-table td {
+  padding: 15px;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
 }
 
 .eye-icon, .edit-icon {
@@ -857,7 +823,7 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     color: #8B0000; /* đỏ đô */
     border: 2px solid #8B0000;
     border-radius: 8px;
-    padding: 8px 16px;
+    padding: 10px 10px;
     font-weight: 600;
     transition: all 0.3s ease;
 }
