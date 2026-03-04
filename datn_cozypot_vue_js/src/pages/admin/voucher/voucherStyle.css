@@ -811,18 +811,19 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
 
 .btn-red-dark {
-    background-color: #ffffff;
-    color: #8B0000; /* đỏ đô */
-    border: 2px solid #8B0000;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+    color: white !important;
+    border: none !important;
     border-radius: 8px;
-    padding: 10px 10px;
+    padding: 10px 16px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: 0.2s;
 }
 
 .btn-red-dark:hover {
-    background-color: #8B0000;
-    color: #ffffff;
+    opacity: 0.9;
+    color: white !important;
+    box-shadow: 0 4px 8px rgba(125, 22, 26, 0.2);
 }
 
 .btn-red-dark:focus {
@@ -830,6 +831,20 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
     color: #ffffff;
     box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
 }
+
+.btn-outline-custom {
+    color: #8b0000 !important;
+    border: 1px solid #8b0000 !important;
+    background-color: transparent !important;
+    transition: 0.2s;
+    border-radius: 8px;
+}
+
+.btn-outline-custom:hover {
+    background-color: #8b0000 !important;
+    color: white !important;
+}
+
 .table-responsive {
     border: 1px solid white;
     border-radius: 8px;
@@ -867,21 +882,21 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 
 /* Hover */
 .option-card:hover {
-    border-color: #800000;
+    border-color: #7D161A;
     background-color: #fff5f5;
-    color: #800000;
+    color: #7D161A;
 }
 
 /* Active (đang chọn) */
 .option-card.active {
-    border-color: #800000;
-    background-color: #800000;
-    color: #fff;
-    box-shadow: 0 6px 14px rgba(128, 0, 0, 0.25);
+    border-color: #7D161A !important;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(125, 22, 26, 0.3) !important;
 }
 
 .option-card.active i {
-    color: #fff;
+    color: white !important;
 }
 
 /* Read-only */
