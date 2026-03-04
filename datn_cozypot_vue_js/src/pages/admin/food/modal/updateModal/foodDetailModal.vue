@@ -150,6 +150,26 @@ const categoryName = computed(() => {
     return cat ? cat.tenDanhMuc : 'Không xác định';
 });
 
+const formatDisplayPrice = (value) => {
+    if (!value && value !== 0) return '';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+// Hàm 2: Xử lý khi người dùng nhập liệu
+const handlePriceInput = (field, event) => {
+    // Xóa mọi ký tự không phải số
+    const rawString = event.target.value.replace(/[^0-9]/g, '');
+    
+    // Ép kiểu về số nguyên và lưu vào formData
+    formData.value[field] = rawString ? parseInt(rawString, 10) : 0;
+    
+    // Cập nhật lại giao diện bằng chuỗi có dấu phẩy
+    event.target.value = formatDisplayPrice(formData.value[field]);
+    
+    // Xóa cảnh báo lỗi nếu có
+    errors.value[field] = '';
+};
+
 // ==========================================
 // 5. UPLOAD ẢNH & TIỆN ÍCH
 // ==========================================
@@ -327,12 +347,34 @@ const goBack = () => router.back();
                                 <div class="form-row-2">
                                     <div class="form-group">
                                         <label>Giá vốn (VNĐ)</label>
-                                        <input v-model="formData.giaVon" type="number" :disabled="isViewMode">
+                                        <div class="input-group input-group-sm flex-nowrap">
+                                            <input 
+                                                :value="formatDisplayPrice(formData.giaVon)" 
+                                                @input="handlePriceInput('giaVon', $event)" 
+                                                type="text" 
+                                                class="form-control text-end fw-bold" 
+                                                :disabled="isViewMode"
+                                                placeholder="0"
+                                                style="padding-right: 12px;" 
+                                            >
+                                            <span class="input-group-text bg-light text-secondary fw-bold border-start-0">đ</span>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Giá bán (VNĐ) <span class="required" v-if="!isViewMode">*</span></label>
-                                        <input v-model="formData.giaBan" type="number" :disabled="isViewMode"
-                                            :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+                                        <div class="input-group input-group-sm flex-nowrap">
+                                            <input 
+                                                :value="formatDisplayPrice(formData.giaBan)" 
+                                                @input="handlePriceInput('giaBan', $event)" 
+                                                type="text" 
+                                                class="form-control text-end fw-bold" 
+                                                :disabled="isViewMode"
+                                                :class="{ 'is-invalid': errors.giaBan }" 
+                                                placeholder="0"
+                                                style="padding-right: 12px;" 
+                                            >
+                                            <span class="input-group-text bg-light text-secondary fw-bold border-start-0">đ</span>
+                                        </div>
                                         <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
                                     </div>
                                 </div>

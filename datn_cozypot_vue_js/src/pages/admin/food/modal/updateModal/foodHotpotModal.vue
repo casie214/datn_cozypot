@@ -159,6 +159,26 @@ const showTooltip = (event, item) => {
     }
 };
 
+const formatDisplayPrice = (value) => {
+    if (!value && value !== 0) return '';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const handlePriceInput = (event) => {
+    // Xóa mọi ký tự không phải số
+    const rawString = event.target.value.replace(/[^0-9]/g, '');
+    
+    // Ép kiểu về số nguyên và lưu trực tiếp vào formData (để gửi API)
+    formData.value.giaBan = rawString ? parseInt(rawString, 10) : 0;
+    
+    // Cập nhật lại giao diện bằng chuỗi có dấu phẩy
+    event.target.value = formatDisplayPrice(formData.value.giaBan);
+    
+    // Xóa lỗi nếu đang có lỗi
+    errors.value.giaBan = '';
+};
+
+
 const hideTooltip = () => {
     hoveredItem.value = null;
 };
@@ -260,9 +280,22 @@ const hideTooltip = () => {
 
                         <div class="form-row-2">
                             <div class="form-group">
-                                <label>Giá bán (VNĐ) <span class="required" v-if="!isViewMode">*</span></label>
-                                <input :disabled="isViewMode" v-model="formData.giaBan" type="number"
-                                    :class="{ 'invalid-border': errors.giaBan }" @input="errors.giaBan = ''">
+                                    <label>Giá bán (VNĐ) <span class="required">*</span></label>
+                                    <div class="input-group flex-nowrap">
+                                        <input 
+                                            :value="formatDisplayPrice(formData.giaBan)"
+                                            @input="handlePriceInput"
+                                            type="text" 
+                                            class="form-control text-end fw-bold" 
+                                            placeholder="0"
+                                            style="padding-right: 12px;"
+                                            :class="{ 'invalid-border': errors.giaBan }" 
+                                        >
+                                        <span class="input-group-text bg-light text-secondary fw-bold border-start-0" 
+                                            :class="{ 'invalid-border': errors.giaBan }">
+                                            đ
+                                        </span>
+                                    </div>
                                 <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
                             </div>
 
