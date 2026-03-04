@@ -39,5 +39,10 @@ public class ThongKeDoanhThuDTO {
 
     private BigDecimal giaTriTrungBinhHoaDon;
 
+    private Long soHoaDonChoVaDaCoc;
+    private BigDecimal tongTienHoaDonChoVaDaCoc;
+
+    private Long TongBanDaDat;
+    private BigDecimal DoanhThuDuKien;
     private List<GioCaoDiemResponse> gioCaoDiem;
 }
