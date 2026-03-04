@@ -2196,14 +2196,6 @@ hr {
   opacity: 0.8;
 }
 
-.table-container {
-  border: 1px solid #dee2e6;
-  /* Viền bao ngoài */
-  border-radius: 15px;
-  /* Độ bo góc bạn muốn */
-  overflow: hidden;
-  /* Quan trọng: Cắt các góc nhọn của header/footer bên trong */
-}
 
 .table thead tr th {
   background-color: #e9e9e9 !important;
@@ -2225,7 +2217,7 @@ hr {
 }
 
 .btn-active {
-  background-color: #7d161a !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white !important;
   border: 1px solid #7d161a;
   cursor: default;
@@ -2233,8 +2225,7 @@ hr {
 }
 
 .btn-active:hover {
-  background-color: #5c0a16 !important;
-  /* Đỏ đậm hơn một chút khi di chuột */
+  background: linear-gradient(135deg, #B71C1C 0%, #E65100 100%);
   color: white !important;
 }
 
