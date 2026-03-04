@@ -253,7 +253,7 @@ watch(() => route.query, () => {
 }
 
 .menu-item.active {
-    background-color: #7B121C;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
     /* Màu đỏ đô */
     color: white;
     border-radius: 10px;

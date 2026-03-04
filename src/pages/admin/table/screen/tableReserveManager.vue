@@ -403,7 +403,7 @@ onMounted(() => {
           </h3>
         </div>
         <div>
-          <button class="btn" @click="openCreateModal">
+          <button class="btn btn-add" @click="openCreateModal">
             + Thêm phiếu đặt bàn
           </button>
         </div>
@@ -645,7 +645,7 @@ onMounted(() => {
 </Transition>
 </template>
 
-<style>
+<style scoped>
 /* ================= LAYOUT ================= */
 .layout-table {
   display: flex;
@@ -698,6 +698,8 @@ hr {
   cursor: pointer;
 }
 
+
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -742,22 +744,18 @@ hr {
   overflow: hidden;
 }
 
-.table thead th {
-  background: #7d161a !important;
-  color: #fff;
-  font-weight: 600;
-}
 
 /* ================= BUTTON ================= */
-.btn {
-  background: #7d161a;
-  color: #fff;
-  border: none;
+.btn{
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   transition: 0.2s;
 }
 
 .btn:hover {
-  background: #5a1013;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  transform: scale(1.04);
 }
 
 /* Outline Button */

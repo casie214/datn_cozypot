@@ -342,8 +342,14 @@ const visiblePages = computed(() => {
   opacity: 0.9;
   color: white;
 }
+
+.table-header-red{
+  background-color: #8B0000 !important;
+}
+
+
 .table-header-red th {
-  background-color: #8b0000;
+  background-color: transparent !important;
   color: white;
   font-size: 13px;
   text-transform: uppercase;

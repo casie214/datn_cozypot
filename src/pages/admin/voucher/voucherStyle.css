@@ -578,14 +578,6 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
   color: #8b0000;
 }
 
-/* Xử lý cho bảng to ra trong vùng chứa */
-.table-container {
-  width: 100%;
-  overflow-x: auto; /* Cho phép cuộn ngang nếu màn hình quá nhỏ */
-  background: #fff;
-  border-radius: 25px;
-}
-
 .text-muted {
     color: #6c757d !important;
 }
@@ -1091,4 +1083,30 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 .doi-tuong {
     color: #444;
     font-weight: 500;
+}
+
+
+.voucher-manager-wrapper table.custom-table,
+.voucher-manager-wrapper table.customer-table {
+    border-collapse: separate !important; 
+    border-spacing: 0;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.voucher-manager-wrapper table.custom-table thead,
+.voucher-manager-wrapper table.customer-table thead {
+    background-color: #8B0000 !important;
+}
+
+.voucher-manager-wrapper table.custom-table thead tr,
+.voucher-manager-wrapper table.customer-table thead tr {
+    background-color: #8B0000 !important;
+}
+
+.voucher-manager-wrapper table.custom-table thead tr th,
+.voucher-manager-wrapper table.customer-table thead tr th {
+    background-color: transparent !important;
+    color: white !important;
+    border-bottom: none !important; /* Khắc phục lỗi hóp bảng do border */
 }
