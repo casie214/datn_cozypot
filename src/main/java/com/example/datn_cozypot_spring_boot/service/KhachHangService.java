@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.service;
 
 import com.example.datn_cozypot_spring_boot.dto.*;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
+import com.example.datn_cozypot_spring_boot.dto.profile.KhachHangProfileRequest;
 import com.example.datn_cozypot_spring_boot.entity.DiaChiKhachHang;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
 import com.example.datn_cozypot_spring_boot.repository.DiaChiKhachHangRepository;
@@ -15,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.*;
@@ -23,11 +23,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-// Import cho POI (Xử lý Excel)
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-// Import cho Spring Framework (Resource & Response)
 
 // Import cho Java IO
 import java.io.ByteArrayOutputStream;
@@ -49,10 +47,9 @@ public class KhachHangService {
     @Autowired
     private NhanVienRepository nhanVienRepo;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Path root = Paths.get("uploads/customers");
+    private final Path root = Paths.get("uploads/images");
     @Autowired
     private UserMailService userMailService;
-
     @Autowired
     private DiaChiKhachHangRepository diaChiRepo;
     @Autowired
@@ -102,21 +99,16 @@ public class KhachHangService {
             throw new RuntimeException("Số điện thoại đã tồn tại!");
         if (nhanVienRepo.existsByTenDangNhap(req.getEmail()))
             throw new RuntimeException("Email này đã được sử dụng");
-
         KhachHang kh = new KhachHang();
         mapRequestToEntity(req, kh);
-
         kh.setTenDangNhap(req.getEmail());
         String rawPassword = (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().isEmpty())
                 ? req.getMatKhauDangNhap() : "123456";
         kh.setMatKhauDangNhap(passwordEncoder.encode(rawPassword));
-
         if (file != null && !file.isEmpty()) {
             kh.setAnhDaiDien(saveFile(file));
         }
-
         KhachHang savedKh = repo.save(kh);
-
         if (req.getDanhSachDiaChi() != null && !req.getDanhSachDiaChi().isEmpty()) {
             saveDanhSachDiaChi(req.getDanhSachDiaChi(), savedKh);
         }
@@ -127,31 +119,26 @@ public class KhachHangService {
         } catch (Exception e) {
             System.err.println("Lỗi gửi mail khi tạo mới: " + e.getMessage());
         }
-
         return convertToResponse(savedKh);
     }
 
     @Transactional
     public KhachHangResponse update(Integer id, KhachHangRequest req, MultipartFile file) {
-        // 1. Tìm khách hàng
         KhachHang kh = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
         if (nhanVienRepo.existsByEmail(req.getEmail())) {
             throw new RuntimeException("Email này đã được sử dụng!");
         }
-
-        // 2. Check email với bảng Khách hàng (loại trừ chính mình - id)
         if (repo.existsByEmailAndIdNot(req.getEmail(), id)) {
             throw new RuntimeException("Email này đã được sử dụng!");
         }
-
-        // 3. Check số điện thoại (loại trừ chính mình - id)
         if (repo.existsBySoDienThoaiAndIdNot(req.getSoDienThoai(), id)) {
             throw new RuntimeException("Số điện thoại đã tồn tại trên hệ thống!");
         }
         String oldPasswordHash = kh.getMatKhauDangNhap();
+        String oldUsername = kh.getTenDangNhap();
         mapRequestToEntity(req, kh);
-        kh.setTenDangNhap(req.getEmail());
+        kh.setTenDangNhap(oldUsername);
         kh.setMatKhauDangNhap(oldPasswordHash);
         if (file != null && !file.isEmpty()) {
             kh.setAnhDaiDien(saveFile(file));
@@ -185,32 +172,22 @@ public class KhachHangService {
                 kh.getDanhSachDiaChi().add(dc);
             }
         }
-
         KhachHang savedKh = repo.save(kh);
-
         try {
             req.setMatKhauDangNhap("******** (Đã bảo mật)");
             userMailService.sendClientNotificationMail(req, "UPDATE");
         } catch (Exception e) {
             System.err.println("Lỗi gửi mail update: " + e.getMessage());
         }
-
         return convertToResponse(savedKh);
     }
-
     @Transactional
     public KhachHangResponse toggleStatus(Integer id) {
-        // 1. Tìm và thay đổi trạng thái
         KhachHang kh = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng ID: " + id));
-
         int newStatus = (kh.getTrangThai() != null && kh.getTrangThai() == 1) ? 0 : 1;
         kh.setTrangThai(newStatus);
-
-        // 2. Lưu vào DB (Transaction sẽ tự commit, gọi save để chắc chắn lấy được bản record mới nhất)
         KhachHang updatedKh = repo.saveAndFlush(kh);
-
-        // 3. Trả về DTO (Hãy đảm bảo hàm convertToResponse của bạn chỉ lấy các field đơn giản)
         return convertToResponse(updatedKh);
     }
 
@@ -311,6 +288,7 @@ public class KhachHangService {
             entity.setSoDienThoaiNhan(dto.getSoDienThoaiNhan() != null ? dto.getSoDienThoaiNhan() : kh.getSoDienThoai());
         }
     }
+
     public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai,Boolean gioiTinh, LocalDate tuNgay, List<Integer> listId) throws IOException {
         List<KhachHang> list;
         try {
@@ -323,29 +301,23 @@ public class KhachHangService {
             System.err.println("🔥 Lỗi truy vấn DB khi xuất Excel: " + e.getMessage());
             throw e;
         }
-
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        //String[] columns = {"STT", "Mã KH", "Tên KH", "SĐT", "Email", "Giới tính", "Ngày sinh", "Điểm", "Ngày tạo", "Trạng thái", "Địa chỉ mặc định"};
         String[] columns = {"STT", "Mã KH", "Tên KH", "SĐT", "Email", "Giới tính", "Ngày sinh", "Điểm", "Ngày tạo", "Trạng thái"};
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Khách hàng");
-
-            // Style cho Header (Giữ nguyên logic của bạn)
             CellStyle headerStyle = workbook.createCellStyle();
             Font font = workbook.createFont();
             font.setBold(true);
             headerStyle.setFont(font);
             headerStyle.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
                 cell.setCellStyle(headerStyle);
             }
-
             int rowIdx = 1;
             for (KhachHang kh : list) {
                 Row row = sheet.createRow(rowIdx++);
@@ -364,33 +336,10 @@ public class KhachHangService {
 
                 String tt = (kh.getTrangThai() != null && kh.getTrangThai() == 1) ? "Hoạt động" : "Ngừng hoạt động";
                 row.createCell(9).setCellValue(tt);
-
-//                // --- MỚI: Logic lấy địa chỉ mặc định ---
-//                String diaChiMacDinh = "";
-//                if (kh.getDanhSachDiaChi() != null && !kh.getDanhSachDiaChi().isEmpty()) {
-//                    diaChiMacDinh = kh.getDanhSachDiaChi().stream()
-//                            // Lọc địa chỉ mặc định
-//                            .filter(dc -> dc != null && dc.getLaMacDinh() != null && dc.getLaMacDinh())
-//                            .map(dc -> dc.getDiaChiChiTiet())
-//                            // Chỉ lấy nếu diaChiChiTiet không null
-//                            .filter(Objects::nonNull)
-//                            .findFirst()
-//                            // Nếu không có cái nào mặc định, lấy cái đầu tiên không null
-//                            .orElseGet(() -> kh.getDanhSachDiaChi().stream()
-//                                    .map(dc -> dc.getDiaChiChiTiet())
-//                                    .filter(Objects::nonNull)
-//                                    .findFirst()
-//                                    .orElse("")
-//                            );
-//                }
-//                row.createCell(10).setCellValue(diaChiMacDinh);
             }
-
             for (int i = 0; i < columns.length; i++) sheet.autoSizeColumn(i);
-
             workbook.write(out);
             InputStreamResource resource = new InputStreamResource(new ByteArrayInputStream(out.toByteArray()));
-
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=DS_KhachHang.xlsx")
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
@@ -403,12 +352,9 @@ public class KhachHangService {
 
     public List<KhachHangThongKeResponse> thongKeKhachHang(int thang, int nam) {
         List<Object[]> rows = repo.thongKeKhachHangTheoThang(thang, nam);
-
         List<KhachHangThongKeResponse> result = new ArrayList<>();
-
         for (Object[] row : rows) {
             KhachHangThongKeResponse dto = new KhachHangThongKeResponse();
-
             dto.setId(((Number) row[0]).longValue());
             dto.setMaKhachHang((String) row[1]);
             dto.setTenKhachHang((String) row[2]);
@@ -419,20 +365,16 @@ public class KhachHangService {
             dto.setSoLanDatTrongThang(
                     row[6] != null ? ((Number) row[6]).intValue() : 0
             );
-
             dto.setTongChiTieuTrongThang(
                     row[7] != null ? ((Number) row[7]).longValue() : 0L
             );
-
             dto.setLanDatGanNhat(
                     row[8] != null
                             ? ((java.sql.Timestamp) row[8]).toLocalDateTime()
                             : null
             );
-
             result.add(dto);
         }
-
         return result;
     }
 
@@ -440,23 +382,16 @@ public class KhachHangService {
         if (kh == null) return null;
         KhachHangResponse res = new KhachHangResponse();
         BeanUtils.copyProperties(kh, res);
-
-        // Đảm bảo dòng này tồn tại để chuyển tên file ảnh sang giao diện
         res.setAnhDaiDien(kh.getAnhDaiDien());
 
         if (kh.getDanhSachDiaChi() != null && !kh.getDanhSachDiaChi().isEmpty()) {
-            // 1. Chuyển đổi List Entity sang List DTO (DiaChiResponse)
             List<DiaChiResponse> listDiaChiDto = kh.getDanhSachDiaChi().stream().map(dc -> {
                 DiaChiResponse dto = new DiaChiResponse();
                 BeanUtils.copyProperties(dc, dto);
                 dto.setId(dc.getId()); // Đảm bảo ID được giữ lại để update
                 return dto;
             }).collect(Collectors.toList());
-
-            // 2. Gán danh sách này vào Response chính
             res.setDanhSachDiaChi(listDiaChiDto);
-
-            // 3. Logic lấy chuỗi địa chỉ mặc định an toàn hơn
             String diaChiMacDinh = kh.getDanhSachDiaChi().stream()
                     .filter(dc -> Boolean.TRUE.equals(dc.getLaMacDinh()))
                     .map(dc -> dc.getDiaChiChiTiet() != null ? dc.getDiaChiChiTiet() : "Chưa có địa chỉ cụ thể")
@@ -473,5 +408,57 @@ public class KhachHangService {
             res.setDanhSachDiaChi(new ArrayList<>());
         }
         return res;
+    }
+
+    @Transactional
+    public KhachHangResponse updateMyProfile(String currentEmail, KhachHangProfileRequest req, MultipartFile file) {
+        KhachHang kh = repo.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin tài khoản với email: " + currentEmail));
+        if (req.getEmail() != null && !req.getEmail().equalsIgnoreCase(currentEmail)) {
+            if (checkDuplicate("email", req.getEmail(), kh.getId())) {
+                throw new RuntimeException("Email mới này đã được sử dụng bởi một tài khoản khác!");
+            }
+            kh.setEmail(req.getEmail());
+        }
+        if (checkDuplicate("soDienThoai", req.getSoDienThoai(), kh.getId())) {
+            throw new RuntimeException("Số điện thoại này đã tồn tại trên hệ thống!");
+        }
+        if (checkDuplicate("tenDangNhap", req.getTenDangNhap(), kh.getId())) {
+            throw new RuntimeException("Tên đăng nhập này đã được sử dụng!");
+        }
+        kh.setTenKhachHang(req.getTenKhachHang());
+        kh.setSoDienThoai(req.getSoDienThoai());
+        kh.setNgaySinh(req.getNgaySinh());
+        kh.setGioiTinh(req.getGioiTinh());
+        kh.setTenDangNhap(req.getTenDangNhap());
+
+        if (file != null && !file.isEmpty()) {
+            kh.setAnhDaiDien(saveFile(file));
+        }
+        if (req.getDanhSachDiaChi() != null) {
+            diaChiRepo.deleteByKhachHang(kh);
+            diaChiRepo.flush();
+            kh.getDanhSachDiaChi().clear();
+            for (DiaChiRequest dcReq : req.getDanhSachDiaChi()) {
+                DiaChiKhachHang dc = new DiaChiKhachHang();
+                dc.setIdTinhThanh(dcReq.getIdTinhThanh());
+                dc.setIdQuanHuyen(dcReq.getIdQuanHuyen());
+                dc.setIdPhuongXa(dcReq.getIdPhuongXa());
+                dc.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
+                dc.setHoTenNhan(dcReq.getHoTenNhan());
+                dc.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
+                dc.setLaMacDinh(dcReq.getLaMacDinh());
+                dc.setKhachHang(kh);
+                kh.getDanhSachDiaChi().add(dc);
+            }
+        }
+        KhachHang savedKh = repo.save(kh);
+        return convertToResponse(savedKh);
+    }
+
+    public KhachHangResponse getProfileByEmail(String email) {
+        KhachHang kh = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với email: " + email));
+        return convertToResponse(kh); // Tận dụng hàm convertToResponse bạn đã viết rất tốt ở trên
     }
 }

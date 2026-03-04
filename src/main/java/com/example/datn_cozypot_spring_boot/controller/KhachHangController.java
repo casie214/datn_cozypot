@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.dto.KhachHangThongKeResponse;
+import com.example.datn_cozypot_spring_boot.dto.profile.KhachHangProfileRequest;
 import com.example.datn_cozypot_spring_boot.service.KhachHangService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.io.IOException;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @RestController
 @RequestMapping("/api/khach-hang")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -35,7 +39,7 @@ public class KhachHangController {
     ) {
         return ResponseEntity.ok(service.getAll(keyword, trangThai, gioiTinh, tuNgay, page, size));
     }
-    // 2. Xem chi tiết khách hàng
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getDetail(@PathVariable Integer id) {
         try {
@@ -45,7 +49,6 @@ public class KhachHangController {
         }
     }
 
-    // 3. Thêm mới khách hàng
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> add(
             @Valid @ModelAttribute KhachHangRequest request,
@@ -64,9 +67,6 @@ public class KhachHangController {
             @Valid @ModelAttribute KhachHangRequest request,
             @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
     ) {
-        // --- DEBUG TẠI ĐÂY ---
-        System.out.println("========== DEBUG CONTROLLER ==========");
-        System.out.println("ID Khách hàng cập nhật: " + id);
         if (request.getDanhSachDiaChi() == null) {
             System.out.println("CẢNH BÁO: danhSachDiaChi gửi lên bị NULL!");
         } else {
@@ -75,17 +75,13 @@ public class KhachHangController {
                     System.out.println(" - Địa chỉ: " + dc.getDiaChiChiTiet() + " | ID: " + dc.getId())
             );
         }
-        // ---------------------
-
         try {
             return ResponseEntity.ok(service.update(id, request, file));
         } catch (Exception e) {
-            e.printStackTrace(); // In lỗi ra console để xem nguyên nhân cụ thể
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
-    // 5. Đổi trạng thái nhanh (Đảo trạng thái hoạt động)
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
         try {
@@ -95,7 +91,6 @@ public class KhachHangController {
         }
     }
 
-    // 6. Kiểm tra trùng dữ liệu (Email, SĐT, Tên đăng nhập)
     @GetMapping("/check-duplicate")
     public ResponseEntity<?> checkDuplicate(
             @RequestParam String type,
@@ -104,7 +99,7 @@ public class KhachHangController {
         boolean isExists = service.checkDuplicate(type, value, excludeId);
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
-    // 7. Xuất file Excel khách hàng
+
     @GetMapping("/export-excel")
     public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
@@ -113,7 +108,6 @@ public class KhachHangController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
             @RequestParam(required = false) List<Integer> listId) {
         try {
-            // Gọi service và truyền đủ 4 tham số thực tế
             return service.exportExcel(keyword, trangThai, gioiTinh, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
@@ -124,9 +118,32 @@ public class KhachHangController {
     public ResponseEntity<List<KhachHangThongKeResponse>> thongKeKhachHang(
             @RequestParam int thang,
             @RequestParam int nam) {
-
         return ResponseEntity.ok(
                 service.thongKeKhachHang(thang, nam)
         );
+    }
+
+    @GetMapping("/my-profile")
+    public ResponseEntity<?> getMyProfile(Authentication authentication) {
+        try {
+            String currentEmail = authentication.getName();
+            return ResponseEntity.ok(service.getProfileByEmail(currentEmail));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Không thể lấy thông tin: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(value = "/update-my-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateMyProfile(
+            Authentication authentication,
+            @Valid @ModelAttribute KhachHangProfileRequest request,
+            @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
+    ) {
+        try {
+            String currentEmail = authentication.getName();
+            return ResponseEntity.ok(service.updateMyProfile(currentEmail, request, file));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
