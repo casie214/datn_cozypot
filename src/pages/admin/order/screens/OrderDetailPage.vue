@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import relativeTime from "dayjs/plugin/relativeTime";
 import logoUrl from "@/assets/images/logo_upscaled.jpg";
+import Swal from "sweetalert2";
+import axiosClient from "@/services/axiosClient";
 
 dayjs.locale("vi");
 dayjs.extend(relativeTime);
@@ -54,8 +56,22 @@ const getEventColor = (type) => {
 // Tính tiền
 const subTotal = computed(() => selectedOrder.value?.tongTienHangRaw || 0);
 const discount = computed(() => selectedOrder.value?.soTienDaGiam || 0);
-const deposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
-const finalTotal = computed(() => selectedOrder.value?.tongTienRaw || 0);
+const rawDeposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
+const deposit = computed(() => {
+  const code = selectedOrder.value?.trangThaiCode;
+  if (code === 0 || code === 1) {
+    return 0;
+  }
+  return rawDeposit.value;
+});
+const finalTotal = computed(() => {
+  const baseTotal = selectedOrder.value?.tongTienRaw || 0;
+  const code = selectedOrder.value?.trangThaiCode;
+  if (code === 0 || code === 1) {
+    return baseTotal + rawDeposit.value;
+  }
+  return baseTotal;
+});
 
 const appliedVAT = computed(() => {
   if (
@@ -69,7 +85,7 @@ const appliedVAT = computed(() => {
 
 const taxAmount = computed(() => {
   if (subTotal.value === 0) return 0;
-  return finalTotal.value + deposit.value + discount.value - subTotal.value;
+  return subTotal.value * (appliedVAT.value / 100);
 });
 
 const isReadOnly = computed(() => {
@@ -172,6 +188,67 @@ onMounted(async () => {
   }
 });
 
+const handleConfirmOrder = async (idHoaDon) => {
+  console.log("👉 BƯỚC 1: Đã bấm nút! ID Hóa đơn nhận được là:", idHoaDon);
+
+  if (!idHoaDon) {
+      Swal.fire('Lỗi', 'Không tìm thấy ID hóa đơn để xác nhận!', 'error');
+      return;
+  }
+
+  try {
+      console.log("👉 BƯỚC 2: Chuẩn bị bật Swal xác nhận");
+      const confirm = await Swal.fire({
+        title: 'Xác nhận đơn hàng?',
+        html: 'Trạng thái hóa đơn sẽ chuyển sang <b>Xác nhận (3)</b>, phiếu đặt bàn sang <b>(1)</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
+        cancelButtonText: 'Hủy bỏ'
+      });
+
+      console.log("👉 BƯỚC 3: Người dùng đã chọn:", confirm.isConfirmed);
+      if (!confirm.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Đang xử lý & Gửi email...',
+        text: 'Vui lòng không đóng trình duyệt lúc này.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      console.log("👉 BƯỚC 4: Chuẩn bị gọi API bằng axiosClient...");
+      
+      // Kiểm tra xem axiosClient có bị undefined không
+      if (!axiosClient) {
+          console.error("🚨 LỖI: axiosClient chưa được import hoặc bị undefined!");
+      }
+
+      const response = await axiosClient.put(`/hoa-don-thanh-toan/xac-nhan-va-gui-mail/${idHoaDon}`);
+      console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Hoàn tất!',
+        text: 'Đã xác nhận đơn và gửi email thành công.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      await handleViewDetail(idHoaDon);
+
+  } catch (error) {
+      console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi xử lý',
+        text: error.response?.data?.message || error.message || 'Không thể xác nhận đơn lúc này.'
+      });
+  }
+};
+
 </script>
 
 <template>
@@ -181,8 +258,8 @@ onMounted(async () => {
 
       <!-- Thong tin chung -->
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card border-0 shadow-sm mb-4">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+        <div class="card border-0 mb-0">
           <div class="card-header bg-white border-bottom py-3">
             <span class="fw-bold"
               ><i class="fa-solid fa-clock-rotate-left me-2"></i>Trạng thái hóa
@@ -285,8 +362,8 @@ onMounted(async () => {
 
       <!-- Bảng món -->
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-bottom py-3 fw-bold">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+        <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
           🍴 Thông tin món đã đặt
         </div>
         <div class="card-body p-0">
@@ -355,8 +432,8 @@ onMounted(async () => {
 
       <div class="row g-4 mb-4 align-items-stretch">
         <div class="col-md-6 d-flex flex-column gap-4">
-          <div class="card border-0 shadow-sm flex-grow-1">
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+          <div class="card border-0 shadow-sm flex-grow-1" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               🕒 Lịch sử hóa đơn
             </div>
             <div
@@ -403,9 +480,10 @@ onMounted(async () => {
 
           <div
             v-if="paymentHistory && paymentHistory.length > 0"
-            class="card border-0 shadow-sm"
+            class="card border-0 shadow-sm mt-4"
+            style="border-radius: 15px; overflow: hidden;"
           >
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💳 Lịch sử thanh toán
             </div>
             <div class="card-body p-3">
@@ -466,8 +544,8 @@ onMounted(async () => {
         </div>
 
         <div class="col-md-6">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white border-bottom py-3 fw-bold">
+          <div class="card border-0 shadow-sm h-100" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💰 Tổng kết đơn hàng
             </div>
             <div class="card-body p-4 d-flex flex-column">
@@ -543,6 +621,14 @@ onMounted(async () => {
         </div>
 
         <div class="d-flex gap-2">
+          <button
+              v-if="selectedOrder?.trangThaiCode === 0 || selectedOrder?.trangThaiCode === 2"
+              class="btn px-4 py-2 fw-medium text-white shadow-sm" style="background-color: #8b0000"
+              @click="handleConfirmOrder(selectedOrder?.dbId)" 
+          >
+              <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi mail
+          </button>
+
           <button
             class="btn btn-white border px-4 py-2 fw-medium"
             @click="onBack"
@@ -1042,7 +1128,7 @@ onMounted(async () => {
 .stepper-line-background,
 .stepper-line-progress {
   position: absolute;
-  top: 17px;
+  top: 23px;
   left: 65px; /* Xuất phát từ giữa hình tròn đầu tiên (130 / 2) */
   height: 4px;
 }
@@ -1057,9 +1143,9 @@ onMounted(async () => {
 
 /* Style cho các vòng tròn */
 .step-circle {
-  width: 38px;
-  height: 38px;
-  font-size: 0.9rem;
+  width: 50px; 
+  height: 50px; 
+  font-size: 1.3rem; 
   background-color: #fff;
   border: 3px solid #e9ecef;
   color: #adb5bd;
@@ -1084,8 +1170,9 @@ onMounted(async () => {
   box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
 }
 .step-label {
-  font-size: 11px;
+  font-size: 13px; 
   text-align: center;
   letter-spacing: 0.5px;
+  margin-top: 6px;
 }
 </style>

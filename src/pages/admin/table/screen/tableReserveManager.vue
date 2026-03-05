@@ -22,6 +22,7 @@ const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
 const currentPage = ref(1); // Vue hiển thị từ trang 1
 const pageSize = ref(6);
+const refreshKey = ref(0); // Thêm biến này để ép component con tải lại
 
 const searchForm = ref({
   soDienThoai: "",
@@ -335,7 +336,7 @@ const submitCreate = async () => {
     const res = await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
-    await searchDatBan();
+    refreshKey.value += 1;
 
     // Hiện toast tuỳ theo có gửi mail không
     if (res.daGuiMail) {
@@ -403,7 +404,7 @@ onMounted(() => {
           </h3>
         </div>
         <div>
-          <button class="btn" @click="openCreateModal">
+          <button class="btn btn-add" @click="openCreateModal">
             + Thêm phiếu đặt bàn
           </button>
         </div>
@@ -432,7 +433,7 @@ onMounted(() => {
       </ul>
       <hr />
       <div class="contain-frame mt-3">
-        <router-view />
+        <router-view :key="refreshKey"/>
       </div>
     </div>
   </div>
@@ -645,7 +646,7 @@ onMounted(() => {
 </Transition>
 </template>
 
-<style>
+<style scoped>
 /* ================= LAYOUT ================= */
 .layout-table {
   display: flex;
@@ -698,6 +699,8 @@ hr {
   cursor: pointer;
 }
 
+
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -742,22 +745,18 @@ hr {
   overflow: hidden;
 }
 
-.table thead th {
-  background: #7d161a !important;
-  color: #fff;
-  font-weight: 600;
-}
 
 /* ================= BUTTON ================= */
-.btn {
-  background: #7d161a;
-  color: #fff;
-  border: none;
+.btn{
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   transition: 0.2s;
 }
 
 .btn:hover {
-  background: #5a1013;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  transform: scale(1.04);
 }
 
 /* Outline Button */

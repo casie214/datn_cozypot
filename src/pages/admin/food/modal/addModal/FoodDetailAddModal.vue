@@ -177,6 +177,24 @@ const toggleDinhLuong = (id) => {
 // ==========================================
 // 3. LOGIC TẠO BIẾN THỂ & CHECK TRÙNG
 // ==========================================
+
+const formatDisplayPrice = (value) => {
+    if (!value) return '';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+// Hàm 2: Bắt sự kiện khi người dùng gõ phím
+const handlePriceInput = (variant, event) => {
+    // Lấy chuỗi người dùng vừa gõ và xóa bỏ mọi ký tự không phải số
+    let rawValue = event.target.value.replace(/[^\d]/g, '');
+    
+    // Gán lại giá trị kiểu Number nguyên bản vào data gốc (để gửi API)
+    variant.giaBan = rawValue ? parseInt(rawValue, 10) : 0;
+    
+    // Ép ô input hiển thị lại định dạng có dấu phẩy ngay lập tức
+    event.target.value = formatDisplayPrice(variant.giaBan);
+};
+
 const handleGenerateVariants = () => {
     if (!formData.value.baseName.trim()) {
         errors.value.baseName = 'Vui lòng nhập tên sản phẩm gốc!';
@@ -452,7 +470,7 @@ const goBack = () => {
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm" style="flex-direction: row !important;">
-                                                <input v-model="v.giaBan" type="number" class="form-control"
+                                                <input :value="formatDisplayPrice(v.giaBan)" @input="handlePriceInput(v, $event)" type="text" class="form-control"
                                                     style="width: 80% !important;" placeholder="0">
                                                 <span class="input-group-text">đ</span>
                                             </div>

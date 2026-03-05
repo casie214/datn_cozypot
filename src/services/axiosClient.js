@@ -2,9 +2,6 @@ import axios from 'axios';
 
 const axiosClient = axios.create({
     baseURL: 'http://localhost:8080/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 let isRefreshing = false;
@@ -23,12 +20,20 @@ const processQueue = (error, token = null) => {
 
 axiosClient.interceptors.request.use(
     (config) => {
-        // Lấy token trực tiếp từ localStorage mỗi khi có request
-        const token = localStorage.getItem('accessToken'); 
 
-        if (token) {
+        const token = localStorage.getItem('accessToken');
+        if (
+            token &&
+            !config.url.includes('/login') &&
+            !config.url.includes('/refresh-token')
+        ) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        if (!(config.data instanceof FormData)) {
+            config.headers['Content-Type'] = 'application/json';
+        }
+
         return config;
     },
     (error) => Promise.reject(error)
@@ -109,3 +114,4 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
+

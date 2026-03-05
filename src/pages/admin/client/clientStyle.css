@@ -138,9 +138,13 @@
   box-shadow: 0 5px 12px rgba(0,0,0,0.05);
 }
 
+thead tr{
+  background-color: #8B0000 !important;
+}
+
 /* 7. BẢNG DỮ LIỆU (TABLE) */
 .custom-table thead th {
-  background-color: var(--primary-red) !important;
+  background-color: transparent !important;
   color: white !important;
   padding: 16px;
   font-size: 13px;
