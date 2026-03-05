@@ -177,14 +177,14 @@ const onBack = () => router.push({ name: "orderManager" });
 onMounted(async () => {
   // 🚨 Kiểm tra lại: Nếu trong router.js bạn đặt path là "/detail/:id" thì giữ nguyên
   // Nếu đặt là "/detail/:idHoaDon" thì phải đổi thành route.params.idHoaDon
-  const orderDbId = route.params.id; 
+  const orderDbId = route.params.id;
 
   if (orderDbId && orderDbId !== "undefined") {
     console.log("Đang lấy chi tiết cho ID:", orderDbId);
     await handleViewDetail(orderDbId);
   } else {
     console.error("Không tìm thấy ID hóa đơn trên URL!");
-    router.push({ name: 'orderManager' });
+    router.push({ name: "orderManager" });
   }
 });
 
@@ -192,63 +192,67 @@ const handleConfirmOrder = async (idHoaDon) => {
   console.log("👉 BƯỚC 1: Đã bấm nút! ID Hóa đơn nhận được là:", idHoaDon);
 
   if (!idHoaDon) {
-      Swal.fire('Lỗi', 'Không tìm thấy ID hóa đơn để xác nhận!', 'error');
-      return;
+    Swal.fire("Lỗi", "Không tìm thấy ID hóa đơn để xác nhận!", "error");
+    return;
   }
 
   try {
-      console.log("👉 BƯỚC 2: Chuẩn bị bật Swal xác nhận");
-      const confirm = await Swal.fire({
-        title: 'Xác nhận đơn hàng?',
-        html: 'Trạng thái hóa đơn sẽ chuyển sang <b>Xác nhận (3)</b>, phiếu đặt bàn sang <b>(1)</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
-        cancelButtonText: 'Hủy bỏ'
-      });
+    console.log("👉 BƯỚC 2: Chuẩn bị bật Swal xác nhận");
+    const confirm = await Swal.fire({
+      title: "Xác nhận đơn hàng?",
+      html: "Trạng thái hóa đơn sẽ chuyển sang <b>Xác nhận (3)</b>, phiếu đặt bàn sang <b>(1)</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#28a745",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText:
+        '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
+      cancelButtonText: "Hủy bỏ",
+    });
 
-      console.log("👉 BƯỚC 3: Người dùng đã chọn:", confirm.isConfirmed);
-      if (!confirm.isConfirmed) return;
+    console.log("👉 BƯỚC 3: Người dùng đã chọn:", confirm.isConfirmed);
+    if (!confirm.isConfirmed) return;
 
-      Swal.fire({
-        title: 'Đang xử lý & Gửi email...',
-        text: 'Vui lòng không đóng trình duyệt lúc này.',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-      });
+    Swal.fire({
+      title: "Đang xử lý & Gửi email...",
+      text: "Vui lòng không đóng trình duyệt lúc này.",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
 
-      console.log("👉 BƯỚC 4: Chuẩn bị gọi API bằng axiosClient...");
-      
-      // Kiểm tra xem axiosClient có bị undefined không
-      if (!axiosClient) {
-          console.error("🚨 LỖI: axiosClient chưa được import hoặc bị undefined!");
-      }
+    console.log("👉 BƯỚC 4: Chuẩn bị gọi API bằng axiosClient...");
 
-      const response = await axiosClient.put(`/hoa-don-thanh-toan/xac-nhan-va-gui-mail/${idHoaDon}`);
-      console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
+    // Kiểm tra xem axiosClient có bị undefined không
+    if (!axiosClient) {
+      console.error("🚨 LỖI: axiosClient chưa được import hoặc bị undefined!");
+    }
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Hoàn tất!',
-        text: 'Đã xác nhận đơn và gửi email thành công.',
-        timer: 2000,
-        showConfirmButton: false
-      });
+    const response = await axiosClient.put(
+      `/hoa-don-thanh-toan/xac-nhan-va-gui-mail/${idHoaDon}`,
+    );
+    console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
 
-      await handleViewDetail(idHoaDon);
+    Swal.fire({
+      icon: "success",
+      title: "Hoàn tất!",
+      text: "Đã xác nhận đơn và gửi email thành công.",
+      timer: 2000,
+      showConfirmButton: false,
+    });
 
+    await handleViewDetail(idHoaDon);
   } catch (error) {
-      console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi xử lý',
-        text: error.response?.data?.message || error.message || 'Không thể xác nhận đơn lúc này.'
-      });
+    console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
+    Swal.fire({
+      icon: "error",
+      title: "Lỗi xử lý",
+      text:
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể xác nhận đơn lúc này.",
+    });
   }
 };
-
 </script>
 
 <template>
@@ -258,7 +262,10 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <!-- Thong tin chung -->
 
-      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+      <div
+        class="card border-0 shadow-sm mb-4"
+        style="border-radius: 15px; overflow: hidden"
+      >
         <div class="card border-0 mb-0">
           <div class="card-header bg-white border-bottom py-3">
             <span class="fw-bold"
@@ -362,7 +369,10 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <!-- Bảng món -->
 
-      <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+      <div
+        class="card border-0 shadow-sm mb-4"
+        style="border-radius: 15px; overflow: hidden"
+      >
         <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
           🍴 Thông tin món đã đặt
         </div>
@@ -432,7 +442,10 @@ const handleConfirmOrder = async (idHoaDon) => {
 
       <div class="row g-4 mb-4 align-items-stretch">
         <div class="col-md-6 d-flex flex-column gap-4">
-          <div class="card border-0 shadow-sm flex-grow-1" style="border-radius: 15px; overflow: hidden;">
+          <div
+            class="card border-0 shadow-sm flex-grow-1"
+            style="border-radius: 15px; overflow: hidden"
+          >
             <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               🕒 Lịch sử hóa đơn
             </div>
@@ -481,7 +494,7 @@ const handleConfirmOrder = async (idHoaDon) => {
           <div
             v-if="paymentHistory && paymentHistory.length > 0"
             class="card border-0 shadow-sm mt-4"
-            style="border-radius: 15px; overflow: hidden;"
+            style="border-radius: 15px; overflow: hidden"
           >
             <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💳 Lịch sử thanh toán
@@ -544,7 +557,10 @@ const handleConfirmOrder = async (idHoaDon) => {
         </div>
 
         <div class="col-md-6">
-          <div class="card border-0 shadow-sm h-100" style="border-radius: 15px; overflow: hidden;">
+          <div
+            class="card border-0 shadow-sm h-100"
+            style="border-radius: 15px; overflow: hidden"
+          >
             <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
               💰 Tổng kết đơn hàng
             </div>
@@ -622,11 +638,15 @@ const handleConfirmOrder = async (idHoaDon) => {
 
         <div class="d-flex gap-2">
           <button
-              v-if="selectedOrder?.trangThaiCode === 0 || selectedOrder?.trangThaiCode === 2"
-              class="btn px-4 py-2 fw-medium text-white shadow-sm" style="background-color: #8b0000"
-              @click="handleConfirmOrder(selectedOrder?.dbId)" 
+            v-if="
+              selectedOrder?.trangThaiCode === 0 ||
+              selectedOrder?.trangThaiCode === 2
+            "
+            class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
+            @click="handleConfirmOrder(selectedOrder?.dbId)"
           >
-              <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi mail
+            <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi
+            mail
           </button>
 
           <button
@@ -975,32 +995,29 @@ const handleConfirmOrder = async (idHoaDon) => {
   font-size: 24px;
   font-weight: bold;
 }
-
-.btn-custom {
-  background-color: #8b0000;
-  border-color: #8b0000;
-  color: white;
+.btn-custom,
+.btn-print {
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%) !important;
+  color: white !important;
+  border: none !important;
+  transition: 0.2s;
 }
-.btn-custom:hover {
-  background-color: #a00000;
-  border-color: #a00000;
-  color: white;
+
+.btn-custom:hover,
+.btn-print:hover {
+  opacity: 0.9;
+  color: white !important;
 }
 .btn-outline-custom {
-  color: #8b0000;
-  border-color: #8b0000;
-  background-color: transparent;
+  color: #8b0000 !important;
+  border: 1px solid #8b0000 !important;
+  background-color: transparent !important;
+  transition: 0.2s;
 }
+
 .btn-outline-custom:hover {
-  background-color: #8b0000;
-  color: white;
-}
-.btn-print {
-  background-color: #8b0000;
-  border: none;
-}
-.btn-print:hover {
-  background-color: #b84747;
+  background-color: #8b0000 !important;
+  color: white !important;
 }
 .btn-close-white {
   filter: invert(1) grayscale(100%) brightness(200%);
@@ -1143,9 +1160,9 @@ const handleConfirmOrder = async (idHoaDon) => {
 
 /* Style cho các vòng tròn */
 .step-circle {
-  width: 50px; 
-  height: 50px; 
-  font-size: 1.3rem; 
+  width: 50px;
+  height: 50px;
+  font-size: 1.3rem;
   background-color: #fff;
   border: 3px solid #e9ecef;
   color: #adb5bd;
@@ -1170,7 +1187,7 @@ const handleConfirmOrder = async (idHoaDon) => {
   box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
 }
 .step-label {
-  font-size: 13px; 
+  font-size: 13px;
   text-align: center;
   letter-spacing: 0.5px;
   margin-top: 6px;

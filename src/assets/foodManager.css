@@ -240,7 +240,7 @@ tr:hover {
 }
 
 .btn-clear {
-    background: #8B0000;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
     color: white;
     border: none;
     padding: 8px 15px;
@@ -248,6 +248,11 @@ tr:hover {
     cursor: pointer;
     height: inherit;
     text-align: center;
+    transition: 0.2s;
+}
+
+.btn-clear:hover{
+    transform: scale(1.04);
 }
 
 .action-row {

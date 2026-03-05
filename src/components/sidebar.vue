@@ -7,10 +7,8 @@ const menuItems = ref([
     { name: 'Thống kê', icon: "fa-solid fa-chart-area", path: '/admin/statistics', roles: ['ADMIN'] },
     { name: 'Đặt bàn', icon: "fa-solid fa-calendar-days", path: '/admin/tables' },
     { name: 'Check-in bàn', icon: "fa-solid fa-circle-check", path: '/admin/checkin' },
-    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
     { name: 'Hóa đơn', icon: "fa-solid fa-cart-shopping", path: '/admin/orders' },
-    { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
-    { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
+    { name: 'Quản lý bàn', icon: "fa-solid fa-chair", path: '/manage/all' },
 
     {
         name: 'Thực đơn',
@@ -41,8 +39,11 @@ const menuItems = ref([
         query: { tab: 'dinhluong' },
         isOpen: false
     },
-
     { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
+
+    { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
+    { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
+
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
     { name: 'Tham số', icon: "fa-solid fa-sliders", path: '/admin/parameters' },
 

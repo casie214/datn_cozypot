@@ -127,7 +127,7 @@
 }
 
 .btn-add-only {
-  background-color: var(--primary-red) !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white !important;
   border: none !important;
 }
