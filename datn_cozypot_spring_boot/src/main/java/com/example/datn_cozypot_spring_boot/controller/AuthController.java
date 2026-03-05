@@ -205,7 +205,7 @@ public class AuthController {
                 return ResponseEntity.ok("Mật khẩu mới đã được gửi đến email của bạn.");
             }
 
-            Optional<NhanVien> nv = nhanVienRepository.findNhanVienByTenDangNhap(email);
+            Optional<NhanVien> nv = nhanVienRepository.findByEmail(email);
             if (nv.isPresent()) {
                 String newPassword = generateRandomPassword();
                 nv.get().setMatKhauDangNhap(passwordEncoder.encode(newPassword));

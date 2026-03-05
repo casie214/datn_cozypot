@@ -43,7 +43,13 @@ const routes = [
   {
     path: "/login",
     name: "login",
-    component: () => import("@/pages/guest/authentication/loginPage.vue"),
+    component: () => import("@/pages/guest/authentication/clientLogin.vue"),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: "/login/admin", // Hoặc /staff/login tùy bạn chọn
+    name: "staffLogin",
+    component: () => import("@/pages/guest/authentication/staffLogin.vue"),
     meta: { requiresAuth: false },
   },
   {

@@ -6,11 +6,9 @@
   --text-main: #2c3e50;
   --text-muted: #666;
   --border-light: rgba(0, 0, 0, 0.05);
-  /* Đổ bóng 2 lớp cực mịn để nổi bật trên nền trắng */
   --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
   --shadow-hover: 0 15px 45px rgba(0, 0, 0, 0.08);
 }
-/* Màu cho icon bút chì khi di chuột vào */
 .action-edit-v2:hover i {
   color: #800000 !important; /* Đổi sang đỏ rượu khi hover */
   transform: scale(1.2);
@@ -36,7 +34,7 @@
 }
 /* 2. THIẾT LẬP NỀN TRANG CHỦ */
 .staff-manager-wrapper {
-  background-color: var(--bg-white) !important;
+  background-color: white !important;
   min-height: 100vh;
 }
 

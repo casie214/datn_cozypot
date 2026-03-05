@@ -166,11 +166,11 @@
 
                   <div class="row g-4">
                     <div class="col-md-12">
-                      <label class="form-label-custom">Số Căn cước công dân <span class="star">*</span></label>
+                      <label class="form-label-custom">Số căn cước công dân <span class="star">*</span></label>
                       <div class="input-group-custom">
                         <i class="far fa-id-card icon-input"></i>
                         <input type="password" class="form-control" v-model="formData.soCccd"
-                          :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số">
+                          :class="{ 'is-invalid': errors.soCccd }" placeholder="12 chữ số" readonly>
                       </div>
                       <div class="error-text">{{ errors.soCccd }}</div>
                     </div>
