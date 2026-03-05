@@ -44,7 +44,8 @@ public class ThongKeService {
             dto.setDoanhThuTuanNay(toBigDecimal(data.get("doanhThuTuanNay")));
             dto.setDoanhThuThangNay(toBigDecimal(data.get("doanhThuThangNay")));
             dto.setDoanhThuNamNay(toBigDecimal(data.get("doanhThuNamNay")));
-
+            dto.setTongBanDaDat(toLong(data.get("tongBanDaDat")));
+            dto.setDoanhThuDuKien(toBigDecimal(data.get("doanhThuDuKien")));
             // Mapping số lượng đơn (Dùng để hiển thị phần mô tả nhỏ dưới con số tiền)
             dto.setSoDonHomNay(toLong(data.get("soDonHomNay")));
             dto.setSoDonTuanNay(toLong(data.get("soDonTuanNay")));
@@ -84,6 +85,15 @@ public class ThongKeService {
 
         // --- TOP SẢN PHẨM ---
         dto.setTopSets(thongKeRepository.layTopSetLauBanChay());
+
+        // --- HÓA ĐƠN CHỜ & ĐÃ CỌC ---
+        Long soHoaDonChoVaDaCoc = thongKeRepository.demHoaDonChoVaDaCoc();
+        BigDecimal tongTienChoVaDaCoc = thongKeRepository.tongTienHoaDonChoVaDaCoc();
+
+        dto.setSoHoaDonChoVaDaCoc(soHoaDonChoVaDaCoc != null ? soHoaDonChoVaDaCoc : 0L);
+        dto.setTongTienHoaDonChoVaDaCoc(
+                tongTienChoVaDaCoc != null ? tongTienChoVaDaCoc : BigDecimal.ZERO
+        );
 
         return dto;
     }

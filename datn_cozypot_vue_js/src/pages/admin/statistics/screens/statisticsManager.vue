@@ -19,7 +19,10 @@
         <div class="filter-section">
             <div class="filter-header">
                 <div class="filter-title">
-                    <h5>Bộ lọc doanh thu</h5>
+                    <h5 class="section-title">
+                        <i class="fa-solid fa-filter icon-title"></i>
+                        Bộ lọc doanh thu
+                    </h5>
                     <p>Chọn khoảng thời gian để xem báo cáo</p>
 
                     <div v-if="activeTab === 'Tùy chỉnh'" class="date-picker-row">
@@ -308,6 +311,8 @@ const thongKe = ref({
     doanhThuThangNay: 0,
     doanhThuNamNay: 0,
     tongHoaDon: 0,
+    tongBanDaDat: 0,
+    doanhThuDuKien: 0,
     giaTriTrungBinhDon: 0,
     tongTienCoc: 0,
     tongGiamGia: 0,
@@ -410,33 +415,43 @@ watch(activeTab, () => {
     loadThongKe();
 });
 
-const danhSachTheTongQuan = computed(() => [
-    {
-        label: 'Doanh thu hôm nay',
-        value: thongKe.value.doanhThuHomNay,
-        moTa: 'Cập nhật tức thời',
-        chuThich: 'Hệ thống CozyPot'
-    },
-    {
-        label: 'Doanh thu tuần này',
-        value: thongKe.value.doanhThuTuanNay,
-        // Giả sử bạn muốn hiển thị số hóa đơn thực tế của tuần
-        moTa: `${thongKe.value.tongHoaDonTuan || 0} hóa đơn hoàn tất`,
-        chuThich: 'Dữ liệu 7 ngày gần nhất'
-    },
-    {
-        label: 'Doanh thu tháng này',
-        value: thongKe.value.doanhThuThangNay,
-        moTa: `${thongKe.value.tongHoaDon || 0} hóa đơn hoàn tất`,
-        chuThich: `Trung bình ${formatVND(thongKe.value.doanhThuThangNay / 30)}/ngày`
-    },
-    {
-        label: 'Doanh thu năm nay',
-        value: thongKe.value.doanhThuNamNay,
-        moTa: 'Tổng kết doanh số',
-        chuThich: `Năm ${new Date().getFullYear()}`
-    }
-]);
+const danhSachTheTongQuan = computed(() => {
+    const doanhThuThang = Number(thongKe.value.doanhThuThangNay) || 0;
+
+    return [
+        {
+            label: 'Doanh thu dự kiến',
+            value: Number(thongKe.value.doanhThuDuKien) || 0,
+            moTa: `${thongKe.value.tongBanDaDat || 0} bàn đã đặt`,
+            chuThich: 'Tính từ đơn chưa hoàn tất'
+        },
+        {
+            label: 'Doanh thu hôm nay',
+            value: Number(thongKe.value.doanhThuHomNay) || 0,
+            moTa: 'Cập nhật tức thời',
+            chuThich: 'Hệ thống CozyPot'
+        },
+        {
+            label: 'Doanh thu tuần này',
+            value: Number(thongKe.value.doanhThuTuanNay) || 0,
+            moTa: `${thongKe.value.tongHoaDonTuan || 0} hóa đơn hoàn tất`,
+            chuThich: 'Dữ liệu 7 ngày gần nhất'
+        },
+        {
+            label: 'Doanh thu tháng này',
+            value: doanhThuThang,
+            moTa: `${thongKe.value.tongHoaDon || 0} hóa đơn hoàn tất`,
+            chuThich: `Trung bình ${formatVND(doanhThuThang / 30)}/ngày`
+        },
+        {
+            label: 'Doanh thu năm nay',
+            value: Number(thongKe.value.doanhThuNamNay) || 0,
+            moTa: 'Tổng kết doanh số',
+            chuThich: `Năm ${new Date().getFullYear()}`
+        }
+    ];
+});
+
 const trangThaiData = ref([])
 
 const loadTrangThai = async () => {
@@ -538,6 +553,19 @@ const pieKenhOptions = {
 }
 const thongKeChiTiet = computed(() => [
     { label: 'Tổng hóa đơn hoàn tất', value: thongKe.value.tongHoaDon, isNumber: true },
+    // 🔥 THÊM MỚI
+    { 
+        label: 'Số bàn đã đặt', 
+        value: thongKe.value.tongBanDaDat, 
+        isNumber: true,
+        color: 'text-blue'
+    },
+
+    { 
+        label: 'Doanh thu dự kiến', 
+        value: thongKe.value.doanhThuDuKien,
+        color: 'text-orange'
+    },
     { label: 'Giá trị trung bình / đơn', value: thongKe.value.giaTriTrungBinhDon },
     { label: 'Tiền cọc đã thu', value: thongKe.value.tongTienCoc, color: 'text-blue' },
     { label: 'Tổng giảm giá', value: thongKe.value.tongGiamGia, color: 'text-orange' },
@@ -914,7 +942,7 @@ const getStatusClass = (status) => {
 /* Grid cho 4 thẻ */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1.5rem;
     margin-bottom: 2.5rem;
 }
@@ -1024,28 +1052,15 @@ const getStatusClass = (status) => {
 
 /* Định dạng nút Xuất Excel giống mẫu */
 .btn-export {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: white;
-    color: #8b0000;
-    /* Màu xanh đặc trưng của Excel */
-    border: 1px solid #d1d5db;
-    padding: 0.5rem 1rem;
-    border-radius: 0.75rem;
-    /* Bo góc giống filter-tabs */
-    font-size: 0.8rem;
-    font-weight: 600;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    height: 38px;
-    /* Khớp chiều cao với filter-tabs */
-}
-
-.btn-export:hover {
-    background-color: #f9fafb;
-    border-color: #8b0000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    height: inherit;
+    text-align: center;
+    transition: 0.2s;
 }
 
 .icon-excel {
@@ -1416,6 +1431,7 @@ const getStatusClass = (status) => {
 .text-orange {
     color: #f97316;
 }
+
 .btn-apply {
     align-self: flex-end;
     height: 34px;
