@@ -94,6 +94,8 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 """)
     List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") int idBanAn);
 
+    List<HoaDonThanhToan> findAllByTrangThaiHoaDonAndThoiGianTaoBefore(Integer trangThai, Instant limitTime);
+
     @Query("""
     SELECT new com.example.datn_cozypot_spring_boot.dto.thongKe.KenhDatResponse(
         CASE 
@@ -119,4 +121,6 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 
 
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
+
+    Optional<HoaDonThanhToan> findByMaHoaDon(String idHoaDon);
 }
