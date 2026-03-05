@@ -619,7 +619,7 @@ const statusOptions = ref([
 ])
 </script>
 
-<style>zz
+<style>
 /* ================= WRAPPER ================= */
 .manager-wrapper {
     background: #ffffff;

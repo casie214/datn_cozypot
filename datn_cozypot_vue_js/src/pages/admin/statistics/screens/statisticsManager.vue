@@ -51,7 +51,6 @@
                     </div>
 
                     <button type="button" class="btn-export" @click="exportToExcel">
-                        <i class="fa-solid fa-file-excel icon-excel"></i>
                         <span>Xuất Excel</span>
                     </button>
                 </div>
@@ -1053,28 +1052,15 @@ const getStatusClass = (status) => {
 
 /* Định dạng nút Xuất Excel giống mẫu */
 .btn-export {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background-color: white;
-    color: #8b0000;
-    /* Màu xanh đặc trưng của Excel */
-    border: 1px solid #d1d5db;
-    padding: 0.5rem 1rem;
-    border-radius: 0.75rem;
-    /* Bo góc giống filter-tabs */
-    font-size: 0.8rem;
-    font-weight: 600;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    height: 38px;
-    /* Khớp chiều cao với filter-tabs */
-}
-
-.btn-export:hover {
-    background-color: #f9fafb;
-    border-color: #8b0000;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    height: inherit;
+    text-align: center;
+    transition: 0.2s;
 }
 
 .icon-excel {

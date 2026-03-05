@@ -1092,7 +1092,7 @@ const reinitAddressData = async (index) => {
 }
 
 .btn-check:checked+.btn-outline-wine {
-  background-color: #800000;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white;
 }
 
@@ -1103,6 +1103,10 @@ const reinitAddressData = async (index) => {
   border-radius: 10px;
   font-weight: 600;
   transition: 0.3s;
+}
+
+.btn-check + .btn:hover{
+  border: 1px solid black;
 }
 
 .btn-main-custom:hover:not(:disabled) {

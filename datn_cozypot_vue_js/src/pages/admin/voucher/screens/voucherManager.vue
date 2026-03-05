@@ -48,9 +48,9 @@
                         <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" mode="single" label="label"
                             valueProp="value" trackBy="value"  placeholder="Chọn tất cả trạng thái" />
                     </div>
-                    <div class="col-md-3 d-flex align-items-end gap-2">
-                        <button class="btn-reset-filter w-100" @click="resetFilters">
-                            <i class="fas fa-sync-alt"></i> Làm mới
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button class="btn-reset-filter" @click="resetFilters">
+                            Xóa bộ lọc
                         </button>
                     </div>
 
@@ -600,10 +600,10 @@
                 <div class="mt-4 d-flex justify-content-end gap-2">
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
-                            class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
-                            style="height: 42px; background-color: #800000;" @click="closeForm">
-                            HỦY BỎ
-                        </button>
+    class="btn btn-outline-custom px-4 fw-bold d-flex align-items-center justify-content-center"
+    style="height: 42px;" @click="closeForm">
+    HỦY BỎ
+</button>
 
                         <button v-if="!isReadOnly" type="submit"
                             class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"

@@ -116,7 +116,7 @@ public class PhieuGiamGiaService {
 
         // ✅ CHECK TRÙNG CODE TRƯỚC
         if (repo.existsByCodeGiamGia(dto.getCodeGiamGia())) {
-            throw new RuntimeException("Mã giảm giá đã tồn tại");
+            throw new RuntimeException("Mã code đã tồn tại");
         }
 
         PhieuGiamGia entity = new PhieuGiamGia();
@@ -227,7 +227,7 @@ public class PhieuGiamGiaService {
         Integer oldTrangThai = entity.getTrangThai();
 
         if (repo.existsByCodeGiamGiaAndIdNot(dto.getCodeGiamGia(), id)) {
-            throw new RuntimeException("Mã giảm giá đã tồn tại");
+            throw new RuntimeException("Mã code đã tồn tại");
         }
 
         // --- LOGIC XỬ LÝ THAY ĐỔI KHÁCH HÀNG VÀ GỬI MAIL ---

@@ -334,9 +334,10 @@ const visiblePages = computed(() => {
   color: white;
 }
 .btn-outline-custom {
-  background-color: #8b0000;
-  color: white;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   border: none;
+  transition: all 0.2s ease;
 }
 .btn-outline-custom:hover {
   opacity: 0.9;

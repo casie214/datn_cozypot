@@ -301,7 +301,7 @@ const getImg = (url) => {
 }
 
 .btn-add-only {
-  background-color: #8B0000 !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   color: white !important;
   border: none !important;
 }
