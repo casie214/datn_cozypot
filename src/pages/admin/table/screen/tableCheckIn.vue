@@ -13,6 +13,8 @@ import { useRoute, useRouter } from "vue-router";
 import FoodList from "../modal/innerComponents/foodList.vue";
 import Swal from "sweetalert2";
 import axiosClient from "@/services/axiosClient";
+import Multiselect from '@vueform/multiselect';
+import '@vueform/multiselect/themes/default.css';
 
 const activeFloor = ref(1);
 
@@ -29,6 +31,8 @@ const danhSachTang = computed(() => {
 
 const danhSachBan = ref([]);
 const selectedItems = ref({});
+
+
 
 const timeWindowOptions = [
   { label: '15p', value: 15 },
@@ -64,9 +68,9 @@ const currentRawTotal = computed(() => {
   return tongTienTho;
 });
 
-const openDiscountModal = async () => {
+const openDiscountModal = async (tab = 'PUBLIC') => {
   if (!selectedPhieu.value?.idHoaDon) {
-    return Swal.fire('Lưu ý', 'Cần có hóa đơn (đã gọi món) để áp dụng mã!', 'warning');
+    return Swal.fire('Lưu ý', 'Cần có hóa đơn (đã gọi món) để xem mã!', 'warning');
   }
   if (hasDiscountInGroup.value) {
     return Swal.fire('Lưu ý', 'Nhóm bàn này đã được áp dụng một mã giảm giá. Vui lòng hủy mã cũ trước khi áp dụng mã mới!', 'warning');
@@ -90,10 +94,74 @@ const openDiscountModal = async () => {
     }
     
     maGiamGiaInput.value = "";
-    activeVoucherTab.value = 'PUBLIC'; // Mở modal mặc định ở tab Công cộng
+    activeVoucherTab.value = tab; // Nhảy thẳng vào tab được chỉ định
     isShowDiscountModal.value = true;
   } catch (error) {
     Swal.fire('Lỗi', 'Không thể lấy danh sách ưu đãi', 'error');
+  }
+};
+
+// 🚨 THÊM HÀM MỚI: Tự động tìm & áp dụng mã công cộng tốt nhất
+const applyBestPublicVoucher = async () => {
+  if (!selectedPhieu.value?.idHoaDon) {
+    return Swal.fire('Lưu ý', 'Cần có hóa đơn (đã gọi món) để áp dụng mã!', 'warning');
+  }
+  if (hasDiscountInGroup.value) {
+    return Swal.fire('Lưu ý', 'Nhóm bàn này đã áp dụng mã giảm giá rồi!', 'warning');
+  }
+
+  Swal.fire({ title: 'Đang tìm mã tốt nhất...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await axiosClient.get(`/phieu-giam-gia/search?page=0&size=100`);
+    const allVouchers = res.data?.content || [];
+
+    // Lọc các mã CÔNG CỘNG đang hoạt động và ĐỦ ĐIỀU KIỆN (Tiền món >= Đơn hàng tối thiểu)
+    const validPublicVouchers = allVouchers.filter(vc => 
+        vc.trangThai === 1 && 
+        vc.doiTuong === 0 && 
+        currentRawTotal.value >= vc.donHangToiThieu
+    );
+
+    if (validPublicVouchers.length === 0) {
+      return Swal.fire('Rất tiếc', 'Hóa đơn hiện tại chưa đủ điều kiện áp dụng bất kỳ ưu đãi chung nào.', 'info');
+    }
+
+    let bestVoucher = null;
+    let maxDiscountAmount = 0;
+
+    // Chạy vòng lặp tính toán xem mã nào trừ được nhiều tiền nhất
+    validPublicVouchers.forEach(vc => {
+      let discountForThisVc = 0;
+
+      if (vc.loaiGiamGia === 1) { 
+        // 1: Giảm theo phần trăm (%)
+        discountForThisVc = currentRawTotal.value * (vc.giaTriGiam / 100);
+        // Cắt ngọn nếu vượt quá mức giảm tối đa
+        if (vc.giaTriGiamToiDa > 0 && discountForThisVc > vc.giaTriGiamToiDa) {
+          discountForThisVc = vc.giaTriGiamToiDa;
+        }
+      } else { 
+        // 0: Giảm tiền mặt trực tiếp (VNĐ)
+        discountForThisVc = vc.giaTriGiam;
+      }
+
+      // So sánh tìm mã ngon nhất
+      if (discountForThisVc > maxDiscountAmount) {
+        maxDiscountAmount = discountForThisVc;
+        bestVoucher = vc;
+      }
+    });
+
+    if (bestVoucher) {
+      // Đã tìm thấy, gọi hàm apply hiện có của bạn
+      await applyVoucher(bestVoucher);
+    } else {
+      Swal.fire('Rất tiếc', 'Không tìm thấy ưu đãi phù hợp.', 'info');
+    }
+
+  } catch (error) {
+    Swal.fire('Lỗi', 'Lỗi khi quét mã ưu đãi', 'error');
   }
 };
 
@@ -243,6 +311,15 @@ const fetchTableStatus = async () => {
 const searchQuery = ref("");
 const filterDate = ref(null);
 const danhSachCho = ref([]);
+const sortOption = ref("time_asc");
+
+// THÊM MẢNG NÀY:
+const sortOptionsList = [
+  { value: "time_asc", label: "Giờ sắp đến (Sớm nhất)" },
+  { value: "time_desc", label: "Giờ trễ nhất" },
+  { value: "floor_asc", label: "Tầng thấp -> cao" },
+  { value: "floor_desc", label: "Tầng cao -> thấp" },
+];
 
 const getCurrentStaffId = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -422,11 +499,10 @@ const handleSplitTableLogic = async (khach, banGoc) => {
 };
 
 const danhSachLoc = computed(() => {
-  return danhSachCho.value.filter((khach) => {
+  // 1. LỌC DỮ LIỆU (Filter)
+  let filteredList = danhSachCho.value.filter((khach) => {
     if (!khach.maBan && !khach.idBanAn) return false;
     
-    // 🚨 SỬA Ở ĐÂY: Loại bỏ các trạng thái không còn là "Khách chờ" (2, 3, 4, 5)
-    // Chỉ giữ lại 0 (Chờ xác nhận) và 1 (Đã xác nhận)
     if ([2, 3, 4, 5].includes(Number(khach.trangThai))) return false;
 
     const thoiGianDat = dayjs(khach.thoiGianDat);
@@ -434,8 +510,6 @@ const danhSachLoc = computed(() => {
     const phutConLai = thoiGianDat.diff(hienTai, "minute");
 
     const window = Number(selectedTimeWindow.value);
-    
-    // Khách quá hạn 30 phút sẽ tự động biến mất khỏi danh sách do điều kiện >= -30 này
     const matchTime = phutConLai <= window && phutConLai >= -30; 
     
     const matchSearch = khach.soDienThoai?.includes(searchQuery.value) ||
@@ -448,10 +522,41 @@ const danhSachLoc = computed(() => {
 
     return matchSearch && matchTime && matchDate;
   });
+
+  // 2. SẮP XẾP DỮ LIỆU (Sort)
+  filteredList.sort((a, b) => {
+    const timeA = dayjs(a.thoiGianDat).valueOf();
+    const timeB = dayjs(b.thoiGianDat).valueOf();
+
+    if (sortOption.value === 'time_asc') {
+      return timeA - timeB; // Giờ sắp đến xếp trước
+    } 
+    else if (sortOption.value === 'time_desc') {
+      return timeB - timeA; // Giờ muộn nhất xếp trước
+    } 
+    else if (sortOption.value === 'floor_asc' || sortOption.value === 'floor_desc') {
+      // Tìm thông tin tầng của 2 bàn
+      const banA = danhSachBan.value.find(tbl => tbl.id === a.idBanAn || tbl.maBan === a.maBan);
+      const banB = danhSachBan.value.find(tbl => tbl.id === b.idBanAn || tbl.maBan === b.maBan);
+      
+      const tangA = banA ? Number(banA.soTang || banA.tang) : 999;
+      const tangB = banB ? Number(banB.soTang || banB.tang) : 999;
+
+      if (tangA !== tangB) {
+        return sortOption.value === 'floor_asc' ? tangA - tangB : tangB - tangA;
+      }
+      // Nếu cùng 1 tầng thì mặc định xếp theo giờ đến trước
+      return timeA - timeB; 
+    }
+    return 0;
+  });
+
+  return filteredList;
 });
 
 const currentTime = ref(new Date());
 let timer;
+let expiredTimer = null;
 const currentStaffName = ref("");
 const orderHistory = ref([]); 
 
@@ -478,19 +583,32 @@ const formatHistoryTime = (time) => {
 onMounted(() => {
   fetchAllBan();
   handleFetchAllCheckIn();
+  
+  // 1. Cập nhật đồng hồ giao diện (chạy mỗi 1 giây)
   timer = setInterval(() => {
     currentTime.value = new Date();
   }, 1000);
 
+  // 2. 🚨 QUÉT KIỂM TRA PHIẾU QUÁ HẠN (chạy mỗi 10 giây)
+  expiredTimer = setInterval(() => {
+    checkExpiredTickets(); 
+  }, 10000); // 10000ms = 10s
+
   const user = JSON.parse(localStorage.getItem("user"));
   if (user) currentStaffName.value = user.hoTen || user.username;
 
+  // 3. Quét kiểm tra bàn ngồi quá 3 tiếng (chạy mỗi 3 phút)
   setInterval(() => {
     checkOverdueTables();
   }, 3 * 60 * 1000); 
   
-  // Chạy ngay 1 lần lúc vừa mở trang web
   setTimeout(() => checkOverdueTables(), 5000);
+});
+
+onUnmounted(() => {
+  // Dọn dẹp các bộ đếm khi chuyển sang trang khác
+  if (timer) clearInterval(timer);
+  if (expiredTimer) clearInterval(expiredTimer);
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -1552,6 +1670,47 @@ const isServing = computed(() => {
          selectedPhieu.value.idHoaDon !== null;
 });
 
+const checkExpiredTickets = async () => {
+  const now = dayjs(currentTime.value);
+  let needRefresh = false;
+
+  // Lặp ngược mảng để không lỗi khi splice
+  for (let i = danhSachCho.value.length - 1; i >= 0; i--) {
+    const khach = danhSachCho.value[i];
+    
+    if (![0, 1].includes(Number(khach.trangThai))) continue;
+
+    const thoiGianDat = dayjs(khach.thoiGianDat);
+    const phutConLai = thoiGianDat.diff(now, "minute");
+
+    // 🚨 BE hủy lúc 15 phút. FE check ở mức <= -15 phút.
+    if (phutConLai <= -15) {
+      // 1. Cắt ngay khỏi UI để danh sách giật mất luôn
+      danhSachCho.value.splice(i, 1);
+      needRefresh = true;
+      
+      // 2. Báo Toast cho nhân viên biết hệ thống vừa quét
+      Swal.fire({
+        toast: true,
+        position: 'bottom-end',
+        icon: 'info',
+        title: `Hệ thống vừa tự hủy phiếu của ${khach.tenKhachHang} do quá hạn 15p!`,
+        showConfirmButton: false,
+        timer: 4000
+      });
+    }
+  }
+
+  // 3. NẾU CÓ PHIẾU VỪA BỊ HỦY -> Gọi lại API ngay lập tức
+  if (needRefresh) {
+    // Gọi API để lấy dữ liệu thực tế mới nhất từ DB (Bao gồm danh sách chờ và danh sách bàn)
+    // Điều này giúp bàn đang màu vàng/xám lập tức chuyển về màu đỏ (Bàn trống)
+    await handleFetchAllCheckIn();
+    await fetchAllBan();
+    await fetchTableStatus();
+  }
+};
+
 watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, immediate: true });
 </script>
 
@@ -1653,10 +1812,23 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                           </button>
                         </div>
                       </div>
-                      <div class="filter-group">
-                        <label class="filter-label"><i class="fa-solid fa-calendar-days"></i> Lọc theo ngày đến</label>
+                      <div class="filter-group flex-grow-1">
+                        <label class="filter-label"><i class="fa-solid fa-calendar-days"></i> Ngày đến</label>
                         <div class="filter-input-wrapper">
-                          <input type="date" v-model="filterDate" class="date-input" />
+                          <input type="date" v-model="filterDate" class="date-input w-100" />
+                        </div>
+                      </div>
+
+                      <div class="filter-group flex-grow-1">
+                        <label class="filter-label"><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp xếp</label>
+                        <div class="filter-input-wrapper">
+                          <Multiselect
+                            v-model="sortOption"
+                            :options="sortOptionsList"
+                            :searchable="false"
+                            :canClear="false"
+                            class="custom-filter-multiselect red-sort-multiselect w-100"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1797,9 +1969,17 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <span class="fw-bold text-danger" style="font-size: 16px;">{{ (billSummary?.canThu || 0).toLocaleString() }} đ</span>
                     </div>
 
-                    <div v-if="(billSummary?.giam || 0) === 0" class="mt-3">
-                        <button class="btn btn-outline-danger w-100 fw-bold" style="border-radius: 8px; font-size: 13px; background-color: #5c0a16 !important; color: white;" @click="openDiscountModal">
-                            <i class="fa-solid fa-tags me-1"></i> Áp dụng ưu đãi
+                    <div v-if="(billSummary?.giam || 0) === 0" class="mt-3 d-flex flex-column gap-2">
+                        <button class="btn w-100 fw-bold d-flex align-items-center justify-content-center" 
+                                style="border-radius: 8px; font-size: 13px; background-color: #28a745 !important; color: white; border: none; box-shadow: 0 2px 4px rgba(40,167,69,0.3);" 
+                                @click="applyBestPublicVoucher">
+                            <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Tự động đề cử ưu đãi tốt nhất
+                        </button>
+                        
+                        <button class="btn btn-outline-danger w-100 fw-bold d-flex align-items-center justify-content-center" 
+                                style="border-radius: 8px; font-size: 13px; background-color: white !important; color: #7d161a; border: 1px solid #7d161a !important;" 
+                                @click="openDiscountModal('PERSONAL')">
+                            <i class="fa-solid fa-gift me-2"></i> Chọn mã giảm giá cá nhân
                         </button>
                     </div>
                     </div>
@@ -2444,7 +2624,8 @@ hr {
 }
 
 /* Ô nhập liệu */
-.filter-input-wrapper input {
+.filter-input-wrapper input,
+.filter-input-wrapper select {
   width: 100%;
   height: 34px;
   padding: 6px 12px;
@@ -3401,5 +3582,40 @@ button:disabled {
   background-color: #7d161a !important;
   color: white !important;
   border: none;
+}
+
+.red-sort-multiselect {
+  --ms-border-color: #7d161a;
+  --ms-border-color-active: #7d161a;
+  --ms-ring-color: rgba(125, 22, 26, 0.2); /* Vòng sáng màu đỏ khi click */
+  --ms-bg: #fff5f5; 
+
+  /* XÓA MÀU XANH: Đổi màu các tùy chọn (Options) bên trong menu */
+  --ms-option-bg-pointed: #fce8e8;
+  --ms-option-color-pointed: #7d161a;
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #5c0a16;
+}
+
+/* Đổi màu chữ đang hiển thị */
+.red-sort-multiselect :deep(.multiselect-single-labelText) {
+  color: #7d161a !important;
+  font-weight: 600;
+}
+
+/* Đổi màu icon mũi tên */
+.red-sort-multiselect :deep(.multiselect-caret) {
+  background-color: #7d161a !important;
+}
+
+/* 🚨 QUAN TRỌNG: Ép buộc đổi màu nền của Item đang được chọn phòng trường hợp bị thư viện đè */
+.red-sort-multiselect :deep(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: white !important;
+}
+
+.red-sort-multiselect :deep(.multiselect-option.is-selected.is-pointed) {
+  background-color: #5c0a16 !important;
 }
 </style>
