@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGiaCaNhan, Integer> {
@@ -28,4 +29,11 @@ public interface PhieuGiamGiaCaNhanRepository extends JpaRepository<PhieuGiamGia
     Page<PhieuGiamGiaCaNhan> search(@Param("keyword") String keyword, Pageable pageable);
 
     List<PhieuGiamGiaCaNhan> findByPhieuGiamGiaId(Integer phieuGiamGiaId);
+
+    @Query("SELECT p FROM PhieuGiamGiaCaNhan p WHERE p.khachHang.id = :idKhach AND p.phieuGiamGia.id = :idPhieu")
+    Optional<PhieuGiamGiaCaNhan> findByKhachAndPhieu(Integer idKhach, Integer idPhieu);
+
+    // Lấy ra danh sách các phiếu đang bị khóa bởi 1 hóa đơn
+    @Query("SELECT p FROM PhieuGiamGiaCaNhan p WHERE p.idHoaDonThanhToan.id = :idHoaDon")
+    List<PhieuGiamGiaCaNhan> findAllByHoaDon(Integer idHoaDon);
 }

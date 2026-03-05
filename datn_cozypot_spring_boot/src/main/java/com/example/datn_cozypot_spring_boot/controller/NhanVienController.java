@@ -1,6 +1,7 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.NhanVienRequest;
+import com.example.datn_cozypot_spring_boot.dto.profile.NhanVienProfileRequest;
 import com.example.datn_cozypot_spring_boot.service.NhanVienService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,13 +19,12 @@ import java.util.Map;
 import org.springframework.core.io.Resource;
 @RestController
 @RequestMapping("/api/nhan-vien")
-@CrossOrigin(origins = "http://localhost:5173") // Đảm bảo đúng port của Vue
+@CrossOrigin(origins = "http://localhost:5173")
 public class NhanVienController {
 
     @Autowired
     private NhanVienService service;
 
-    // 1. Lấy danh sách (Phân trang + Tìm kiếm)
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(required = false) String keyword,
@@ -35,14 +36,11 @@ public class NhanVienController {
         return ResponseEntity.ok(service.getAll(keyword, trangThai, gioiTinh, tuNgay, page, size));
     }
 
-    // 2. Xem chi tiết nhân viên
     @GetMapping("/{id}")
     public ResponseEntity<?> getDetail(@PathVariable Integer id) {
         return ResponseEntity.ok(service.getDetail(id));
     }
 
-    // 3. Thêm mới nhân viên
-    // SỬA: Dùng @ModelAttribute để nhận FormData, consumes multipart/form-data
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> add(
             @Valid @ModelAttribute NhanVienRequest request,
@@ -51,9 +49,6 @@ public class NhanVienController {
         return ResponseEntity.ok(service.create(request, file));
     }
 
-
-    // 4. Cập nhật nhân viên
-    // SỬA: Dùng @ModelAttribute và nhận file kèm theo
     @PutMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
             @PathVariable Integer id,
@@ -63,8 +58,6 @@ public class NhanVienController {
         return ResponseEntity.ok(service.update(id, request, file));
     }
 
-
-    // 5. Đổi trạng thái nhanh (Ngừng hoạt động / Đang làm việc)
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
         try {
@@ -74,7 +67,6 @@ public class NhanVienController {
         }
     }
 
-    // 6. Kiểm tra trùng dữ liệu (CCCD, Email, SĐT, Username)
     @GetMapping("/check-duplicate")
     public ResponseEntity<?> checkDuplicate(
             @RequestParam String type,
@@ -84,7 +76,6 @@ public class NhanVienController {
         return ResponseEntity.ok(Map.of("exists", isExists));
     }
 
-    // 7. Xuất file Excel - CẬP NHẬT ĐỂ TÍCH CÁI NÀO TẢI CÁI ĐÓ
     @GetMapping("/export")
     public ResponseEntity<Resource> exportExcel(
             @RequestParam(required = false) String keyword,
@@ -94,7 +85,6 @@ public class NhanVienController {
             @RequestParam(required = false) List<Integer> listId // Nhận mảng ID từ Frontend
     ) {
         try {
-            // Truyền thêm listId vào service
             return service.exportExcel(keyword, trangThai, gioiTinh, tuNgay, listId);
         } catch (Exception e) {
             e.printStackTrace();
@@ -113,7 +103,6 @@ public class NhanVienController {
         }
     }
 
-    // 11. Nhập file Excel và báo lỗi nếu trùng dữ liệu
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> importExcel(@RequestParam("file") MultipartFile file) {
         try {
@@ -128,7 +117,6 @@ public class NhanVienController {
         }
     }
 
-    // 8. Xuất file PDF và hiển thị trên Tab mới
     @GetMapping("/print-pdf")
     public ResponseEntity<byte[]> printPdf(@RequestParam List<Integer> ids) {
         try {
@@ -138,11 +126,7 @@ public class NhanVienController {
             HttpHeaders headers = new HttpHeaders();
             // Thiết lập kiểu file là PDF
             headers.setContentType(MediaType.APPLICATION_PDF);
-
-            // "inline" giúp trình duyệt tự động mở Tab xem trước thay vì tải về máy
             headers.add("Content-Disposition", "inline; filename=Danh_Sach_Nhan_Vien.pdf");
-
-            // Trả về dữ liệu PDF dưới dạng mảng byte
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(pdfContent);
@@ -152,33 +136,44 @@ public class NhanVienController {
         }
     }
 
-    // 9. API Quét mã QR từ file (Hỗ trợ nhập liệu nhanh CCCD)
     @PostMapping("/scan-qr")
     public ResponseEntity<?> scanQRCode(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body("Vui lòng chọn ảnh mã QR!");
         }
-
         try {
-            // Gọi service xử lý giải mã (Chúng ta sẽ viết hàm này ở NhanVienService tiếp theo)
             String qrContent = service.decodeQRCode(file);
-
             if (qrContent == null) {
-                // Trả về lỗi 404 để Vue hiển thị thông báo "Không tìm thấy mã"
                 return ResponseEntity.status(404).body("Hệ thống không nhận diện được mã QR trong ảnh này.");
             }
-
-            // Trả về chuỗi dữ liệu CCCD nếu thành công
             return ResponseEntity.ok(qrContent);
-
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi khi xử lý quét ảnh: " + e.getMessage());
         }
     }
+    @GetMapping("/my-profile")
+    public ResponseEntity<?> getMyProfile(Authentication authentication) {
+        try {
+            String currentEmail = authentication.getName();
+            return ResponseEntity.ok(service.getProfileByEmail(currentEmail));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Không thể lấy thông tin profile: " + e.getMessage());
+        }
+    }
 
-
-
-
+    @PutMapping(value = "/update-my-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateMyProfile(
+            Authentication authentication,
+            @Valid @ModelAttribute NhanVienProfileRequest request,
+            @RequestParam(value = "hinhAnhFile", required = false) MultipartFile file
+    ) {
+        try {
+            String currentEmail = authentication.getName();
+            return ResponseEntity.ok(service.updateMyProfile(currentEmail, request, file));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
 
 }

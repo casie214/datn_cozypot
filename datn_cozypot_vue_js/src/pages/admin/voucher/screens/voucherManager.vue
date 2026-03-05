@@ -32,24 +32,21 @@
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Đối tượng</label>
-                        <Multiselect v-model="filters.doiTuong" :options="doiTuongOptions" mode="single"
-                            :searchable="true" placeholder="Tất cả đối tượng" class="custom-multiselect-theme"
-                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
+                        <Multiselect v-model="filters.doiTuong" :options="doiTuongOptions" mode="single" label="label"
+                            valueProp="value" trackBy="value"  placeholder="Chọn tất cả đối tượng"/>
 
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Loại giảm giá</label>
                         <Multiselect v-model="filters.loaiGiamGia" :options="loaiGiamGiaOptions" mode="single"
-                            :searchable="true" placeholder="Tất cả loại" class="custom-multiselect-theme"
-                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
+                            label="label" valueProp="value" trackBy="value"  placeholder="Chọn tất cả loại" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Trạng thái</label>
-                        <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" mode="single"
-                            :searchable="true" placeholder="Tất cả trạng thái" class="custom-multiselect-theme"
-                            @change="() => { pagination.currentPage = 1; handleSearch(); }" />
+                        <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" mode="single" label="label"
+                            valueProp="value" trackBy="value"  placeholder="Chọn tất cả trạng thái" />
                     </div>
                     <div class="col-md-3 d-flex align-items-end gap-2">
                         <button class="btn-reset-filter w-100" @click="resetFilters">
@@ -342,7 +339,7 @@
                                             inputmode="numeric" class="form-control custom-input"
                                             :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly" />
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                            }}</span>
+                                        }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -633,7 +630,6 @@ import { ref, onMounted, reactive, computed, watch, nextTick } from 'vue';
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
-import '../voucherStyle.css';
 import voucherService from '@/services/voucherService';
 import Swal from 'sweetalert2'
 const formatCurrency = (value) => {
@@ -641,6 +637,7 @@ const formatCurrency = (value) => {
     return value.toLocaleString('vi-VN') + ' đ'
 }
 const doiTuongOptions = [
+
     { value: 0, label: 'Công khai' },
     { value: 1, label: 'Cá nhân' }
 ]
@@ -653,10 +650,10 @@ const parseNumber = (value) => {
     return Number(value.replace(/,/g, '')) || 0
 }
 const loaiGiamGiaOptions = [
-    { value: 1, label: 'Giảm theo %' },
-    { value: 2, label: 'Giảm theo tiền' }
-]
 
+    { value: 1, label: 'Giảm theo %' },
+    { value: 0, label: 'Giảm theo tiền' }
+]
 const trangThaiOptions = [
     { value: 1, label: 'Đang hoạt động' },
     { value: 3, label: 'Sắp diễn ra' },
@@ -778,7 +775,7 @@ const showAlert = (title, text, icon = 'success') => {
         background: '#fff',
         color: '#333',
         confirmButtonText: '✔ Đồng ý',
-        confirmButtonColor: '#8b0000', 
+        confirmButtonColor: '#8b0000',
     })
 }
 
@@ -843,10 +840,16 @@ const triggerSubmit = async () => {
         handleSearch()
 
     } catch (err) {
+
         const message =
             err.response?.data?.message ||
             err.message ||
             "Có lỗi xảy ra"
+
+        // 🔴 Nếu lỗi trùng code
+        if (message.toLowerCase().includes("code")) {
+            errors.codeGiamGia = "Code đã tồn tại"
+        }
 
         showAlert("Lỗi", message, "error")
     }
@@ -1134,69 +1137,75 @@ const toggleAllCustomers = (e) => {
 
 const handleSearch = async () => {
     try {
-        let paramsTrangThai = filters.trangThai;
-        if (filters.trangThai === 2 || filters.trangThai === 3) {
-            paramsTrangThai = 1;
-        }
+
+        const trangThaiFilter = filters.trangThai !== null
+            ? Number(filters.trangThai)
+            : null;
+
+        const doiTuong = filters.doiTuong !== null
+            ? Number(filters.doiTuong)
+            : null;
+
+        const loaiGiamGia = filters.loaiGiamGia !== null
+            ? Number(filters.loaiGiamGia)
+            : null;
+
+        // ⚠ Chỉ gửi 0 hoặc 1 cho backend
+        const backendTrangThai =
+            trangThaiFilter === 0 || trangThaiFilter === 1
+                ? trangThaiFilter
+                : null;
 
         const res = await voucherService.fetchData(
-            { ...filters, trangThai: paramsTrangThai },
+            {
+                ...filters,
+                trangThai: backendTrangThai,
+                doiTuong,
+                loaiGiamGia
+            },
             pagination
         );
 
-        const now = new Date().getTime();
-
-        // ✅ KHAI BÁO rawData TRƯỚC
         let rawData = res.content || [];
 
-        // ⭐ LỌC THEO ĐỢT KHUYẾN MÃI (FE)
-        // ⭐ LỌC THEO GIÁ TRỊ GIẢM
-        if (filters.loaiGiamGia === 1) {
-            rawData = rawData.filter(pg => {
-                return (!filters.phanTramMin || pg.giaTriGiam >= filters.phanTramMin)
-                    && (!filters.phanTramMax || pg.giaTriGiam <= filters.phanTramMax);
-            });
+        const now = Date.now();
+
+        // =============================
+        // 🔥 LỌC FRONTEND CHO 2 & 3
+        // =============================
+        if (trangThaiFilter === 2) {
+            // HẾT HẠN
+            rawData = rawData.filter(pg =>
+                new Date(pg.ngayKetThuc).getTime() < now
+            );
         }
 
-        if (filters.loaiGiamGia === 0) {
-            rawData = rawData.filter(pg => {
-                return (!filters.tienMin || pg.giaTriGiam >= filters.tienMin)
-                    && (!filters.tienMax || pg.giaTriGiam <= filters.tienMax);
-            });
+        if (trangThaiFilter === 3) {
+            // SẮP DIỄN RA
+            rawData = rawData.filter(pg =>
+                new Date(pg.ngayBatDau).getTime() > now
+            );
         }
 
-
-        // ⭐ LỌC THEO TRẠNG THÁI
-        if (filters.trangThai === 1) {
-            listPhieuGiamGia.value = rawData.filter(pg => {
-                const start = new Date(pg.ngayBatDau).getTime();
-                const end = new Date(pg.ngayKetThuc).getTime();
-                return pg.trangThai === 1 && now >= start && now <= end;
-            });
-        }
-        else if (filters.trangThai === 2) {
-            listPhieuGiamGia.value = rawData.filter(pg => {
-                const end = new Date(pg.ngayKetThuc).getTime();
-                return pg.trangThai === 1 && now > end;
-            });
-        }
-        else if (filters.trangThai === 3) {
-            listPhieuGiamGia.value = rawData.filter(pg => {
-                const start = new Date(pg.ngayBatDau).getTime();
-                return pg.trangThai === 1 && now < start;
-            });
-        }
-        else {
-            listPhieuGiamGia.value = rawData;
+        if (trangThaiFilter === 1) {
+            // ĐANG HOẠT ĐỘNG
+            rawData = rawData.filter(pg =>
+                pg.trangThai === 1 &&
+                new Date(pg.ngayBatDau).getTime() <= now &&
+                new Date(pg.ngayKetThuc).getTime() >= now
+            );
         }
 
+        listPhieuGiamGia.value = rawData;
         pagination.totalPages = res.totalPages || 0;
         pagination.totalElements = res.totalElements || 0;
+
     } catch (e) {
         console.error("Lỗi tải danh sách:", e);
         showAlert("Lỗi", "Không thể tải danh sách phiếu giảm giá", "error");
     }
 };
+
 const dotKhuyenMaiMap = computed(() => {
     const map = {};
     listDotKhuyenMai.value.forEach(d => {
@@ -1508,6 +1517,13 @@ const fetchData = (filters, pagination) => {
 };
 
 watch(
+    () => [filters.trangThai, filters.doiTuong],
+    () => {
+        pagination.currentPage = 1
+        handleSearch()
+    }
+)
+watch(
     () => filters.loaiGiamGia,
     () => {
         filters.phanTramMin = null;
@@ -1522,7 +1538,7 @@ watch(
 watch(
     () => formData.loaiGiamGia,
     (val) => {
-        if (val === 2) {
+        if (val === 0) {
             formData.giaTriGiamToiDa = formData.giaTriGiam;
         }
     }
@@ -1539,97 +1555,10 @@ watch(
 
 onMounted(async () => {
     await nextTick();
-
-    $('.select2-filter').select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: "Tất cả"
-    });
-
-    // ===== Đối tượng =====
-    $('#doiTuongSelect').on('change', function () {
-        const value = $(this).val();
-        filters.doiTuong = value === "" ? null : Number(value);
-        pagination.currentPage = 1;
-        handleSearch();
-    });
-
-    // ===== Loại giảm giá =====
-    $('#loaiGiamGiaSelect').on('change', function () {
-        const value = $(this).val();
-        filters.loaiGiamGia = value === "" ? null : Number(value);
-        pagination.currentPage = 1;
-        handleSearch();
-    });
-
-    // ===== Trạng thái =====
-    $('#trangThaiSelect').on('change', function () {
-        const value = $(this).val();
-        filters.trangThai = value === "" ? null : Number(value);
-        pagination.currentPage = 1;
-        handleSearch();
-    });
-});
-onMounted(async () => {
-    await nextTick();
-
-    const doiTuongSelect = $('#doiTuongSelect');
-
-    doiTuongSelect.select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: "Tất cả đối tượng"
-    });
-
-    doiTuongSelect.on('change', function () {
-        const value = $(this).val();
-
-        filters.doiTuong = value === "" ? null : Number(value);
-
-        pagination.currentPage = 1;
-        handleSearch(); // 🔥 gọi lại search
-    });
 });
 
-onMounted(async () => {
-    await nextTick();
-
-    const loaiGiamGiaSelect = $('#loaiGiamGiaSelect');
-
-    loaiGiamGiaSelect.select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: "Tất cả loại giảm giá"
-    });
-
-    loaiGiamGiaSelect.on('change', function () {
-        const value = $(this).val();
-
-        filters.loaiGiamGia = value === "" ? null : Number(value);
-
-        pagination.currentPage = 1;
-        handleSearch(); // 🔥 gọi lại search
-    });
-});
-
-onMounted(async () => {
-    await nextTick();
-
-    const trangThaiSelect = $('#trangThaiSelect');
-
-    trangThaiSelect.select2({
-        width: '100%',
-        allowClear: true,
-        placeholder: "Tất cả trạng thái"
-    });
-
-    trangThaiSelect.on('change', function () {
-        const value = $(this).val();
-
-        filters.trangThai = value === "" ? null : Number(value);
-
-        pagination.currentPage = 1;
-        handleSearch(); // 🔥 gọi lại search
-    });
-});
 </script>
+
+<style scoped>
+@import '../voucherStyle.css';
+</style>

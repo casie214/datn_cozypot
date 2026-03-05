@@ -29,7 +29,7 @@ import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping ("/api/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
     private final NhanVienRepository repository;
     private final KhachHangRepository khachHangRepository;
@@ -44,18 +44,30 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<?> loginAdmin(@RequestBody LoginRequest req) {
-        NhanVien nv = nhanVienRepository.findNhanVienByTenDangNhap(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại"));
-        if (nv.getTrangThaiLamViec() != 1) {
-            return ResponseEntity.status(403).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
-        }
-        if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Sai mật khẩu");
+        // 1. Tìm nhân viên theo Email
+        Optional<NhanVien> nvOpt = nhanVienRepository.findByEmail(req.getUsername());
+
+        // 2. Nếu không tìm thấy, trả về 404 thay vì văng lỗi 500
+        if (nvOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản nhân viên không tồn tại trên hệ thống.");
         }
 
-        String role = nv.getIdVaiTro().getTenVaiTro();
-        String accessToken = tokenProvider.generateToken(nv.getTenDangNhap(), role);
-        String refreshToken = jwtUtils.generateRefreshToken(nv.getTenDangNhap());
+        NhanVien nv = nvOpt.get();
+
+        // 3. Kiểm tra trạng thái làm việc
+        if (nv.getTrangThaiLamViec() != 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản nhân viên đã bị ngừng hoạt động.");
+        }
+
+        // 4. Kiểm tra mật khẩu
+        if (!passwordEncoder.matches(req.getPassword(), nv.getMatKhauDangNhap())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Mật khẩu không chính xác. Vui lòng kiểm tra lại.");
+        }
+
+        // 5. Tạo Token
+        String role = nv.getIdVaiTro() != null ? nv.getIdVaiTro().getTenVaiTro() : "STAFF";
+        String accessToken = tokenProvider.generateToken(nv.getEmail(), role);
+        String refreshToken = jwtUtils.generateRefreshToken(nv.getEmail());
 
         return ResponseEntity.ok(new AuthResponse(
                 accessToken,
@@ -64,29 +76,34 @@ public class AuthController {
                 nv.getId(),
                 nv.getTenDangNhap(),
                 nv.getHoTenNhanVien(),
-                nv.getEmail(),         // Bổ sung email
-                nv.getSdtNhanVien()    // SDT đã có
+                nv.getEmail(),
+                nv.getSdtNhanVien()
         ));
     }
 
     @PostMapping("/client/login")
     public ResponseEntity<?> loginClient(@RequestBody LoginRequest req) {
+        // 1. Tìm khách hàng theo Email
+        Optional<KhachHang> khOpt = khachHangRepository.findByEmail(req.getUsername());
 
-        KhachHang kh = khachHangRepository
-                .findByEmailOrTenDangNhap(req.getUsername(), req.getUsername())
-                .orElseThrow(() -> new RuntimeException("Tài khoản hoặc Email không tồn tại"));
+        // 2. Nếu không tìm thấy, trả về 404
+        if (khOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tài khoản khách hàng không tồn tại trên hệ thống.");
+        }
+
+        KhachHang kh = khOpt.get();
+
+        // 3. Kiểm tra trạng thái khách hàng
         if (kh.getTrangThai() != 1) {
-            return ResponseEntity.status(403).body("Tài khoản khách hàng đã bị ngừng hoạt động");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản khách hàng đã bị khóa hoặc ngừng hoạt động.");
         }
 
+        // 4. Kiểm tra mật khẩu
         if (!passwordEncoder.matches(req.getPassword(), kh.getMatKhauDangNhap())) {
-            return ResponseEntity.status(401).body("Vui lòng kiếm tra lại thông tin đăng nhập của bạn");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Mật khẩu không chính xác. Vui lòng kiểm tra lại.");
         }
 
-        String identifier = (kh.getTenDangNhap() != null && !kh.getTenDangNhap().isEmpty())
-                ? kh.getTenDangNhap()
-                : kh.getEmail();
-
+        String identifier = kh.getEmail();
         String accessToken = tokenProvider.generateToken(identifier, "USER");
         String refreshToken = jwtUtils.generateRefreshToken(identifier);
 
@@ -97,17 +114,16 @@ public class AuthController {
                 kh.getId(),
                 kh.getTenDangNhap(),
                 kh.getTenKhachHang(),
-                kh.getEmail(),         // Bổ sung email
-                kh.getSoDienThoai()    // SDT đã có
+                kh.getEmail(),
+                kh.getSoDienThoai()
         ));
     }
-
-
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok(Collections.singletonMap("message", "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra!"));    }
+        return ResponseEntity.ok(Collections.singletonMap("message", "Mã xác thực OTP đã được gửi đến email của bạn. Vui lòng kiểm tra!"));
+    }
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
@@ -142,7 +158,7 @@ public class AuthController {
 
         try {
             if (tokenProvider.validateToken(requestRefreshToken)) {
-                String username = tokenProvider.getUsernameFromToken(requestRefreshToken);
+                String username = tokenProvider.getEmailFromToken(requestRefreshToken);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 String fullRole = userDetails.getAuthorities().stream()
@@ -206,6 +222,6 @@ public class AuthController {
     }
 
     private String generateRandomPassword() {
-        return String.valueOf((int)((Math.random() * 899999) + 100000)); // Tạo số ngẫu nhiên 6 chữ số
+        return String.valueOf((int) ((Math.random() * 899999) + 100000)); // Tạo số ngẫu nhiên 6 chữ số
     }
 }

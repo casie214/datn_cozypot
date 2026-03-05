@@ -142,11 +142,7 @@ body {
     border-radius: 15px;
   }
 
-  .menu-item.active {
-    background-color: #8B0000;
-    color: white;
-    border-radius: 15px;
-  }
+
 
   .icon {
     margin-right: 15px;

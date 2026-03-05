@@ -75,7 +75,7 @@
 }
 
 .btn-active {
-  background-color: #7d161a;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white;
 }
 
@@ -305,4 +305,51 @@
 
 .action-list:hover {
   color: #7d161a;
+}
+
+table{
+    border-collapse: separate; /* Thay vì collapse */
+    border-spacing: 0;
+    border-radius: 15px 15px 0 0; /* Độ bo góc bạn muốn */
+    overflow: hidden;
+}
+
+thead {
+    border-radius: 10px;
+    background-color: #8B0000 !important;
+}
+
+.page-title {
+    color: #7D161A !important;
+    font-weight: 700;
+    font-size: 24px;
+    margin-bottom: 25px;
+}
+
+thead tr{
+    border-radius: 15px;
+    background-color: #8B0000 !important;
+}
+
+thead tr th{
+  background-color: transparent !important;
+  color: white !important;
+  padding-left: 15px !important;
+}
+
+tr th{
+  padding-left: 15px !important;
+}
+
+tr td{
+  padding-left: 15px !important;
+}
+
+thead tr:hover {
+    background-color: #8B0000 !important;
+}
+
+.fc-col-header-cell-cushion{
+  text-decoration: none;
+  color: white;
 }

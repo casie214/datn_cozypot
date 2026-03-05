@@ -79,22 +79,15 @@ const validate = () => {
     errors.value = {};
     let isValid = true;
 
-    const accountVal = email.value ? email.value.trim() : "";
+    const emailVal = email.value ? email.value.trim() : "";
     const passwordVal = password.value ? password.value.trim() : "";
 
-    if (!accountVal) {
-        errors.value.email = isClientLogin.value 
-            ? "Vui lòng nhập Email hoặc Tên đăng nhập" 
-            : "Tên đăng nhập không được để trống";
+    if (!emailVal) {
+        errors.value.email = "Vui lòng nhập Email";
         isValid = false;
-    } 
-    else if (!isClientLogin.value && accountVal.length < 4) {
-        errors.value.email = "Tên đăng nhập phải có ít nhất 4 ký tự";
-        isValid = false;
-    }
-    else if (isClientLogin.value && accountVal.includes('@')) {
+    } else {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(accountVal)) {
+        if (!emailRegex.test(emailVal)) {
             errors.value.email = "Định dạng Email không hợp lệ";
             isValid = false;
         }
@@ -225,7 +218,7 @@ const loginWithGoogle = () => {
             <form @submit.prevent="handleLogin" class="mt-4">
                 <div class="mb-3">
                     <input v-model="email" type="text" class="custom-input"
-                        :placeholder="isClientLogin ? 'Email' : 'Tên đăng nhập'"
+                        :placeholder="isClientLogin ? 'Email' : 'Email'"
                         :class="{ 'is-invalid': errors.email }">
                     <div class="invalid-feedback text-start">{{ errors.email }}</div>
                 </div>
