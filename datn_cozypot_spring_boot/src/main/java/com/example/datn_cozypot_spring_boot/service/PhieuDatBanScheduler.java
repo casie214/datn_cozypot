@@ -21,7 +21,7 @@ public class PhieuDatBanScheduler {
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
 
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 5000)
     @Transactional
     public void autoCancelExpiredReservations() {
         // Mốc thời gian: Hiện tại trừ đi 15 phút
@@ -86,7 +86,7 @@ public class PhieuDatBanScheduler {
         lichSuHoaDonRepository.save(log);
     }
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 5000)
     @Transactional
     public void autoCancelUnpaidDeposits() {
         // Mốc thời gian: Hiện tại trừ đi 15 phút (Tính từ lúc tạo đơn)
