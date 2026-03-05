@@ -6,7 +6,7 @@
     font-size: 24px;">Quản lý khách hàng</h2>
     </div>
 
-    <div class="filter-card mb-4">
+    <div class="filter-card-client mb-4">
       <div class="filter-header-simple">
         <i class="fas fa-filter me-2"></i>Bộ lọc tìm kiếm
       </div>
@@ -65,7 +65,7 @@
       <div
         style="padding: 16px 24px; border-bottom: 1px solid #f1f1f1; background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
         <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
-          Danh sách khách hàng
+          <!-- Danh sách khách hàng -->
         </h4>
 
         <div style="display: flex; gap: 8px;">
@@ -152,10 +152,12 @@
 
               <td class="text-center" style="vertical-align: middle;">
                 <div class="d-flex justify-content-center align-items-center gap-3">
-                  <button class="btn btn-link p-0 action-edit-v2" :class="{ 'is-locked': kh.trangThai !== 1 }"
-                    @click="handleEdit(kh)" :title="kh.trangThai !== 1 ? 'Tài khoản bị khóa' : 'Chỉnh sửa'"
-                    style="text-decoration: none;">
-                    <i class="fas fa-pen" :style="{ color: kh.trangThai !== 1 ? '#ccc' : '#444' }"></i>
+                  <button class="btn btn-link p-0 action-edit-v2 shadow-none"
+                    :class="{ 'is-locked': kh.trangThai !== 1 }" @click="handleEdit(kh)"
+                    :title="kh.trangThai !== 1 ? 'Tài khoản bị khóa' : 'Chỉnh sửa'"
+                    style="text-decoration: none; outline: none; border: none; background: none;">
+                    <i class="fas fa-pen"
+                      :style="{ color: kh.trangThai !== 1 ? '#ccc' : '#444', transition: '0.3s' }"></i>
                   </button>
 
                   <div class="form-check form-switch" style="margin-bottom: 0; min-height: auto;">
@@ -163,8 +165,6 @@
                       style="cursor: pointer; width: 2.5em; height: 1.25em;" :checked="kh.trangThai === 1"
                       @click.prevent="handleActionWithAuth(() => handleToggleStatus(kh), 'ADMIN')">
                   </div>
-
-
                 </div>
               </td>
             </tr>
@@ -538,7 +538,7 @@ onMounted(handleSearch);
   border: none !important;
 }
 
-.filter-card {
+.filter-card-client {
   background: var(--white);
   border-radius: 15px;
   margin-bottom: 30px;
@@ -715,12 +715,11 @@ onMounted(handleSearch);
 /* Tùy chỉnh màu sắc Radio */
 .form-check-input:checked {
   background-color: #8b1c1c !important;
-  /* Màu đỏ đô chủ đạo */
   border-color: #8b1c1c !important;
 }
 
 .form-check-input:focus {
-  box-shadow: 0 0 0 0.25rem rgba(139, 28, 28, 0.25) !important;
+  /* box-shadow: 0 0 0 0.25rem rgba(139, 28, 28, 0.25) !important; */
   border-color: #8b1c1c !important;
 }
 

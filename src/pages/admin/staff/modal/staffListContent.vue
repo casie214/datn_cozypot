@@ -58,7 +58,7 @@
         style="padding: 16px 24px; border-bottom: 1px solid #f1f1f1; background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
 
         <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
-          Danh sách nhân viên
+          <!-- Danh sách nhân viên -->
         </h4>
 
         <div style="display: flex; gap: 8px;">
@@ -164,7 +164,7 @@
                 <div class="d-flex justify-content-center align-items-center gap-3">
                   <button class="btn btn-link p-0 action-edit-v2" :class="{ 'is-locked': nv.trangThaiLamViec !== 1 }"
                     @click="handleEdit(nv)" :title="nv.trangThaiLamViec !== 1 ? 'Tài khoản bị khóa' : 'Chỉnh sửa'"
-                    style="text-decoration: none; transition: 0.3s;">
+                    style="text-decoration: none; transition: 0.3s; box-shadow: none; outline: none; border: none; background: none;">
                     <i class="fas fa-pen" :style="{ color: nv.trangThaiLamViec !== 1 ? '#ccc' : '#444' }"></i>
                   </button>
 
