@@ -222,7 +222,13 @@ const handleRegister = async () => {
         startCountdown();
 
         Swal.close();
-        Swal.fire('Thành công', 'Vui lòng kiểm tra email để lấy mã OTP', 'success');
+        await Swal.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: 'Vui lòng kiểm tra email để lấy mã OTP',
+            showConfirmButton: false,
+            timer: 2000
+        });
     } catch (error) {
         const errorMsg = error.response?.data?.message || "Lỗi hệ thống";
         Swal.fire('Lỗi', errorMsg, 'error');
@@ -241,8 +247,15 @@ const handleVerifyOtp = async (otpCode) => {
         isOtpModalOpen.value = false;
         stopCountdown();
 
-        Swal.fire('Thành công', 'Đăng ký tài khoản thành công!', 'success')
-            .then(() => router.push('/login'));
+        await Swal.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: 'Đăng ký tài khoản thành công!',
+            showConfirmButton: false,
+            timer: 2000
+        });
+
+        router.push('/login');
     } catch (error) {
         Swal.fire('Lỗi', error.response?.data?.message || 'Mã OTP không chính xác', 'error');
     }
