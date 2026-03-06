@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -50,5 +51,29 @@ public class ThamSoHeThongService {
                 .filter(t -> t.getTrangThai() == 1)
                 .map(t -> Integer.parseInt(t.getGiaTri()))
                 .orElse(defaultValue);
+    }
+
+    public ThamSoHeThong updatePartial(Integer id, Map<String, Object> updates) {
+
+        ThamSoHeThong ts = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tham số"));
+
+        if (updates.containsKey("tenThamSo")) {
+            ts.setTenThamSo((String) updates.get("tenThamSo"));
+        }
+
+        if (updates.containsKey("giaTri")) {
+            ts.setGiaTri((String) updates.get("giaTri"));
+        }
+
+        if (updates.containsKey("moTa")) {
+            ts.setMoTa((String) updates.get("moTa"));
+        }
+
+        if (updates.containsKey("kieuDuLieu")) {
+            ts.setKieuDuLieu((String) updates.get("kieuDuLieu"));
+        }
+
+        return repository.save(ts);
     }
 }
