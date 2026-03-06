@@ -7,7 +7,7 @@
             <h2>Thanh Toán Thất Bại</h2>
 
             <template v-if="isDeposit">
-                <p>Giao dịch đặt cọc thất bại. Đơn đặt bàn của bạn đang ở trạng thái chờ thanh toán.(Vui lòng thanh toán tiền cọc trong 15p, sau 15p nếu chưa thanh toán hệ thống sẽ tự động hủy phiếu đặt bàn)</p>
+                <p>Giao dịch đặt cọc thất bại. Vui lòng thanh toán tiền cọc trong 15p, sau 15p nếu chưa thanh toán hệ thống sẽ tự động hủy phiếu đặt bàn</p>
                 <button class="btn-return" @click="goToHistory">
                     Xem Lịch sử đặt bàn
                 </button>
