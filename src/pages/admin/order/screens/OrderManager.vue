@@ -157,7 +157,7 @@ const visiblePages = computed(() => {
 
       <div
         class="card shadow-sm"
-        style="border: 1px solid #dee2e6 !important; border-radius: 8px"
+        style="border: 1px solid #dee2e6 !important; border-radius: 15px"
       >
         <div class="card-body p-0">
           <div
