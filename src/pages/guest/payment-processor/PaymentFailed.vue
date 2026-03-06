@@ -45,60 +45,78 @@ const goToHistory = () => {
 </script>
 
 <style scoped>
-/* Toàn bộ CSS của bạn được giữ nguyên không thay đổi */
 .payment-result {
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #fef2f2;
+    /* Dùng nền xám nhạt đồng bộ với trang Thành công và toàn dự án */
+    background-color: #fafafa; 
 }
 
 .result-card {
     background: white;
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 16px; /* Bo góc mềm mại */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); /* Đổ bóng nhẹ nhàng, sang trọng */
     text-align: center;
-    max-width: 400px;
+    max-width: 420px;
+    width: 90%;
+    border: 1px solid #e0e0e0;
 }
 
 .icon-circle.fail {
     width: 80px;
     height: 80px;
-    background: #ef4444;
+    background: #dc3545; /* Đỏ tươi báo lỗi (chuẩn UI/UX) */
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 40px;
-    margin: 0 auto 20px;
+    margin: 0 auto 25px;
+    /* Hiệu ứng glow màu đỏ */
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); 
 }
 
 h2 {
-    color: #991b1b;
-    font-weight: bold;
-    margin-bottom: 10px;
+    color: #333; /* Chữ xám đen sang trọng thay vì đỏ bầm */
+    font-weight: 800;
+    margin-bottom: 12px;
+    font-size: 26px;
 }
 
 p {
-    color: #4b5563;
-    margin-bottom: 25px;
+    color: #666;
+    margin-bottom: 35px;
+    font-size: 15px;
+    line-height: 1.6;
 }
 
 .btn-return {
-    background: #7d161a;
+    /* --- MÀU GRADIENT THƯƠNG HIỆU --- */
+    background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%) !important;
+    
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
+    padding: 14px 30px;
+    border-radius: 10px;
     font-weight: bold;
+    font-size: 16px;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(125, 22, 26, 0.2);
+    width: 100%;
 }
 
 .btn-return:hover {
-    background: #5c0a16;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(125, 22, 26, 0.3);
+}
+
+.btn-return:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(125, 22, 26, 0.2);
 }
 </style>

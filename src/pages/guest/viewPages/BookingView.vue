@@ -229,8 +229,8 @@ const checkAvailability = async () => {
     if (availableTables.value.length === 0) {
       Swal.fire({
         icon: "error",
-        title: "Hết bàn rồi!",
-        text: "Rất tiếc, nhà hàng đã hết bàn trống phù hợp vào khung giờ này. Bạn vui lòng chọn giờ hoặc giảm số lượng người nhé!",
+        title: "Không có bàn phù hợp!",
+        text: `Hiện nhà hàng không còn bàn trống nào phù hợp cho ${bookingData.people} người vào khung giờ này. Vui lòng thay đổi giờ hoặc số lượng khách!`,
         confirmButtonColor: "#7d161a",
       });
     } else {
