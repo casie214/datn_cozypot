@@ -65,7 +65,7 @@ public class UserMailService {
                 "                </div>" +
                 "                " +
                 "                <div style=\"margin-bottom: 15px;\">" +
-                "                    <label style=\"color: #888; font-size: 12px; display: block; text-transform: uppercase;\">Tên đăng nhập</label>" +
+                "                    <label style=\"color: #888; font-size: 12px; display: block; text-transform: uppercase;\">Email</label>" +
                 "                    <span style=\"color: #333; font-weight: 500;\">" + req.getEmail() + "</span>" +
                 "                </div>" +
                 "                " +
@@ -120,7 +120,6 @@ public class UserMailService {
                 "</div>";
     }
 
-    // --- BỔ SUNG HÀM DÀNH CHO KHÁCH HÀNG ---
     public void sendClientNotificationMail(KhachHangRequest request, String type) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -143,9 +142,6 @@ public class UserMailService {
     private String buildClientHtmlTemplate(KhachHangRequest req, String type) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String title = type.equals("CREATE") ? "CHÀO MỪNG THÀNH VIÊN MỚI" : "CẬP NHẬT THÔNG TIN";
-
-        // An toàn hơn: Tránh NullPointerException hoặc hiển thị chữ "null"
-        // Sửa đoạn này:
         String userName = (req.getEmail() != null) ? req.getEmail() : "Liên hệ Admin";
         String password = (req.getMatKhauDangNhap() != null) ? req.getMatKhauDangNhap() : "Đã bảo mật";
 
@@ -170,7 +166,7 @@ public class UserMailService {
                 "            <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ tại <b>CozyPot</b>. Dưới đây là thông tin tài khoản của bạn:</p>" +
                 "            <div style=\"border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;\">" +
                 "                <div style=\"margin-bottom: 10px;\">" +
-                "                    <span style=\"color: #888; font-size: 13px;\">Tên đăng nhập:</span>" +
+                "                    <span style=\"color: #888; font-size: 13px;\">Email:</span>" +
                 "                    <span style=\"color: #333; font-weight: bold; margin-left: 10px;\">" + userName + "</span>" +
                 "                </div>" +
                 (type.equals("CREATE") ?
@@ -179,15 +175,7 @@ public class UserMailService {
                                 "                    <span style=\"color: #800000; font-weight: bold; margin-left: 10px; font-size: 16px;\">" + password + "</span>" +
                                 "                    <p style=\"margin: 5px 0 0; font-size: 11px; color: #cc0000;\">* Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu.</p>" +
                                 "                </div>" : "") +
-                "                <div style=\"margin-bottom: 10px;\">" +
-                "                    <span style=\"color: #888; font-size: 13px;\">Số điện thoại:</span>" +
-                "                    <span style=\"color: #333; margin-left: 10px;\">" + req.getSoDienThoai() + "</span>" +
-                "                </div>" +
-                "                <div style=\"margin-bottom: 10px;\">" +
-                "                    <span style=\"color: #888; font-size: 13px;\">Địa chỉ mặc định:</span>" +
-                "                    <span style=\"color: #333; margin-left: 10px;\">" + diaChiChon + "</span>" +
-                "                </div>" +
-                "            </div>" +
+
                 "            <div style=\"margin-top: 30px; text-align: center;\">" +
                 "                <a href=\"http://localhost:5173/home\" style=\"display: inline-block; background-color: #800000; color: #ffffff; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-top: 10px;\">ĐĂNG NHẬP NGAY</a>" +
                 "            </div>" +
