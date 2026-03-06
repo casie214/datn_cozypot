@@ -1,8 +1,11 @@
 package com.example.datn_cozypot_spring_boot.service.AuthenticationService;
+import com.example.datn_cozypot_spring_boot.config.AuthResponse;
 import com.example.datn_cozypot_spring_boot.config.JwtUtils;
+import com.example.datn_cozypot_spring_boot.dto.KhachHangRequest;
 import com.example.datn_cozypot_spring_boot.entity.KhachHang;
 import com.example.datn_cozypot_spring_boot.repository.KhachHangRepository;
 import com.example.datn_cozypot_spring_boot.security.JwtTokenProvider;
+import com.example.datn_cozypot_spring_boot.service.userEmailService.UserMailService;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +26,7 @@ public class GoogleAuthService {
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
-
+    private final UserMailService userMailService;
     @Value("${google.client.id}")
     private String clientId;
 
@@ -33,7 +36,7 @@ public class GoogleAuthService {
     @Value("${google.redirect.uri}")
     private String redirectUri;
 
-    public Map<String, Object> loginWithGoogle(String code) {
+    public AuthResponse  loginWithGoogle(String code) {
         RestTemplate restTemplate = new RestTemplate();
 
         String tokenEndpoint = "https://oauth2.googleapis.com/token";
@@ -60,18 +63,39 @@ public class GoogleAuthService {
         String name = userInfo.optString("name", "Google User");
         String picture = userInfo.optString("picture", "");
 
-        KhachHang khachHang = khachHangRepository.findKhachHangByEmail(email).orElseThrow(() -> new RuntimeException("Tài khoản gmail này chưa tồn tại trong hệ thống CozyPot"));
+        Optional<KhachHang> optionalKhachHang = khachHangRepository.findKhachHangByEmail(email);
+        KhachHang khachHang;
+        if(optionalKhachHang.isPresent()){
+            khachHang = optionalKhachHang.get();
+        }else{
+            khachHang = new KhachHang();
+            khachHang.setEmail(email);
+            khachHang.setTenKhachHang(name);
+            khachHang.setTenDangNhap(email);
+            khachHang.setTrangThai(1);
+            String rawPassword = UUID.randomUUID().toString().substring(0,8);
+            khachHang.setMatKhauDangNhap(passwordEncoder.encode(rawPassword));
+            khachHangRepository.save(khachHang);
 
+            KhachHangRequest request1 = new KhachHangRequest();
+            request1.setEmail(email);
+            request1.setTenKhachHang(name);
+            request1.setMatKhauDangNhap(rawPassword);
+
+            userMailService.sendClientNotificationMail(request1, "CREATE");
+        }
         String appAccessToken = tokenProvider.generateToken(khachHang.getEmail(), "USER");
         String appRefreshToken = jwtUtils.generateRefreshToken(khachHang.getEmail());
         System.out.println("Đang đăng nhập cho khách hàng: " + khachHang.getTenKhachHang() + " - ID: " + khachHang.getId());
-        return Map.of(
-                "accessToken", appAccessToken,
-                "refreshToken", appRefreshToken,
-                "role", "USER",
-                "id", khachHang.getId(),
-                "email", khachHang.getEmail(),
-                "username", khachHang.getTenDangNhap()
+        return new AuthResponse(
+                appAccessToken,
+                appRefreshToken,
+                "USER",
+                khachHang.getId(),
+                khachHang.getTenDangNhap(),
+                khachHang.getTenKhachHang(),
+                khachHang.getEmail(),
+                khachHang.getSoDienThoai()
         );
     }
 }

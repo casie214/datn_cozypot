@@ -182,7 +182,7 @@ public class AuthController {
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
         String code = request.get("code");
         try {
-            Map<String, Object> result = googleAuthService.loginWithGoogle(code);
+            AuthResponse result = googleAuthService.loginWithGoogle(code);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             if (e.getMessage().contains("chưa tồn tại")) {
