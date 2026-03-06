@@ -1619,6 +1619,64 @@ const handleConfirmMerge = async (banBiNuot) => {
   }
 };
 
+const isTableInCurrentGroup = (banId) => {
+  if (!selectedPhieu.value || !selectedPhieu.value.danhSachBan) return false;
+  return selectedPhieu.value.danhSachBan.some(b => b.id === banId);
+};
+
+const openMergeTableView = () => {
+  modalView.value = 'mergeTable';
+  modalActiveFloor.value = Number(selectedBan.value?.soTang) || 1;
+};
+
+// ========================================================
+// 🚨 XỬ LÝ KHI CLICK CHỌN BÀN ĐỂ GỘP
+// ========================================================
+const handleConfirmMerge = async (banBiNuot) => {
+  const confirm = await Swal.fire({
+    title: 'Xác nhận gộp bàn?',
+    html: `Chuyển TOÀN BỘ món ăn, khách và tiền cọc từ <b style="color:red">${banBiNuot.maBan}</b> sang đoàn của bàn <b style="color:green">${selectedBan.value.maBan}</b>?<br><br><i>Lưu ý: Bàn ${banBiNuot.maBan} sẽ dùng chung hóa đơn với bàn này.</i>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#7d161a',
+    cancelButtonText: 'Hủy bỏ',
+    confirmButtonText: 'Đồng ý gộp'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Lấy ID Hóa Đơn của Bàn bị gộp
+    const resTarget = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${banBiNuot.id}`);
+    const idHoaDonBiNuot = resTarget.data?.idHoaDon;
+
+    if (!idHoaDonBiNuot) {
+      return Swal.fire('Lỗi', 'Bàn này không có hóa đơn hợp lệ để gộp!', 'error');
+    }
+
+    // Gọi API Gộp bàn ở Backend
+    const payload = {
+      idHoaDonChu: selectedPhieu.value.idHoaDon, 
+      idHoaDonBiNuot: idHoaDonBiNuot,             
+      idNhanVien: getCurrentStaffId() || 1
+    };
+
+    await axiosClient.post('/hoa-don-thanh-toan/gop-ban', payload);
+
+    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã gộp bàn hoàn tất!', timer: 1500, showConfirmButton: false });
+    
+    closeModal();
+    await handleFetchAllCheckIn();
+    await fetchAllBan();
+    await fetchTableStatus();
+
+  } catch (error) {
+    Swal.fire('Lỗi', error.response?.data?.message || 'Lỗi khi gộp bàn!', 'error');
+  }
+};
+
 const hasItems = computed(() => {
   return listMonDaChon.value.length > 0;
 });
