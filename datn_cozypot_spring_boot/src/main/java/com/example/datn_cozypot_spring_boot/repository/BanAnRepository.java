@@ -31,4 +31,9 @@ public interface BanAnRepository extends JpaRepository<BanAn,Integer> {
 
     @Query("SELECT b FROM BanAn b WHERE b.soNguoiToiDa >= :soNguoi")
     List<BanAn> findBanPhuHopChoDatBan(@Param("soNguoi") Integer soNguoi);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE ban_an SET trang_thai = 0 WHERE id_ban_an IN (SELECT id_ban_an FROM phieu_dat_ban_ban_an WHERE id_phieu_dat_ban = :idPhieu)", nativeQuery = true)
+    void clearAllBansByPhieuId(@Param("idPhieu") Integer idPhieu);
 }

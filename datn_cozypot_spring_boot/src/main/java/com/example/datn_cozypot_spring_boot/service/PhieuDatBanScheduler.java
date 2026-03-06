@@ -20,14 +20,19 @@ public class PhieuDatBanScheduler {
     private final BanAnRepository banAnRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     @Scheduled(fixedRate = 5000)
     @Transactional
     public void autoCancelExpiredReservations() {
-        // Mốc thời gian: Hiện tại trừ đi 15 phút
-        LocalDateTime limitTime = LocalDateTime.now().minusMinutes(15);
+        Integer minReserve = 15;
+        try {
+            minReserve = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("THOI_GIAN_GIU_BAN").get().getGiaTri());
+            System.out.println(minReserve);
+        } catch (Exception e) {}
 
-        // Tìm các phiếu ở trạng thái 1 (Đã xác nhận/Chờ khách đến) và thoiGianDat < limitTime
+        // Khách đến trễ quá số phút MIN_RESERVE sẽ bị hủy
+        LocalDateTime limitTime = LocalDateTime.now().minusMinutes(minReserve);
         List<PhieuDatBan> expiredReservations = phieuDatBanRepository.findAllByTrangThaiAndThoiGianDatBefore(1, limitTime);
 
         for (PhieuDatBan phieu : expiredReservations) {

@@ -52,6 +52,7 @@ public class HoaDonThanhToanController {
     private final DatBanService datBanService;
     private final NhanVienRepository nhanVienRepository;
     private final BanAnRepository banAnRepository;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
