@@ -30,6 +30,14 @@ public class ThamSoHeThongController {
         return service.update(id, request);
     }
 
+    @PatchMapping("/{id}")
+    public ThamSoHeThong updatePartial(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Object> updates) {
+
+        return service.updatePartial(id, updates);
+    }
+
     @PutMapping("/update-status/{maThamSo}")
     public void updateStatus(
             @PathVariable String maThamSo,
