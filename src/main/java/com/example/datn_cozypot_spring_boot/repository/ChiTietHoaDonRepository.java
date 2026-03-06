@@ -3,8 +3,10 @@ package com.example.datn_cozypot_spring_boot.repository;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,6 +49,12 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
             "GROUP BY c.idSetLau " +
             "ORDER BY SUM(c.soLuong) DESC")
     List<TopSetLauResponse> findTopSellingSetLau(Pageable pageable);
+
+    // Thêm vào ChiTietHoaDonRepository.java
+    @Modifying
+    @Transactional
+    @Query("UPDATE ChiTietHoaDon c SET c.idHoaDon.id = :idHoaDonMoi WHERE c.idHoaDon.id = :idHoaDonCu")
+    void chuyenMonSangHoaDonMoi(@Param("idHoaDonMoi") Integer idHoaDonMoi, @Param("idHoaDonCu") Integer idHoaDonCu);
 
     List<ChiTietHoaDon> findByIdHoaDon_Id(Integer id);
 }

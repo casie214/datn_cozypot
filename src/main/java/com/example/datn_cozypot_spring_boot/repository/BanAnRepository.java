@@ -23,16 +23,8 @@ public interface BanAnRepository extends JpaRepository<BanAn,Integer> {
     """)
     void updateTrangThaiBan(
             @Param("idBan") Integer idBan,
-            @Param("trangThai") Integer trangThai // Hoặc Integer tùy kiểu dữ liệu của bạn
+            @Param("trangThai") Integer trangThai
     );
-
-    @Query("""
-SELECT b FROM BanAn b
-LEFT JOIN PhieuDatBan p
-  ON p.idBanAn.id = b.id
- AND p.trangThai = 0
-""")
-    List<BanAn> findAllBanAn();
 
 
     List<BanAn> findByTrangThai(int i);
