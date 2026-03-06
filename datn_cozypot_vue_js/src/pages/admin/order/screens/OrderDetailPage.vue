@@ -883,9 +883,9 @@ const handleConfirmOrder = async (idHoaDon) => {
 
         <h6 class="fw-bold mb-2 text-uppercase">Thông tin chi tiết</h6>
 
-        <table class="table table-bordered border-dark invoice-table mb-4">
+        <table class="cozypot-print-table mb-4">
           <thead>
-            <tr class="bg-light">
+            <tr>
               <th class="text-center" style="width: 50px">STT</th>
               <th class="text-start">Tên dịch vụ / Món ăn</th>
               <th class="text-center" style="width: 70px">SL</th>
@@ -919,7 +919,7 @@ const handleConfirmOrder = async (idHoaDon) => {
         <div class="row">
           <div class="col-12">
             <h6 class="fw-bold mb-2 text-uppercase">Chi phí khác & Tổng kết</h6>
-            <table class="table table-bordered border-dark invoice-table">
+            <table class="cozypot-print-table">
               <tbody>
                 <tr>
                   <td class="fw-medium" style="width: 70%">Tổng tiền hàng:</td>
@@ -1104,26 +1104,43 @@ const handleConfirmOrder = async (idHoaDon) => {
   height: 80px;
   object-fit: contain;
 }
-.invoice-table {
-  width: 100%;
-  margin-bottom: 20px;
+/* --- BẢNG IN HÓA ĐƠN ĐỘC LẬP (ÉP BUỘC OVERRIDE TOÀN BỘ) --- */
+.cozypot-print-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin-bottom: 20px !important;
+  background-color: transparent !important;
 }
-.invoice-table thead th {
-  background-color: #f0f0f0;
+
+.cozypot-print-table thead,
+.cozypot-print-table thead tr,
+.cozypot-print-table tbody,
+.cozypot-print-table tbody tr {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.cozypot-print-table th,
+.cozypot-print-table td {
+  border: 1px solid #000 !important;
+  padding: 8px 10px !important;
+  vertical-align: middle !important;
+  font-size: 14px !important;
+  color: #000 !important; 
+  border-radius: 0 !important;
+}
+
+.cozypot-print-table thead th {
+  background-color: #f0f0f0 !important;
   border-top: 2px solid #000 !important;
   border-bottom: 2px solid #000 !important;
-  border-left: 1px solid #000;
-  border-right: 1px solid #000;
-  text-transform: uppercase;
-  font-size: 13px;
-  font-weight: bold;
-  vertical-align: middle;
-}
-.invoice-table tbody td {
-  border: 1px solid #000;
-  padding: 8px 10px;
-  vertical-align: middle;
-  font-size: 14px;
+  text-transform: uppercase !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
 }
 .table-bordered > :not(caption) > * {
   border-width: 1px;
