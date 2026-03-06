@@ -31,15 +31,15 @@ const handleUpdate = async () => {
 
   loading.value = true;
   try {
-    // Gọi API - Hãy thử bỏ dấu / ở đầu nếu baseURL đã có /
     const response = await axiosClient.post('/tai-khoan/doi-mat-khau', form.value);
     
     await Swal.fire({
-        icon: 'success',
-        title: 'Thành công',
-        text: 'Mật khẩu đã được thay đổi!',
-        confirmButtonColor: '#800000'
-    });
+    icon: 'success',
+    title: 'Thành công',
+    text: 'Mật khẩu đã được thay đổi!',
+    showConfirmButton: false,
+    timer: 2000
+});
     
     authStore.logout();
     router.push('/login');
