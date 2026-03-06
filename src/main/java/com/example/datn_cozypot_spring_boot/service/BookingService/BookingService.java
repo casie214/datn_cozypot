@@ -19,6 +19,7 @@ public class BookingService {
     private final KhachHangRepository khachHangRepo;
     private final BanAnRepository banAnRepository;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     @Transactional
     public String taoDonDatBan(PhieuDatBanRequest request) {
@@ -74,7 +75,12 @@ public class BookingService {
         hoaDon.setGhiChu(request.getGhiChu());
         hoaDon.setThoiGianTao(Instant.now());
         hoaDon.setTrangThaiHoaDon(0); // 0 = Chưa thanh toán
-        hoaDon.setVatApDung(10.0f);   // Gán mặc định VAT để tránh null lỗi phép tính
+        float VAT = 10.0F;
+        try {
+            VAT = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+            System.out.println(VAT);
+        } catch (Exception e) {}
+        hoaDon.setVatApDung(VAT);
 
         HoaDonThanhToan savedHoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
