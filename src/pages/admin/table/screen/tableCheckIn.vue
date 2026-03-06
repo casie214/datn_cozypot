@@ -590,8 +590,11 @@ const danhSachLoc = computed(() => {
     // 🚨 Thay -30 bằng -THOI_GIAN_GIU_BAN
     const matchTime = phutConLai <= window && phutConLai >= -(sysParams.value.THOI_GIAN_GIU_BAN); 
     
-    const matchSearch = khach.soDienThoai?.includes(searchQuery.value) ||
-                        khach.tenKhachHang?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const searchValue = searchQuery.value.trim().toLowerCase();
+    const matchSearch = (khach.soDienThoai && khach.soDienThoai.includes(searchValue)) ||
+                        (khach.tenKhachHang && khach.tenKhachHang.toLowerCase().includes(searchValue)) ||
+                        (khach.maDatBan && khach.maDatBan.toLowerCase().includes(searchValue)) ||
+                        (khach.maPhieu && khach.maPhieu.toLowerCase().includes(searchValue));
     
     let matchDate = true;
     if (filterDate.value) {
@@ -1896,10 +1899,13 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 
                 <div class="floor-header bg-light d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
                    <h6 class="mb-0 fw-bold" style="color: #7d161a;"><i class="fa-solid fa-map-location-dot me-2"></i> Sơ đồ bàn</h6>
-                   <div class="form-check form-switch d-flex align-items-center mb-0">
+                   <div class="form-check form-switch d-flex align-items-center mb-0 custom-switch-red">
                       <input class="form-check-input me-2 mt-0" type="checkbox" role="switch" id="quickWalkInSwitch" v-model="isQuickWalkInMode" style="cursor: pointer; width: 45px; height: 22px;">
-                      <label class="form-check-label fw-bold" :class="isQuickWalkInMode ? 'text-success' : 'text-muted'" for="quickWalkInSwitch" style="cursor: pointer; font-size: 14px; user-select: none;">
-                          <i class="fa-solid fa-bolt me-1"></i> Mở bàn nhanh
+                      
+                      <label class="form-check-label fw-bold" 
+                             :style="{ color: isQuickWalkInMode ? '#7d161a' : '#6c757d', cursor: 'pointer', fontSize: '14px', userSelect: 'none' }" 
+                             for="quickWalkInSwitch">
+                          <i class="fa-solid fa-bolt me-1" :style="{ color: isQuickWalkInMode ? '#7d161a' : '#6C757D' }"></i> Mở bàn nhanh
                       </label>
                    </div>
                 </div>
@@ -1948,7 +1954,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                       <div class="filter-group">
                         <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</label>
                         <div class="filter-input-wrapper">
-                          <input type="text" v-model="searchQuery" placeholder="SĐT khách hàng" />
+                          <input type="text" v-model="searchQuery" placeholder="Tìm theo mã phiếu đặt bàn hoặc số điện thoại khách hàng" />
                         </div>
                       </div>
                       <div class="filter-time-group">
@@ -2855,11 +2861,21 @@ hr {
 
 .checkin-container {
   max-width: 450px;
+  height: calc(100vh - 250px); /* Ép cao bằng đúng sơ đồ bàn bên trái */
+  display: flex;
+  flex-direction: column; /* Để phần danh sách tự động đẩy xuống */
   background: #fff;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
+}
+
+/* 🚨 THAY THẾ CLASS .list-waiting CŨ THÀNH THẾ NÀY */
+.list-waiting {
+  flex-grow: 1; /* Tự động ăn hết không gian thừa còn lại của container */
+  max-height: none; /* Xóa dòng max-height: 15rem cũ đi */
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .title {
@@ -2958,17 +2974,6 @@ hr {
   margin-bottom: 0;
 }
 
-/* Tìm và thay thế class .list-waiting cũ bằng cái này */
-.list-waiting {
-  max-height: 15rem;
-  /* Giới hạn chiều cao cố định (khoảng 3-4 card) */
-  overflow-y: auto;
-  /* Hiện thanh cuộn khi danh sách dài vượt quá max-height */
-  padding-right: 8px;
-  /* Khoảng cách để không đè lên card khi hiện thanh cuộn */
-
-  /* Tùy chỉnh thanh cuộn (Scrollbar) cho Chrome/Edge/Safari */
-}
 
 .list-waiting::-webkit-scrollbar {
   width: 6px;
@@ -3840,5 +3845,56 @@ button:disabled {
   0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.5); }
   70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
   100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+.custom-switch-red .form-check-input:checked {
+  background-color: #7d161a;
+  border-color: #7d161a;
+}
+.custom-switch-red .form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25);
+  border-color: #7d161a;
+}
+
+.custom-switch-red .form-check-input:focus {
+  box-shadow: none !important;
+  border-color: rgba(0,0,0,.25) !important;
+}
+
+/* Khi ĐÃ BẬT: Đổi sang nền đỏ */
+.custom-switch-red .form-check-input:checked {
+  background-color: #7d161a !important;
+  border-color: #7d161a !important;
+}
+
+/* Khi ĐÃ BẬT mà click vào: Tỏa bóng mờ màu đỏ (Thay vì xanh) */
+.custom-switch-red .form-check-input:checked:focus {
+  box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25) !important;
+  border-color: #7d161a !important;
+}
+
+
+/* =======================================================
+   🚨 ĐỔI HIỆU ỨNG NHẤP NHÁY BÀN TRỐNG TỪ XANH SANG ĐỎ
+   ======================================================= */
+.table-card.quick-mode-ready {
+  border: 2px dashed #7d161a !important;
+  background-color: #fff5f5 !important; /* Đỏ cực nhạt để dễ nhìn chữ */
+  box-shadow: 0 0 12px rgba(125, 22, 26, 0.4) !important;
+  opacity: 1 !important; 
+  filter: none !important;
+  animation: pulse-red 1.5s infinite;
+}
+
+.table-card.quick-mode-ready:hover {
+  transform: scale(1.05);
+  background-color: #fce8e8 !important;
+  cursor: pointer;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(125, 22, 26, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(125, 22, 26, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(125, 22, 26, 0); }
 }
 </style>
