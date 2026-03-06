@@ -79,7 +79,7 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                     
                     -- DOANH THU DỰ KIẾN (Đơn chưa hoàn thành nhưng có tiền)
 -- DOANH THU DỰ KIẾN (1 → 6 và món active 1,2)
-ISNULL(SUM(CASE WHEN h.trang_thai_hoa_don BETWEEN 1 AND 6
+ISNULL(SUM(CASE WHEN h.trang_thai_hoa_don BETWEEN 1 AND 7
     AND ct.trang_thai_mon IN (1,2)
     AND (
         (:loai = N'Hôm nay' AND CAST(h.thoi_gian_tao AS DATE) = CAST(GETDATE() AS DATE)) OR
