@@ -29,7 +29,7 @@ public interface BanAnRepository extends JpaRepository<BanAn,Integer> {
 
     List<BanAn> findByTrangThai(int i);
 
-    @Query("SELECT b FROM BanAn b WHERE b.soNguoiToiDa >= :soNguoi")
+    @Query("SELECT b FROM BanAn b WHERE b.soNguoiToiDa >= :soNguoi AND b.soNguoiToiDa <= :soNguoi + 4")
     List<BanAn> findBanPhuHopChoDatBan(@Param("soNguoi") Integer soNguoi);
 
     @Modifying
