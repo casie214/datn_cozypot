@@ -315,44 +315,24 @@
     box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 }
 
-/* Ô select */
-.select2-container--default .select2-selection--single {
-    background-color: #fff !important;
-    border: 1px solid #8B0000 !important;
-}
-
-/* Text hiển thị */
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    color: #8B0000 !important;
-}
-
-/* Mũi tên */
-.select2-container--default .select2-selection--single .select2-selection__arrow b {
-    border-color: #8B0000 transparent transparent transparent !important;
-}
-
-/* Option đang được chọn (bỏ nền xanh) */
-.select2-container--default .select2-results__option--highlighted {
-    background-color: #8B0000 !important;
-    color: white !important;
-    border-color: #8B0000 transparent transparent transparent !important;
-
-}
-
 .custom-multiselect-theme {
-    --ms-border-color: #ced4da;
-    --ms-ring-color: rgba(128, 0, 0, 0.2);
-    --ms-option-bg-selected: #800000;
-    --ms-option-color-selected: #fff;
-    --ms-tag-bg: #800000;
+   /* ===== FIX MULTISELECT HOVER XANH ===== */
+
+    --ms-option-bg-pointed: #fff5f5;      /* hover background */
+    --ms-option-color-pointed: #8b0000;   /* hover text */
+
+    --ms-option-bg-selected: #8b0000;     /* option được chọn */
+    --ms-option-color-selected: #ffffff;
+
+    --ms-tag-bg: #8b0000;
+    --ms-tag-color: #ffffff;
+
+    --ms-ring-color: rgba(139,0,0,0.25);  /* focus */
+
 }
 
-/* Option được chọn */
-.select2-container--default .select2-results__option--selected {
-    background-color: #8B0000 !important;
-    color: white !important;
-    border-color: #8B0000 transparent transparent transparent !important;
-
+:deep(.multiselect) {
+  --ms-option-bg-selected: #8b0000;
 }
 
 .filter-label {
@@ -1284,4 +1264,19 @@
     color: white !important;
     border-bottom: none !important;
     /* Khắc phục lỗi hóp bảng do border */
+}
+/* ===== Override màu Multiselect ===== */
+/* ===== FIX MULTISELECT HOVER XANH ===== */
+
+.multiselect {
+    --ms-option-bg-pointed: #fff5f5;      /* hover background */
+    --ms-option-color-pointed: #8b0000;   /* hover text */
+
+    --ms-option-bg-selected: #8b0000;     /* option được chọn */
+    --ms-option-color-selected: #ffffff;
+
+    --ms-tag-bg: #8b0000;
+    --ms-tag-color: #ffffff;
+
+    --ms-ring-color: rgba(139,0,0,0.25);  /* focus */
 }
