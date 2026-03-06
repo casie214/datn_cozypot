@@ -36,7 +36,7 @@ public class VNPayController {
     private String vnp_HashSecret = "PN902AZ1XJ8BMLR5BPV1P8585EQ31RIU";
     private String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-    // URL cũ của bạn bạn
+    // URL cũ của bạn
     private String vnp_ReturnUrl = "http://localhost:8080/api/vnpay/vnpay-return";
 
     // URL MỚI TẠO CHO LUỒNG ĐẶT CỌC
@@ -189,21 +189,20 @@ public class VNPayController {
                             hoaDon.setTrangThaiHoaDon(6);
                             hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
 
-                            // 2. CẬP NHẬT PHIẾU ĐẶT BÀN -> Hoàn tất (4)
+                            // 2. 🚨 N-N LOGIC: CẬP NHẬT PHIẾU VÀ GIẢI PHÓNG TOÀN BỘ BÀN
                             if (hoaDon.getIdPhieuDatBan() != null) {
                                 PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
-                                phieu.setTrangThai(4);
+                                phieu.setTrangThai(4); // Phiếu hoàn tất
+
+                                // Quét dọn tất cả bàn trong phiếu này
+                                for (BanAn banAn : phieu.getBanAns()) {
+                                    banAn.setTrangThai(0); // Trống
+                                    banAnRepository.save(banAn);
+                                }
                                 phieuDatBanRepository.save(phieu);
                             }
 
-                            // 3. GIẢI PHÓNG BÀN ĂN -> Trống (0)
-                            if (hoaDon.getIdBanAn() != null) {
-                                BanAn banAn = hoaDon.getIdBanAn();
-                                banAn.setTrangThai(0);
-                                banAnRepository.save(banAn);
-                            }
-
-                            // 4. TÍNH TOÁN SỐ TIỀN THỰC TẾ CỦA RIÊNG HÓA ĐƠN NÀY (ĐỂ GHI VÀO ĐỐI SOÁT)
+                            // 3. TÍNH TOÁN SỐ TIỀN THỰC TẾ CỦA RIÊNG HÓA ĐƠN NÀY (ĐỂ GHI VÀO ĐỐI SOÁT)
                             // Bằng Tổng tiền cần thanh toán - Số tiền khách đã trả trước đó (như Cọc, Tiền mặt hỗn hợp)
                             BigDecimal tongThanhToan = hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO;
                             BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
@@ -217,7 +216,7 @@ public class VNPayController {
                             // Cộng dồn tiền vào cột tien_khach_dua (Để biết hóa đơn này đã nhận đủ tiền)
                             hoaDon.setTienKhachDua(tienKhachDuaTrk.add(tienThucThuLanNay));
 
-                            // 📝 5. GHI LOG VÀO TIMELINE LỊCH SỬ HÓA ĐƠN
+                            // 📝 4. GHI LOG VÀO TIMELINE LỊCH SỬ HÓA ĐƠN
                             ghiLichSu(
                                     hoaDon,
                                     null, // ID nhân viên để null vì là hệ thống tự xác nhận
@@ -227,7 +226,7 @@ public class VNPayController {
                                     6
                             );
 
-                            // 💰 6. LƯU VÀO BẢNG LỊCH SỬ THANH TOÁN (ĐỐI SOÁT THEO TỪNG BÀN)
+                            // 💰 5. LƯU VÀO BẢNG LỊCH SỬ THANH TOÁN (ĐỐI SOÁT THEO TỪNG BÀN)
                             try {
                                 LichSuThanhToan lichSu = new LichSuThanhToan();
                                 lichSu.setPhuongThucThanhToan(ptVnPay);
@@ -422,13 +421,12 @@ public class VNPayController {
             response.sendRedirect("http://localhost:5173/payment-failed?type=deposit&error=checksum");
         }
     }
-    // Hàm bổ trợ ghi Log Timeline (Bạn có thể để hàm này ở Service để dùng chung)
+
+    // Hàm bổ trợ ghi Log Timeline
     private void ghiLichSu(HoaDonThanhToan hd, Integer idNV, String hanhDong, String lyDo, Integer cu, Integer moi) {
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
         if (idNV != null) {
-            // Nếu có nhân viên thực hiện (như thu tiền mặt) thì lấy thông tin
-            // Còn VNPay hệ thống tự làm nên idNV truyền vào là null
             nhanVienRepository.findById(idNV).ifPresent(log::setIdNhanVien);
         }
         log.setHanhDong(hanhDong);
