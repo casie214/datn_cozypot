@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.GopBanRequest;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
@@ -50,6 +51,7 @@ public class HoaDonThanhToanController {
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final DatBanService datBanService;
     private final NhanVienRepository nhanVienRepository;
+    private final BanAnRepository banAnRepository;
 
     @GetMapping("/get-all")
     public Page<HoaDonThanhToanResponse> getAll(
@@ -236,32 +238,24 @@ public class HoaDonThanhToanController {
     @GetMapping("/active-by-ban/{idBanAn}")
     public ResponseEntity<PhieuDatBanResponse> findActivePhieuByBanAn(
             @PathVariable Integer idBanAn,
-            @RequestParam(required = false) Integer idPhieu) { // 🚨 1. Bổ sung tham số idPhieu (không bắt buộc)
+            @RequestParam(required = false) Integer idPhieu) {
 
-        // 1. Lấy danh sách phiếu đang hoạt động
-        List<PhieuDatBan> list = phieuDatBanRepository.findActivePhieuByBanAn(idBanAn);
+        // 1. Tìm Bàn ăn mà nhân viên vừa click vào
+        BanAn banAn = banAnRepository.findById(idBanAn).orElse(null);
+        if (banAn == null) return ResponseEntity.notFound().build();
 
-        if (list == null || list.isEmpty()) {
-            return ResponseEntity.noContent().build();
+        // 2. Tìm Phiếu Đặt Bàn chứa bàn này
+        List<PhieuDatBan> danhSachPhieu = phieuDatBanRepository.findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(idBanAn, Arrays.asList(0, 1, 3));
+
+        if (danhSachPhieu == null || danhSachPhieu.isEmpty()) {
+            return ResponseEntity.noContent().build(); // Bàn trống
         }
 
-        // 🚨 2. LOGIC TÌM ĐÚNG PHIẾU
-        PhieuDatBan phieu = null;
+        PhieuDatBan phieu = (idPhieu != null)
+                ? danhSachPhieu.stream().filter(p -> p.getId().equals(idPhieu)).findFirst().orElse(danhSachPhieu.get(0))
+                : danhSachPhieu.get(0);
 
-        // Nếu Frontend có gửi idPhieu lên -> Ép tìm chính xác phiếu đó
-        if (idPhieu != null) {
-            phieu = list.stream()
-                    .filter(p -> p.getId().equals(idPhieu))
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        // Nếu không truyền idPhieu (Bấm từ sơ đồ bàn) hoặc không tìm thấy -> Lấy cái đầu tiên
-        if (phieu == null) {
-            phieu = list.get(0);
-        }
-
-        // 3. Khởi tạo và mapping thông tin cơ bản sang Response DTO
+        // 3. Map các thông tin cơ bản
         PhieuDatBanResponse res = new PhieuDatBanResponse();
         res.setId(phieu.getId());
         res.setMaPhieu(phieu.getMaDatBan());
@@ -269,99 +263,115 @@ public class HoaDonThanhToanController {
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
 
-        // 4. Mapping thông tin Khách hàng
         if (phieu.getIdKhachHang() != null) {
             res.setIdKhachHang(phieu.getIdKhachHang().getId());
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
             res.setSdtKhachHang(phieu.getIdKhachHang().getSoDienThoai());
         } else {
-            res.setIdKhachHang(null);
             res.setTenKhachHang("Khách vãng lai");
-            res.setSdtKhachHang("N/A");
         }
 
-        // 5. Mapping thông tin Bàn ăn và Khu vực hiển thị UI
-        if (phieu.getIdBanAn() != null) {
-            res.setIdBanAn(phieu.getIdBanAn().getId());
-            res.setMaBan(phieu.getIdBanAn().getMaBan());
+        // Set Bàn hiện tại (Bàn được click)
+        res.setIdBanAn(banAn.getId());
+        res.setMaBan(banAn.getMaBan());
+        if (banAn.getIdKhuVuc() != null) {
+            res.setTenKhuVuc(banAn.getIdKhuVuc().getTenKhuVuc());
+            res.setTang(banAn.getIdKhuVuc().getTang());
+        }
 
-            if (phieu.getIdBanAn().getIdKhuVuc() != null) {
-                res.setTenKhuVuc(phieu.getIdBanAn().getIdKhuVuc().getTenKhuVuc());
-                res.setTang(phieu.getIdBanAn().getIdKhuVuc().getTang());
+        // ===============================================================
+        // 🚨 4. FIX LỖI Ở ĐÂY: XỬ LÝ N-N, DANH SÁCH BÀN VÀ BÀN CHÍNH/PHỤ
+        // ===============================================================
+        Set<BanAn> cacBanTrongPhieu = phieu.getBanAns();
+
+        // Tạo List các bàn để gửi lên VueJS
+        List<PhieuDatBanResponse.BanAnInfo> listBanInfo = new ArrayList<>();
+
+        // Quy ước: Bàn đầu tiên được thêm vào Set (hoặc có ID nhỏ nhất) sẽ là Bàn Chính
+        BanAn banChinh = null;
+
+        if (cacBanTrongPhieu != null && !cacBanTrongPhieu.isEmpty()) {
+            // Tìm Bàn chính (Ví dụ lấy bàn có ID nhỏ nhất để luôn cố định 1 bàn làm gốc)
+            banChinh = cacBanTrongPhieu.stream()
+                    .min(Comparator.comparing(BanAn::getId))
+                    .orElse(null);
+
+            // Map toàn bộ bàn vào listBanInfo
+            for (BanAn b : cacBanTrongPhieu) {
+                PhieuDatBanResponse.BanAnInfo info = new PhieuDatBanResponse.BanAnInfo();
+                info.setId(b.getId());
+                info.setMaBan(b.getMaBan());
+                if (b.getIdKhuVuc() != null) {
+                    info.setTenKhuVuc(b.getIdKhuVuc().getTenKhuVuc());
+                    info.setTang(b.getIdKhuVuc().getTang());
+                }
+                listBanInfo.add(info);
             }
         }
 
-        // 6. LOGIC QUAN TRỌNG: Lấy Hóa đơn... (Giữ nguyên y hệt code cũ của bạn từ đoạn này trở đi)
+        res.setDanhSachBan(listBanInfo);
+
+        // Xét xem bàn đang click có phải là bàn chính không
+        if (banChinh != null) {
+            if (!banAn.getId().equals(banChinh.getId())) {
+                // Click vào Bàn Phụ
+                res.setIsBanPhu(true);
+                res.setTenBanChinh(banChinh.getMaBan());
+                res.setIdBanChinh(banChinh.getId());
+            } else {
+                // Click vào Bàn Chính
+                res.setIsBanPhu(false);
+                res.setTenBanChinh(banChinh.getMaBan());
+                res.setIdBanChinh(banChinh.getId());
+            }
+        }
+
+        // ===============================================================
+        // 5. MAP HÓA ĐƠN & MÓN ĂN
+        // ===============================================================
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieu.getId());
 
-        // Nếu chưa tìm thấy qua Phiếu, thử tìm qua Bàn đang hoạt động (Đảm bảo không bị lọt hóa đơn)
-        if (hoaDon == null) {
-            hoaDon = hoaDonThanhToanRepository.findActiveBillByBanAn(idBanAn).orElse(null);
-        }
-
-        if (hoaDon != null) {
-            // 🚨 GÁN ID VÀ THÔNG TIN TÀI CHÍNH CỦA HÓA ĐƠN Ở ĐÂY
+        if (hoaDon != null && hoaDon.getTrangThaiHoaDon() < 6) {
             res.setIdHoaDon(hoaDon.getId());
-            res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO);
-            res.setSoTienDaGiam(hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO);
-            res.setTienCoc(hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO);
-            res.setTongTienThanhToan(hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO);
+            res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam());
+            res.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
+            res.setTienCoc(hoaDon.getTienCoc());
+            res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
             res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
 
-            // Lấy tất cả các món trong chi tiết hóa đơn
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
+            if (chiTietHD != null) {
+                List<PhieuDatBanResponse.ChiTietMonResponse> dsMon = chiTietHD.stream()
+                        .filter(m -> m.getTrangThaiMon() != null && m.getTrangThaiMon() != 0)
+                        .map(item -> {
+                            PhieuDatBanResponse.ChiTietMonResponse dto = new PhieuDatBanResponse.ChiTietMonResponse();
+                            dto.setIdChiTietHd(item.getId());
+                            dto.setSoLuong(item.getSoLuong());
+                            dto.setDonGia(item.getDonGiaTaiThoiDiemBan());
+                            dto.setThanhTien(item.getThanhTien());
+                            dto.setTrangThaiMon(item.getTrangThaiMon());
 
-            if (chiTietHD != null && !chiTietHD.isEmpty()) {
-                List<PhieuDatBanResponse.ChiTietMonResponse> dsMon = chiTietHD.stream().map(item -> {
-                    String tenMon = "Không xác định";
-                    Integer originalId = null;
-                    String type = "";
-                    Integer idMonAn = null;
-                    Integer idSet = null;
+                            // Lấy ghi chú chuẩn
+                            String ghiChuRaw = item.getGhiChuMon() != null ? item.getGhiChuMon() : "";
+                            dto.setGhiChu(ghiChuRaw);
 
-                    // Kiểm tra xem là món lẻ hay set lẩu để lấy thông tin đúng
-                    if (item.getIdChiTietMonAn() != null) {
-                        tenMon = item.getIdChiTietMonAn().getTenMon();
-                        originalId = item.getIdChiTietMonAn().getId();
-                        type = "FOOD";
-                        idMonAn = originalId;
-                    } else if (item.getIdSetLau() != null) {
-                        tenMon = item.getIdSetLau().getTenSetLau();
-                        originalId = item.getIdSetLau().getId();
-                        type = "SET";
-                        idSet = originalId;
-                    }
-
-                    // Khởi tạo đối tượng rỗng và dùng Setter
-                    PhieuDatBanResponse.ChiTietMonResponse chiTietDTO = new PhieuDatBanResponse.ChiTietMonResponse();
-
-                    // Set 8 trường thông tin món
-                    chiTietDTO.setId(originalId);
-                    chiTietDTO.setTenMon(tenMon);
-                    chiTietDTO.setSoLuong(item.getSoLuong());
-                    chiTietDTO.setDonGia(item.getDonGiaTaiThoiDiemBan());
-                    chiTietDTO.setThanhTien(item.getThanhTien());
-                    chiTietDTO.setType(type);
-                    chiTietDTO.setIdChiTietMonAn(idMonAn);
-                    chiTietDTO.setIdSetLau(idSet);
-
-                    // Setup để thao tác Front-end không lỗi
-                    chiTietDTO.setIdChiTietHd(item.getId());
-                    chiTietDTO.setTrangThaiMon(item.getTrangThaiMon());
-
-                    return chiTietDTO;
-                }).collect(Collectors.toList());
-
+                            if (item.getIdChiTietMonAn() != null) {
+                                dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
+                                dto.setId(item.getIdChiTietMonAn().getId());
+                                dto.setType("FOOD");
+                            } else if (item.getIdSetLau() != null) {
+                                dto.setTenMon(item.getIdSetLau().getTenSetLau());
+                                dto.setId(item.getIdSetLau().getId());
+                                dto.setType("SET");
+                            }
+                            return dto;
+                        }).collect(Collectors.toList());
                 res.setChiTiet(dsMon);
             } else {
-                res.setChiTiet(new ArrayList<>()); // Ép mảng rỗng thay vì null để Vue không bị lỗi
+                res.setChiTiet(new ArrayList<>());
             }
         } else {
-            // Hóa đơn null -> Setup giá trị mặc định để Frontend không bị "Undefined"
-            res.setTongTienChuaGiam(BigDecimal.ZERO);
-            res.setSoTienDaGiam(BigDecimal.ZERO);
-            res.setTienCoc(BigDecimal.ZERO);
-            res.setTongTienThanhToan(BigDecimal.ZERO);
+            res.setTienCoc(hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO);
             res.setChiTiet(new ArrayList<>());
         }
 
@@ -404,6 +414,27 @@ public class HoaDonThanhToanController {
             return ResponseEntity.ok(Map.of("message", "Hủy phiếu thành công"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi Backend: " + e.getMessage()));
+        }
+    }
+
+    // Thêm vào Controller tương ứng
+    @PostMapping("/gop-ban")
+    public ResponseEntity<?> gopBanThanhToan(@RequestBody GopBanRequest request) {
+        try {
+            hoaDonThanhToanService.gopBan(request);
+            return ResponseEntity.ok(Map.of("message", "Gộp bàn thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{idHoaDonGoc}/them-ban-phu")
+    public ResponseEntity<?> themBanPhu(@PathVariable Integer idHoaDonGoc, @RequestBody Map<String, Integer> payload) {
+        try {
+            hoaDonThanhToanService.themBanVaoHoaDon(idHoaDonGoc, payload.get("idBanMoi"));
+            return ResponseEntity.ok(Map.of("message", "Đã thêm bàn phụ thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }
