@@ -2,7 +2,6 @@ package com.example.datn_cozypot_spring_boot.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,10 +29,14 @@ public class PhieuDatBan {
     @Column(name = "id_phieu_dat_ban", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    @JoinColumn(name = "id_ban_an")
-    private BanAn idBanAn;
+    // 🚨 ĐÃ SỬA: Định nghĩa bảng trung gian Many-to-Many với BanAn
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "phieu_dat_ban_ban_an", // Tên bảng trung gian trong SQL
+            joinColumns = @JoinColumn(name = "id_phieu_dat_ban"), // Cột trỏ về bảng này
+            inverseJoinColumns = @JoinColumn(name = "id_ban_an")  // Cột trỏ về bảng BanAn
+    )
+    private Set<BanAn> banAns = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -75,5 +78,4 @@ public class PhieuDatBan {
 
     @OneToMany(mappedBy = "idPhieuDatBan")
     private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
-
 }
