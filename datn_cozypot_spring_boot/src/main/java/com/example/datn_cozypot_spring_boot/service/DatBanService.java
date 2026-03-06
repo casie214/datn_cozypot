@@ -559,23 +559,18 @@ public class DatBanService {
     }
 
     public List<BanAn> timDanhSachBanTrong(DatBanRequest request) {
-        // Lấy danh sách bàn có sức chứa phù hợp
         List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
         if (danhSachBanPhuHop.isEmpty()) return new java.util.ArrayList<>();
 
-        // Tính toán khung giờ check TRÙNG HỆT như lúc Submit
         LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
         LocalDateTime start = thoiGianKhachDen.minusHours(2);
         LocalDateTime end = thoiGianKhachDen.plusHours(2);
 
         List<BanAn> danhSachBanTrong = new java.util.ArrayList<>();
 
-        // Duyệt qua từng bàn, dùng đúng hàm check SQL để xem có ai đặt chưa
         for (BanAn ban : danhSachBanPhuHop) {
-            // Dùng chung hàm với bước Submit -> Đảm bảo đồng nhất logic 100%
             boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
 
-            // Nếu KHÔNG bị trùng lịch thì mới ném vào danh sách cho FE hiển thị
             if (!isTrung) {
                 danhSachBanTrong.add(ban);
             }
@@ -601,6 +596,10 @@ public class DatBanService {
 
         if (banDuocChon.getSoNguoiToiDa() < request.getSoNguoi()) {
             throw new RuntimeException("Bàn bạn chọn không đủ sức chứa cho " + request.getSoNguoi() + " người!");
+        }
+
+        if (banDuocChon.getSoNguoiToiDa() > request.getSoNguoi() + 4) {
+            throw new RuntimeException("Bàn bạn chọn có sức chứa quá lớn (" + banDuocChon.getSoNguoiToiDa() + " chỗ). Vui lòng chọn bàn khác phù hợp hơn!");
         }
 
         // 1. Kiểm tra xem bàn này có bị trùng giờ đặt không (trước và sau 2 tiếng)
