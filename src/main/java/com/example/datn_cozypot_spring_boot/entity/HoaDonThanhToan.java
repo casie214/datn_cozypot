@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -37,9 +38,7 @@ public class HoaDonThanhToan {
     @JoinColumn(name = "id_khach_hang")
     private KhachHang idKhachHang;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_ban_an")
-    private BanAn idBanAn;
+    // 🚨 ĐÃ XÓA `idBanAn` vì nó được rút ra khỏi SQL.
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_phieu_dat_ban")
@@ -94,18 +93,22 @@ public class HoaDonThanhToan {
     private BigDecimal tienThua;
 
     @OneToMany(mappedBy = "idHoaDon")
+    @JsonIgnore
     private Set<ChiTietHoaDon> chiTietHoaDons = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idHoaDon")
+    @JsonIgnore
     private Set<DanhGia> danhGias = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idHoaDon")
+    @JsonIgnore
     private Set<LichSuHoaDon> lichSuHoaDons = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "HoaDon")
+    @JsonIgnore
     private Set<LichSuThanhToan> lichSuThanhToans = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idHoaDonThanhToan")
+    @JsonIgnore
     private Set<PhieuGiamGiaCaNhan> phieuGiamGiaCaNhans = new LinkedHashSet<>();
-
 }
