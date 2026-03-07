@@ -13,6 +13,9 @@ import '@vueform/multiselect/themes/default.css';
 import { usePermission } from "@/components/permissionHelper";
 const { handleActionWithAuth } = usePermission();
 const danhSachBan = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const pageSizeOptions = [5, 10, 20];
 
 /* 2. CÁC HÀM TIỆN ÍCH (Sửa lỗi "is not a function") */
 const getStatusText = (trangThai) => {
@@ -214,11 +217,27 @@ const danhSachBanFiltered = computed(() => {
   });
 });
 
+const totalPages = computed(() => {
+  const total = Math.ceil(danhSachBanFiltered.value.length / pageSize.value);
+  return total > 0 ? total : 1;
+});
+
+const danhSachBanPaginated = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return danhSachBanFiltered.value.slice(start, end);
+});
+
 const searchKeyword = ref("");
 const resetFilter = () => {
   filterTang.value = [];
   filterLoaiDatBan.value = [];
   searchKeyword.value = "";
+};
+
+const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
 };
 
 watch(
@@ -230,6 +249,20 @@ watch(
     }
   },
 );
+
+watch([searchKeyword, filterTang, filterLoaiDatBan], () => {
+  currentPage.value = 1;
+}, { deep: true });
+
+watch(pageSize, () => {
+  currentPage.value = 1;
+});
+
+watch(danhSachBanFiltered, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value;
+  }
+});
 watch(showUpdateModal, async (val) => {
   if (val) {
     await handleFetchAllKhuVuc();
@@ -320,8 +353,8 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(ban, index) in danhSachBanFiltered" :key="ban.id">
-            <td>{{ index + 1 }}</td>
+          <tr v-for="(ban, index) in danhSachBanPaginated" :key="ban.id">
+            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
             <td>
               <strong>{{ ban.maBan }}</strong>
             </td>
@@ -357,6 +390,43 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="pagination-wrap mt-3">
+      <div class="page-size-box">
+        <label for="page-size-select">Hiển thị</label>
+        <select id="page-size-select" v-model.number="pageSize" class="page-size-select">
+          <option v-for="size in pageSizeOptions" :key="size" :value="size">
+            {{ size }}
+          </option>
+        </select>
+        <span>dòng/trang</span>
+      </div>
+      <nav>
+        <ul class="pagination mb-0">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+              &laquo;
+            </a>
+          </li>
+
+          <li
+            v-for="page in totalPages"
+            :key="page"
+            class="page-item"
+            :class="{ active: page === currentPage }"
+          >
+            <a class="page-link" href="#" @click.prevent="changePage(page)">
+              {{ page }}
+            </a>
+          </li>
+
+          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+              &raquo;
+            </a>
+          </li>
+        </ul>
+      </nav>
     </div>
   </div>
   <!-- POPUP SỬA BÀN -->
@@ -598,6 +668,38 @@ tr:hover {
   overflow: hidden;
   border: 1px solid var(--border-light) !important;
   box-shadow: var(--shadow-premium) !important;
+}
+
+.pagination-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.page-size-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-size: 14px;
+}
+
+.page-size-select {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.pagination .page-link {
+  color: #7d161a;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #7d161a;
+  border-color: #7d161a;
+  color: #fff;
 }
 
 /* Body */

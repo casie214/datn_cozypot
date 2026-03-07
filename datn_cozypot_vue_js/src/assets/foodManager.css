@@ -303,15 +303,13 @@ th {
     color: white;
     padding: 15px;
     text-align: left;
-    font-size: 12px;
+    font-size: 13px;
     text-transform: uppercase;
 }
 
 td {
     padding: 12px 15px;
     border-bottom: 1px solid #eee;
-    font-size: 14px;
-    color: #333;
 }
 
 .status-active {

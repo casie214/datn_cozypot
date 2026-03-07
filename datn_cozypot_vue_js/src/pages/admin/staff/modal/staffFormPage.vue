@@ -651,6 +651,7 @@ const handleSave = async () => {
     // Hiển thị thông báo thành công xịn xò trước khi chuyển trang
     Swal.fire({
       icon: 'success',
+      iconColor: '#7D161A',
       title: 'Thành công',
       text: message,
       timer: 2000,

@@ -39,6 +39,7 @@ const handleRefreshListBtn = async () => {
       toast: true,
       position: 'top-end',
       icon: 'success',
+      iconColor: '#7D161A',
       title: 'Đã làm mới dữ liệu!',
       showConfirmButton: false,
       timer: 1500

@@ -788,6 +788,7 @@ const showConfirm = async (title, text) => {
         title,
         text,
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonText: 'Xác nhận',
         cancelButtonText: 'Hủy',

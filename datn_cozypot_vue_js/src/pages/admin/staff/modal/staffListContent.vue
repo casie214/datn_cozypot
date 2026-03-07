@@ -90,7 +90,7 @@
           </button> -->
 
           <button
-            @click="handleSearch(true); Swal.fire({ icon: 'success', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
+            @click="handleSearch(true); Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
             title="Làm mới dữ liệu"
             style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
             <i class="fas fa-sync-alt"></i>
@@ -356,6 +356,7 @@ const exportToExcel = async () => {
       title: 'Thông báo',
       text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để xuất file!',
       icon: 'warning',
+      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
     return; // Dừng lại, không thực hiện tải
@@ -366,6 +367,7 @@ const exportToExcel = async () => {
     title: 'Xác nhận xuất file?',
     text: `Hệ thống sẽ tải về danh sách của ${selectedIds.value.length} nhân viên bạn đã chọn.`,
     icon: 'question',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#800000',
     confirmButtonText: 'Tải xuống ngay',
@@ -398,7 +400,7 @@ const exportToExcel = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', iconColor: '#7D161A', timer: 1500, showConfirmButton: false });
     } catch (error) {
       console.error("Lỗi xuất file:", error);
       Swal.fire('Lỗi!', 'Không thể tải file. Có thể Server chưa hỗ trợ lọc theo ID.', 'error');
@@ -412,6 +414,7 @@ const downloadTemplate = async () => {
       title: 'Thông báo',
       text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để lấy dữ liệu mẫu!',
       icon: 'warning',
+      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
     return;
@@ -426,6 +429,7 @@ const downloadTemplate = async () => {
     title: 'Tải file mẫu nhập liệu?',
     text: confirmText,
     icon: 'question',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#800000',
     confirmButtonText: 'Tải mẫu ngay',
@@ -468,7 +472,7 @@ const downloadTemplate = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', iconColor: '#7D161A', timer: 1500, showConfirmButton: false });
     } catch (error) {
       console.error("Lỗi tải file mẫu:", error);
       Swal.fire('Lỗi!', 'Không thể tải file mẫu. Vui lòng kiểm tra lại hệ thống.', 'error');
@@ -533,6 +537,7 @@ const handleImportExcel = async (event) => {
       title: 'Thành công!',
       text: response.data.message || 'Đã nhập danh sách nhân viên thành công.',
       icon: 'success',
+      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
 
@@ -566,7 +571,7 @@ const handleImportExcel = async (event) => {
 const printToPDF = async () => {
   // 1. Kiểm tra điều kiện: Nếu không chọn "Tất cả" và mảng ID trống
   if (!isSelectAllPages.value && selectedIds.value.length === 0) {
-    Swal.fire({ title: 'Thông báo', text: 'Vui lòng chọn nhân viên!', icon: 'warning' });
+    Swal.fire({ title: 'Thông báo', iconColor: '#7D161A', text: 'Vui lòng chọn nhân viên!', icon: 'warning' });
     return;
   }
 
