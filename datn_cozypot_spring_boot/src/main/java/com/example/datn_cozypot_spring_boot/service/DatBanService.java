@@ -176,17 +176,33 @@ public class DatBanService {
 
     @Transactional
     public void updateBanChoPhieu(DatBanUpdateRequest req) {
-        // 🚨 UPDATE FOR N-N
+        // Lấy thông tin Bàn mới
         BanAn banAnMoi = banAnRepository.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
 
-
+        // Lấy thông tin Phiếu
         PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
 
-        // Dọn sạch bàn cũ, gán bàn mới (Luồng cập nhật đổi 1 lấy 1)
-        phieu.getBanAns().clear();
-        phieu.getBanAns().add(banAnMoi);
+        // 🚨 BƯỚC 1: Dọn sạch các liên kết bàn cũ trong bảng trung gian
+        // (JPA sẽ tự động phát lệnh DELETE nhờ orphanRemoval = true)
+        phieu.getDsBanAn().clear();
+
+        // 🚨 BƯỚC 2: Tạo liên kết bảng trung gian mới
+        PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
+        linkMoi.setPhieuDatBan(phieu);
+        linkMoi.setBanAn(banAnMoi);
+
+        // Khởi tạo Khóa chính kép (EmbeddedId)
+        PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+        linkId.setIdPhieuDatBan(phieu.getId());
+        linkId.setIdBanAn(banAnMoi.getId());
+        linkMoi.setId(linkId);
+
+        // 🚨 BƯỚC 3: Thêm vào tập hợp GỐC
+        phieu.getDsBanAn().add(linkMoi);
+
+        // Lưu lại, Hibernate sẽ tự động INSERT dòng mới vào phieu_dat_ban_ban_an
         phieuDatBanRepository.save(phieu);
     }
 
