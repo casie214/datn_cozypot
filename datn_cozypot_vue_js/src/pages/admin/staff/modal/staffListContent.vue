@@ -91,7 +91,7 @@
 
         <div class="icon-tooltip">
           <button class="btn-red-dark d-flex align-items-center justify-content-center"
-            @click="handleSearch(true); Swal.fire({ icon: 'success', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
+            @click="handleSearch(true); Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
             type="button">
             <i class="fas fa-sync-alt"></i>
             <span class="tooltip-text">Làm mới</span>
