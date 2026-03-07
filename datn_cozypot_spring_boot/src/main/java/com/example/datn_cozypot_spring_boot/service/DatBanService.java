@@ -618,14 +618,12 @@ public class DatBanService {
         }
 
         PhieuDatBan phieu = new PhieuDatBan();
-        //phieu.getBanAns().add(banDuocChon);
         phieu.setIdKhachHang(khachHang);
         phieu.setThoiGianDat(request.getThoiGianDat());
         phieu.setHinhThucDat(1);
         phieu.setSoLuongKhach(request.getSoNguoi());
         phieu.setTrangThai(0);
         phieu.setNguoiTao("Khách hàng");
-        phieu.setMaDatBan("PDB" + System.currentTimeMillis());
         phieu.setNgayTao(java.time.LocalDateTime.now());
         phieu = phieuDatBanRepository.save(phieu);
 
@@ -726,11 +724,25 @@ public class DatBanService {
             dsLichSu.add(logChoCoc);
         }
 
-        // Lưu toàn bộ lịch sử trong 1 lần
         lichSuHoaDonRepository.saveAll(dsLichSu);
 
-        // 7. Lấy lại hóa đơn để nhận giá trị Tổng Tiền mới nhất (do Trigger cập nhật)
         HoaDonThanhToan hoaDonMoiNhat = hoaDonThanhToanRepository.findById(hoaDon.getId()).orElse(hoaDon);
+
+        if (trangThaiBanDau == 0 && request.getEmail() != null && !request.getEmail().isBlank()) {
+            String maTraCuu = "PDB" + String.format("%04d", phieu.getId());
+            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                    .tenKhachHang(request.getFullName())
+                    .soDienThoai(request.getPhone())
+                    .email(request.getEmail())
+                    .thoiGianDat(request.getThoiGianDat() != null ?
+                            request.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
+                    .soLuongKhach(request.getSoNguoi())
+                    .maPhieuDatBan(maTraCuu)
+                    .build();
+
+            // Gọi hàm Async, luồng chính vẫn tiếp tục chạy nhanh chóng
+            emailDatBanService.sendEmailCamOnDatBan(emailDto);
+        }
 
         // 8. Trả kết quả về cho Controller
         Map<String, Object> result = new HashMap<>();
