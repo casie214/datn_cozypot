@@ -18,43 +18,25 @@ import java.util.Optional;
 @Repository
 public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan, Integer> {
 
+    // 🚨 ĐÃ SỬA: Thay vì JOIN hd.idBanAn b, giờ ta JOIN vào pdb.banAns b và dùng MIN(b.tenBan) để tránh lặp dòng
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
-            "hd.id, " +
-            "hd.maHoaDon, " +
-            "kh.tenKhachHang, " +
-            "kh.soDienThoai, " +
-            "b.tenBan, " +
-            "hd.tongTienChuaGiam, " +
-            "hd.soTienDaGiam, " +
-            "hd.tongTienThanhToan, " +
-            "hd.tienCoc, " +
-            "hd.tienHoanTra, " +
-            "hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, " +
-            "pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan pdb JOIN pdb.banAns ban), " +
+            "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
+            "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
-            "LEFT JOIN hd.idBanAn b " +
             "LEFT JOIN hd.idPhieuDatBan pdb")
     Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
+    // 🚨 ĐÃ SỬA TƯƠNG TỰ BÊN TRÊN
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
-            "hd.id, " +
-            "hd.maHoaDon, " +
-            "kh.tenKhachHang, " +
-            "kh.soDienThoai, " +
-            "b.tenBan, " +
-            "hd.tongTienChuaGiam, " +
-            "hd.soTienDaGiam, " +
-            "hd.tongTienThanhToan, " +
-            "hd.tienCoc, " +
-            "hd.tienHoanTra, " +
-            "hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, " +
-            "pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.banAns ban), " +
+            "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
+            "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
-            "LEFT JOIN hd.idBanAn b " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
             "AND (CAST(:tuNgay AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgay) " +
@@ -72,27 +54,25 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             Pageable pageable
     );
 
+    // 🚨 ĐÃ SỬA TƯƠNG TỰ
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
-            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, b.tenBan, " +
-            "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, " +
-            "hd.tienCoc, hd.tienHoanTra, hd.trangThaiHoaDon, " +
-            "hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
+            "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.banAns ban), " +
+            "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
+            "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
-            "LEFT JOIN hd.idBanAn b " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 
-    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
+    // 🚨 ĐÃ SỬA: Xóa hd.idBanAn thay bằng JOIN
+    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.banAns b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
     Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
 
-    @Query("""
-    SELECT h FROM HoaDonThanhToan h 
-    WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon = 1 
-    ORDER BY h.thoiGianTao DESC
-""")
-    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") int idBanAn);
+    // 🚨 ĐÃ SỬA: Bị duplicate code, xóa hàm cũ và dùng 1 hàm duy nhất
+    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.banAns b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
+    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
 
     List<HoaDonThanhToan> findAllByTrangThaiHoaDonAndThoiGianTaoBefore(Integer trangThai, Instant limitTime);
 
@@ -112,13 +92,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 """)
     List<KenhDatResponse> thongKeKenhDat();
 
-    List<HoaDonThanhToan> findByThoiGianTaoBetween(
-            LocalDateTime start,
-            LocalDateTime end
-    );
-    @Query("SELECT h FROM HoaDonThanhToan h WHERE h.idBanAn.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
-    List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
-
+    List<HoaDonThanhToan> findByThoiGianTaoBetween(LocalDateTime start, LocalDateTime end);
 
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
 

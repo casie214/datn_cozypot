@@ -9,6 +9,7 @@ import java.util.List;
 
 @Data
 public class DatBanOnlineRequest {
+    private Integer idKhachHang;
     private String fullName;
     private String phone;
     private String email;
@@ -21,4 +22,5 @@ public class DatBanOnlineRequest {
     private BigDecimal tongTien;
     private BigDecimal tienCoc;
     private List<PhieuDatBanRequest.ChiTietMonAnRequest> chiTiet;
+
 }
