@@ -20,60 +20,7 @@
 
     <div class="container">
       <div class="row g-4">
-
-        <div class="col-lg-4">
-          <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
-            <div class="card-body p-4">
-              <h6 class="form-label-custom mb-4 text-center">Ảnh đại diện</h6>
-              <div class="upload-container mb-4">
-                <div class="upload-zone" @click="triggerFileInput" :class="{ 'has-image': previewUrl }">
-                  <template v-if="previewUrl">
-                    <img :src="previewUrl" alt="Avatar" class="img-preview" />
-                    <div class="upload-overlay">
-                      <i class="fas fa-camera mb-2"></i>
-                      <span>Thay đổi ảnh</span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div class="upload-placeholder">
-                      <div class="icon-circle">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                      </div>
-                      <p class="mt-3 mb-1 fw-bold">Tải ảnh lên</p>
-                      <span class="text-muted tiny">JPG, PNG, WEBP (Max 2MB)</span>
-                    </div>
-                  </template>
-                </div>
-                <input type="file" ref="fileInput" class="d-none" @change="onFileChange" accept="image/*" />
-              </div>
-              <hr class="dashed">
-              <div v-if="clientId" class="client-stats mb-4">
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted small">Mã khách hàng:</span>
-                  <span class="fw-bold text-wine">{{ formData.maKhachHang || '---' }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted small">Điểm tích lũy:</span>
-                  <span class="badge bg-gold text-dark fw-bold">{{ formData.diemTichLuy || 0 }} điểm</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span class="text-muted small">Ngày tham gia:</span>
-                  <span class="small">{{ formData.ngayTaoTaiKhoan ? dayjs(formData.ngayTaoTaiKhoan).format('DD/MM/YYYY')
-                    : '---'
-                  }}</span>
-                </div>
-              </div>
-              <div class="info-alert p-3 rounded-3 bg-light-wine border-start-wine">
-                <p class="small text-muted mb-0">
-                  <i class="fas fa-info-circle text-wine me-2"></i>
-                  Lưu ý: Các trường đánh dấu <span class="star">*</span> bắt buộc phải nhập đầy đủ.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-8">
+        <div class="col-lg-12">
           <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
             <div class="card-body p-4 p-md-5">
               <form @submit.prevent>
@@ -105,13 +52,25 @@
                     </div>
 
                     <div class="col-md-6">
-                      <label class="form-label-custom">Email <span class="star">*</span></label>
-                      <div class="input-group-custom">
-                        <i class="far fa-envelope icon-input"></i>
-                        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }"
-                          v-model="formData.email" placeholder="example@gmail.com">
+                      <label class="form-label-custom">Giới tính <span class="star">*</span></label>
+
+                      <div class="d-flex gap-4 align-items-center">
+
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="gender" id="male" :value="true"
+                            v-model="formData.gioiTinh">
+                          <label class="form-check-label" for="male">
+                             Nam
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="gender" id="female" :value="false"
+                            v-model="formData.gioiTinh">
+                          <label class="form-check-label" for="female">
+                             Nữ
+                          </label>
+                        </div>
                       </div>
-                      <div class="error-text">{{ errors.email }}</div>
                     </div>
 
                     <div class="col-md-6">
@@ -125,17 +84,13 @@
                     </div>
 
                     <div class="col-md-12">
-                      <label class="form-label-custom">Giới tính <span class="star">*</span></label>
-                      <div class="gender-selector d-flex gap-3">
-                        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
-                          v-model="formData.gioiTinh">
-                        <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
-
-                        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
-                          v-model="formData.gioiTinh">
-                        <label class="btn btn-outline-wine w-100" for="female"><i
-                            class="fas fa-venus me-2"></i>Nữ</label>
+                      <label class="form-label-custom">Email <span class="star">*</span></label>
+                      <div class="input-group-custom">
+                        <i class="far fa-envelope icon-input"></i>
+                        <input type="email" class="form-control" :class="{ 'is-invalid': errors.email }"
+                          v-model="formData.email" placeholder="example@gmail.com">
                       </div>
+                      <div class="error-text">{{ errors.email }}</div>
                     </div>
                   </div>
                 </div>
@@ -161,7 +116,7 @@
                         <div class="row g-3">
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Tỉnh/Thành phố *</label>
-                            <select class="form-select shadow-none border-light"
+                            <select class="form-select shadow-none border-light select-tinh" :data-index="index"
                               :class="{ 'is-invalid': item.errors?.id_tinh_thanh }" v-model="item.id_tinh_thanh"
                               @change="onProvinceChange(item.id_tinh_thanh, index)">
                               <option value="">Chọn Tỉnh/Thành</option>
@@ -172,7 +127,7 @@
 
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Quận/Huyện *</label>
-                            <select class="form-select shadow-none border-light"
+                            <select class="form-select shadow-none border-light select-huyen" :data-index="index"
                               :class="{ 'is-invalid': item.errors?.id_quan_huyen }" v-model="item.id_quan_huyen"
                               @change="onDistrictChange(item.id_quan_huyen, index)">
                               <option value="">Chọn Quận/Huyện</option>
@@ -183,7 +138,7 @@
 
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Phường/Xã *</label>
-                            <select class="form-select shadow-none border-light"
+                            <select class="form-select shadow-none border-light select-xa" :data-index="index"
                               :class="{ 'is-invalid': item.errors?.id_phuong_xa }" v-model="item.id_phuong_xa">
                               <option value="">Chọn Phường/Xã</option>
                               <option v-for="x in item.listXa" :key="x.id" :value="x.id">{{ x.text }}</option>
@@ -286,62 +241,139 @@ const formData = reactive({
 // Hàm khởi tạo Select2 cho từng dòng cụ thể
 const initSelect2ForIndex = (index) => {
   const $ = window.$;
+
   if (typeof $.fn.select2 !== 'function') {
     if (typeof select2 === 'function') select2();
   }
 
   setTimeout(() => {
-    // 1. Khởi tạo Tỉnh/Thành
+
+    /* =======================
+       1. TỈNH / THÀNH
+    ========================*/
     const $tinh = $(`.select-tinh[data-index="${index}"]`);
+
     if ($tinh.length) {
-      $tinh.select2({ placeholder: "Chọn Tỉnh/Thành", width: '100%' })
-        .val(formData.danhSachDiaChi[index].id_tinh_thanh) // Set giá trị nếu đã có
-        .trigger('change.select2') // Cập nhật giao diện select2
-        .on('change', async function () {
-          const val = $(this).val();
-          formData.danhSachDiaChi[index].id_tinh_thanh = val;
-          // Reset dữ liệu cấp dưới khi đổi tỉnh
-          formData.danhSachDiaChi[index].id_quan_huyen = '';
-          formData.danhSachDiaChi[index].id_phuong_xa = '';
 
-          await onProvinceChange(val, index); // Gọi API lấy Huyện
-          console.log("Đã chọn tỉnh:", val, "cho index:", index); // Bước 1: Kiểm tra xem có log này không
-          // Sau khi có danh sách Huyện mới, phải báo cho Select2 Huyện khởi tạo lại
-          nextTick(() => {
-            $(`.select-huyen[data-index="${index}"]`).select2({ placeholder: "Chọn Quận/Huyện", width: '100%' });
+      $tinh.select2({
+        placeholder: "Chọn Tỉnh/Thành",
+        width: '100%'
+      })
+        .val(formData.danhSachDiaChi[index].idTinhThanh)
+        .trigger('change.select2');
+
+      // lấy text ban đầu
+      const dataTinh = $tinh.select2('data');
+      if (dataTinh.length) {
+        formData.danhSachDiaChi[index].tenTinhThanh = dataTinh[0].text;
+      }
+
+      $tinh.off('change').on('change', async function () {
+
+        const val = $(this).val();
+        const data = $(this).select2('data');
+        const text = data.length ? data[0].text : '';
+
+        formData.danhSachDiaChi[index].idTinhThanh = val;
+        formData.danhSachDiaChi[index].tenTinhThanh = text;
+
+        // reset huyện xã
+        formData.danhSachDiaChi[index].idQuanHuyen = '';
+        formData.danhSachDiaChi[index].tenQuanHuyen = '';
+
+        formData.danhSachDiaChi[index].idPhuongXa = '';
+        formData.danhSachDiaChi[index].tenPhuongXa = '';
+
+        await onProvinceChange(val, index);
+
+        nextTick(() => {
+          $(`.select-huyen[data-index="${index}"]`).select2({
+            placeholder: "Chọn Quận/Huyện",
+            width: '100%'
           });
         });
+
+      });
     }
 
-    // 2. Khởi tạo Quận/Huyện
+
+    /* =======================
+       2. QUẬN / HUYỆN
+    ========================*/
     const $huyen = $(`.select-huyen[data-index="${index}"]`);
+
     if ($huyen.length) {
-      $huyen.select2({ placeholder: "Chọn Quận/Huyện", width: '100%' })
-        .val(formData.danhSachDiaChi[index].id_quan_huyen)
-        .on('change', async function () {
-          const val = $(this).val();
-          formData.danhSachDiaChi[index].id_quan_huyen = val;
-          // Reset xã khi đổi huyện
-          formData.danhSachDiaChi[index].id_phuong_xa = '';
 
-          await onDistrictChange(val, index); // Gọi API lấy Xã
+      $huyen.select2({
+        placeholder: "Chọn Quận/Huyện",
+        width: '100%'
+      })
+        .val(formData.danhSachDiaChi[index].idQuanHuyen)
+        .trigger('change.select2');
 
-          nextTick(() => {
-            $(`.select-xa[data-index="${index}"]`).select2({ placeholder: "Chọn Phường/Xã", width: '100%' });
+      const dataHuyen = $huyen.select2('data');
+      if (dataHuyen.length) {
+        formData.danhSachDiaChi[index].tenQuanHuyen = dataHuyen[0].text;
+      }
+
+      $huyen.off('change').on('change', async function () {
+
+        const val = $(this).val();
+        const data = $(this).select2('data');
+        const text = data.length ? data[0].text : '';
+
+        formData.danhSachDiaChi[index].idQuanHuyen = val;
+        formData.danhSachDiaChi[index].tenQuanHuyen = text;
+
+        // reset xã
+        formData.danhSachDiaChi[index].idPhuongXa = '';
+        formData.danhSachDiaChi[index].tenPhuongXa = '';
+
+        await onDistrictChange(val, index);
+
+        nextTick(() => {
+          $(`.select-xa[data-index="${index}"]`).select2({
+            placeholder: "Chọn Phường/Xã",
+            width: '100%'
           });
         });
+
+      });
     }
 
-    // 3. Khởi tạo Phường/Xã
+
+    /* =======================
+       3. PHƯỜNG / XÃ
+    ========================*/
     const $xa = $(`.select-xa[data-index="${index}"]`);
+
     if ($xa.length) {
-      $xa.select2({ placeholder: "Chọn Phường/Xã", width: '100%' })
-        .val(formData.danhSachDiaChi[index].id_phuong_xa)
-        .on('change', function () {
-          formData.danhSachDiaChi[index].id_phuong_xa = $(this).val();
-        });
+
+      $xa.select2({
+        placeholder: "Chọn Phường/Xã",
+        width: '100%'
+      })
+        .val(formData.danhSachDiaChi[index].idPhuongXa)
+        .trigger('change.select2');
+
+      const dataXa = $xa.select2('data');
+      if (dataXa.length) {
+        formData.danhSachDiaChi[index].tenPhuongXa = dataXa[0].text;
+      }
+
+      $xa.off('change').on('change', function () {
+
+        const val = $(this).val();
+        const data = $(this).select2('data');
+        const text = data.length ? data[0].text : '';
+
+        formData.danhSachDiaChi[index].idPhuongXa = val;
+        formData.danhSachDiaChi[index].tenPhuongXa = text;
+
+      });
     }
-  }, 300); // 300ms là khoảng thời gian an toàn cho DOM render
+
+  }, 300);
 };
 
 // Chỉ chạy lại khi dữ liệu options (Huyện/Xã) thực sự thay đổi từ API
@@ -367,14 +399,6 @@ watch(
   },
   { deep: true }
 );
-
-// onMounted(async () => {
-//   await loadTinhThanh(); // Lấy dữ liệu tỉnh trước
-//   // Khởi tạo Select2 cho các địa chỉ hiện có (nếu có)
-//   formData.danhSachDiaChi.forEach((_, index) => {
-//     initSelect2ForIndex(index);
-//   });
-// });
 
 // Sửa lại hàm addAddress của bạn một chút để kích hoạt Select2 cho card mới
 const addAddress = () => {
@@ -506,71 +530,57 @@ const defaultIndex = ref(0);   // Lưu vị trí mặc định (mặc định l�
 const preparePayload = () => {
   const data = new FormData();
 
-  // 1. Xử lý các trường thông tin cơ bản
+  // Thông tin khách hàng
   Object.keys(formData).forEach(key => {
     if (key === 'danhSachDiaChi' || key === 'diaChi') return;
+
     let val = formData[key];
-    if (key === 'gioiTinh') val = val ? 1 : 0;
+
+    if (key === 'gioiTinh') {
+      val = val ? 1 : 0;
+    }
+
     if (val !== null && val !== undefined && val !== '') {
       data.append(key, val);
     }
   });
 
-  // 2. Xử lý Ảnh (Giữ nguyên logic của bạn)
+  // Ảnh đại diện
   if (selectedFile.value) {
     data.append('hinhAnhFile', selectedFile.value);
   } else if (clientId.value && formData.anhDaiDien) {
     data.append('anhDaiDien', formData.anhDaiDien);
   }
 
-  // 3. Xử lý danh sách địa chỉ (Đảm bảo khớp 100% với tên thuộc tính trong Class DTO/Entity của Java)
+  // Danh sách địa chỉ
   if (formData.danhSachDiaChi && formData.danhSachDiaChi.length > 0) {
-    // Trong clientFormPage.vue -> preparePayload
-    // Trong preparePayload, phần loop địa chỉ:
     formData.danhSachDiaChi.forEach((addr, index) => {
+
+      const tinhText = document.querySelector(`.select-tinh[data-index="${index}"] option:checked`)?.textContent || '';
+      const huyenText = document.querySelector(`.select-huyen[data-index="${index}"] option:checked`)?.textContent || '';
+      const xaText = document.querySelector(`.select-xa[data-index="${index}"] option:checked`)?.textContent || '';
+
       data.append(`danhSachDiaChi[${index}].hoTenNhan`, addr.ho_ten_nhan || '');
       data.append(`danhSachDiaChi[${index}].soDienThoaiNhan`, addr.so_dien_thoai_nhan || '');
+
       data.append(`danhSachDiaChi[${index}].idTinhThanh`, addr.id_tinh_thanh || '');
       data.append(`danhSachDiaChi[${index}].idQuanHuyen`, addr.id_quan_huyen || '');
       data.append(`danhSachDiaChi[${index}].idPhuongXa`, addr.id_phuong_xa || '');
+
+      // lấy text thật từ select
+      data.append(`danhSachDiaChi[${index}].tenTinhThanh`, tinhText);
+      data.append(`danhSachDiaChi[${index}].tenQuanHuyen`, huyenText);
+      data.append(`danhSachDiaChi[${index}].tenPhuongXa`, xaText);
+
       data.append(`danhSachDiaChi[${index}].diaChiChiTiet`, addr.dia_chi_chi_tiet || '');
+
       data.append(`danhSachDiaChi[${index}].laMacDinh`, index === defaultIndex.value);
-    });
-  }
-
-  return data;
-};
-
-const submitClient = async (payload) => {
-  if (clientId.value) {
-    await clientService.update(clientId.value, payload);
-  } else {
-    await clientService.create(payload);
-  }
-};
-// Hàm xử lý chung cho cả Thêm và Cập nhật
-const handleAddressAction = () => {
-  const text = tempAddressText.value.trim();
-  if (!text) {
-    toast.warning("Vui lòng nhập địa chỉ!");
-    return;
-  }
-  if (editingIndex.value !== null) {
-    // Cập nhật trường text trong Object hiện tại
-    formData.danhSachDiaChi[editingIndex.value].thong_tin_dia_chi = text;
-    toast.info("Đã cập nhật địa chỉ");
-    editingIndex.value = null;
-  } else {
-    // Thêm mới một Object chuẩn cấu trúc Backend mong đợi
-    formData.danhSachDiaChi.push({
-      id: null, // id null để Backend biết đây là thêm mới
-      thong_tin_dia_chi: text,
-      la_mac_dinh: formData.danhSachDiaChi.length === 0 // Tự động mặc định nếu là cái đầu
     });
     if (formData.danhSachDiaChi.length === 1) defaultIndex.value = 0;
   }
   tempAddressText.value = '';
   console.log("Danh sách địa chỉ:", JSON.stringify(formData.danhSachDiaChi, null, 2));
+  return data;
 };
 // Bắt đầu sửa
 const startEdit = (index) => {
@@ -778,6 +788,15 @@ const generateRandomPassword = (length = 8) => {
   return retVal;
 };
 
+const submitClient = async (payload) => {
+  if (clientId.value) {
+    // Nếu có ID thì gọi API cập nhật
+    return await clientService.update(clientId.value, payload);
+  } else {
+    // Nếu không có ID thì gọi API thêm mới
+    return await clientService.create(payload);
+  }
+};
 
 const handleSave = async () => {
   // 1. Kiểm tra tính hợp lệ (Validate FE)
@@ -808,7 +827,7 @@ const handleSave = async () => {
     title: clientId.value ? 'Cập nhật khách hàng?' : 'Xác nhận thêm mới?',
     text: clientId.value
       ? 'Bạn có chắc chắn muốn lưu các thay đổi này?'
-      : 'Hệ thống sẽ tạo tài khoản và gửi thông tin qua Email khách hàng.',
+      : 'Hệ thống sẽ tạo tài khoản khách hàng mới vào cơ sở dữ liệu.', // Cập nhật dòng này
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: 'Đồng ý',
@@ -873,11 +892,18 @@ onMounted(async () => {
             id: d.id,
             ho_ten_nhan: d.hoTenNhan || '',
             so_dien_thoai_nhan: d.soDienThoaiNhan || '',
+
             id_tinh_thanh: d.idTinhThanh ? String(d.idTinhThanh) : '',
             id_quan_huyen: d.idQuanHuyen ? String(d.idQuanHuyen) : '',
             id_phuong_xa: d.idPhuongXa ? String(d.idPhuongXa) : '',
+
+            tenTinhThanh: d.tenTinhThanh || '',
+            tenQuanHuyen: d.tenQuanHuyen || '',
+            tenPhuongXa: d.tenPhuongXa || '',
+
             dia_chi_chi_tiet: d.diaChiChiTiet || '',
             la_mac_dinh: d.laMacDinh === true,
+
             listHuyen: [],
             listXa: []
           };
@@ -907,32 +933,8 @@ onMounted(async () => {
     }
   }
 });
-const reinitAddressData = async (index) => {
-  const item = formData.danhSachDiaChi[index];
-  const $ = window.$;
 
-  // 1. Khởi tạo Select2 cho dòng này
-  initSelect2ForIndex(index);
 
-  // 2. Load Huyện và gán giá trị
-  if (item.id_tinh_thanh) {
-    // Truyền true vào để hàm onProvinceChange biết là đang load lại dữ liệu cũ
-    await onProvinceChange(item.id_tinh_thanh, index, true);
-
-    // Đợi Vue render xong các <option> của Huyện
-    await nextTick();
-    $(`.select-huyen[data-index="${index}"]`).val(item.id_quan_huyen).trigger('change.select2');
-  }
-
-  // 3. Load Xã và gán giá trị
-  if (item.id_quan_huyen) {
-    await onDistrictChange(item.id_quan_huyen, index, true);
-
-    // Đợi Vue render xong các <option> của Xã
-    await nextTick();
-    $(`.select-xa[data-index="${index}"]`).val(item.id_phuong_xa).trigger('change.select2');
-  }
-};
 
 </script>
 
@@ -1105,7 +1107,7 @@ const reinitAddressData = async (index) => {
   transition: 0.3s;
 }
 
-.btn-check + .btn:hover{
+.btn-check+.btn:hover {
   border: 1px solid black;
 }
 
