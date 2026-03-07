@@ -1,93 +1,97 @@
-/* 1. KHAI BÁO BIẾN CHUNG */
+/* 1. KHAI BÁO BIẾN & THIẾT LẬP CHUNG */
 :root {
   --primary-red: #7B121C;
-  --dark-red: #600000;
+  --dark-red: #800000;
   --bg-white: #ffffff;
   --text-main: #2c3e50;
   --text-muted: #666;
-  --border-light: rgba(0, 0, 0, 0.05);
-  /* Đổ bóng 2 lớp cực mịn để nổi bật trên nền trắng */
-  --shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
-  --shadow-hover: 0 15px 45px rgba(0, 0, 0, 0.08);
-}
-/* Màu cho icon bút chì khi di chuột vào */
-.action-edit-v2:hover i {
-  color: #800000 !important; /* Đổi sang đỏ rượu khi hover */
-  transform: scale(1.2);
+  --border-color: #eee;
+  --shadow-sm: 0 3px 6px rgba(131, 131, 131, 0.2);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
+  --font-main: 14px !important;
 }
 
-/* Biến nút gạt thành màu Đỏ Rượu khi ON */
-.cz-switch:checked {
-  background-color: #800000 !important;
-  border-color: #800000 !important;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+.custom-table thead th {
+  font-size: 15px !important;
+  font-weight: 600; 
 }
 
-/* Màu khi nút gạt đang OFF (Xám nhẹ) */
-.cz-switch {
-  background-color: #dee2e6;
-  border-color: #adb5bd;
+/* 2. CẤU TRÚC BAO NGOÀI */
+.staff-manager-wrapper { 
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-white); 
+  min-height: 100vh; 
 }
 
-/* Hiệu ứng khóa khi nhân viên ngừng việc */
-.is-locked {
-  cursor: not-allowed !important;
-  opacity: 0.5;
-}
-/* 2. THIẾT LẬP NỀN TRANG CHỦ */
-.staff-manager-wrapper {
-  background-color: var(--bg-white) !important;
-  min-height: 100vh;
-}
-
-/* 3. TIÊU ĐỀ "QUẢN LÝ NHÂN VIÊN" */
-.title-page-cozy {
-  color: var(--primary-red);
-  font-weight: bold;
-  font-size: 1.5rem;
-}
-
-/* 4. CARD BỘ LỌC VÀ BẢNG (NỀN TRẮNG HOÀN TOÀN) */
-.filter-card-premium, 
-.table-container-premium {
-  background: var(--bg-white) !important;
-  border-radius: 16px !important;
-  border: 1px solid var(--border-light) !important;
-  box-shadow: var(--shadow-premium) !important;
-  margin-bottom: 25px;
+.table-wrapper, .filter-card-premium, .table-container-premium {
+  background: var(--bg-white);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 30px;
   overflow: hidden;
-  transition: all 0.3s ease;
 }
 
-
-/* Loại bỏ màu xám ở Header bộ lọc */
-.filter-header-simple {
-  background: var(--bg-white) !important; /* Trắng hoàn toàn */
-  padding: 18px 25px;
-  border-bottom: 1px solid #f5f5f5;
-  font-weight: 700;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  font-size: 15px;
+/* 3. HỆ THỐNG BẢNG (TABLE) */
+.custom-table { 
+  margin: 0; 
+  border: none !important; 
+  text-align: left; /* 🚨 CĂN TRÁI CHO TOÀN BỘ BẢNG */
 }
 
-/* 5. FORM INPUTS & LABELS */
-.filter-label {
+.custom-table thead tr { background: var(--dark-red) !important; }
+
+.custom-table thead th {
+  color: white !important;
+  padding: 14px 15px; /* 🚨 Cân chỉnh padding đồng đều */
   font-size: 13px;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  display: block;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: none !important;
+  text-align: left !important; /* 🚨 BẮT BUỘC HEADER CĂN TRÁI */
+}
+
+/* Bo góc cho Header bảng */
+.custom-table thead tr:first-child th:first-child { border-top-left-radius: 12px; }
+.custom-table thead tr:first-child th:last-child { border-top-right-radius: 12px; }
+
+/* Nội dung thân bảng - Ép 15px đồng nhất */
+.custom-table tbody td, 
+.custom-table tbody td * { 
+  font-size: var(--font-15); 
+  color: #333 !important;
+}
+
+.custom-table tbody td {
+  padding: 12px 15px !important; /* 🚨 Khớp padding với header để thẳng hàng */
+  vertical-align: middle;
+  text-align: left !important; /* 🚨 BẮT BUỘC BODY CĂN TRÁI */
+  border-bottom: 1px solid #f9f9f9 !important;
+}
+
+.custom-table tbody tr:hover { background: #fafafa !important; }
+
+/* --- 🚨 NGOẠI LỆ: Nếu bạn muốn cột Hành Động/Thao tác căn giữa --- */
+.custom-table thead th:last-child,
+.custom-table tbody td:last-child {
+  text-align: center !important;
+}
+/* 4. FORM & BỘ LỌC (FILTER) */
+.filter-label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 5px;
+    display: block;
 }
 
 .custom-input {
-  border: 1.5px solid #eee !important;
+  width: 100%;
+  height: 42px !important;
+  border: 1.5px solid var(--border-color) !important;
   border-radius: 10px !important;
-  padding: 10px 15px !important;
-  font-size: 14px;
-  background-color: var(--bg-white) !important;
+  padding: 10px 15px;
+  font-size: var(--font-15);
   transition: all 0.2s;
+  color: #888;
 }
 
 .custom-input:focus {
@@ -96,246 +100,127 @@
   outline: none;
 }
 
-/* 6. HỆ THỐNG NÚT BẤM (BUTTONS) */
+/* Nhóm Radio & Switch */
+.gender-filter-group { display: flex; align-items: center; height: 38px; padding-left: 5px; }
+
+.cz-switch:checked, .form-check-input:checked {
+  background-color: var(--dark-red) !important;
+  border-color: var(--dark-red) !important;
+}
+
+.cz-switch { background-color: #dee2e6; border-color: #adb5bd; }
+
+/* 5. NÚT BẤM & ICON HÀNH ĐỘNG */
 .btn-red-dark {
-  background: var(--primary-red) !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   color: white !important;
-  border: none !important;
   border-radius: 10px !important;
-  font-weight: 600;
   padding: 10px 20px;
-  transition: all 0.3s;
+  font-size: var(--font-15);
+  transition: 0.3s;
+  border: none;
 }
 
-.btn-red-dark:hover {
-  background: var(--dark-red) !important;
-  box-shadow: 0 5px 15px rgba(123, 18, 28, 0.25);
-}
-
-/* Nút Icon (Excel, Print, Refresh) */
-.btn-action-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 1px solid #eee !important;
-  background: var(--bg-white) !important;
-  color: var(--primary-red);
-  transition: all 0.2s ease;
-}
-
-.btn-add-only {
-  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
-  color: white !important;
-  border: none !important;
-}
-
-.btn-action-icon:hover {
-  transform: translateY(-3px);
-  border-color: var(--primary-red) !important;
-  box-shadow: 0 5px 12px rgba(0,0,0,0.05);
-}
-
-thead tr{
-  background-color: #8B0000 !important;
-}
-
-/* 7. BẢNG DỮ LIỆU (TABLE) */
-.custom-table thead th {
-  background-color: transparent !important;
-  color: white !important;
-  padding: 16px;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none !important;
-}
-
-.custom-table tbody td {
-  padding: 16px;
-  vertical-align: middle;
-  border-bottom: 1px solid #f9f9f9 !important; /* Đường kẻ bảng rất nhạt */
-  color: #444;
-  font-size: 14px;
-}
-
-.custom-table tbody tr:hover {
-  background-color: #fffafb !important; /* Highlight dòng nhẹ khi di chuột */
-}
-
-/* 8. BADGE & ICONS */
-.badge-modern {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.text-red { 
-  color: var(--primary-red) !important; 
-  font-weight: 700; 
-}
+.btn-red-dark:hover { transform: scale(1.04); box-shadow: 0 5px 15px rgba(123, 18, 28, 0.25); }
 
 .action-icons i {
+  color: #95a5a6 !important;
   cursor: pointer;
   font-size: 17px;
   margin: 0 6px;
-  transition: 0.2s;
-  color: var(--text-muted);
+  transition: 0.3s;
+  display: inline-block;
 }
 
-.action-icons i:hover {
-  transform: scale(1.25);
-}
-
-.action-icons i.fa-eye:hover { color: #2c3e50; }
-.action-icons i.fa-pen:hover { color: #0d6efd; }
-.action-icons i.fa-lock:hover, .action-icons i.fa-unlock:hover { color: var(--primary-red); }
-
-/* Màu đỏ rượu vang chủ đạo */
-.text-wine {
-  color: #7B121C !important;
-}
-
-/* Cấu hình mặc định cho các Icon hành động */
-.action-icons i {
-  color: #95a5a6 !important; /* Mặc định tất cả màu xám nhạt */
-  cursor: pointer;
-  font-size: 17px;
-  transition: all 0.3s ease; /* Hiệu ứng chuyển màu mượt mà */
-}
-
-/* KHI HOVER: Chuyển sang màu đỏ rượu và phóng to nhẹ */
-.action-icons i:hover {
-  color: #7B121C !important; /* Đỏ rượu khi rê chuột vào */
+.action-icons i:hover, .action-edit-v2:hover i {
+  color: var(--primary-red) !important;
   transform: scale(1.2);
 }
 
-/* Riêng Mã NV: Luôn giữ đỏ rượu để làm điểm nhấn */
-.fw-bold.text-wine {
-  font-weight: 700 !important;
-}
-
-/* Căn giữa toàn bảng */
-.custom-table th, 
-.custom-table td {
-  text-align: center !important;
-  vertical-align: middle !important;
-  padding: 16px 12px !important;
-}
-
-/* Khi dòng bị khóa: Toàn bộ nội dung mờ đi */
-.row-locked td {
-  color: #bdc3c7 !important;
-}
-.row-locked .text-wine {
-  color: #bdc3c7 !important;
-}
-
-/* Trạng thái chữ thuần */
+/* 6. TRẠNG THÁI KHÁC */
+.is-locked, .row-locked td, .row-locked .text-wine { color: #bdc3c7 !important; cursor: not-allowed; }
 .text-status-active { color: #27ae60 !important; font-weight: 600; }
-.text-status-locked { color: #95a5a6 !important; }
-
-/* Chỉ ép cỡ chữ cho nội dung bên trong THÂN bảng (tbody) về 15px */
-.custom-table tbody td,
-.custom-table tbody td .fw-bold,
-.custom-table tbody td .small,
-.custom-table tbody td span,
-.custom-table tbody td div,
-.custom-table tbody td i {
-    font-size: 15px !important;
+.text-wine { color: var(--primary-red) !important; }
+.title-page-cozy{
+  color:var(--primary-red);
+  font-weight:bold;
+  font-size:1.5rem;
+}
+/* Khối wrapper chính */
+.table-pagination-wrapper {
+    background-color: #ffffff;
+    border-radius: 12px; /* Bo góc nhẹ cho toàn khối */
+    border: 1px solid #f0f0f0; /* Viền rất nhạt để định hình khối */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important; /* Đổ bóng nhẹ giống ảnh mẫu */
+    overflow: hidden; /* Đảm bảo bảng không tràn khỏi góc bo */
+    display: flex;
+    flex-direction: column;
 }
 
-/* Điều chỉnh khoảng cách dòng để bảng trông thoáng đãng hơn */
-.custom-table tbody td {
-    padding: 10px 8px !important; /* Giảm nhẹ padding so với 16px để bảng gọn hơn */
-    vertical-align: middle;
-}
-
-/* Đảm bảo các thông tin phụ (Email, SĐT) không bị quá nhỏ */
-.custom-table tbody .contact-box .small,
-.custom-table tbody .text-muted.small {
-    font-size: 15px !important; /* Cho phép các thông tin phụ nhỏ hơn 1 chút (14px) để phân cấp thông tin tốt hơn */
-}
-
-/* 1. Chỉ ép cỡ chữ và màu sắc cho văn bản trong thân bảng */
-.custom-table tbody td,
-.custom-table tbody td div,
-.custom-table tbody td span {
-    font-size: 15px !important;
-    font-weight: 400 !important; /* Chữ bình thường, không đậm */
-    color: #333 !important;      /* Màu đen xám đồng nhất */
-    background: transparent !important; /* Loại bỏ màu nền của badge */
-    border: none !important;     /* Loại bỏ viền của badge */
-}
-
-/* 2. Giữ lại và hiển thị icon */
-.custom-table tbody i {
-    font-size: 15px !important;
-    font-style: normal !important; /* Reset font-style để icon FontAwesome hiện lên */
-    display: inline-block !important; /* Đảm bảo icon không bị ẩn */
-    color: #555 !important;      /* Màu icon tối để cùng tông với chữ */
-    margin-right: 5px;           /* Khoảng cách giữa icon và chữ */
-}
-
-/* 3. Xử lý riêng cho các nút thao tác (Sửa/Switch) để không bị mất hình dạng */
-.custom-table tbody .btn-link i {
-    color: #444 !important;      /* Màu riêng cho nút pen (sửa) */
-}
-
-.custom-table tbody .form-switch .form-check-input {
-    background-color: #ccc;      /* Màu nền switch khi tắt */
-    border: 1px solid #bbb;
-}
-
-/* 4. Căn chỉnh hàng lối cho đẹp */
-.custom-table tbody td {
-    padding: 12px 8px !important;
-    vertical-align: middle;
-}
-
-/* 1. Ép cỡ chữ 15px cho các ô Input và Select (bao gồm cả placeholder) */
-.custom-input, 
-.custom-input option,
-.custom-input::placeholder {
-    font-size: 15px !important;
-    font-weight: normal !important;
-    color: #333 !important;
-}
-
-/* 2. Ép cỡ chữ 15px cho các nhãn tiêu đề (Từ khóa, Trạng thái) */
-.filter-label {
-    font-size: 15px !important;
-    font-weight: 500; /* Nhãn có thể để hơi đậm một chút để phân biệt, hoặc đổi thành normal nếu bạn muốn mảnh hẳn */
-    color: #444;
-    margin-bottom: 8px;
-    display: block;
-}
-
-/* 3. Đảm bảo chữ trên nút bấm "Tìm kiếm" cũng đồng bộ */
-.btn-red-dark {
-    font-size: 15px !important;
-    font-weight: normal !important;
-}
-
-/* 4. Tăng nhẹ chiều cao ô nhập cho cân đối với cỡ chữ 15px */
-.custom-input {
-    height: 42px !important; 
-}
-
-/* Xóa viền thừa của table để không bị trùng với viền container */
+/* Tùy chỉnh riêng cho bảng bên trong wrapper */
 .custom-table {
     border: none !important;
-    margin-bottom: 0 !important;
+    margin-bottom: 0 !important; /* Loại bỏ margin để không hở khoảng trắng với phân trang */
 }
 
-/* Bo góc cho dòng đầu tiên (Header) và dòng cuối cùng */
-.custom-table thead tr:first-child th:first-child {
-    border-top-left-radius: 12px;
+/* Phần footer chứa phân trang */
+.pagination-footer {
+    padding: 15px 20px;
+    background-color: #ffffff;
+    border-top: 1px solid #f5f5f5; /* Đường kẻ mờ ngăn cách bảng và phân trang */
+    display: flex;
+    justify-content: center; /* Đưa phân trang vào giữa hoặc flex-end để đẩy sang phải */
 }
-.custom-table thead tr:first-child th:last-child {
-    border-top-right-radius: 12px;
+
+/* Đảm bảo header bảng luôn có màu đỏ đô */
+.custom-table thead tr {
+    background-color: #800000 !important;
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.icon-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 100px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Hiển thị phía trên nút */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%; 
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.icon-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+/* Đảm bảo nút icon vuông vắn */
+.icon-tooltip .btn-red-dark {
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
 }
