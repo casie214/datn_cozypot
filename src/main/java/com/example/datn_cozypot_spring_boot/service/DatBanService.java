@@ -196,11 +196,10 @@ public class DatBanService {
 
         BanAn banAn = banAnRepository.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
-
-        phieuDatBanRepository.updateBanChoPhieu(
-                req.getId(),
-                banAn
-        );
+        PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
+        phieu.setIdBanAn(banAn);
+        phieuDatBanRepository.save(phieu);
     }
 
     @Transactional

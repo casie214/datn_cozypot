@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.JoinFormula;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -38,7 +41,8 @@ public class HoaDonThanhToan {
     private KhachHang idKhachHang;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_ban_an")
+    @JoinFormula("(SELECT TOP 1 pb.id_ban_an FROM phieu_dat_ban_ban_an pb WHERE pb.id_phieu_dat_ban = id_phieu_dat_ban)")
+    @NotFound(action = NotFoundAction.IGNORE)
     private BanAn idBanAn;
 
     @ManyToOne(fetch = FetchType.LAZY)
