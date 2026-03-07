@@ -444,46 +444,76 @@ public class HoaDonThanhToanService {
 
     @Transactional
     public void gopBan(GopBanRequest req) {
-        HoaDonThanhToan hdChu = hoaDonThanhToanRepository.findById(req.getIdHoaDonChu())
+        Integer idChu = req.getIdHoaDonChu();
+        Integer idBiNuot = req.getIdHoaDonBiNuot();
+
+        HoaDonThanhToan hdChu = hoaDonThanhToanRepository.findById(idChu)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hóa đơn Chủ"));
-        HoaDonThanhToan hdBiNuot = hoaDonThanhToanRepository.findById(req.getIdHoaDonBiNuot())
+        HoaDonThanhToan hdBiNuot = hoaDonThanhToanRepository.findById(idBiNuot)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hóa đơn bị nuốt"));
 
         PhieuDatBan phieuChu = hdChu.getIdPhieuDatBan();
         PhieuDatBan phieuBiNuot = hdBiNuot.getIdPhieuDatBan();
 
-        // 1. CHUYỂN QUYỀN SỞ HỮU BÀN ĂN (Kiến trúc N-N)
-        // Lấy tất cả các bàn đang thuộc Phiếu A
-        Set<BanAn> danhSachBanBiNuot = new HashSet<>(phieuBiNuot.getBanAns());
-        for (BanAn ban : danhSachBanBiNuot) {
-            phieuBiNuot.getBanAns().remove(ban); // Rút khỏi A
-            phieuChu.getBanAns().add(ban);       // Nhét vào B
+        // =========================================================
+        // 1. CHUYỂN BÀN BẰNG CƠ CHẾ JPA (Khắc phục lỗi tàng hình bàn trong JSON)
+        // =========================================================
+        Set<BanAn> banCuaPhieuPhu = new HashSet<>(phieuBiNuot.getBanAns());
+        for (BanAn ban : banCuaPhieuPhu) {
+            phieuBiNuot.getBanAns().remove(ban); // Gỡ khỏi phiếu bị nuốt
+            phieuChu.getBanAns().add(ban);       // Gắn sang phiếu chủ
         }
 
-        // 2. CHUYỂN TÀI SẢN (MÓN ĂN)
-        chiTietHoaDonRepository.chuyenMonSangHoaDonMoi(hdChu.getId(), hdBiNuot.getId());
+        // =========================================================
+        // 2. CHUYỂN MÓN ĂN BẰNG CƠ CHẾ JPA
+        // =========================================================
+        List<ChiTietHoaDon> listMonPhu = chiTietHoaDonRepository.findByIdHoaDon_Id(idBiNuot);
+        if (listMonPhu != null && !listMonPhu.isEmpty()) {
+            for (ChiTietHoaDon mon : listMonPhu) {
+                mon.setIdHoaDon(hdChu); // Chuyển chủ cho từng đĩa thịt/cốc nước
+            }
+            chiTietHoaDonRepository.saveAll(listMonPhu);
+        }
 
-        // 3. DỒN TIỀN CỌC
+        // =========================================================
+        // 3. CHUYỂN LỊCH SỬ CỌC (Vẫn dùng Native Query vì không ảnh hưởng JSON Response)
+        // =========================================================
+        lichSuThanhToanRepository.chuyenLichSuThanhToanSangHoaDonMoi(idChu, idBiNuot);
+
+        // =========================================================
+        // 4. DỒN TIỀN CỌC
+        // =========================================================
         BigDecimal cocChu = hdChu.getTienCoc() != null ? hdChu.getTienCoc() : BigDecimal.ZERO;
         BigDecimal cocNuot = hdBiNuot.getTienCoc() != null ? hdBiNuot.getTienCoc() : BigDecimal.ZERO;
         hdChu.setTienCoc(cocChu.add(cocNuot));
-        hdBiNuot.setTienCoc(BigDecimal.ZERO); // A mất cọc
 
-        // 4. KHAI TỬ HÓA ĐƠN & PHIẾU A
-        hdBiNuot.setTrangThaiHoaDon(8); // 8: Đã Hủy
-        hdBiNuot.setGhiChu("[HỦY DO GỘP BÀN] Toàn bộ dữ liệu đã chuyển sang Hóa Đơn mã: " + hdChu.getMaHoaDon());
-        phieuBiNuot.setTrangThai(2);    // 2: Phiếu Đã Hủy
+        // =========================================================
+        // 5. ĐÓNG BĂNG HÓA ĐƠN BỊ NUỐT
+        // =========================================================
+        Integer trangThaiCuBiNuot = hdBiNuot.getTrangThaiHoaDon();
+        hdBiNuot.setTienCoc(BigDecimal.ZERO);
+        hdBiNuot.setTongTienChuaGiam(BigDecimal.ZERO);
+        hdBiNuot.setTongTienThanhToan(BigDecimal.ZERO);
+        hdBiNuot.setSoTienDaGiam(BigDecimal.ZERO);
+        hdBiNuot.setTrangThaiHoaDon(8); // 8: Trạng thái ĐÃ HỦY
+        hdBiNuot.setGhiChu("[GỘP BÀN] Toàn bộ dữ liệu chuyển sang HD: " + hdChu.getMaHoaDon());
+        phieuBiNuot.setTrangThai(2); // 2: Phiếu ĐÃ HỦY
 
-        // 5. GHI LOG CHO CẢ 2 BÊN
-        ghiLichSu(hdChu, req.getIdNhanVien(), "Gộp bàn", "Nhận dữ liệu gộp từ Hóa đơn " + hdBiNuot.getMaHoaDon(), hdChu.getTrangThaiHoaDon(), hdChu.getTrangThaiHoaDon());
-        ghiLichSu(hdBiNuot, req.getIdNhanVien(), "Bị gộp bàn", "Bị gộp vào Hóa đơn " + hdChu.getMaHoaDon(), hdBiNuot.getTrangThaiHoaDon(), 8);
+        // =========================================================
+        // 6. GHI LOG CHO 2 BÊN
+        // =========================================================
+        ghiLichSu(hdChu, req.getIdNhanVien(), "Gộp bàn", "Nhận dữ liệu từ HD " + hdBiNuot.getMaHoaDon(), hdChu.getTrangThaiHoaDon(), hdChu.getTrangThaiHoaDon());
+        ghiLichSu(hdBiNuot, req.getIdNhanVien(), "Bị gộp bàn", "Chuyển dữ liệu sang HD " + hdChu.getMaHoaDon(), trangThaiCuBiNuot, 8);
 
-        // Lưu sự thay đổi (Vì dùng Cascade nên lưu Phiếu sẽ tự cập nhật Bảng trung gian)
+        // =========================================================
+        // 7. LƯU MỌI THỨ VÀ TÍNH TIỀN
+        // =========================================================
         phieuDatBanRepository.save(phieuBiNuot);
         phieuDatBanRepository.save(phieuChu);
         hoaDonThanhToanRepository.save(hdBiNuot);
+        hoaDonThanhToanRepository.save(hdChu);
 
-        // 6. TÍNH TOÁN LẠI TỔNG TIỀN CHO HÓA ĐƠN CHỦ B VÀ LƯU
+        // Hàm tính lại tiền của bạn sẽ đọc danh sách món ăn đã cập nhật
         tinhLaiTienHoaDon(hdChu);
     }
 
