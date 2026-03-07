@@ -672,7 +672,7 @@ onMounted(async () => {
 
   expiredTimer = setInterval(() => {
     checkExpiredTickets(); 
-  }, 10000); 
+  }, 20000); 
 
   const user = JSON.parse(localStorage.getItem("user"));
   if (user) currentStaffName.value = user.hoTen || user.username;
@@ -780,9 +780,7 @@ const fetchDanhSachBanCungDoan = async () => {
 const fetchDanhSachBanGopHople = async () => {
   listBanCoKhachKhac.value = [];
   
-  const currentCustomerId = selectedPhieu.value?.idKhachHang;
-  const currentMaPhieu = selectedPhieu.value?.maDatBan;
-
+  // Chỉ lấy các bàn đang CÓ KHÁCH (trạng thái = 1) và KHÁC bàn hiện tại
   const cacBanCoKhach = danhSachBan.value.filter(ban => 
     getTrangThaiTheoNgay(ban.id) === 1 && ban.id !== selectedBan.value?.id
   );
@@ -790,44 +788,30 @@ const fetchDanhSachBanGopHople = async () => {
   for (const ban of cacBanCoKhach) {
     try {
       const res = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${ban.id}`);
-      if (res.data) {
-        const targetCustomerId = res.data.idKhachHang;
-        const targetMaPhieu = res.data.maPhieu || res.data.maDatBan;
+      
+      // Chỉ cần bàn đó có Hóa đơn hoạt động là được phép gộp (Không quan tâm ID khách nữa)
+      if (res.data && res.data.idHoaDon) {
+          const chiTiet = res.data.chiTiet || res.data.chiTietHoaDon || res.data.chiTietMonAn || [];
+          const monCuaBan = chiTiet.filter(m => m.trangThaiMon !== 0);
+          
+          // Cờ kiểm tra xem bàn này đã lên đủ món chưa
+          const allServed = monCuaBan.length === 0 || monCuaBan.every(m => m.trangThaiMon === 2);
+          
+          // Tính toán tiền
+          const tongTienMon = monCuaBan.reduce((sum, item) => sum + (item.donGia * item.soLuong), 0);
+          const canThu = tongTienMon - (res.data.soTienDaGiam || 0) - (res.data.tienCoc || 0);
 
-        let isSameGroup = false;
-
-        // 1. Gom nhóm theo ID Khách hàng (Ưu tiên số 1)
-        if (currentCustomerId && targetCustomerId && currentCustomerId === targetCustomerId) {
-            isSameGroup = true;
-        } 
-        // 2. Gom nhóm theo Mã Phiếu Gốc (Dành cho khách vãng lai không có ID)
-        else if (currentMaPhieu && currentMaPhieu !== 'N/A' && targetMaPhieu && targetMaPhieu === currentMaPhieu) {
-            isSameGroup = true;
-        }
-
-        if (isSameGroup) {
-            const chiTiet = res.data.chiTiet || res.data.chiTietHoaDon || res.data.chiTietMonAn || [];
-            const monCuaBan = chiTiet.filter(m => m.trangThaiMon !== 0);
-            
-            // Cờ kiểm tra xem bàn này đã lên đủ món chưa
-            const allServed = monCuaBan.length === 0 || monCuaBan.every(m => m.trangThaiMon === 2);
-            
-            // 🚨 SỬA LẠI ĐOẠN NÀY: CHỈ TÍNH TIỀN MÓN - GIẢM GIÁ - CỌC, BỎ HOÀN TOÀN VAT
-            const tongTienMon = monCuaBan.reduce((sum, item) => sum + (item.donGia * item.soLuong), 0);
-            const canThu = tongTienMon - (res.data.soTienDaGiam || 0) - (res.data.tienCoc || 0);
-
-            listBanCoKhachKhac.value.push({
-              ...ban,
-              _hoaDonInfo: {
-                idHoaDon: res.data.idHoaDon,
-                idPhieu: res.data.id,
-                idBanAn: ban.id,
-                // Gán tiền thuần vào đây để hiển thị ở nút bấm
-                canThu: canThu > 0 ? canThu : 0, 
-                allServed: allServed
-              }
-            });
-        }
+          listBanCoKhachKhac.value.push({
+            ...ban,
+            _hoaDonInfo: {
+              idHoaDon: res.data.idHoaDon,
+              idPhieu: res.data.id,
+              idBanAn: ban.id,
+              canThu: canThu > 0 ? canThu : 0, 
+              allServed: allServed,
+              tenKhach: res.data.tenKhachHang || 'Khách vãng lai' // 🚨 Lấy tên khách để hiển thị
+            }
+          });
       }
     } catch (error) {
       console.log(`Lỗi kiểm tra bàn ${ban.maBan}`);
@@ -1004,9 +988,25 @@ const grandTotalToPay = computed(() => billSummary.value.canThu || 0);
 
 // Chỉ thanh toán được khi Đã lên đủ món
 const canPay = computed(() => {
+  if (selectedPhieu.value?.isBanPhu) return false; // Bàn phụ khóa thanh toán
   return hasItems.value && isAllItemsServed.value;
 });
 
+// 🚨 HÀM MỚI: Chuyển nhanh từ Bàn Phụ sang Bàn Chủ
+const switchToMainTable = async () => {
+  if (!selectedPhieu.value?.idBanChinh) return;
+  const mainTableId = selectedPhieu.value.idBanChinh;
+  
+  // Tìm bàn chính trong danh sách bàn trên sơ đồ
+  const mainTable = danhSachBan.value.find(b => b.id === mainTableId);
+  
+  if (mainTable) {
+    // Mở đè Modal Bàn Chính lên luôn
+    await openManageModal(mainTable);
+  } else {
+    Swal.fire('Lỗi', 'Không tìm thấy thông tin bàn chính trên sơ đồ!', 'error');
+  }
+};
 const modalActiveFloor = ref(1);
 const modalHoveredTableId = ref(null);
 
@@ -1072,23 +1072,16 @@ const refreshTableData = async () => {
           });
       }
 
-      if (resPhieu.data.chiTiet) {
-        listMonDaChon.value = resPhieu.data.chiTiet.filter(m => m.trangThaiMon !== 0).map((mon) => {
-            const isSet = mon.type === 'SET' || mon.idSetLau != null;
-            const originalId = isSet ? mon.idSetLau : mon.idChiTietMonAn;
-            return {
-                dbDetailId: mon.idChiTietHd, 
-                originalId: originalId,
-                type: isSet ? 'SET' : 'FOOD', 
-                uniqueId: isSet ? `set_${originalId}` : `food_${originalId}`, 
-                name: mon.tenMon,
-                quantity: mon.soLuong,
-                price: mon.donGia || 0,
-                note: mon.ghiChu || '',
-                served: mon.trangThaiMon === 2 
-            };
-        });
+      // ========================================================
+      // 🚨 ĐÃ SỬA: Đồng bộ cách map dữ liệu giống hệt lúc mở Modal
+      // ========================================================
+      const listFromApiRaw = resPhieu.data.chiTiet || resPhieu.data.chiTietHoaDon || [];
+      if (listFromApiRaw.length > 0) {
+        listMonDaChon.value = mapAndGroupItems(listFromApiRaw);
+      } else {
+        listMonDaChon.value = [];
       }
+
     }
   } catch (error) {
     console.error("Lỗi đồng bộ", error);
@@ -1570,9 +1563,70 @@ const isTableInCurrentGroup = (banId) => {
   return selectedPhieu.value.danhSachBan.some(b => b.id === banId);
 };
 
+const danhSachBanChonGop = ref([]);
+
 const openMergeTableView = () => {
   modalView.value = 'mergeTable';
   modalActiveFloor.value = Number(selectedBan.value?.soTang) || 1;
+  danhSachBanChonGop.value = []; // Reset mảng mỗi khi mở lại tab này
+};
+
+const toggleSelectBanGop = (ban) => {
+  const index = danhSachBanChonGop.value.findIndex(b => b.id === ban.id);
+  if (index !== -1) {
+    danhSachBanChonGop.value.splice(index, 1); // Bỏ chọn
+  } else {
+    danhSachBanChonGop.value.push(ban); // Chọn
+  }
+};
+
+const handleConfirmMergeBulk = async () => {
+  if (danhSachBanChonGop.value.length === 0) return;
+
+  const tableNames = danhSachBanChonGop.value.map(b => b.maBan).join(', ');
+
+  const confirm = await Swal.fire({
+    title: 'Xác nhận gộp bàn?',
+    html: `Chuyển TOÀN BỘ món ăn, khách và tiền cọc từ các bàn: <br><b style="color:red; font-size: 18px;">${tableNames}</b><br><br>Sang đoàn của bàn <b style="color:green; font-size: 18px;">${selectedBan.value.maBan}</b>?<br><br><i>Lưu ý: Các bàn bị gộp sẽ dùng chung hóa đơn với bàn này.</i>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#7d161a',
+    cancelButtonText: 'Hủy bỏ',
+    confirmButtonText: 'Đồng ý gộp'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'Đang xử lý gộp bàn...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Dùng vòng lặp for...of để gọi API gộp lần lượt từng bàn vào bàn chính
+    for (const banBiNuot of danhSachBanChonGop.value) {
+      // Lấy ID Hóa Đơn của Bàn bị gộp
+      const resTarget = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${banBiNuot.id}`);
+      const idHoaDonBiNuot = resTarget.data?.idHoaDon;
+
+      if (idHoaDonBiNuot) {
+        const payload = {
+          idHoaDonChu: selectedPhieu.value.idHoaDon, 
+          idHoaDonBiNuot: idHoaDonBiNuot,             
+          idNhanVien: getCurrentStaffId() || 1
+        };
+        await axiosClient.post('/hoa-don-thanh-toan/gop-ban', payload);
+      }
+    }
+
+    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã gộp tất cả các bàn hoàn tất!', timer: 1500, showConfirmButton: false });
+    
+    danhSachBanChonGop.value = []; // Clear mảng
+    closeModal();
+    await handleFetchAllCheckIn();
+    await fetchAllBan();
+    await fetchTableStatus();
+
+  } catch (error) {
+    Swal.fire({ title: 'Lỗi', text: error.response?.data?.message || 'Lỗi khi gộp bàn!', icon: 'error', confirmButtonText: 'Đóng' });
+  }
 };
 
 // ========================================================
@@ -2104,8 +2158,8 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
 
                 <div v-if="listMonDaChon.length > 0" class="selected-summary mt-3 shadow-sm">
                     <div class="d-flex justify-content-between mb-2">
-                    <span class="text-success fw-bold"><i class="fa-solid fa-utensils me-1"></i> Thực đơn đã chọn:</span>
-                    <span class="badge bg-success">{{ listMonDaChon.length }} món</span>
+                    <span class="text-danger fw-bold"><i class="fa-solid fa-utensils me-1"></i> Thực đơn đã chọn:</span>
+                    <span class="badge bg-danger">{{ listMonDaChon.length }} món</span>
                     </div>
                     <ul class="summary-list mb-3">
                     <li v-for="item in listMonDaChon" :key="item.id">{{ item.name }} <span class="text-muted">x{{ item.quantity }}<span class="text-muted" style="float: right;"><strong>{{ (item.price * item.quantity).toLocaleString() }} đ</strong></span></span></li>
@@ -2128,7 +2182,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <span>: + {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
                       </div>
                     </div>
-                    <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-primary small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
+                    <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-danger small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
                     <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
                         <span class="fw-bold text-dark text-uppercase" style="font-size: 14px;">Tiền món bàn này:</span>
                         <span class="fw-bold text-danger" style="font-size: 16px;">{{ (billSummary?.canThu || 0).toLocaleString() }} đ</span>
@@ -2136,13 +2190,13 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
 
                     <div v-if="(billSummary?.giam || 0) === 0" class="mt-3 d-flex flex-column gap-2">
                         <button class="btn w-100 fw-bold d-flex align-items-center justify-content-center" 
-                                style="border-radius: 8px; font-size: 13px; background-color: #28a745 !important; color: white; border: none; box-shadow: 0 2px 4px rgba(40,167,69,0.3);" 
+                                style="border-radius: 8px; font-size: 13px; background-color: #7d161a; color: white; border: none; box-shadow: 0 2px 4px #7d161a;" 
                                 @click="applyBestPublicVoucher">
                             <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Tự động đề cử ưu đãi tốt nhất
                         </button>
                         
                         <button class="btn btn-outline-danger w-100 fw-bold d-flex align-items-center justify-content-center" 
-                                style="border-radius: 8px; font-size: 13px; background-color: white !important; color: #7d161a; border: 1px solid #7d161a !important;" 
+                                style="border-radius: 8px; font-size: 13px; background-color: #7d161a; color: white; border: none; box-shadow: 0 2px 4px #7d161a;" 
                                 @click="openDiscountModal('PERSONAL')">
                             <i class="fa-solid fa-gift me-2"></i> Chọn mã giảm giá cá nhân
                         </button>
@@ -2158,7 +2212,10 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'"><i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng</button>
                     <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn</button>
                     <div v-if="selectedPhieu?.isBanPhu" class="alert alert-warning py-2 px-3 text-center mb-0 mt-2 shadow-sm" style="font-size: 13px; border-radius: 8px; border: 1px dashed #ffc107;">
-                        <i class="fa-solid fa-lock me-1"></i> Bàn phụ không thể thao tác cấu trúc.<br>Vui lòng sang <b>Bàn Chủ ({{ selectedPhieu.tenBanChinh }})</b> để Đổi / Gộp bàn.
+                        <i class="fa-solid fa-lock me-1"></i> Bàn phụ không thể thao tác cấu trúc.<br>
+                        <button class="btn btn-sm mt-2 fw-bold w-100" style="background-color: #ffc107; color: #7d161a; border-radius: 6px;" @click="switchToMainTable">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sang Bàn Chủ ({{ selectedPhieu.tenBanChinh }}) để xử lý
+                        </button>
                     </div>
                     <div v-else class="d-flex gap-2 mt-2">
                         <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openChangeTableView"><i class="fa-solid fa-right-left me-1"></i> Đổi bàn</button>
@@ -2172,12 +2229,18 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 
                 <div class="d-flex gap-2">
                     <button v-if="getTrangThaiTheoNgay(selectedBan?.id) !== 1" class="btn btn-update-status flex-grow-1" @click="handleDirectCheckIn"><i class="fa-solid fa-bell-concierge me-2"></i> Xác nhận Check-in</button>
-                    <div v-else class="alert alert-success p-2 mb-0 text-center flex-grow-1 d-flex align-items-center justify-content-center" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; border-radius: 8px;"><i class="fa-solid fa-check-circle me-2"></i> Bàn đã Check-in</div>
+                    <div v-else class="alert alert-success p-2 mb-0 text-center flex-grow-1 d-flex align-items-center justify-content-center" style="background-color: #7d161a; border: 1px solid #dc3545; color: white; border-radius: 8px;"><i class="fa-solid fa-check-circle me-2"></i> Bàn đã Check-in</div>
                     <button v-if="selectedPhieu?.id" class="btn px-4" style="background-color: #fff; color: #dc3545; border: 1px solid #dc3545; font-weight: bold; border-radius: 8px;" @click="handleCancelTicket"><i class="fa-solid fa-ban me-1"></i> Hủy phiếu</button>
                 </div>
 
                 <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1 && selectedPhieu?.id" class="payment-group mt-4 pt-3 border-top">
                     <h6 class="section-title mb-2">Quyết toán hóa đơn</h6>
+                    <div v-if="selectedPhieu?.isBanPhu" class="alert alert-warning py-2 px-3 text-center mb-3 shadow-sm" style="font-size: 13px; border-radius: 8px; border-left: 5px solid #ffc107; background-color: #fffbe6;">
+                        <i class="fa-solid fa-lock me-1"></i> Đây là <b>Bàn phụ</b>.<br>Hóa đơn được gom chung và tính tiền ở Bàn Chủ.
+                        <button class="btn btn-sm mt-2 fw-bold w-100" style="background-color: #7d161a; color: white; border-radius: 6px;" @click="switchToMainTable">
+                            <i class="fa-solid fa-file-invoice-dollar me-1"></i> Sang Bàn Chủ thanh toán
+                        </button>
+                    </div>
                     <div v-if="selectedPhieu?.idHoaDon && (selectedPhieu?.vatApDung || 0) === 0" class="alert alert-warning py-2 px-3 text-center mb-3 shadow-sm" style="font-size: 13px; border-radius: 8px; border-left: 5px solid #ffc107; background-color: #fffbe6;"><i class="fa-solid fa-lock me-1"></i> Đây là <b>Bàn phụ (0% VAT)</b>. Vui lòng chuyển sang bàn chính để thanh toán gộp.</div>
                     <div v-if="!hasItems" class="alert alert-danger py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px; background-color: #fff1f0; border: 1px solid #ffccc7; color: #cf1322;"><i class="fa-solid fa-cart-arrow-down me-1"></i> Bàn chưa có món nào! Vui lòng <strong>Thêm món</strong> trước khi thanh toán.</div>
                     <div v-if="hasItems && !isAllItemsServed" class="alert alert-warning py-2 px-3 text-center" style="font-size: 13px; border-radius: 8px;"><i class="fa-solid fa-triangle-exclamation me-1"></i> Vui lòng vào <strong>"Xem đơn hàng"</strong> và xác nhận đã lên đủ món để mở khóa thanh toán.</div>
@@ -2187,7 +2250,13 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <div v-if="listBanCoKhachKhac.length > 0">
                             <p class="small text-muted mb-2">Các bàn sau có cùng khách và đủ điều kiện gộp:</p>
                             <div class="d-flex gap-2 flex-wrap">
-                                <button v-for="ban in listBanCoKhachKhac" :key="ban.id" class="btn btn-sm d-flex flex-column align-items-center justify-content-center p-2 transition-all custom-merge-btn" style="min-width: 80px; border-radius: 8px;" :class="listBanGop.some(b => b.id === ban.id) ? 'is-selected shadow' : 'bg-white'" @click="toggleGopBan(ban)"><span class="fw-bold fs-6">{{ ban.maBan }}</span><small style="font-size: 11px;">+{{ ban._hoaDonInfo.canThu.toLocaleString() }}đ</small></button>
+                              <button v-for="ban in listBanCoKhachKhac" :key="ban.id" class="btn btn-sm d-flex flex-column align-items-center justify-content-center p-2 transition-all custom-merge-btn" style="min-width: 90px; border-radius: 8px;" :class="listBanGop.some(b => b.id === ban.id) ? 'is-selected shadow' : 'bg-white'" @click="toggleGopBan(ban)">
+                                <span class="fw-bold fs-6">{{ ban.maBan }}</span>
+                                <small style="font-size: 10px; max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" class="mb-1 text-secondary" :class="listBanGop.some(b => b.id === ban.id) ? 'text-white' : ''">
+                                    <i class="fa-regular fa-user"></i> {{ ban._hoaDonInfo.tenKhach }}
+                                </small>
+                                <small class="fw-bold" style="font-size: 12px;">+{{ ban._hoaDonInfo.canThu.toLocaleString() }}đ</small>
+                            </button>
                             </div>
                             <div v-if="listBanGop.length > 0" class="mt-3 pt-2 border-top">
                                 <div class="d-flex justify-content-between align-items-center mb-1"><span class="text-muted small">Cộng dồn tiền món:</span><span class="text-dark small fw-bold">{{ (((grandTotalToPay || 0) + (billSummary?.coc || 0)) - (totalVatToPay || 0)).toLocaleString() }} đ</span></div>
@@ -2300,7 +2369,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           <div class="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
             <div class="alert alert-warning mb-0 border-0 shadow-sm flex-grow-1 me-4 d-flex align-items-center">
                 <i class="fa-solid fa-link me-2 text-danger fs-5"></i>
-                <span>Vui lòng chọn 1 bàn đang <strong>Có Khách</strong> để gộp chung vào bàn <strong class="text-danger fs-5 mx-1">{{ selectedBan?.maBan }}</strong>.</span>
+                <span>Bạn có thể tick chọn <strong>Nhiều Bàn (Có Khách)</strong> để gộp chung vào bàn <strong class="text-danger fs-5 mx-1">{{ selectedBan?.maBan }}</strong>.</span>
             </div>
             <div class="d-flex bg-white p-1 rounded shadow-sm border">
                 <button v-for="tang in danhSachTang" :key="'merge-tang-' + tang" class="btn px-4 py-2 fw-bold" :class="modalActiveFloor === tang ? 'btn-active' : 'text-muted'" @click="modalActiveFloor = tang" style="border-radius: 6px; border: none;">Tầng {{ tang }}</button>
@@ -2315,16 +2384,23 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                           :class="{
                             'is-hovered': modalHoveredTableId === ban.id, 
                             'is-dimmed': getTrangThaiTheoNgay(ban.id) !== 1 || isTableInCurrentGroup(ban.id), 
-                            'current-table': isTableInCurrentGroup(ban.id)
+                            'current-table': isTableInCurrentGroup(ban.id),
+                            'is-selected-merge': danhSachBanChonGop.some(b => b.id === ban.id) /* 🚨 HIỆU ỨNG KHI TICK CHỌN */
                           }" 
                           :style="{gridColumnStart: ban.column, gridRowStart: ban.row, gridColumnEnd: 'span 3', gridRowEnd: 'span 2', cursor: (getTrangThaiTheoNgay(ban.id) === 1 && !isTableInCurrentGroup(ban.id)) ? 'pointer' : 'not-allowed'}" 
-                          @click="(getTrangThaiTheoNgay(ban.id) === 1 && !isTableInCurrentGroup(ban.id)) ? handleConfirmMerge(ban) : null">
+                          @click="(getTrangThaiTheoNgay(ban.id) === 1 && !isTableInCurrentGroup(ban.id)) ? toggleSelectBanGop(ban) : null">
+                        
+                        <div v-if="danhSachBanChonGop.some(b => b.id === ban.id)" style="position: absolute; top: -10px; right: -10px; background: #28a745; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 20;">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+
                         <div class="table-content text-center pt-2">
                             <strong class="fs-5">{{ ban.maBan }}</strong>
                             <div class="text-muted small mb-2"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho }} chỗ</div>
                             
                             <div v-if="ban.id === selectedBan?.id" class="status-tag bg-primary text-white w-100 rounded-pill"><i class="fa-solid fa-location-dot"></i> Đang chọn</div>
                             <div v-else-if="isTableInCurrentGroup(ban.id)" class="status-tag bg-info text-white w-100 rounded-pill"><i class="fa-solid fa-layer-group"></i> Cùng đoàn</div>
+                            <div v-else-if="danhSachBanChonGop.some(b => b.id === ban.id)" class="status-tag bg-success text-white w-100 rounded-pill"><i class="fa-solid fa-check-double"></i> Đã Tick Chọn</div>
                             <div v-else-if="getTrangThaiTheoNgay(ban.id) === 1" class="status-tag status-occupied-light w-100 rounded-pill"><i class="fa-solid fa-plus-circle"></i> Có Khách (Ghép)</div>
                             <div v-else class="status-tag bg-secondary text-white w-100 rounded-pill"><i class="fa-solid fa-ban"></i> Bàn Trống</div>
                         </div>
@@ -2335,7 +2411,13 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           </div>
 
           <div class="mt-3 pt-3 border-top bg-white px-3 py-2 rounded shadow-sm d-flex justify-content-between flex-shrink-0">
-              <button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'"><i class="fa-solid fa-arrow-left me-1"></i> Hủy gộp bàn</button>
+              <button class="btn btn-outline-secondary px-4 fw-bold" @click="modalView = 'info'"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại</button>
+              
+              <button class="btn btn-update-status px-4 fw-bold" style="width: auto; background-color: #28a745;" 
+                      :disabled="danhSachBanChonGop.length === 0" 
+                      @click="handleConfirmMergeBulk">
+                  Xác nhận gộp {{ danhSachBanChonGop.length }} bàn <i class="fa-solid fa-link ms-2"></i>
+              </button>
           </div>
         </div>
 
@@ -2600,7 +2682,6 @@ hr {
 /* Button tầng */
 /* Trạng thái cho nút ĐANG được chọn (Active) */
 .btn {
-  background-color: white;
   color: #333;
 }
 
@@ -3896,5 +3977,16 @@ button:disabled {
   0% { box-shadow: 0 0 0 0 rgba(125, 22, 26, 0.5); }
   70% { box-shadow: 0 0 0 10px rgba(125, 22, 26, 0); }
   100% { box-shadow: 0 0 0 0 rgba(125, 22, 26, 0); }
+}
+
+.table-card.is-selected-merge {
+  border: 3px solid #28a745 !important; /* Viền xanh lá đậm */
+  background-color: #f0fdf4 !important; /* Nền xanh mint nhạt */
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.4) !important;
+  opacity: 1 !important;
+  filter: grayscale(0%) !important;
+  z-index: 10;
+  position: relative; /* Để hiển thị icon check tròn trên góc */
 }
 </style>

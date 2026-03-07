@@ -16,6 +16,11 @@ import java.util.List;
 @Repository
 public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, Integer> {
 
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE chi_tiet_hoa_don SET id_hoa_don = :idHoaDonChu WHERE id_hoa_don = :idHoaDonBiNuot", nativeQuery = true)
+    void chuyenHoaDonChoChiTietMon(@Param("idHoaDonChu") Integer idHoaDonChu, @Param("idHoaDonBiNuot") Integer idHoaDonBiNuot);
+
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +
             "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.tenSetLau " +
@@ -51,10 +56,10 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
     List<TopSetLauResponse> findTopSellingSetLau(Pageable pageable);
 
     // Thêm vào ChiTietHoaDonRepository.java
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query("UPDATE ChiTietHoaDon c SET c.idHoaDon.id = :idHoaDonMoi WHERE c.idHoaDon.id = :idHoaDonCu")
-    void chuyenMonSangHoaDonMoi(@Param("idHoaDonMoi") Integer idHoaDonMoi, @Param("idHoaDonCu") Integer idHoaDonCu);
+    @Query(value = "UPDATE chi_tiet_hoa_don SET id_hoa_don = :idHoaDonChu WHERE id_hoa_don = :idHoaDonBiNuot", nativeQuery = true)
+    void chuyenMonSangHoaDonMoi(@Param("idHoaDonChu") Integer idHoaDonChu, @Param("idHoaDonBiNuot") Integer idHoaDonBiNuot);
 
     List<ChiTietHoaDon> findByIdHoaDon_Id(Integer id);
 }
