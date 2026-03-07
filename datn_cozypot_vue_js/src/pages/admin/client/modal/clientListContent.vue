@@ -378,7 +378,7 @@ const handleRefresh = async () => {
     Swal.fire({
       title: 'Đã tải lại dữ liệu',
       icon: 'success',
-      iconColor: '#a5dc86',
+      iconColor: '#7D161A',
       showConfirmButton: false,
       timer: 1500,
       toast: false,
