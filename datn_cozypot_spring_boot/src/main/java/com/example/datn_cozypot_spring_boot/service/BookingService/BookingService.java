@@ -15,11 +15,11 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class BookingService {
     private final PhieuDatBanRepository phieuDatBanRepo;
-    private final HoaDonThanhToanRepository hoaDonRepo;
     private final ChiTietHoaDonRepository chiTietHoaDonRepo;
     private final KhachHangRepository khachHangRepo;
     private final BanAnRepository banAnRepository;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     @Transactional
     public String taoDonDatBan(PhieuDatBanRequest request) {
@@ -36,46 +36,57 @@ public class BookingService {
                     .orElseThrow(() -> new RuntimeException("Bàn ăn không tồn tại!"));
         }
 
-        // 1. Lưu Phiếu Đặt Bàn
+        // ==========================================
+        // 1. Lưu Phiếu Đặt Bàn (CẬP NHẬT N-N)
+        // ==========================================
         PhieuDatBan phieuDatBan = new PhieuDatBan();
         phieuDatBan.setIdKhachHang(khachHang);
-        phieuDatBan.setIdBanAn(banAn);
 
-        // Sử dụng một cơ chế sinh mã duy nhất (ví dụ: PDB + timestamp)
-        // Lưu ý: Đảm bảo độ dài mã không vượt quá cấu trúc của bảng (varchar 30 hoặc 50)
-        String maPhieu = "PDB" + System.currentTimeMillis();
-        phieuDatBan.setMaDatBan(maPhieu.length() > 30 ? maPhieu.substring(0, 30) : maPhieu);
+        if (banAn != null) {
+            // 🚨 N-N LOGIC: Nhét bàn vào Set, thay vì setIdBanAn
+            phieuDatBan.getBanAns().add(banAn);
 
+            // Cập nhật trạng thái bàn sang "Đã đặt" (2) để sơ đồ khóa lại
+            banAn.setTrangThai(2);
+            banAnRepository.save(banAn);
+        }
+
+        // BỎ QUA setMaDatBan vì DB đã cấu hình AS ISNULL(...) PERSISTED
         phieuDatBan.setThoiGianDat(request.getThoiGianDat());
         phieuDatBan.setSoLuongKhach(request.getSoNguoi());
-        phieuDatBan.setHinhThucDat(1); // Ví dụ: 1 = Đặt online
-        phieuDatBan.setTrangThai(1);   // Ví dụ: 0 = Chờ check-in
+        phieuDatBan.setHinhThucDat(1); // 1 = Đặt online
+        phieuDatBan.setTrangThai(1);   // 1 = Đã xác nhận / Chờ check-in
         phieuDatBan.setNgayTao(LocalDateTime.now());
-
-
-        // Cần lưu ý: Nếu Database đã set "ma_dat_ban" là Computed Column hoặc Trigger,
-        // bạn có thể cần bỏ qua việc set trường này hoặc điều chỉnh cấu trúc bảng.
 
         PhieuDatBan savedPhieu = phieuDatBanRepo.save(phieuDatBan);
 
+        // ==========================================
         // 2. Lưu Hóa Đơn Thanh Toán
+        // ==========================================
         HoaDonThanhToan hoaDon = new HoaDonThanhToan();
         hoaDon.setIdKhachHang(khachHang);
-        hoaDon.setIdBanAn(banAn);
         hoaDon.setIdPhieuDatBan(savedPhieu);
 
-        String maHoaDon = "HD" + System.currentTimeMillis();
-        hoaDon.setMaHoaDon(maHoaDon.length() > 30 ? maHoaDon.substring(0, 30) : maHoaDon);
+        // 🚨 ĐÃ XÓA hoaDon.setIdBanAn(banAn) VÌ CỘT NÀY KHÔNG CÒN TỒN TẠI
 
+        // BỎ QUA setMaHoaDon vì DB tự gen
         hoaDon.setTongTienChuaGiam(request.getTongTien());
         hoaDon.setTongTienThanhToan(request.getTongTien());
         hoaDon.setGhiChu(request.getGhiChu());
         hoaDon.setThoiGianTao(Instant.now());
-        hoaDon.setTrangThaiHoaDon(0); // Ví dụ: 0 = Chưa thanh toán
+        hoaDon.setTrangThaiHoaDon(0); // 0 = Chưa thanh toán
+        float VAT = 10.0F;
+        try {
+            VAT = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+            System.out.println(VAT);
+        } catch (Exception e) {}
+        hoaDon.setVatApDung(VAT);
 
         HoaDonThanhToan savedHoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
-        // 3. Lưu Chi Tiết Hóa Đơn
+        // ==========================================
+        // 3. Lưu Chi Tiết Hóa Đơn (Món Ăn)
+        // ==========================================
         if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
             for (PhieuDatBanRequest.ChiTietMonAnRequest item : request.getChiTiet()) {
                 ChiTietHoaDon chiTiet = new ChiTietHoaDon();
@@ -97,13 +108,13 @@ public class BookingService {
                 BigDecimal thanhTien = item.getDonGia().multiply(new BigDecimal(item.getSoLuong()));
                 chiTiet.setThanhTien(thanhTien);
 
-                chiTiet.setTrangThaiMon(0); // Ví dụ: 0 = Chờ làm món
+                chiTiet.setTrangThaiMon(1); // 1 = Chờ làm món
                 chiTiet.setNgayGioTao(LocalDateTime.now());
 
                 chiTietHoaDonRepo.save(chiTiet);
             }
         }
 
-        return "Đặt bàn thành công với mã: " + savedPhieu.getMaDatBan();
+        return "Đặt bàn thành công! Hóa đơn đã được khởi tạo.";
     }
 }

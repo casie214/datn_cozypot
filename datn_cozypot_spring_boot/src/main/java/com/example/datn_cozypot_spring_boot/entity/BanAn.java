@@ -3,7 +3,6 @@ package com.example.datn_cozypot_spring_boot.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -67,7 +66,6 @@ public class BanAn {
     @Column(name = "ngay_tao", insertable = false, updatable = false)
     private LocalDateTime ngayTao;
 
-
     @Column(name = "ngay_sua")
     private LocalDateTime ngaySua;
 
@@ -76,17 +74,15 @@ public class BanAn {
     @Column(name = "nguoi_tao", length = 100)
     private String nguoiTao;
 
-
     @Size(max = 100)
     @Nationalized
     @Column(name = "nguoi_sua", length = 100)
     private String nguoiSua;
 
-    @OneToMany(mappedBy = "idBanAn")
-    @JsonIgnore
-    private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "idBanAn")
+    // 🚨 ĐÃ SỬA: Chuyển sang ManyToMany (Mapped từ entity PhieuDatBan)
+    @ManyToMany(mappedBy = "banAns")
+    @JsonIgnore // Cực kỳ quan trọng để tránh lỗi StackOverflow (đệ quy vô tận) khi trả về JSON
     private Set<PhieuDatBan> phieuDatBans = new LinkedHashSet<>();
 
+    // ĐÃ XÓA `hoaDonThanhToans` VÌ HÓA ĐƠN KHÔNG CÒN NỐI TRỰC TIẾP VỚI BÀN
 }
