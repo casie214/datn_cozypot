@@ -252,7 +252,7 @@ public class HoaDonThanhToanService {
             hoaDon = hoaDonThanhToanRepository.findById(req.getIdHoaDon()).orElse(null);
         } else {
             // Khách vãng lai: Tìm Phiếu đang hoạt động của bàn này
-            List<PhieuDatBan> listPhieu = phieuDatBanRepository.findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(req.getIdBanAn(), Arrays.asList(0, 1, 3));
+            List<PhieuDatBan> listPhieu = phieuDatBanRepository.findByBanAns_IdAndTrangThaiInOrderByThoiGianDatAsc(req.getIdBanAn(), Arrays.asList(0, 1, 3));
             if (!listPhieu.isEmpty()) {
                 PhieuDatBan phieuActive = listPhieu.get(0);
                 hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(phieuActive.getId());
