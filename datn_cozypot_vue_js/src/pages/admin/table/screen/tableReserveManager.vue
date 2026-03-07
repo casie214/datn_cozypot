@@ -23,6 +23,7 @@ const totalPages = ref(0);
 const currentPage = ref(1); // Vue hiển thị từ trang 1
 const pageSize = ref(6);
 const refreshKey = ref(0); // Thêm biến này để ép component con tải lại
+const isSubmitting = ref(false);
 
 const searchForm = ref({
   soDienThoai: "",
@@ -371,33 +372,33 @@ const validateCreateForm = () => {
   const soLuongKhach = Number(createForm.value.soLuongKhach);
 
   if (!tenKhachHang) {
-    errors.tenKhachHang = "Vui long nhap ten khach hang";
+    errors.tenKhachHang = "Vui lòng nhập tên khách hàng";
   } else if (tenKhachHang.length < 2) {
-    errors.tenKhachHang = "Ten khach hang phai co it nhat 2 ky tu";
+    errors.tenKhachHang = "Tên khách hàng phải có ít nhất 2 ký tự";
   }
 
   if (!soDienThoai) {
-    errors.soDienThoai = "Vui long nhap so dien thoai";
+    errors.soDienThoai = "Vui lòng nhập số điện thoại";
   } else if (!isValidVietnamPhone(soDienThoai)) {
-    errors.soDienThoai = "So dien thoai khong dung dinh dang Viet Nam";
+    errors.soDienThoai = "Số điện thoại không đúng định dạng";
   }
 
   if (email && !isValidEmail(email)) {
-    errors.email = "Email khong dung dinh dang";
+    errors.email = "Email không đúng định dạng";
   }
 
   if (!thoiGianDat) {
-    errors.thoiGianDat = "Vui long chon thoi gian dat";
+    errors.thoiGianDat = "Vui lòng chọn thời gian đặt";
   } else if (new Date(thoiGianDat) <= new Date()) {
-    errors.thoiGianDat = "Thoi gian dat phai lon hon thoi diem hien tai";
+    errors.thoiGianDat = "Thời gian đặt phải lớn hơn ngày giờ hiện tại";
   }
 
   if (!Number.isInteger(soLuongKhach) || soLuongKhach < 1) {
-    errors.soLuongKhach = "So luong khach phai la so nguyen lon hon 0";
+    errors.soLuongKhach = "Số lượng khách phải lớn hơn 0";
   }
 
   if (!createForm.value.idBanAn) {
-    errors.idBanAn = "Vui long chon ban";
+    errors.idBanAn = "Vui lòng chọn bàn";
   }
 
   formErrors.value = errors;
@@ -405,8 +406,11 @@ const validateCreateForm = () => {
 };
 
 // ================= SUBMIT =================
+// ================= SUBMIT =================
 const submitCreate = async () => {
   if (!validateCreateForm()) return;
+
+  isSubmitting.value = true; // Bật loading khi bắt đầu gọi API
 
   try {
     const thoiGianDat =
@@ -441,8 +445,12 @@ const submitCreate = async () => {
       "❌ Tạo phiếu thất bại",
       error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.",
     );
+  } finally {
+    isSubmitting.value = false; // Tắt loading dù thành công hay thất bại
   }
 };
+
+
 const closeCreateModal = () => {
   showCreateModal.value = false;
   selectedCustomer.value = null;
@@ -794,10 +802,13 @@ onMounted(() => {
       </div>
 
       <div style="text-align: right; margin-top: 20px">
-        <button class="btn btn-custom-outline" @click="closeCreateModal">
+        <button class="btn btn-custom-outline" @click="closeCreateModal" :disabled="isSubmitting">
           Hủy
         </button>
-        <button class="btn ms-2" @click="submitCreate">Lưu</button>
+        <button class="btn ms-2" style="min-width: 80px;" @click="submitCreate" :disabled="isSubmitting">
+          <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
+          {{ isSubmitting ? 'Đang lưu...' : 'Lưu' }}
+        </button>
       </div>
     </div>
   </div>
@@ -919,6 +930,59 @@ hr {
   --ms-option-bg-selected: #7d161a;
   --ms-option-color-selected: #ffffff;
   --ms-option-bg-selected-pointed: #5f0f12;
+}
+
+.custom-filter-multiselect :deep(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: white !important;
+}
+
+.custom-filter-multiselect :deep(.multiselect-option.is-selected.is-pointed) {
+  background-color: #5c0a16 !important; /* Đỏ sẫm hơn một chút khi hover vào mục đã chọn */
+}
+
+.custom-filter-multiselect :deep(.multiselect-option.is-selected::after) {
+  color: white !important; 
+}
+
+:global(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: white !important;
+}
+
+:global(.multiselect-option.is-selected.is-pointed) {
+  background-color: #5c0a16 !important;
+}
+
+:global(.multiselect-option.is-selected::after) {
+  background-color: transparent !important;
+  color: white !important;
+}
+
+:global(.multiselect-single-label-text) {
+  color: #7d161a !important;
+  font-weight: 600;
+}
+
+:global(.multiselect-option) {
+  color: #333 !important;
+}
+
+:global(.multiselect-option.is-pointed) {
+  color: #7d161a !important; 
+}
+
+:global(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: #ffffff !important; 
+}
+
+:global(.multiselect-placeholder) {
+  color: #999 !important;
+}
+
+.custom-filter-multiselect :deep(.multiselect-option span) {
+  color: inherit; 
 }
 
 @keyframes fadeIn {
@@ -1212,7 +1276,6 @@ hr {
   color: #555;
 }
 
-/* Animation */
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s ease;
@@ -1226,5 +1289,21 @@ hr {
 .toast-leave-to {
   opacity: 0;
   transform: translateX(40px);
+}
+
+:global(.multiselect-option) {
+  color: #444 !important;
+}
+
+:global(.multiselect-option.is-selected *) {
+  color: #ffffff !important;
+}
+
+:global(.multiselect-option span) {
+  font-weight: 500;
+}
+
+:global(.multiselect-option.is-selected span[style*="color"]) {
+  color: #ffffff !important;
 }
 </style>
