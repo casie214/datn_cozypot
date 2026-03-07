@@ -82,4 +82,7 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer
 
     // Hàm tự gen rất hay của bạn
     List<PhieuDatBan> findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(Integer idBanAn, List<Integer> list);
+
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai IN (0, 1, 3) AND p.thoiGianDat >= :start AND p.thoiGianDat <= :end")
+    List<PhieuDatBan> findPhieuOverlapping(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }
