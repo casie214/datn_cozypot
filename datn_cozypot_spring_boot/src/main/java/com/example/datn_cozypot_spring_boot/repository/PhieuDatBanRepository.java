@@ -81,5 +81,5 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer
     List<PhieuDatBan> findAllByTrangThaiAndThoiGianDatBefore(int i, LocalDateTime limitTime);
 
     // Hàm tự gen rất hay của bạn
-    List<PhieuDatBan> findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(Integer idBanAn, List<Integer> list);
+    List<PhieuDatBan> findByBanAns_IdAndTrangThaiInOrderByThoiGianDatAsc(Integer idBanAn, List<Integer> list);
 }

@@ -119,18 +119,18 @@ const router = useRouter();
     </div>
 
     <div class="table-container" style="min-height: 278px;">
-      <table>
-        <thead>
+      <table class="table table-hover align-middle mb-0" style="font-family: var(--bs-body-font-family); font-size: var(--bs-body-font-size);">
+        <thead class="table-light text-muted">
           <tr>
-            <th>STT</th>
-            <th>MÃ DANH MỤC</th>
-            <th>MÃ DMCT</th>
-            <th>TÊN DMCT</th>
-            <th>ĐỊNH LƯỢNG</th>
-            <th>ĐƠN VỊ</th>
-            <th>GIÁ</th>
-            <th>TRẠNG THÁI</th>
-            <th style="width: 120px;">HÀNH ĐỘNG</th>
+            <th class="py-3 ps-3">STT</th>
+            <th class="py-3">MÃ DANH MỤC</th>
+            <th class="py-3">MÃ DMCT</th>
+            <th class="py-3">TÊN DMCT</th>
+            <th class="py-3">ĐỊNH LƯỢNG</th>
+            <th class="py-3">ĐƠN VỊ</th>
+            <th class="py-3">GIÁ</th>
+            <th class="py-3">TRẠNG THÁI</th>
+            <th class="py-3 text-center" style="width: 120px;">HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>
