@@ -221,14 +221,14 @@ onUnmounted(() => {
 }
 
 .btn-register {
-    background: #7d161a;
-    color: white;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .btn-register:hover {

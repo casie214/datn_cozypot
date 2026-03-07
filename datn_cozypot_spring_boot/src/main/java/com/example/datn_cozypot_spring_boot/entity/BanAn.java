@@ -3,7 +3,6 @@ package com.example.datn_cozypot_spring_boot.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -67,7 +66,6 @@ public class BanAn {
     @Column(name = "ngay_tao", insertable = false, updatable = false)
     private LocalDateTime ngayTao;
 
-
     @Column(name = "ngay_sua")
     private LocalDateTime ngaySua;
 
@@ -75,7 +73,6 @@ public class BanAn {
     @Nationalized
     @Column(name = "nguoi_tao", length = 100)
     private String nguoiTao;
-
 
     @Size(max = 100)
     @Nationalized

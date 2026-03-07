@@ -21,28 +21,52 @@ public class PhieuDatBanResponse {
     private Integer trangThai;
     private String ghiChu;
 
-    // Các thông tin bổ trợ để hiển thị UI mà không gây loop
+    // 1. THÔNG TIN BÀN HIỆN TẠI (Bàn mà nhân viên đang click vào sơ đồ)
     private Integer idBanAn;
     private String maBan;
     private String tenKhuVuc;
     private Integer tang;
+
+    // 2. THÔNG TIN QUẢN LÝ GỘP BÀN (Kiến trúc N-N)
+    // Danh sách tất cả các bàn đang thuộc phiếu này
+    private List<BanAnInfo> danhSachBan;
+
+    // Các cờ (flag) giúp Frontend biết đường khóa nút Thanh toán
+    private Boolean isBanPhu;
+    private String tenBanChinh;
+    private Integer idBanChinh;
+
+    // 3. THÔNG TIN HÓA ĐƠN & TÀI CHÍNH
     private Integer idHoaDon;
     private Integer idKhachHang;
-
     private BigDecimal tongTienChuaGiam;
     private BigDecimal soTienDaGiam;
     private BigDecimal tienCoc;
     private BigDecimal tongTienThanhToan;
-
     private Double vatApDung;
 
+    // 4. DANH SÁCH MÓN ĂN
     private List<ChiTietMonResponse> chiTiet;
+
+    // ==========================================
+    // CÁC CLASS CON BỔ TRỢ
+    // ==========================================
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BanAnInfo {
+        private Integer id;
+        private String maBan;
+        private String tenKhuVuc;
+        private Integer tang;
+    }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ChiTietMonResponse {
-        private Integer idChiTietHd; // THÊM TRƯỜNG NÀY ĐỂ LƯU KHÓA CHÍNH (SỐ 12, 13...)
+        private Integer idChiTietHd; // Khóa chính của chi tiết hóa đơn (SỐ 12, 13...)
         private Integer id; // Đây là originalId (ID của món lẻ hoặc set lẩu)
         private String tenMon;
         private Integer trangThaiMon;
@@ -54,5 +78,8 @@ public class PhieuDatBanResponse {
         private Integer idChiTietMonAn;
         private Integer idSetLau;
 
+        // Dùng để Frontend nhóm món ăn hiển thị (Ví dụ: [Bàn S02] Ít cay)
+        private String ghiChu;
+        private String tenBanPhucVu;
     }
 }
