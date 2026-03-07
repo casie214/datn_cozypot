@@ -9,7 +9,9 @@ import {
   searchDatBanService,
   updatePhieuDatBanService,
   updateTTPhieuDatBan,
+  fetchAllCheckIn
 } from "@/services/tableManageService";
+import Swal from "sweetalert2";
 
 // dayjs.extend(utc);
 // dayjs.extend(timezone);
@@ -17,8 +19,39 @@ import {
 // --- Khai báo State ---
 const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
-const currentPage = ref(1); // Vue hiển thị từ trang 1
+const currentPage = ref(1);
 const pageSize = ref(6);
+
+const danhSachCho = ref([]);
+
+const loadDanhSachCho = async () => {
+  try {
+    danhSachCho.value = await fetchAllCheckIn(); 
+  } catch (error) {
+    console.error("Lỗi lấy danh sách khách chờ:", error);
+  }
+};
+
+const isTableReserved = (banId, thoiGianDatMoi) => {
+  if (!thoiGianDatMoi || danhSachCho.value.length === 0) return false;
+
+  const targetTime = dayjs(thoiGianDatMoi);
+
+  return danhSachCho.value.some(khach => {
+    if (khach.idDatBan === selectedPhieu.value?.idDatBan) return false;
+
+    const isMatchTable = khach.idBanAn === banId;
+    const isValidStatus = [0, 1, 3].includes(Number(khach.trangThai));
+
+    if (isMatchTable && isValidStatus && khach.thoiGianDat) {
+      const existTime = dayjs(khach.thoiGianDat);
+      const diffMinutes = Math.abs(existTime.diff(targetTime, 'minute'));
+
+      return diffMinutes <= 180; 
+    }
+    return false;
+  });
+};
 
 const searchForm = ref({
   soDienThoai: "",
@@ -107,11 +140,14 @@ const changePage = (page) => {
   searchDatBan();
 };
 
-// 3. Xử lý modal và xếp bàn
 const openChonBanModal = async (phieu) => {
   selectedPhieu.value = phieu;
   try {
-    danhSachBan.value = await fetchAllBanAn();
+    const [banData] = await Promise.all([
+      fetchAllBanAn(),
+      loadDanhSachCho()
+    ]);
+    danhSachBan.value = banData;
     showModal.value = true;
   } catch (error) {
     console.error("Lỗi lấy danh sách bàn:", error);
@@ -138,12 +174,12 @@ const updatePhieuDatBan = async () => {
   try {
     await updatePhieuDatBanService(payload);
 
-    alert("Xếp bàn thành công!");
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
     closeModal();
     await searchDatBan(); // Load lại danh sách tại trang hiện tại
   } catch (err) {
     console.error(err);
-    alert("Có lỗi xảy ra khi xếp bàn");
+    Swal.fire('Lỗi', 'Không thể xếp bàn', 'error');
   }
 };
 
@@ -449,11 +485,12 @@ onMounted(() => {
           class="ban-card"
           :class="{
             selected: selectedBan?.id === ban.id,
-            disabled: ban.soCho < selectedPhieu.soLuongKhach,
+            /* 🚨 Điều kiện Disabled: Không đủ chỗ HOẶC Bị đụng giờ */
+            disabled: ban.soCho < selectedPhieu.soLuongKhach || isTableReserved(ban.id, selectedPhieu.thoiGianDat),
+            reserved: isTableReserved(ban.id, selectedPhieu.thoiGianDat)
           }"
           @click="chonBan(ban)"
         >
-          <!-- ⭐ icon khi được chọn -->
           <i
             v-if="selectedBan?.id === ban.id"
             class="fa-solid fa-star suggest"
@@ -461,6 +498,10 @@ onMounted(() => {
 
           <div class="ban-name">{{ ban.maBan }}</div>
           <div class="ban-size">({{ ban.soCho }} chỗ)</div>
+          
+          <div v-if="isTableReserved(ban.id, selectedPhieu.thoiGianDat)" class="conflict-badge">
+            Trùng lịch
+          </div>
         </div>
       </div>
 

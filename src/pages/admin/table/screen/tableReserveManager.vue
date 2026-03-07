@@ -13,6 +13,7 @@ import {
 } from "@/services/tableManageService";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
+import Swal from "sweetalert2";
 
 // dayjs.extend(utc);
 // dayjs.extend(timezone);
@@ -187,7 +188,7 @@ const saveNewTable = async () => {
 
     showCreateTableModal.value = false;
   } catch (err) {
-    alert("Tạo bàn thất bại");
+    Swal.fire('Lỗi', 'Không thể thêm bàn', 'error');
   }
 };
 
@@ -362,7 +363,7 @@ const validateCreateForm = () => {
     email: "",
     thoiGianDat: "",
     soLuongKhach: "",
-    idBanAn: "",
+    idBanAn: "", 
   };
 
   const tenKhachHang = (createForm.value.tenKhachHang || "").trim();
@@ -397,20 +398,17 @@ const validateCreateForm = () => {
     errors.soLuongKhach = "Số lượng khách phải lớn hơn 0";
   }
 
-  if (!createForm.value.idBanAn) {
-    errors.idBanAn = "Vui lòng chọn bàn";
-  }
-
   formErrors.value = errors;
   return !Object.values(errors).some(Boolean);
 };
 
 // ================= SUBMIT =================
 // ================= SUBMIT =================
+// ================= SUBMIT =================
 const submitCreate = async () => {
   if (!validateCreateForm()) return;
 
-  isSubmitting.value = true; // Bật loading khi bắt đầu gọi API
+  isSubmitting.value = true; 
 
   try {
     const thoiGianDat =
@@ -418,14 +416,18 @@ const submitCreate = async () => {
         ? createForm.value.thoiGianDat + ":00"
         : createForm.value.thoiGianDat;
 
-    const payload = { ...createForm.value, thoiGianDat };
+    // 🚨 GÁN CỨNG idBanAn LÀ 1 VÀO PAYLOAD GỬI LÊN
+    const payload = { 
+      ...createForm.value, 
+      thoiGianDat: thoiGianDat,
+      idBanAn: 1
+    };
 
     const res = await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
     refreshKey.value += 1;
 
-    // Hiện toast tuỳ theo có gửi mail không
     if (res.daGuiMail) {
       showToast(
         "success",
@@ -446,7 +448,7 @@ const submitCreate = async () => {
       error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.",
     );
   } finally {
-    isSubmitting.value = false; // Tắt loading dù thành công hay thất bại
+    isSubmitting.value = false; 
   }
 };
 
