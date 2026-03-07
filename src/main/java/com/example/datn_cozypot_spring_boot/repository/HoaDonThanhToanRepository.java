@@ -18,10 +18,10 @@ import java.util.Optional;
 @Repository
 public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan, Integer> {
 
-    // 🚨 ĐÃ SỬA: Thay vì JOIN hd.idBanAn b, giờ ta JOIN vào pdb.banAns b và dùng MIN(b.tenBan) để tránh lặp dòng
+    // 🚨 ĐÃ SỬA: pdb.banAns -> pdb.dsBanAn link JOIN link.banAn ban
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan pdb JOIN pdb.banAns ban), " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
@@ -29,10 +29,10 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "LEFT JOIN hd.idPhieuDatBan pdb")
     Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
-    // 🚨 ĐÃ SỬA TƯƠNG TỰ BÊN TRÊN
+    // 🚨 ĐÃ SỬA: pdb.banAns -> pdb.dsBanAn link JOIN link.banAn ban
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.banAns ban), " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
@@ -57,7 +57,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     // 🚨 ĐÃ SỬA TƯƠNG TỰ
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.banAns ban), " +
+            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
@@ -66,12 +66,12 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 
-    // 🚨 ĐÃ SỬA: Xóa hd.idBanAn thay bằng JOIN
-    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.banAns b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
+    // 🚨 ĐÃ SỬA: JOIN pdb.dsBanAn link JOIN link.banAn b
+    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
     Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
 
-    // 🚨 ĐÃ SỬA: Bị duplicate code, xóa hàm cũ và dùng 1 hàm duy nhất
-    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.banAns b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
+    // 🚨 ĐÃ SỬA TƯƠNG TỰ
+    @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
     List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
 
     List<HoaDonThanhToan> findAllByTrangThaiHoaDonAndThoiGianTaoBefore(Integer trangThai, Instant limitTime);

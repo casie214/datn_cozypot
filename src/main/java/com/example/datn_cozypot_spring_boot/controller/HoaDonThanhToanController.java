@@ -246,7 +246,7 @@ public class HoaDonThanhToanController {
         if (banAn == null) return ResponseEntity.notFound().build();
 
         // 2. Tìm Phiếu Đặt Bàn chứa bàn này
-        List<PhieuDatBan> danhSachPhieu = phieuDatBanRepository.findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(idBanAn, Arrays.asList(0, 1, 3));
+        List<PhieuDatBan> danhSachPhieu = phieuDatBanRepository.findByDsBanAn_BanAn_IdAndTrangThaiInOrderByThoiGianDatAsc(idBanAn, Arrays.asList(0, 1, 3));
 
         if (danhSachPhieu == null || danhSachPhieu.isEmpty()) {
             return ResponseEntity.noContent().build(); // Bàn trống

@@ -180,6 +180,7 @@ public class DatBanService {
         BanAn banAnMoi = banAnRepository.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
 
+
         PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
 
@@ -232,6 +233,15 @@ public class DatBanService {
         // 2. 🚨 LOGIC MỞ BÀN PHỤ / KHÁCH VÃNG LAI (KHI id BỊ NULL)
         // =========================================================================
         if (request.getId() == null && request.getTrangThai() != null && request.getTrangThai() == 1) {
+
+            // 🚨 BƯỚC FIX CỐT LÕI: Kiểm tra xem bàn này có đang phục vụ ai không?
+            // Sử dụng phương thức findActiveBillByBanAn chúng ta đã sửa trong Repository
+            Optional<HoaDonThanhToan> existingBill = hoaDonThanhToanRepository.findActiveBillByBanAn(request.getIdBanAn());
+
+            if (existingBill.isPresent()) {
+                throw new RuntimeException("Bàn này hiện đang có khách (HĐ #" + existingBill.get().getMaHoaDon() + "), không thể mở phiếu mới!");
+            }
+
             BanAn banPhu = banAnRepository.findById(request.getIdBanAn())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));
 
@@ -239,12 +249,13 @@ public class DatBanService {
             banAnRepository.save(banPhu);
 
             PhieuDatBan phieuMoi = new PhieuDatBan();
-            phieuMoi.getBanAns().add(banPhu);
+            // 🚨 Dùng helper setIdBanAn để dọn dẹp quan hệ N-N
+            phieuMoi.setIdBanAn(banPhu);
             phieuMoi.setThoiGianDat(java.time.LocalDateTime.now());
             phieuMoi.setSoLuongKhach(banPhu.getSoNguoiToiDa());
-            phieuMoi.setTrangThai(3);
-            phieuMoi.setHinhThucDat(2);
-            phieuMoi.setNguoiTao("Hệ thống");
+            phieuMoi.setTrangThai(3); // Đang sử dụng
+            phieuMoi.setHinhThucDat(2); // Vãng lai
+            phieuMoi.setNguoiTao("POS System");
 
             if (request.getMaDatBanGoc() != null) {
                 phieuMoi.setMaDatBan(request.getMaDatBanGoc());
@@ -259,21 +270,13 @@ public class DatBanService {
 
             HoaDonThanhToan hoaDonMoi = new HoaDonThanhToan();
             hoaDonMoi.setIdPhieuDatBan(phieuMoi);
-
-            if (kh != null) {
-                hoaDonMoi.setIdKhachHang(kh);
-            }
+            if (kh != null) hoaDonMoi.setIdKhachHang(kh);
 
             hoaDonMoi.setThoiGianTao(Instant.now());
-            hoaDonMoi.setTrangThaiHoaDon(4);
+            hoaDonMoi.setTrangThaiHoaDon(4); // 4: Đang phục vụ
             hoaDonMoi.setTongTienChuaGiam(java.math.BigDecimal.ZERO);
-            hoaDonMoi.setSoTienDaGiam(java.math.BigDecimal.ZERO);
-            hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTongTienThanhToan(java.math.BigDecimal.ZERO);
-
-            Double vatFromRequest = request.getVatApDung();
-            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 10.0f;
-            hoaDonMoi.setVatApDung(finalVat);
+            hoaDonMoi.setVatApDung(10.0f);
 
             if (request.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
@@ -281,8 +284,7 @@ public class DatBanService {
             }
 
             hoaDonMoi = hoaDonThanhToanRepository.save(hoaDonMoi);
-
-            ghiLichSu(hoaDonMoi, request.getIdNhanVien(), "Mở bàn", "Tạo hóa đơn cho khách", 4, 4);
+            ghiLichSu(hoaDonMoi, request.getIdNhanVien(), "Mở bàn vãng lai", "Tạo hóa đơn trực tiếp", 4, 4);
             return;
         }
 

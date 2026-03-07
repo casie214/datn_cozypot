@@ -56,7 +56,9 @@ public class BanAnResponse {
         this.nguoiTao = ban.getNguoiTao();
 
         // ⭐ LOGIC CHUẨN: kiểm tra phiếu đặt hợp lệ
-        boolean hasValidBooking = ban.getPhieuDatBans().stream()
+        boolean hasValidBooking = ban.getPhieuDatBanBanAns().stream()
+                .map(link -> link.getPhieuDatBan())
+                .filter(p -> p != null)
                 .anyMatch(this::isValidBooking);
 
         if (hasValidBooking) {
