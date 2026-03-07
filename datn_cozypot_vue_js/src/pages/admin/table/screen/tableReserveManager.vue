@@ -1023,10 +1023,12 @@ hr {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
+
 .table-container {
   border: 1px solid #dee2e6;
   border-radius: 15px;
   overflow: hidden;
+  box-shadow: var(--bs-box-shadow-sm) !important;
 }
 
 /* ================= BUTTON ================= */

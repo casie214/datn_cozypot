@@ -548,6 +548,7 @@ const removeAddress = (index) => {
         title: 'Bạn chắc chắn chứ?',
         text: "Địa chỉ này sẽ bị xóa khỏi danh sách tạm!",
         icon: 'warning',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#eb445a', // Màu đỏ mận (soft red)
         cancelButtonColor: '#6c757d',  // Màu xám thanh lịch (muted gray)
@@ -576,6 +577,7 @@ const removeAddress = (index) => {
             });
             Toast.fire({
                 icon: 'success',
+                iconColor: '#7D161A',
                 title: 'Đã xóa địa chỉ thành công'
             });
             if (formData.danhSachDiaChi.length === 0) {
@@ -591,6 +593,7 @@ const handleBack = () => {
             title: 'Hủy chỉnh sửa?',
             text: "Các thay đổi bạn vừa nhập sẽ không được lưu!",
             icon: 'warning',
+            iconColor: '#7D161A',
             showCancelButton: true,
             confirmButtonText: 'Đồng ý thoát',
             cancelButtonText: 'Ở lại'
@@ -721,6 +724,7 @@ const handleSave = async () => {
             title: 'Thông tin chưa hợp lệ',
             text: 'Vui lòng kiểm tra lại các trường bị báo đỏ!',
             icon: 'warning',
+            iconColor: '#7D161A',
             confirmButtonText: 'Đã hiểu'
         });
         return;
@@ -730,6 +734,7 @@ const handleSave = async () => {
         title: 'Cập nhật thông tin cá nhân?',
         text: 'Bạn có chắc chắn muốn lưu các thay đổi này không?',
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonText: 'Đồng ý',
         cancelButtonText: 'Hủy bỏ'
@@ -749,6 +754,7 @@ const handleSave = async () => {
             title: 'Thành công!',
             text: 'Thông tin cá nhân của bạn đã được cập nhật.',
             icon: 'success',
+            iconColor: '#7D161A',
             timer: 2000,
             showConfirmButton: false
         });

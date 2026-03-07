@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer> {
+public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan, Integer> {
 
     @Query("""
         SELECT p FROM PhieuDatBan p
@@ -33,13 +33,11 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer
             Pageable pageable
     );
 
-    // 🚨 ĐÃ SỬA: Đổi Update query thành dạng Query theo kiến trúc mới (Xóa bảng trung gian rồi insert là cách JPA xử lý logic N-N tốt nhất)
-    // Nên xóa @Query Native Update này và thay bằng logic trong Service (Như bạn đã làm trong DatBanService lúc nãy)
-    // Tạm comment lại 2 hàm updateBanChoPhieu và updateCheckIn vì ở Service bạn đã làm đúng bằng Java.
-
+    // Chức năng: Tìm phiếu chờ trong tương lai
     @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 AND p.thoiGianDat >= :thoiGianTraCuu ORDER BY p.thoiGianDat ASC")
     List<PhieuDatBan> findWaitingListFuture(@Param("thoiGianTraCuu") LocalDateTime thoiGianTraCuu);
 
+    // Chức năng: Tìm phiếu chờ trong ngày hôm nay
     @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 AND p.thoiGianDat >= :thoiGianBatDau AND p.thoiGianDat <= :thoiGianKetThuc ORDER BY p.thoiGianDat ASC")
     List<PhieuDatBan> findWaitingListToday(@Param("thoiGianBatDau") LocalDateTime thoiGianBatDau, @Param("thoiGianKetThuc") LocalDateTime thoiGianKetThuc);
 
@@ -54,32 +52,55 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan,Integer
     int updateDaXacNhanQuaGio();
 
     @Modifying
+    @Transactional
     @Query("UPDATE PhieuDatBan p SET p.trangThai = :trangThai WHERE p.id = :id")
     void updateTrangThai(@Param("id") Integer id, @Param("trangThai") Integer trangThai);
 
-    // 🚨 ĐÃ SỬA: Dùng JOIN qua banAns
+    // 🚨 ĐÃ CẬP NHẬT: Đi xuyên qua dsBanAn để lấy bàn
     @Query("""
         SELECT DISTINCT p
         FROM PhieuDatBan p
-        JOIN p.banAns b
+        JOIN p.dsBanAn link
+        JOIN link.banAn b
         WHERE p.thoiGianDat >= :start
           AND p.thoiGianDat < :end
     """)
     List<PhieuDatBan> findPhieuTrongNgay(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 🚨 ĐÃ SỬA: Dùng JOIN qua banAns
-    @Query("SELECT DISTINCT p FROM PhieuDatBan p JOIN p.banAns b WHERE b.id = :idBanAn AND p.trangThai IN (2, 3) ORDER BY p.id DESC")
+    // 🚨 ĐÃ CẬP NHẬT: Lấy phiếu đang hoạt động tại một bàn cụ thể (Sử dụng cho App/POS)
+    @Query("""
+        SELECT DISTINCT p 
+        FROM PhieuDatBan p 
+        JOIN p.dsBanAn link 
+        WHERE link.banAn.id = :idBanAn 
+          AND p.trangThai IN (2, 3) 
+        ORDER BY p.id DESC
+    """)
     List<PhieuDatBan> findActivePhieuByBanAn(@Param("idBanAn") Integer idBanAn);
 
     @Query("SELECT p FROM PhieuDatBan p WHERE p.thoiGianDat >= :startOfDay AND p.thoiGianDat <= :endOfDay AND p.trangThai IN (1, 2, 3)")
     List<PhieuDatBan> findPhieuDatBanTrongNgay(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
-    // 🚨 ĐÃ SỬA: Dùng JOIN qua banAns
-    @Query("SELECT COUNT(p) > 0 FROM PhieuDatBan p JOIN p.banAns b WHERE b = :ban AND (p.thoiGianDat BETWEEN :start AND :end)")
-    boolean existsByTimeRange(@Param("ban") BanAn ban, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    // 🚨 ĐÃ CẬP NHẬT: Kiểm tra trùng lịch đặt bàn (Sử dụng EXISTS qua dsBanAn)
+    @Query("""
+        SELECT COUNT(p) > 0
+        FROM PhieuDatBan p
+        WHERE p.trangThai != 3
+          AND p.thoiGianDat BETWEEN :start AND :end
+          AND EXISTS (
+              SELECT 1 FROM PhieuDatBanBanAn pb
+              WHERE pb.phieuDatBan = p
+                AND pb.banAn = :ban
+          )
+    """)
+    boolean existsByTimeRange(
+            @Param("ban") BanAn ban,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
     List<PhieuDatBan> findAllByTrangThaiAndThoiGianDatBefore(int i, LocalDateTime limitTime);
 
-    // Hàm tự gen rất hay của bạn
-    List<PhieuDatBan> findByBanAns_IdAndTrangThaiInOrderByThoiGianDatDesc(Integer idBanAn, List<Integer> list);
+    // 🚨 ĐÃ CẬP NHẬT: Query Method theo chuẩn đặt tên mới của dsBanAn -> banAn -> id
+    List<PhieuDatBan> findByDsBanAn_BanAn_IdAndTrangThaiInOrderByThoiGianDatAsc(Integer idBanAn, List<Integer> listTrangThai);
+
 }

@@ -79,10 +79,8 @@ public class BanAn {
     @Column(name = "nguoi_sua", length = 100)
     private String nguoiSua;
 
-    // 🚨 ĐÃ SỬA: Chuyển sang ManyToMany (Mapped từ entity PhieuDatBan)
-    @ManyToMany(mappedBy = "banAns")
-    @JsonIgnore // Cực kỳ quan trọng để tránh lỗi StackOverflow (đệ quy vô tận) khi trả về JSON
-    private Set<PhieuDatBan> phieuDatBans = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "banAn")
+    @JsonIgnore
+    private Set<PhieuDatBanBanAn> phieuDatBanBanAns = new LinkedHashSet<>();
 
-    // ĐÃ XÓA `hoaDonThanhToans` VÌ HÓA ĐƠN KHÔNG CÒN NỐI TRỰC TIẾP VỚI BÀN
 }

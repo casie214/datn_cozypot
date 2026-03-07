@@ -88,6 +88,7 @@ export const useStaffLogic = () => {
         await Swal.fire({
           ...swalConfig,
           icon: 'success',
+          iconColor: '#7D161A',
           title: 'Thành công!',
           text: `${isLocking ? 'Khóa' : 'Mở khóa'} nhân viên hoàn tất.`,
           timer: 1500,

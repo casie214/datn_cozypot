@@ -26,6 +26,15 @@ public interface BanAnRepository extends JpaRepository<BanAn,Integer> {
             @Param("trangThai") Integer trangThai
     );
 
+@Query("""
+SELECT b FROM BanAn b
+LEFT JOIN PhieuDatBanBanAn pb
+  ON pb.banAn.id = b.id
+LEFT JOIN PhieuDatBan p
+  ON pb.phieuDatBan.id = p.id AND p.trangThai = 0
+""")
+    List<BanAn> findAllBanAn();
+
 
     List<BanAn> findByTrangThai(int i);
 
