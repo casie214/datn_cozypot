@@ -33,7 +33,7 @@ const {
 } = useFoodManager();
 
 const handleRefreshListBtn = () => {
-  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+  Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
   emit('refresh');
   setTimeout(() => emit('close'), 1000);
   getAllFoods();

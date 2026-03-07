@@ -259,14 +259,15 @@ const handleUpdate = async () => {
     Swal.fire({
         title: 'Xác nhận cập nhật?',
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
+        confirmButtonColor: '#7D161A',
         confirmButtonText: 'Đồng ý'
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
                 await foodApi.updateFood(formData.value.id, payload);
-                Swal.fire({ icon: 'success', title: 'Thành công', showConfirmButton: false, timer: 1500 });
+                Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', showConfirmButton: false, timer: 1500 });
                 setTimeout(() => goBack(), 1500);
             } catch (error) {
                 console.error("Lỗi cập nhật:", error);

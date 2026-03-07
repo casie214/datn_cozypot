@@ -178,7 +178,7 @@ export function useCategoryManager() {
         try {
             await foodApi.updateCategory(item.id, payload);
             item.trangThai = newStatus; 
-            Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã thay đổi trạng thái', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
+            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã thay đổi trạng thái', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
         } catch (error) {
             console.error("Lỗi API Toggle Category:", error.response?.data);
             Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Không thể cập nhật trạng thái!' });
@@ -190,7 +190,7 @@ export function useCategoryManager() {
     const exportToExcel = () => {
         // 1. Kiểm tra xem có dữ liệu để xuất không
         if (filteredData.value.length === 0) {
-            Swal.fire({ icon: 'warning', title: 'Trống', text: 'Không có dữ liệu nào phù hợp để xuất Excel!' });
+            Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Trống', text: 'Không có dữ liệu nào phù hợp để xuất Excel!' });
             return;
         }
 
@@ -240,16 +240,16 @@ export function useCategoryAddModal(props, emit) {
         formData.value.moTa = (formData.value.moTa || '').trim();
 
         if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
-            return Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Tên danh mục phải chứa ít nhất 5 kí tự' });
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Tên danh mục phải chứa ít nhất 5 kí tự' });
         }
         Swal.fire({
-            title: 'Xác nhận', text: 'Bạn có chắc chắn muốn thêm danh mục mới?', icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Đồng ý'
+            title: 'Xác nhận', text: 'Bạn có chắc chắn muốn thêm danh mục mới?', icon: 'question', iconColor: '#7D161A',
+            showCancelButton: true, confirmButtonColor: '#7D161A', cancelButtonColor: '#d33', confirmButtonText: 'Đồng ý'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await foodApi.createCategory(formData.value);
-                    Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
                 } catch (error) { 
@@ -312,13 +312,14 @@ export function useCategoryPutModal(props, emit) {
         formData.value.moTa = (formData.value.moTa || '').trim();
 
         if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
-            return Swal.fire({ icon: 'warning', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
         }
         
         Swal.fire({
             title: 'Cập nhật', 
             text: 'Lưu các thay đổi này?', 
             icon: 'question',
+            iconColor: '#7D161A',
             showCancelButton: true, 
             confirmButtonColor: '#8B0000', 
             confirmButtonText: 'Lưu'
@@ -335,7 +336,7 @@ export function useCategoryPutModal(props, emit) {
                     };
 
                     await foodApi.updateCategory(formData.value.id, payload);
-                    Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
                     
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
@@ -424,7 +425,7 @@ export function useHotpotSetTypeManager() {
     const exportToExcel = () => {
         // 1. Kiểm tra có dữ liệu không
         if (filteredData.value.length === 0) {
-            Swal.fire({ icon: 'warning', title: 'Trống', text: 'Không có dữ liệu để xuất!' });
+            Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Trống', text: 'Không có dữ liệu để xuất!' });
             return;
         }
 
@@ -469,14 +470,14 @@ export function useHotpotCategoryAddModal(props, emit) {
     watch(() => props.isOpen, (val) => { if (val) formData.value = { tenLoaiSet: '', moTa: '', trangThai: 1 }; });
 
     const handleSave = () => {
-        if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', text: 'Tên phải trên 5 kí tự' });
+        if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Tên phải trên 5 kí tự' });
         Swal.fire({
-            title: 'Thêm mới?', icon: 'question', showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Đồng ý'
+            title: 'Thêm mới?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await foodApi.createHotpotType(formData.value);
-                    Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1500, showConfirmButton: false });
                     emit('refresh'); setTimeout(() => emit('close'), 1000);
                 } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi thêm mới!' }); }
             }
@@ -490,14 +491,14 @@ export function useCategoryHotpotPutModal(props, emit) {
     watch(() => props.itemList, (newItem) => { if (newItem) formData.value = { ...newItem }; }, { immediate: true });
 
     const handleSave = () => {
-        if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', text: 'Tên không hợp lệ' });
+        if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Tên không hợp lệ' });
         Swal.fire({
-            title: 'Cập nhật?', icon: 'question', showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Lưu'
+            title: 'Cập nhật?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await foodApi.updateHotpotType(formData.value.id, formData.value);
-                    Swal.fire({ icon: 'success', title: 'Cập nhật thành công', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Cập nhật thành công', timer: 1500, showConfirmButton: false });
                     emit('refresh'); setTimeout(() => emit('close'), 1000);
                 } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi cập nhật!' }); }
             }
@@ -619,6 +620,7 @@ export function useFoodManager() {
             
             Swal.fire({ 
                 icon: 'success', 
+                iconColor: '#7D161A',
                 title: 'Thành công', 
                 text: 'Đã thay đổi trạng thái', 
                 timer: 1500, 
@@ -749,7 +751,7 @@ export function useFoodForm(isEditMode = false) {
     const removeImage = () => {
         if (isViewMode.value) return;
         Swal.fire({
-            title: 'Xóa ảnh?', text: "Bạn muốn xóa ảnh này?", icon: 'warning',
+            title: 'Xóa ảnh?', text: "Bạn muốn xóa ảnh này?", icon: 'warning', iconColor: '#7D161A',
             showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Xóa'
         }).then((result) => { if (result.isConfirmed) formData.value.hinhAnh = ''; });
     };
@@ -768,14 +770,14 @@ export function useFoodForm(isEditMode = false) {
         if (!validateForm()) return Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng kiểm tra form', toast: true, position: 'top-end', timer: 2000 });
         
         Swal.fire({
-            title: 'Xác nhận', text: isEditMode ? 'Cập nhật món ăn này?' : 'Thêm mới món ăn này?', icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Đồng ý'
+            title: 'Xác nhận', text: isEditMode ? 'Cập nhật món ăn này?' : 'Thêm mới món ăn này?', icon: 'question', iconColor: '#7D161A',
+            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     if (isEditMode) await foodApi.updateFood(foodId, formData.value);
                     else await foodApi.createFood(formData.value);
-                    Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1500, showConfirmButton: false });
                     setTimeout(() => router.back(), 1500);
                 } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi lưu dữ liệu' }); }
             }
@@ -901,7 +903,7 @@ export function useHotpotManager() {
         try {
             await foodApi.updateHotpot(item.id, payload);
             item.trangThai = newStatus;
-            Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã thay đổi trạng thái', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
+            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã thay đổi trạng thái', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
         } catch (error) { 
             console.error("Lỗi Toggle Status Hotpot:", error.response?.data);
             Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Cập nhật trạng thái thất bại' }); 
@@ -1078,8 +1080,8 @@ export function useHotpotForm(isEditMode = false) {
         if (!validateForm()) return Swal.fire({ icon: 'error', title: 'Lỗi form', text: 'Kiểm tra lại các ô báo đỏ', toast: true, position: 'top-end', timer: 2000 });
         
         Swal.fire({
-            title: 'Xác nhận', text: isEditMode ? 'Lưu thay đổi Set lẩu?' : 'Thêm Set lẩu mới?', icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#3085d6', confirmButtonText: 'Đồng ý'
+            title: 'Xác nhận', text: isEditMode ? 'Lưu thay đổi Set lẩu?' : 'Thêm Set lẩu mới?', icon: 'question', iconColor: '#7D161A',
+            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -1090,7 +1092,7 @@ export function useHotpotForm(isEditMode = false) {
                     if (isEditMode) await foodApi.updateHotpot(hotpotId, payload);
                     else await foodApi.createHotpot(payload);
                     
-                    Swal.fire({ icon: 'success', title: 'Thành công', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1500, showConfirmButton: false });
                     setTimeout(() => router.back(), 1500);
                 } catch (error) { 
                     console.error("Lỗi lưu DB:", error.response?.data);

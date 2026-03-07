@@ -199,7 +199,9 @@ const removeFromCart = (item) => {
 
     if (existing.served && existing.quantity <= existing.baseQuantity) {
       Swal.fire({
-        icon: 'warning', title: 'Lưu ý',
+        icon: 'warning',
+        iconColor: '#7D161A',
+        title: 'Lưu ý',
         text: 'Món này bếp đã làm, không thể hủy. Vui lòng gọi nhân viên!',
         confirmButtonColor: '#7d161a'
       });
@@ -239,7 +241,7 @@ const submitOrder = async () => {
     isCartOpen.value = false;
 
     Swal.fire({ 
-      icon: 'success', title: 'Thành công!', 
+      icon: 'success', title: 'Thành công!', iconColor: '#7D161A', 
       text: 'Đơn hàng đã gửi tới bếp.',
       confirmButtonColor: '#7d161a'
     });
