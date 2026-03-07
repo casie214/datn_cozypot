@@ -192,8 +192,8 @@ const visiblePages = computed(() => {
                     {{ index + 1 + currentPage * pageSize }}
                   </td>
                   <td>{{ order.id }}</td>
-                  <td>{{ order.khachHang }}</td>
-                  <td>{{ order.sdt }}</td>
+                  <td>{{ order.khachHang || 'Khách vãng lai' }}</td>
+                  <td>{{ order.sdt || '---' }}</td>
                   <td>{{ order.ban }}</td>
                   <td>{{ order.loai }}</td>
                   <td>{{ order.ngayTao }}</td>
