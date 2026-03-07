@@ -31,6 +31,7 @@ const handleForgotPassword = async () => {
     if (!forgotEmail.value) {
         Swal.fire({
             icon: 'warning',
+            iconColor: '#7D161A',
             title: 'Chú ý',
             text: 'Vui lòng nhập email công việc của bạn!',
             confirmButtonColor: '#8B1A1A'
@@ -49,6 +50,7 @@ const handleForgotPassword = async () => {
 
         Swal.fire({
             icon: 'success',
+            iconColor: '#7D161A',
             title: 'Thành công!',
             text: 'Mật khẩu mới đã được gửi vào Email của bạn. Vui lòng kiểm tra!',
             confirmButtonColor: '#8B1A1A'
@@ -104,6 +106,7 @@ const handleLogin = async () => {
         
         await Swal.fire({
             icon: 'success',
+            iconColor: '#7D161A',
             title: 'Đăng nhập thành công!',
             text: 'Chào mừng bạn đến với trang quản lý!',
             timer: 1500,

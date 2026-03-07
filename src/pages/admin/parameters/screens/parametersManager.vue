@@ -23,8 +23,8 @@
                                 @select="() => { /* Logic xử lý ngay khi chọn nếu cần */ }" />
                         </div>
                         <div class="col-md-3 d-flex align-items-end gap-2">
-                            <button class="btn-reset-filter w-100" @click="resetFilters">
-                                <i class="fas fa-sync-alt"></i> Làm mới
+                            <button class="btn-reset-filter " @click="resetFilters">
+                                <!-- <i class="fas fa-sync-alt"></i> -->Xóa bộ lọc
                             </button>
                         </div>
 
@@ -44,7 +44,6 @@
                             <th>MÃ THAM SỐ</th>
                             <th>TÊN THAM SỐ</th>
                             <th>GIÁ TRỊ</th>
-                            <th>KIỂU DỮ LIỆU</th>
                             <th>TRẠNG THÁI</th>
                             <th class="text-center">HÀNH ĐỘNG</th>
                         </tr>
@@ -55,8 +54,7 @@
                             <td>{{ index + 1 }}</td>
                             <td class="fw-bold">{{ item.maThamSo }}</td>
                             <td>{{ item.tenThamSo }}</td>
-                            <td>{{ item.giaTri }}</td>
-                            <td>{{ item.kieuDuLieu }}</td>
+                            <td>{{ formatValue(item) }}</td>
 
                             <td>
                                 <span :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
@@ -66,9 +64,6 @@
 
                             <td class="text-center">
                                 <div class="action-wrapper">
-                                    <button type="button" class="btn-icon" @click="openViewModal(item)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
 
                                     <button type="button" class="btn-icon" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
@@ -179,17 +174,6 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Kiểu dữ liệu</label>
-
-                        <Multiselect v-model="editingItem.kieuDuLieu" :options="dataTypeOptions" label="label"
-                            track-by="value" :close-on-select="true" :allow-empty="false"
-                            placeholder="Chọn kiểu dữ liệu" :class="{ 'is-invalid': errors.kieuDuLieu }" />
-
-                        <div class="text-danger mt-1" v-if="errors.kieuDuLieu">
-                            {{ errors.kieuDuLieu }}
-                        </div>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Mô tả</label>
                         <textarea type="text" class="form-control" v-model="editingItem.moTa"></textarea>
                     </div>
@@ -277,45 +261,7 @@
 
             </div>
         </div>
-        <!-- SUCCESS TOAST -->
-        <div v-if="showToast" class="toast-success">
-            <i class="fa-solid fa-circle-check"></i>
-            <div class="toast-content">
-                <h4>{{ toastTitle }}</h4>
-                <p>{{ toastMessage }}</p>
-            </div>
-        </div>
-        <!-- CONFIRM MODAL -->
-        <transition name="fade">
-            <div v-if="showConfirmModal" class="confirm-overlay">
-                <div class="confirm-modal">
 
-                    <div class="confirm-icon">
-                        <i class="fa-solid fa-circle-question"></i>
-                    </div>
-
-                    <h2>Xác nhận lưu dữ liệu</h2>
-                    <p>
-                        Xác nhận thay đổi thông tin tham số
-                    </p>
-
-                    <div class="confirm-actions">
-                        <button class="btn-cancel" @click="showConfirmModal = false" :disabled="confirmLoading">
-                            Hủy bỏ
-                        </button>
-
-                        <button class="btn-confirm" @click="confirmSave" :disabled="confirmLoading">
-                            <span v-if="!confirmLoading">Xác nhận</span>
-                            <span v-else>
-                                <i class="fa fa-spinner fa-spin"></i>
-                                Đang xử lý...
-                            </span>
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-        </transition>
     </div>
 </template>
 
@@ -324,6 +270,8 @@ import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import axios from 'axios'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
+
+import Swal from "sweetalert2"
 // Thêm dòng này vào cụm khai báo ref ở đầu script
 const errors = ref({})
 const dataTypeOptions = ref([
@@ -335,6 +283,74 @@ const dataTypeOptions = ref([
     { label: "Decimal", value: "DECIMAL" },
 
 ])
+
+const handleSave = async () => {
+    if (!validateEditForm()) return
+
+    const result = await Swal.fire({
+        title: "Xác nhận cập nhật?",
+        text: "Bạn có chắc muốn thay đổi thông tin tham số?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#8B0000",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy"
+    })
+
+    if (result.isConfirmed) {
+        confirmSave()
+    }
+}
+
+const confirmSave = async () => {
+    try {
+        const payload = {}
+
+        if (editingItem.value.tenThamSo !== originalItem.value.tenThamSo) {
+            payload.tenThamSo = editingItem.value.tenThamSo
+        }
+
+        if (editingItem.value.giaTri !== originalItem.value.giaTri) {
+            payload.giaTri = editingItem.value.giaTri
+        }
+
+        if (editingItem.value.moTa !== originalItem.value.moTa) {
+            payload.moTa = editingItem.value.moTa
+        }
+
+        if (editingItem.value.kieuDuLieu?.value !== originalItem.value.kieuDuLieu) {
+            payload.kieuDuLieu = editingItem.value.kieuDuLieu.value
+        }
+
+        await axios.patch(
+            `http://localhost:8080/api/tham-so-he-thong/${editingItem.value.id}`,
+            payload,
+            authConfig()
+        )
+
+        await fetchSystemParams()
+        showModal.value = false
+
+        Swal.fire({
+            icon: "success",
+            title: "Cập nhật thành công",
+            text: `Tham số "${editingItem.value.tenThamSo}" đã được cập nhật`,
+            timer: 2000,
+            showConfirmButton: false
+        })
+
+    } catch (error) {
+
+    Swal.fire({
+        icon: "error",
+        title: "Cập nhật thất bại",
+        timer: 2000,
+        showConfirmButton: false
+    })
+
+}
+}
 const keyword = ref('')
 const status = ref(null)
 const currentPage = ref(1)
@@ -343,7 +359,41 @@ const showToast = ref(false)
 const toastTitle = ref('')
 const toastMessage = ref('')
 const pendingEditItem = ref(null)
+const formatValue = (item) => {
+    if (!item) return ""
 
+    const value = item.giaTri
+    const code = item.maThamSo
+
+    switch (code) {
+
+        case "VAT":
+            return `${value} %`
+
+        case "POINT_RATE":
+            return `${value} %`
+
+        case "MIN_RESERVE":
+            return `${value} phút`
+
+        case "CURRENCY":
+            return value
+
+        case "HOTLINE":
+            return value
+
+        case "THOI_GIAN_GIU_BAN":
+            return `${value} phút`
+        case "THOI_GIAN_HUY_HOAN_COC":
+            return `${value} phút`
+
+        case "THOI_GIAN_TOI_DA_DAT_TRUOC":
+            return `${value} ngày`
+
+        default:
+            return value
+    }
+}
 const validateEditForm = () => {
     errors.value = {}
 
@@ -399,13 +449,16 @@ const validateEditForm = () => {
 
     return Object.keys(errors.value).length === 0
 }
+const authConfig = () => {
+    const token = localStorage.getItem("token")
 
-const handleSave = () => {
-    if (!validateEditForm()) return
-
-    pendingEditItem.value = { ...editingItem.value }
-    showConfirmModal.value = true
+    return {
+        headers: {
+            Authorization: token ? `Bearer ${token}` : ""
+        }
+    }
 }
+
 const userRole = ref(null)
 
 onMounted(() => {
@@ -423,34 +476,47 @@ onMounted(() => {
 })
 
 const isAdmin = computed(() => userRole.value === "ADMIN")
-const confirmSave = async () => {
+const toggleStatus = async (item) => {
+
+    const result = await Swal.fire({
+        title: "Xác nhận thay đổi trạng thái?",
+        text: `Bạn muốn ${item.trangThai === 1 ? "ngưng hoạt động" : "kích hoạt"} tham số này?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#8B0000",
+        cancelButtonText: "Hủy",
+        confirmButtonText: "Xác nhận"
+    })
+
+    if (!result.isConfirmed) return
+
+    const oldStatus = item.trangThai
+    item.trangThai = item.trangThai === 1 ? 0 : 1
+
     try {
-        confirmLoading.value = true
 
         await axios.put(
-            `http://localhost:8080/api/tham-so-he-thong/${pendingEditItem.value.id}`,
-            {
-                ...pendingEditItem.value,
-                kieuDuLieu: pendingEditItem.value.kieuDuLieu.value
-            },
+            `http://localhost:8080/api/tham-so-he-thong/update-status/${item.maThamSo}`,
+            { trangThai: item.trangThai },
             authConfig()
         )
 
-        await fetchSystemParams()
-
-        showConfirmModal.value = false
-        showModal.value = false
-
-        showSuccessToast(
-            "Cập nhật thành công",
-            `Tham số "${pendingEditItem.value.tenThamSo}" đã được cập nhật`
-        )
+        Swal.fire({
+            icon: "success",
+            title: "Cập nhật trạng thái thành công",
+timer: 1500,
+    showConfirmButton: false        })
 
     } catch (error) {
-        console.error("Lỗi cập nhật", error)
-    } finally {
-        confirmLoading.value = false
-        pendingEditItem.value = null
+
+        item.trangThai = oldStatus
+
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi cập nhật trạng thái",
+timer: 1500,
+    showConfirmButton: false        })
+
     }
 }
 const showSuccessToast = (title, message) => {
@@ -462,18 +528,16 @@ const showSuccessToast = (title, message) => {
         showToast.value = false
     }, 4000)
 }
+
+const originalItem = ref(null)
 const list = ref([]) // ❌ bỏ dữ liệu fake
+
 const fetchSystemParams = async () => {
     try {
-        const token = localStorage.getItem('token')
 
         const response = await axios.get(
             'http://localhost:8080/api/tham-so-he-thong',
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
+            authConfig()
         )
 
         list.value = response.data
@@ -482,12 +546,6 @@ const fetchSystemParams = async () => {
         console.error('Lỗi khi load tham số hệ thống:', error)
     }
 }
-
-const authConfig = () => ({
-    headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-    }
-})
 const showConfirmModal = ref(false)
 const confirmLoading = ref(false)
 const showModal = ref(false)
@@ -531,11 +589,16 @@ const closeViewModal = () => {
     showViewModal.value = false
 }
 const openEditModal = (item) => {
+    originalItem.value = { ...item }   // lưu bản gốc
+
     editingItem.value = {
-        ...item, moTa: item.moTa || '', kieuDuLieu: dataTypeOptions.value.find(
+        ...item,
+        moTa: item.moTa || '',
+        kieuDuLieu: dataTypeOptions.value.find(
             opt => opt.value === item.kieuDuLieu
         )
-    } // clone để tránh sửa trực tiếp
+    }
+
     showModal.value = true
 }
 
@@ -562,27 +625,7 @@ const saveEdit = async () => {
         console.error("Lỗi cập nhật", error)
     }
 }
-const toggleStatus = async (item) => {
-    const oldStatus = item.trangThai
-    item.trangThai = item.trangThai === 1 ? 0 : 1
 
-    try {
-        await axios.put(
-            `http://localhost:8080/api/tham-so-he-thong/update-status/${item.maThamSo}`,
-            { trangThai: item.trangThai },
-            authConfig()
-        )
-
-        showSuccessToast(
-            "Cập nhật trạng thái thành công",
-            `Tham số "${item.tenThamSo}" đã được ${item.trangThai === 1 ? "kích hoạt" : "ngưng hoạt động"}`
-        )
-
-    } catch (error) {
-        item.trangThai = oldStatus
-        console.error("Lỗi cập nhật trạng thái", error)
-    }
-}
 const changePage = (step) => {
     const newPage = currentPage.value + step
     if (newPage >= 1 && newPage <= totalPages.value) {
@@ -619,11 +662,13 @@ const statusOptions = ref([
 ])
 </script>
 
-<style>
+<style scoped>
 /* ================= WRAPPER ================= */
 .manager-wrapper {
-    background: #ffffff;
-    padding: 20px;
+    background: #fdfbfa;
+    padding-left: 10px;
+    padding-right: 15px;
+
     border-radius: 18px;
 }
 
@@ -792,19 +837,16 @@ const statusOptions = ref([
     border-color: #8B0000;
 }
 
-/* ================= RESET BUTTON ================= */
 .btn-reset-filter {
-    background: #f3f4f6;
+    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+    color: white;
     border: none;
-    border-radius: 12px;
-    padding: 10px;
-    font-weight: 500;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    height: inherit;
+    text-align: center;
     transition: 0.2s;
-}
-
-.btn-reset-filter:hover {
-    background: #8B0000;
-    color: #ffffff;
 }
 
 /* ================= MODAL ================= */
@@ -1063,13 +1105,15 @@ const statusOptions = ref([
 
 /* Loại bỏ khoảng trống thừa và căn chỉnh độ cao đồng nhất với bootstrap input */
 .multiselect {
-    min-height: 38px !important; /* Độ cao chuẩn của form-control bootstrap */
+    min-height: 38px !important;
+    /* Độ cao chuẩn của form-control bootstrap */
     margin-bottom: 0 !important;
 }
 
 .multiselect__tags {
     min-height: 38px !important;
-    padding: 6px 40px 0 8px !important; /* Căn chỉnh lại padding bên trong */
+    padding: 6px 40px 0 8px !important;
+    /* Căn chỉnh lại padding bên trong */
     border-radius: 12px !important;
     border: 1px solid #d1d5db !important;
 }
@@ -1088,11 +1132,46 @@ const statusOptions = ref([
     display: block;
     width: 100%;
 }
+
 .is-invalid {
     border-color: #dc3545 !important;
 }
 
 .invalid-feedback {
     display: block;
+}
+
+.custom-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.custom-table td,
+.custom-table th {
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* STT */
+.custom-table th:nth-child(1),
+.custom-table td:nth-child(1) {
+    width: 60px;
+    text-align: center;
+}
+
+/* Giới hạn từng cột */
+.custom-table th:nth-child(2),
+.custom-table td:nth-child(2) {
+    width: 300px;
+}
+
+.custom-table th:nth-child(3),
+.custom-table td:nth-child(3) {
+    width: 400px;
+}
+
+.custom-table th:nth-child(4),
+.custom-table td:nth-child(4) {
+    width: 120px;
 }
 </style>

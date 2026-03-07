@@ -611,6 +611,7 @@ const removeAddress = (index) => {
     title: 'Bạn chắc chắn chứ?',
     text: "Địa chỉ này sẽ bị xóa khỏi danh sách tạm!",
     icon: 'warning',
+    iconColor: '#7D161A',
     showCancelButton: true,
     // Phối màu lại ở đây
     confirmButtonColor: '#eb445a', // Màu đỏ mận (soft red)
@@ -644,7 +645,7 @@ const removeAddress = (index) => {
       });
 
       Toast.fire({
-        icon: 'success',
+        icon: 'success', iconColor: '#7D161A',
         title: 'Đã xóa địa chỉ thành công'
       });
 
@@ -661,6 +662,7 @@ const handleBack = () => {
       title: 'Xác nhận thoát?',
       text: "Các thay đổi chưa lưu sẽ bị mất!",
       icon: 'warning',
+      iconColor: '#7D161A',
       showCancelButton: true,
       confirmButtonText: 'Đồng ý',
       cancelButtonText: 'Ở lại'
@@ -808,6 +810,7 @@ const handleSave = async () => {
       title: 'Thông tin chưa hợp lệ',
       text: 'Vui lòng kiểm tra lại các trường bị báo đỏ!',
       icon: 'warning',
+      iconColor: '#7D161A',
       confirmButtonText: 'Đã hiểu'
     });
     return;
@@ -829,6 +832,7 @@ const handleSave = async () => {
       ? 'Bạn có chắc chắn muốn lưu các thay đổi này?'
       : 'Hệ thống sẽ tạo tài khoản khách hàng mới vào cơ sở dữ liệu.', // Cập nhật dòng này
     icon: 'question',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonText: 'Đồng ý',
     cancelButtonText: 'Hủy bỏ'
@@ -847,7 +851,7 @@ const handleSave = async () => {
       ...swalConfig,
       title: 'Thành công!',
       text: clientId.value ? 'Thông tin khách hàng đã được cập nhật.' : 'Đã thêm khách hàng mới thành công.',
-      icon: 'success',
+      icon: 'success', iconColor: '#7D161A',
       timer: 2000,
       showConfirmButton: false
     });
