@@ -19,7 +19,6 @@ const bookingData = reactive({
   people: null,
   date: "",
   time: "",
-  tableId: "",
 });
 
 const customerInfo = reactive({
@@ -34,7 +33,6 @@ const errors = reactive({
   people: "",
   date: "",
   time: "",
-  tableId: "",
   fullName: "",
   phone: "",
   email: "",
@@ -99,14 +97,6 @@ const validateEmail = () => {
     errors.email = "Định dạng email không hợp lệ.";
   } else {
     errors.email = "";
-  }
-};
-
-const validateTable = () => {
-  if (!bookingData.tableId) {
-    errors.tableId = "Vui lòng chọn một bàn để tiếp tục.";
-  } else {
-    errors.tableId = "";
   }
 };
 
@@ -271,8 +261,7 @@ const submitFinalBooking = async () => {
   validateFullName();
   validatePhone();
   validateEmail();
-  validateTable();
-  if (errors.fullName || errors.phone || errors.email || errors.tableId) {
+  if (errors.fullName || errors.phone || errors.email) {
     return;
   }
 
@@ -378,7 +367,7 @@ const submitFinalBooking = async () => {
   try {
     const payload = {
       idKhachHang: customerInfo.idKhachHang,
-      idBanAn: bookingData.tableId,
+      idBanAn: null,
       fullName: customerInfo.fullName,
       phone: customerInfo.phone,
       email: customerInfo.email,
@@ -792,7 +781,7 @@ const minDate = computed(() => {
                 </div>
 
                 <div class="row g-4 mb-4">
-                  <div class="col-sm-6">
+                  <div class="col-12">
                     <label class="form-label text-muted small fw-bold mb-1"
                       ><i class="fas fa-users text-danger me-2"></i> SỐ LƯỢNG
                       NGƯỜI ĐI</label
@@ -802,51 +791,6 @@ const minDate = computed(() => {
                     >
                       {{ bookingData.people }} người
                     </div>
-                  </div>
-
-                  <div class="col-sm-6">
-                    <label class="form-label text-muted small fw-bold mb-1"
-                      ><i class="fas fa-chair text-danger me-2"></i> CHỌN BÀN
-                      <span class="text-danger">*</span></label
-                    >
-                    <select
-                      v-model="bookingData.tableId"
-                      class="form-select custom-input mt-1"
-                      style="
-                        border: 0;
-                        border-bottom: 1px solid #ddd;
-                        border-radius: 0;
-                        background-color: transparent;
-                        padding-left: 4px;
-                        font-weight: bold;
-                        color: #212529;
-                        cursor: pointer;
-                        box-shadow: none;
-                      "
-                      onfocus="this.style.borderBottom = '2px solid #7d161a'"
-                      onblur="this.style.borderBottom = '1px solid #ddd'"
-                      @change="validateTable"
-                    >
-                      <option value="" disabled selected>
-                        -- Chọn bàn trống --
-                      </option>
-                      <option
-                        v-for="table in availableTables"
-                        :key="table.id"
-                        :value="table.id"
-                      >
-                        Bàn {{ table.maBan }} (Sức chứa:
-                        {{ table.soCho }} người)
-                      </option>
-                    </select>
-
-                    <span
-                      v-if="errors.tableId"
-                      class="text-danger small mt-1 d-block"
-                    >
-                      <i class="fas fa-exclamation-circle me-1"></i
-                      >{{ errors.tableId }}
-                    </span>
                   </div>
                 </div>
 
