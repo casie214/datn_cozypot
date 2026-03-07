@@ -844,4 +844,9 @@ hr {
   color: white !important;
   transform: scale(1.04);
 }
+
+.table-container{
+  box-shadow: var(--bs-box-shadow-sm) !important;
+  border-radius: 15px;
+}
 </style>

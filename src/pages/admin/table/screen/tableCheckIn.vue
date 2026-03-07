@@ -86,9 +86,9 @@ const hasDiscountInGroup = computed(() => {
 
 const openDiscountModal = async (tab = 'PUBLIC') => {
   if (!selectedPhieu.value?.idHoaDon) {
-    return Swal.fire({ title: 'Lưu ý', text: 'Cần có hóa đơn (đã gọi món) để xem mã!', icon: 'warning', confirmButtonText: 'Đã hiểu' });  }
+    return Swal.fire({ title: 'Lưu ý', iconColor: '#7D161A', text: 'Cần có hóa đơn (đã gọi món) để xem mã!', icon: 'warning', confirmButtonText: 'Đã hiểu' });  }
   if (hasDiscountInGroup.value) {
-    return Swal.fire({ title: 'Lưu ý', text: 'Nhóm bàn này đã được áp dụng một mã giảm giá. Vui lòng hủy mã cũ trước khi áp dụng mã mới!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
+    return Swal.fire({ title: 'Lưu ý', iconColor: '#7D161A', text: 'Nhóm bàn này đã được áp dụng một mã giảm giá. Vui lòng hủy mã cũ trước khi áp dụng mã mới!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
   }
 
   try {
@@ -119,10 +119,10 @@ const openDiscountModal = async (tab = 'PUBLIC') => {
 // 🚨 THÊM HÀM MỚI: Tự động tìm & áp dụng mã công cộng tốt nhất
 const applyBestPublicVoucher = async () => {
   if (!selectedPhieu.value?.idHoaDon) {
-    return Swal.fire({ title: 'Lưu ý', text: 'Cần có hóa đơn (đã gọi món) để áp dụng mã!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
+    return Swal.fire({ title: 'Lưu ý', iconColor: '#7D161A', text: 'Cần có hóa đơn (đã gọi món) để áp dụng mã!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
   }
   if (hasDiscountInGroup.value) {
-    return Swal.fire({ title: 'Lưu ý', text: 'Nhóm bàn này đã áp dụng mã giảm giá rồi!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
+    return Swal.fire({ title: 'Lưu ý', text: 'Nhóm bàn này đã áp dụng mã giảm giá rồi!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đã hiểu' });
   }
 
   Swal.fire({ title: 'Đang tìm mã tốt nhất...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -182,10 +182,10 @@ const applyBestPublicVoucher = async () => {
 
 const applyVoucher = async (voucher = null) => {
   const codeToApply = voucher ? voucher.codeGiamGia : maGiamGiaInput.value;
-  if (!codeToApply) return Swal.fire({ title: 'Lỗi', text: 'Vui lòng nhập mã giảm giá!', icon: 'warning', confirmButtonText: 'Đóng' });
+  if (!codeToApply) return Swal.fire({ title: 'Lỗi', text: 'Vui lòng nhập mã giảm giá!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đóng' });
 
   if (voucher && currentRawTotal.value < voucher.donHangToiThieu) {
-    return Swal.fire({ title: 'Chưa đạt điều kiện', text: `Đơn hàng cần tối thiểu ${voucher.donHangToiThieu.toLocaleString()}đ!`, icon: 'warning', confirmButtonText: 'Đã hiểu' });
+    return Swal.fire({ title: 'Chưa đạt điều kiện', text: `Đơn hàng cần tối thiểu ${voucher.donHangToiThieu.toLocaleString()}đ!`, icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đã hiểu' });
   }
 
   try {
@@ -199,7 +199,7 @@ const applyVoucher = async (voucher = null) => {
     };
 
     await axiosClient.post('/phieu-giam-gia/ap-dung', payload);
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã áp dụng giảm giá!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã áp dụng giảm giá!', timer: 1500, showConfirmButton: false });
     isShowDiscountModal.value = false;
     
     // 🚨 GỌI HÀM NÀY ĐỂ TẢI DỮ LIỆU MÀ KHÔNG BỊ ĐẨY RA NGOÀI
@@ -210,7 +210,7 @@ const applyVoucher = async (voucher = null) => {
 };
 
 const removeVoucher = async () => {
-  const confirm = await Swal.fire({ title: 'Hủy áp dụng mã?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Đồng ý' });
+  const confirm = await Swal.fire({ title: 'Hủy áp dụng mã?', icon: 'warning', iconColor: '#7D161A', showCancelButton: true, confirmButtonText: 'Đồng ý' });
   if (!confirm.isConfirmed) return;
 
   try {
@@ -221,7 +221,7 @@ const removeVoucher = async () => {
         selectedPhieu.value.soTienDaGiam = 0;
     }
 
-    Swal.fire({ icon: 'success', title: 'Đã hủy mã', timer: 1000, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy mã', timer: 1000, showConfirmButton: false });
     
     // 🚨 GỌI HÀM NÀY ĐỂ TẢI DỮ LIỆU MÀ KHÔNG BỊ ĐẨY RA NGOÀI
     await refreshTableData(); 
@@ -374,6 +374,7 @@ const handleTableClick = async (ban) => {
       title: 'Xác nhận mở bàn phụ?',
       html: `Đoàn của <b>${pendingCustomer.tenKhachHang}</b> đang thiếu <b>${khachDangCho} chỗ</b>.<br>Bàn <b>${ban.maBan}</b> có <b>${sucChuaBanNay} chỗ</b>.<br>Đồng ý xếp vào đây?`,
       icon: 'question',
+      iconColor: '#7D161A',
       showCancelButton: true,
       confirmButtonColor: '#28a745',
       cancelButtonText: 'Chọn bàn khác',
@@ -391,13 +392,13 @@ const handleTableClick = async (ban) => {
         
         const conLai = khachDangCho - sucChuaBanNay;
         if (conLai <= 0) {
-            Swal.fire({ icon: 'success', title: 'Hoàn tất!', text: 'Đã xếp đủ chỗ cho toàn bộ khách!', timer: 2000 });
+            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Hoàn tất!', text: 'Đã xếp đủ chỗ cho toàn bộ khách!', timer: 2000 });
             localStorage.removeItem("pendingSplitCustomer");
             isSelectingSecondTable.value = false;
         } else {
             pendingCustomer.soKhachCanXep = conLai;
             localStorage.setItem("pendingSplitCustomer", JSON.stringify(pendingCustomer));
-            Swal.fire({ icon: 'warning', title: 'Vẫn thiếu chỗ!', html: `Đã xếp thêm khách vào ${ban.maBan}.<br>Đoàn vẫn còn <b>${conLai} người</b> chưa có chỗ.<br>Vui lòng click chọn thêm bàn nữa!`, confirmButtonText: 'Chọn tiếp' });
+            Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Vẫn thiếu chỗ!', html: `Đã xếp thêm khách vào ${ban.maBan}.<br>Đoàn vẫn còn <b>${conLai} người</b> chưa có chỗ.<br>Vui lòng click chọn thêm bàn nữa!`, confirmButtonText: 'Chọn tiếp' });
         }
         await handleFetchAllCheckIn();
         await fetchAllBan();
@@ -468,7 +469,7 @@ const quickWalkInCheckIn = async (ban) => {
 
     await updateTrangThaiBan(payload);
     
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã mở bàn Khách vãng lai!', timer: 1000, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã mở bàn Khách vãng lai!', timer: 1000, showConfirmButton: false });
     
     await handleFetchAllCheckIn();
     await fetchAllBan();
@@ -493,6 +494,7 @@ const handleCheckInGuest = async (khach) => {
       title: 'Bàn không đủ chỗ!',
       html: `Khách đi <b>${soKhach} người</b> nhưng bàn <b>${ban.maBan}</b> chỉ có <b>${sucChua} chỗ</b>.<br><br>Vui lòng chọn hướng xử lý:`,
       icon: 'warning',
+      iconColor: '#7D161A',
       showDenyButton: true,
       showCancelButton: true,
       confirmButtonColor: '#7d161a',
@@ -1065,6 +1067,7 @@ const refreshTableData = async () => {
       if (tienGiamCu > 0 && (resPhieu.data.soTienDaGiam || 0) === 0) {
           Swal.fire({
              icon: 'warning',
+             iconColor: '#7D161A',
              title: 'Đã hủy ưu đãi!',
              text: 'Tổng tiền món hiện tại không còn đủ điều kiện áp dụng mã giảm giá cũ. Hệ thống đã tự động gỡ ưu đãi này ra khỏi hóa đơn.',
              confirmButtonColor: '#7d161a',
@@ -1127,7 +1130,7 @@ const handleDirectCheckIn = async () => {
     tableStatusMap.value = { ...tableStatusMap.value, [bId]: 1 };
     selectedBan.value.trangThai = 1; 
     
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
     
     await handleFetchAllCheckIn();
     await fetchAllBan();
@@ -1157,7 +1160,7 @@ const totalTempPrice = computed(() => {
 
 const handleSaveFood = async (itemsArray) => {
   if (!selectedPhieu.value?.id) {
-    Swal.fire({ title: 'Lưu ý', text: 'Bàn này chưa có Phiếu đặt trước. Không hỗ trợ thêm món!', icon: 'warning', confirmButtonText: 'Đã hiểu' });
+    Swal.fire({ title: 'Lưu ý', text: 'Bàn này chưa có Phiếu đặt trước. Không hỗ trợ thêm món!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đã hiểu' });
     return;
   }
   if (itemsArray.length === 0) {
@@ -1180,7 +1183,7 @@ const handleSaveFood = async (itemsArray) => {
       }))
     };
     await createOrder(payload);
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: "Đã cập nhật thực đơn!", timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: "Đã cập nhật thực đơn!", timer: 1500, showConfirmButton: false });
     handleCloseFoodList();
   } catch (e) {
     Swal.fire({ title: 'Lỗi', text: "Lỗi lưu món", icon: 'error', confirmButtonText: 'Đóng' });
@@ -1195,6 +1198,7 @@ const handlePaymentCash = async () => {
     html: `Tổng tiền thanh toán: <br><br>
            <b style="color: #28a745; font-size: 26px">${amountToPay.toLocaleString()} đ</b>`,
     icon: 'warning',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#28a745', 
     confirmButtonText: 'Đã nhận đủ tiền',
@@ -1219,7 +1223,7 @@ const handlePaymentCash = async () => {
     
     await updateTrangThaiBan(payloadChinh);
 
-    Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đã thanh toán và dọn bàn hoàn tất!', timer: 1500 });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã thanh toán và dọn bàn hoàn tất!', timer: 1500 });
     
     closeModal();
     await handleFetchAllCheckIn();
@@ -1245,6 +1249,7 @@ const copyToClipboard = async (text) => {
     await navigator.clipboard.writeText(text);
     Swal.fire({ 
       icon: 'success', 
+      iconColor: '#7D161A',
       title: 'Đã copy link!', 
       text: 'Bạn có thể dán gửi cho khách',
       timer: 1500, 
@@ -1263,6 +1268,7 @@ const handlePaymentVNPayFull = async () => {
     title: 'Thanh toán VNPay?',
     text: `Chuyển cổng VNPay với tổng tiền ${amountToPay.toLocaleString()} đ. Đồng ý?`,
     icon: 'question',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#007bff',
     confirmButtonText: 'Tiếp tục',
@@ -1365,7 +1371,7 @@ const handlePaymentMixed = async () => {
 
 const handleCancelTicket = async () => {
   if (!selectedPhieu.value?.id) return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
-  const confirm = await Swal.fire({ title: 'Hủy phiếu đặt bàn?', text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Đồng ý hủy', cancelButtonText: 'Quay lại' });
+  const confirm = await Swal.fire({ title: 'Hủy phiếu đặt bàn?', text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?', icon: 'warning', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Đồng ý hủy', cancelButtonText: 'Quay lại' });
   
   if (!confirm.isConfirmed) return;
   
@@ -1382,7 +1388,7 @@ const handleCancelTicket = async () => {
   closeModal();
   await handleFetchAllCheckIn();
   await fetchAllBan();
-  Swal.fire({ icon: 'success', title: 'Đã hủy', timer: 1000, confirmButtonText: 'Đã hiểu' });
+  Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy', timer: 1000, confirmButtonText: 'Đã hiểu' });
 };
 
 const activeBookingTableIds = computed(() => {
@@ -1451,6 +1457,7 @@ const handleSwitchTable = async (banMoi) => {
   if (isReservedSoon) {
       return Swal.fire({
           icon: 'warning',
+          iconColor: '#7D161A',
           title: 'Bàn đã được đặt trước!',
           html: `Bàn <b>${banMoi.maBan}</b> sẽ có khách đến nhận vào lúc <b style="color:red; font-size:18px;">${thoiGianKhachDen}</b>.<br><br>Không thể đổi/ghép vào bàn này để tránh trùng lịch. Vui lòng chọn bàn khác!`,
           confirmButtonText: 'Đã hiểu',
@@ -1478,7 +1485,7 @@ const handleSwitchTable = async (banMoi) => {
       const conLai = khachDangCho - Number(banMoi.soCho);
 
       if (conLai <= 0) {
-          Swal.fire({ icon: 'success', title: 'Hoàn tất', text: 'Đã ghép bàn thành công!', timer: 1500 });
+          Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Hoàn tất', text: 'Đã ghép bàn thành công!', timer: 1500 });
           isSelectingSecondTable.value = false;
           localStorage.removeItem("pendingSplitCustomer");
           if (modalView.value === 'changeTable') closeModal();
@@ -1488,7 +1495,7 @@ const handleSwitchTable = async (banMoi) => {
              obj.soKhachCanXep = conLai;
              localStorage.setItem("pendingSplitCustomer", JSON.stringify(obj));
           }
-          Swal.fire({ icon: 'warning', title: 'Vẫn thiếu chỗ!', html: `Còn <b>${conLai} khách</b> chưa có chỗ.<br>Hãy chọn thêm bàn trống!`, confirmButtonText: 'Đã hiểu' });
+          Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Vẫn thiếu chỗ!', html: `Còn <b>${conLai} khách</b> chưa có chỗ.<br>Hãy chọn thêm bàn trống!`, confirmButtonText: 'Đã hiểu' });
       }
 
       await handleFetchAllCheckIn();
@@ -1509,6 +1516,7 @@ const handleSwitchTable = async (banMoi) => {
       title: 'Bàn mới không đủ chỗ!',
       html: `Đoàn có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br>Chọn hướng xử lý:`,
       icon: 'warning',
+      iconColor: '#7D161A',
       showDenyButton: true,
       showCancelButton: true,
       confirmButtonColor: '#7d161a',
@@ -1535,20 +1543,21 @@ const handleSwitchTable = async (banMoi) => {
         await handleFetchAllCheckIn();
         await fetchAllBan();
         
-        Swal.fire({ title: 'Đã chuyển nhà', html: `Vui lòng chọn tiếp 1 bàn trống bên dưới cho ${soKhachConLai} người còn lại.`, icon: 'success' });
+        Swal.fire({ title: 'Đã chuyển nhà', html: `Vui lòng chọn tiếp 1 bàn trống bên dưới cho ${soKhachConLai} người còn lại.`, iconColor: '#7D161A', icon: 'success' });
         return; 
       } catch (error) {
         return Swal.fire({ title: 'Lỗi', text: 'Lỗi đổi và tách bàn!', icon: 'error', confirmButtonText: 'Đóng' });
       }
     } else { return; }
   } else {
-    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', showCancelButton: true, confirmButtonColor: '#7d161a' });
+    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy', confirmButtonColor: '#7d161a' });
     if (!confirm.isConfirmed) return;
   }
 
   try {
     await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0, vatApDung: 0.0 });
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đổi bàn hoàn tất!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đổi bàn hoàn tất!', timer: 1500, showConfirmButton: false });
     closeModal();
     await handleFetchAllCheckIn();
     await fetchAllBan();
@@ -1589,6 +1598,7 @@ const handleConfirmMergeBulk = async () => {
     title: 'Xác nhận gộp bàn?',
     html: `Chuyển TOÀN BỘ món ăn, khách và tiền cọc từ các bàn: <br><b style="color:red; font-size: 18px;">${tableNames}</b><br><br>Sang đoàn của bàn <b style="color:green; font-size: 18px;">${selectedBan.value.maBan}</b>?<br><br><i>Lưu ý: Các bàn bị gộp sẽ dùng chung hóa đơn với bàn này.</i>`,
     icon: 'warning',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#7d161a',
     cancelButtonText: 'Hủy bỏ',
@@ -1616,7 +1626,7 @@ const handleConfirmMergeBulk = async () => {
       }
     }
 
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã gộp tất cả các bàn hoàn tất!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã gộp tất cả các bàn hoàn tất!', timer: 1500, showConfirmButton: false });
     
     danhSachBanChonGop.value = []; // Clear mảng
     closeModal();
@@ -1637,6 +1647,7 @@ const handleConfirmMerge = async (banBiNuot) => {
     title: 'Xác nhận gộp bàn?',
     html: `Chuyển TOÀN BỘ món ăn, khách và tiền cọc từ <b style="color:red">${banBiNuot.maBan}</b> sang đoàn của bàn <b style="color:green">${selectedBan.value.maBan}</b>?<br><br><i>Lưu ý: Bàn ${banBiNuot.maBan} sẽ dùng chung hóa đơn với bàn này.</i>`,
     icon: 'warning',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#7d161a',
     cancelButtonText: 'Hủy bỏ',
@@ -1665,7 +1676,7 @@ const handleConfirmMerge = async (banBiNuot) => {
 
     await axiosClient.post('/hoa-don-thanh-toan/gop-ban', payload);
 
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã gộp bàn hoàn tất!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã gộp bàn hoàn tất!', timer: 1500, showConfirmButton: false });
     
     closeModal();
     await handleFetchAllCheckIn();
@@ -1730,19 +1741,19 @@ const markAllServed = async () => {
     }
     
     listMonDaChon.value.forEach(item => item.served = true);
-    Swal.fire({ icon: 'success', title: 'Thành công', timer: 1000, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1000, showConfirmButton: false });
   } catch (error) {
     Swal.fire({ title: 'Lỗi', text: 'Lỗi khi cập nhật món!', icon: 'error', confirmButtonText: 'Đóng' });
   }
 };
 
 const handleDeleteItem = async (item, index) => {
-const confirm = await Swal.fire({ title: 'Xóa món?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' });
+const confirm = await Swal.fire({ title: 'Xóa món?', icon: 'warning', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' });
   if (confirm.isConfirmed) {
     try {
       await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=0`);
       listMonDaChon.value.splice(index, 1);
-      Swal.fire({ icon: 'success', title: 'Đã xóa!', timer: 1000, showConfirmButton: false });
+      Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã xóa!', timer: 1000, showConfirmButton: false });
       if (listMonDaChon.value.length === 0) modalView.value = 'info';
     } catch (error) {
       Swal.fire({ title: 'Lỗi', text: 'Không thể xóa!', icon: 'error', confirmButtonText: 'Đóng' });
@@ -1804,7 +1815,7 @@ const handleCancelWaitingTicket = async (khach) => {
           
           await axiosClient.put('/hoa-don-thanh-toan/huy-phieu-cho', payload);
           
-          Swal.fire({ icon: 'success', title: 'Đã hủy phiếu!', timer: 1500, showConfirmButton: false });
+          Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy phiếu!', timer: 1500, showConfirmButton: false });
           
           await handleFetchAllCheckIn();
           await fetchAllBan();
@@ -1842,6 +1853,7 @@ const checkOverdueTables = async () => {
             title: 'Khách ngồi quá 3 tiếng!',
             html: `Bàn <b>${ban.maBan}</b> đã check-in từ ${thoiGianVao.format('HH:mm')}.<br><br>Vui lòng kiểm tra lại tình trạng hoặc yêu cầu thanh toán!`,
             icon: 'warning',
+            iconColor: '#7D161A',
             showCancelButton: true,
             confirmButtonColor: '#7d161a',
             cancelButtonColor: '#6c757d',

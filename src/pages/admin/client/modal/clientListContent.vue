@@ -354,6 +354,7 @@ const handleExportExcel = async () => {
       title: 'Thông báo',
       text: 'Vui lòng chọn ít nhất một khách hàng để xuất file!',
       icon: 'warning',
+      iconColor: '#7D161A',
       confirmButtonText: 'Đồng ý'
     });
     return;
@@ -368,6 +369,7 @@ const handleExportExcel = async () => {
     title: 'Xác nhận xuất file?',
     text: textConfirm,
     icon: 'question',
+    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#28a745',
     cancelButtonColor: '#6c757d',
@@ -415,7 +417,7 @@ const handleExportExcel = async () => {
       Swal.fire({
         title: 'Thành công!',
         text: 'File đã được tải xuống.',
-        icon: 'success',
+        icon: 'success', iconColor: '#7D161A',
         timer: 2000,
         showConfirmButton: false
       });
@@ -445,7 +447,7 @@ const handleRefresh = async () => {
     Swal.fire({
       title: 'Đã tải lại dữ liệu',
       icon: 'success',
-      iconColor: '#a5dc86', // Màu xanh lá nhạt của dấu tích
+      iconColor: '#7D161A',
       showConfirmButton: false,
       timer: 1500,
       toast: false, // Để hiện giữa màn hình giống ảnh
@@ -500,6 +502,7 @@ const handleToggleStatus = async (kh) => {
         title: 'Thành công!',
         text: `Đã ${isLocking ? 'khóa' : 'mở khóa'} khách hàng thành công.`,
         icon: 'success',
+        iconColor: '#7D161A',
         timer: 1500,
         showConfirmButton: false
       });

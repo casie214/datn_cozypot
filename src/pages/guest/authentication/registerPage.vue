@@ -224,6 +224,7 @@ const handleRegister = async () => {
         Swal.close();
         await Swal.fire({
             icon: 'success',
+            iconColor: '#7D161A',
             title: 'Thành công',
             text: 'Vui lòng kiểm tra email để lấy mã OTP',
             showConfirmButton: false,
@@ -249,6 +250,7 @@ const handleVerifyOtp = async (otpCode) => {
 
         await Swal.fire({
             icon: 'success',
+            iconColor: '#7D161A',
             title: 'Thành công',
             text: 'Đăng ký tài khoản thành công!',
             showConfirmButton: false,
