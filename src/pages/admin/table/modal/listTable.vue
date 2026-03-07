@@ -190,7 +190,8 @@ const loaiFilteredOptions = computed(() => {
 });
 
 const danhSachBanFiltered = computed(() => {
-  return danhSachBan.value.filter((ban) => {
+  // Lọc dữ liệu trước
+  let filtered = danhSachBan.value.filter((ban) => {
     /* ===== SEARCH ===== */
     const keyword = searchKeyword.value.toLowerCase().trim();
     const matchSearch =
@@ -201,14 +202,12 @@ const danhSachBanFiltered = computed(() => {
       String(ban.soTang).includes(keyword);
 
     /* ===== FILTER TẦNG ===== */
-    // Vì mode="tags", filterTang.value là 1 mảng các string (VD: ["1", "2", "3"])
     const matchTang =
       !filterTang.value || 
       filterTang.value.length === 0 ||
       filterTang.value.includes(String(ban.soTang));
 
     /* ===== FILTER LOẠI ĐẶT BÀN ===== */
-    // filterLoaiDatBan.value cũng là mảng các string (VD: ["0", "1"])
     const matchLoaiDatBan =
       !filterLoaiDatBan.value || 
       filterLoaiDatBan.value.length === 0 ||
@@ -216,6 +215,9 @@ const danhSachBanFiltered = computed(() => {
 
     return matchSearch && matchTang && matchLoaiDatBan;
   });
+
+  // 🚨 THÊM ĐOẠN SẮP XẾP NÀY: Sắp xếp giảm dần theo ID (ID cao nhất lên đầu)
+  return filtered.sort((a, b) => b.id - a.id);
 });
 
 const totalPages = computed(() => {
