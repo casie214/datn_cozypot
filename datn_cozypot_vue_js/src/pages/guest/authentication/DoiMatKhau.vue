@@ -35,6 +35,7 @@ const handleUpdate = async () => {
     
     await Swal.fire({
     icon: 'success',
+    iconColor: '#7D161A',
     title: 'Thành công',
     text: 'Mật khẩu đã được thay đổi!',
     showConfirmButton: false,

@@ -54,6 +54,7 @@ const handleRefreshListBtn = async () => {
   }
   Swal.fire({
     icon: 'success',
+    iconColor: '#7D161A',
     title: 'Đã cập nhật dữ liệu mới nhất',
     timer: 1000,
     showConfirmButton: false,
@@ -113,6 +114,7 @@ const handleEditValue = async (valItem, parentUnit) => {
 
       Swal.fire({
         icon: 'success',
+        iconColor: '#7D161A',
         title: 'Đã cập nhật!',
         toast: true,
         position: 'top-end',

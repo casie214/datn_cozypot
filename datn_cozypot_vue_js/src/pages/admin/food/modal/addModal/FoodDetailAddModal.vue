@@ -201,7 +201,7 @@ const handleGenerateVariants = () => {
         return;
     }
     if (selectedDinhLuongIds.value.length === 0) {
-        return Swal.fire({ icon: 'warning', text: 'Vui lòng chọn ít nhất 1 định lượng!', confirmButtonColor: '#8B0000' });
+        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Vui lòng chọn ít nhất 1 định lượng!', confirmButtonColor: '#8B0000' });
     }
 
     const newVariants = [];
@@ -252,10 +252,10 @@ const openUnitModal = () => { isUnitModalOpen.value = true; };
 // ==========================================
 const handleSave = async () => {
     if (!formData.value.idDanhMuc || !formData.value.baseName || !formData.value.hinhAnh) {
-        return Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập đủ Tên món, Danh mục và Ảnh!' });
+        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng nhập đủ Tên món, Danh mục và Ảnh!' });
     }
     if (generatedVariants.value.length === 0) {
-        return Swal.fire({ icon: 'warning', text: 'Vui lòng chọn định lượng và nhấn "Tạo biến thể"!' });
+        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Vui lòng chọn định lượng và nhấn "Tạo biến thể"!' });
     }
 
     console.log("Danh sách trước khi lưu:", generatedVariants.value); // In ra để xem
@@ -281,6 +281,7 @@ const handleSave = async () => {
         title: 'Xác nhận lưu?',
         text: `Tạo ${generatedVariants.value.length} món ăn mới.`,
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#8B0000',
         confirmButtonText: 'Đồng ý'
@@ -300,7 +301,7 @@ const handleSave = async () => {
                 });
             });
             await Promise.all(savePromises);
-            await Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+            await Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
 
             if (props.isModal) {
                 emit('saved'); // Báo cho trang Set lẩu biết đã lưu xong để nó tự đóng Modal và tải lại dữ liệu

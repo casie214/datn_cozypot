@@ -51,7 +51,7 @@ const handleEdit = (item) => {
 };
 
 const handleRefreshListBtn = () => {
-  Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+  Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
   setTimeout(() => emit('close'), 1000);
   getAllHotpot();
 }
