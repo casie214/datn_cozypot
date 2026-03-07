@@ -24,7 +24,7 @@
                         </div>
                         <div class="col-md-3 d-flex align-items-end gap-2">
                             <button class="btn-reset-filter " @click="resetFilters">
-                                <!-- <i class="fas fa-sync-alt"></i> -->Xóa bộ lọc 
+                                <!-- <i class="fas fa-sync-alt"></i> -->Xóa bộ lọc
                             </button>
                         </div>
 
@@ -54,7 +54,7 @@
                             <td>{{ index + 1 }}</td>
                             <td class="fw-bold">{{ item.maThamSo }}</td>
                             <td>{{ item.tenThamSo }}</td>
-                           <td>{{ formatValue(item) }}</td>
+                            <td>{{ formatValue(item) }}</td>
 
                             <td>
                                 <span :class="item.trangThai === 1 ? 'status-active' : 'status-inactive'">
@@ -64,9 +64,6 @@
 
                             <td class="text-center">
                                 <div class="action-wrapper">
-                                    <button type="button" class="btn-icon" @click="openViewModal(item)">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
 
                                     <button type="button" class="btn-icon" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
@@ -177,17 +174,6 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Kiểu dữ liệu</label>
-
-                        <Multiselect v-model="editingItem.kieuDuLieu" :options="dataTypeOptions" label="label"
-                            track-by="value" :close-on-select="true" :allow-empty="false"
-                            placeholder="Chọn kiểu dữ liệu" :class="{ 'is-invalid': errors.kieuDuLieu }" />
-
-                        <div class="text-danger mt-1" v-if="errors.kieuDuLieu">
-                            {{ errors.kieuDuLieu }}
-                        </div>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Mô tả</label>
                         <textarea type="text" class="form-control" v-model="editingItem.moTa"></textarea>
                     </div>
@@ -275,7 +261,7 @@
 
             </div>
         </div>
-        
+
     </div>
 </template>
 
@@ -299,70 +285,71 @@ const dataTypeOptions = ref([
 ])
 
 const handleSave = async () => {
-  if (!validateEditForm()) return
+    if (!validateEditForm()) return
 
-  const result = await Swal.fire({
-    title: "Xác nhận cập nhật?",
-    text: "Bạn có chắc muốn thay đổi thông tin tham số?",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonColor: "#8B0000",
-    cancelButtonColor: "#6c757d",
-    confirmButtonText: "Xác nhận",
-    cancelButtonText: "Hủy"
-  })
+    const result = await Swal.fire({
+        title: "Xác nhận cập nhật?",
+        text: "Bạn có chắc muốn thay đổi thông tin tham số?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#8B0000",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy"
+    })
 
-  if (result.isConfirmed) {
-    confirmSave()
-  }
+    if (result.isConfirmed) {
+        confirmSave()
+    }
 }
 
 const confirmSave = async () => {
-  try {
-    const payload = {}
+    try {
+        const payload = {}
 
-    if (editingItem.value.tenThamSo !== originalItem.value.tenThamSo) {
-      payload.tenThamSo = editingItem.value.tenThamSo
-    }
+        if (editingItem.value.tenThamSo !== originalItem.value.tenThamSo) {
+            payload.tenThamSo = editingItem.value.tenThamSo
+        }
 
-    if (editingItem.value.giaTri !== originalItem.value.giaTri) {
-      payload.giaTri = editingItem.value.giaTri
-    }
+        if (editingItem.value.giaTri !== originalItem.value.giaTri) {
+            payload.giaTri = editingItem.value.giaTri
+        }
 
-    if (editingItem.value.moTa !== originalItem.value.moTa) {
-      payload.moTa = editingItem.value.moTa
-    }
+        if (editingItem.value.moTa !== originalItem.value.moTa) {
+            payload.moTa = editingItem.value.moTa
+        }
 
-    if (editingItem.value.kieuDuLieu?.value !== originalItem.value.kieuDuLieu) {
-      payload.kieuDuLieu = editingItem.value.kieuDuLieu.value
-    }
+        if (editingItem.value.kieuDuLieu?.value !== originalItem.value.kieuDuLieu) {
+            payload.kieuDuLieu = editingItem.value.kieuDuLieu.value
+        }
 
-    await axios.patch(
-      `http://localhost:8080/api/tham-so-he-thong/${editingItem.value.id}`,
-      payload,
-      authConfig()
-    )
+        await axios.patch(
+            `http://localhost:8080/api/tham-so-he-thong/${editingItem.value.id}`,
+            payload,
+            authConfig()
+        )
 
-    await fetchSystemParams()
-    showModal.value = false
+        await fetchSystemParams()
+        showModal.value = false
+
+        Swal.fire({
+            icon: "success",
+            title: "Cập nhật thành công",
+            text: `Tham số "${editingItem.value.tenThamSo}" đã được cập nhật`,
+            timer: 2000,
+            showConfirmButton: false
+        })
+
+    } catch (error) {
 
     Swal.fire({
-      icon: "success",
-      title: "Cập nhật thành công",
-      text: `Tham số "${editingItem.value.tenThamSo}" đã được cập nhật`,
-      confirmButtonColor: "#8B0000"
+        icon: "error",
+        title: "Cập nhật thất bại",
+        timer: 2000,
+        showConfirmButton: false
     })
 
-  } catch (error) {
-
-    Swal.fire({
-      icon: "error",
-      title: "Lỗi",
-      text: "Cập nhật thất bại",
-      confirmButtonColor: "#8B0000"
-    })
-
-  }
+}
 }
 const keyword = ref('')
 const status = ref(null)
@@ -373,39 +360,39 @@ const toastTitle = ref('')
 const toastMessage = ref('')
 const pendingEditItem = ref(null)
 const formatValue = (item) => {
-  if (!item) return ""
+    if (!item) return ""
 
-  const value = item.giaTri
-  const code = item.maThamSo
+    const value = item.giaTri
+    const code = item.maThamSo
 
-  switch (code) {
+    switch (code) {
 
-    case "VAT":
-      return `${value} %`
+        case "VAT":
+            return `${value} %`
 
-    case "POINT_RATE":
-      return `${value} %`
+        case "POINT_RATE":
+            return `${value} %`
 
-    case "MIN_RESERVE":
-      return `${value} phút`
+        case "MIN_RESERVE":
+            return `${value} phút`
 
-    case "CURRENCY":
-      return value
+        case "CURRENCY":
+            return value
 
-    case "HOTLINE":
-      return value
+        case "HOTLINE":
+            return value
 
-    case "THOI_GIAN_GIU_BAN":
-              return `${value} phút`
-    case "THOI_GIAN_HUY_HOAN_COC":
-      return `${value} phút`
+        case "THOI_GIAN_GIU_BAN":
+            return `${value} phút`
+        case "THOI_GIAN_HUY_HOAN_COC":
+            return `${value} phút`
 
-    case "THOI_GIAN_TOI_DA_DAT_TRUOC":
-      return `${value} ngày`
+        case "THOI_GIAN_TOI_DA_DAT_TRUOC":
+            return `${value} ngày`
 
-    default:
-      return value
-  }
+        default:
+            return value
+    }
 }
 const validateEditForm = () => {
     errors.value = {}
@@ -463,13 +450,13 @@ const validateEditForm = () => {
     return Object.keys(errors.value).length === 0
 }
 const authConfig = () => {
-  const token = localStorage.getItem("token")
+    const token = localStorage.getItem("token")
 
-  return {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : ""
+    return {
+        headers: {
+            Authorization: token ? `Bearer ${token}` : ""
+        }
     }
-  }
 }
 
 const userRole = ref(null)
@@ -491,46 +478,46 @@ onMounted(() => {
 const isAdmin = computed(() => userRole.value === "ADMIN")
 const toggleStatus = async (item) => {
 
-  const result = await Swal.fire({
-    title: "Xác nhận thay đổi trạng thái?",
-    text: `Bạn muốn ${item.trangThai === 1 ? "ngưng hoạt động" : "kích hoạt"} tham số này?`,
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#8B0000",
-    cancelButtonText: "Hủy",
-    confirmButtonText: "Xác nhận"
-  })
-
-  if (!result.isConfirmed) return
-
-  const oldStatus = item.trangThai
-  item.trangThai = item.trangThai === 1 ? 0 : 1
-
-  try {
-
-    await axios.put(
-      `http://localhost:8080/api/tham-so-he-thong/update-status/${item.maThamSo}`,
-      { trangThai: item.trangThai },
-      authConfig()
-    )
-
-    Swal.fire({
-      icon: "success",
-      title: "Cập nhật trạng thái thành công",
-      confirmButtonColor: "#8B0000"
+    const result = await Swal.fire({
+        title: "Xác nhận thay đổi trạng thái?",
+        text: `Bạn muốn ${item.trangThai === 1 ? "ngưng hoạt động" : "kích hoạt"} tham số này?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#8B0000",
+        cancelButtonText: "Hủy",
+        confirmButtonText: "Xác nhận"
     })
 
-  } catch (error) {
+    if (!result.isConfirmed) return
 
-    item.trangThai = oldStatus
+    const oldStatus = item.trangThai
+    item.trangThai = item.trangThai === 1 ? 0 : 1
 
-    Swal.fire({
-      icon: "error",
-      title: "Lỗi cập nhật trạng thái",
-      confirmButtonColor: "#8B0000"
-    })
+    try {
 
-  }
+        await axios.put(
+            `http://localhost:8080/api/tham-so-he-thong/update-status/${item.maThamSo}`,
+            { trangThai: item.trangThai },
+            authConfig()
+        )
+
+        Swal.fire({
+            icon: "success",
+            title: "Cập nhật trạng thái thành công",
+timer: 1500,
+    showConfirmButton: false        })
+
+    } catch (error) {
+
+        item.trangThai = oldStatus
+
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi cập nhật trạng thái",
+timer: 1500,
+    showConfirmButton: false        })
+
+    }
 }
 const showSuccessToast = (title, message) => {
     toastTitle.value = title
@@ -602,17 +589,17 @@ const closeViewModal = () => {
     showViewModal.value = false
 }
 const openEditModal = (item) => {
-  originalItem.value = { ...item }   // lưu bản gốc
+    originalItem.value = { ...item }   // lưu bản gốc
 
-  editingItem.value = {
-    ...item,
-    moTa: item.moTa || '',
-    kieuDuLieu: dataTypeOptions.value.find(
-      opt => opt.value === item.kieuDuLieu
-    )
-  }
+    editingItem.value = {
+        ...item,
+        moTa: item.moTa || '',
+        kieuDuLieu: dataTypeOptions.value.find(
+            opt => opt.value === item.kieuDuLieu
+        )
+    }
 
-  showModal.value = true
+    showModal.value = true
 }
 
 const closeModal = () => {
@@ -678,8 +665,10 @@ const statusOptions = ref([
 <style scoped>
 /* ================= WRAPPER ================= */
 .manager-wrapper {
-    background: #ffffff;
-    padding: 20px;
+    background: #fdfbfa;
+    padding-left: 10px;
+    padding-right: 15px;
+
     border-radius: 18px;
 }
 
@@ -859,6 +848,7 @@ const statusOptions = ref([
     text-align: center;
     transition: 0.2s;
 }
+
 /* ================= MODAL ================= */
 
 .modal-overlay {
@@ -1115,13 +1105,15 @@ const statusOptions = ref([
 
 /* Loại bỏ khoảng trống thừa và căn chỉnh độ cao đồng nhất với bootstrap input */
 .multiselect {
-    min-height: 38px !important; /* Độ cao chuẩn của form-control bootstrap */
+    min-height: 38px !important;
+    /* Độ cao chuẩn của form-control bootstrap */
     margin-bottom: 0 !important;
 }
 
 .multiselect__tags {
     min-height: 38px !important;
-    padding: 6px 40px 0 8px !important; /* Căn chỉnh lại padding bên trong */
+    padding: 6px 40px 0 8px !important;
+    /* Căn chỉnh lại padding bên trong */
     border-radius: 12px !important;
     border: 1px solid #d1d5db !important;
 }
@@ -1140,6 +1132,7 @@ const statusOptions = ref([
     display: block;
     width: 100%;
 }
+
 .is-invalid {
     border-color: #dc3545 !important;
 }
@@ -1147,6 +1140,7 @@ const statusOptions = ref([
 .invalid-feedback {
     display: block;
 }
+
 .custom-table {
     table-layout: fixed;
     width: 100%;
@@ -1157,12 +1151,14 @@ const statusOptions = ref([
     word-wrap: break-word;
     word-break: break-word;
 }
+
 /* STT */
 .custom-table th:nth-child(1),
 .custom-table td:nth-child(1) {
     width: 60px;
     text-align: center;
 }
+
 /* Giới hạn từng cột */
 .custom-table th:nth-child(2),
 .custom-table td:nth-child(2) {
