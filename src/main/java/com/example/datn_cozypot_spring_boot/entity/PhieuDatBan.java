@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -15,6 +16,7 @@ import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -29,14 +31,9 @@ public class PhieuDatBan {
     @Column(name = "id_phieu_dat_ban", nullable = false)
     private Integer id;
 
-    // 🚨 ĐÃ SỬA: Định nghĩa bảng trung gian Many-to-Many với BanAn
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "phieu_dat_ban_ban_an", // Tên bảng trung gian trong SQL
-            joinColumns = @JoinColumn(name = "id_phieu_dat_ban"), // Cột trỏ về bảng này
-            inverseJoinColumns = @JoinColumn(name = "id_ban_an")  // Cột trỏ về bảng BanAn
-    )
-    private Set<BanAn> banAns = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "phieuDatBan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<PhieuDatBanBanAn> dsBanAn = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -78,4 +75,32 @@ public class PhieuDatBan {
 
     @OneToMany(mappedBy = "idPhieuDatBan")
     private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
+
+    @Transient
+    public BanAn getIdBanAn() {
+        return dsBanAn.stream()
+                .map(PhieuDatBanBanAn::getBanAn)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void setIdBanAn(BanAn banAn) {
+        dsBanAn.clear();
+        if (banAn == null) return;
+
+        PhieuDatBanBanAn link = new PhieuDatBanBanAn();
+        link.setPhieuDatBan(this);
+        link.setBanAn(banAn);
+
+        dsBanAn.add(link);
+    }
+
+    @Transient // Đánh dấu để JPA không quét vào DB cột này
+    public Set<BanAn> getBanAns() {
+        if (this.dsBanAn == null) return new LinkedHashSet<>();
+        return this.dsBanAn.stream()
+                .map(PhieuDatBanBanAn::getBanAn)
+                .collect(Collectors.toSet());
+    }
+
 }
