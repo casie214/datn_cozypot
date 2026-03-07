@@ -20,21 +20,34 @@ public class PhieuDatBanScheduler {
     private final BanAnRepository banAnRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     @Scheduled(fixedRate = 5000)
     @Transactional
     public void autoCancelExpiredReservations() {
-        // Mốc thời gian: Hiện tại trừ đi 15 phút
-        LocalDateTime limitTime = LocalDateTime.now().minusMinutes(15);
+        Integer minReserve = 15;
+        try {
+            minReserve = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("THOI_GIAN_GIU_BAN").get().getGiaTri());
+            System.out.println(minReserve);
+        } catch (Exception e) {}
 
-        // Tìm các phiếu ở trạng thái 2 (Đã xác nhận/Chờ) và thoiGianDat < limitTime
+        // Khách đến trễ quá số phút MIN_RESERVE sẽ bị hủy
+        LocalDateTime limitTime = LocalDateTime.now().minusMinutes(minReserve);
         List<PhieuDatBan> expiredReservations = phieuDatBanRepository.findAllByTrangThaiAndThoiGianDatBefore(1, limitTime);
 
         for (PhieuDatBan phieu : expiredReservations) {
             System.out.println("🤖 Hệ thống tự động hủy phiếu quá hạn: " + phieu.getMaDatBan());
 
-            // 1. Hủy Phiếu Đặt Bàn (Trạng thái = 0)
+            // 1. Hủy Phiếu Đặt Bàn (Trạng thái = 5: Quá hạn)
             phieu.setTrangThai(5);
+
+            // 🚨 N-N LOGIC: Giải phóng TOÀN BỘ Bàn Ăn thuộc phiếu này (Trạng thái = 0 - Trống)
+            if (phieu.getBanAns() != null) {
+                for (BanAn ban : phieu.getBanAns()) {
+                    ban.setTrangThai(0);
+                    banAnRepository.save(ban);
+                }
+            }
             phieuDatBanRepository.save(phieu);
 
             // 2. Tìm Hóa Đơn liên quan đến phiếu này
@@ -65,25 +78,7 @@ public class PhieuDatBanScheduler {
                         8
                 );
             }
-
-            // 4. Giải phóng Bàn Ăn (Trạng thái = 0 - Trống)
-            if (phieu.getIdBanAn() != null) {
-                BanAn ban = phieu.getIdBanAn();
-                ban.setTrangThai(0);
-                banAnRepository.save(ban);
-            }
         }
-    }
-
-    private void ghiLichSu(HoaDonThanhToan hd, Integer idNV, String hanhDong, String lyDo, Integer cu, Integer moi) {
-        LichSuHoaDon log = new LichSuHoaDon();
-        log.setIdHoaDon(hd);
-        log.setHanhDong(hanhDong);
-        log.setLyDoThucHien(lyDo);
-        log.setThoiGianThucHien(Instant.now());
-        log.setTrangThaiTruocDo(cu);
-        log.setTrangThaiMoi(moi);
-        lichSuHoaDonRepository.save(log);
     }
 
     @Scheduled(fixedRate = 5000)
@@ -96,24 +91,29 @@ public class PhieuDatBanScheduler {
         List<HoaDonThanhToan> expiredDeposits = hoaDonThanhToanRepository.findAllByTrangThaiHoaDonAndThoiGianTaoBefore(1, limitTime);
 
         for (HoaDonThanhToan hoaDon : expiredDeposits) {
-            System.out.println("Hệ thống tự động hủy đơn do không cọc: Hóa đơn ID " + hoaDon.getId());
+            System.out.println("🤖 Hệ thống tự động hủy đơn do không cọc: Hóa đơn ID " + hoaDon.getId());
 
             Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
 
+            // 1. Hủy Hóa đơn
             hoaDon.setTrangThaiHoaDon(8);
 
+            // 2. Hủy Phiếu và giải phóng TOÀN BỘ BÀN (N-N LOGIC)
             PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
             if (phieu != null) {
-                phieu.setTrangThai(2);
+                phieu.setTrangThai(2); // 2: Đã Hủy
+
+                // Giải phóng các bàn liên kết
+                if (phieu.getBanAns() != null) {
+                    for (BanAn ban : phieu.getBanAns()) {
+                        ban.setTrangThai(0);
+                        banAnRepository.save(ban);
+                    }
+                }
                 phieuDatBanRepository.save(phieu);
             }
 
-            if (hoaDon.getIdBanAn() != null) {
-                BanAn ban = hoaDon.getIdBanAn();
-                ban.setTrangThai(0);
-                banAnRepository.save(ban);
-            }
-
+            // 3. Hủy Món ăn
             List<ChiTietHoaDon> listMonAn = chiTietHoaDonRepository.findByIdHoaDon(hoaDon.getId());
             if (listMonAn != null && !listMonAn.isEmpty()) {
                 for (ChiTietHoaDon chiTiet : listMonAn) {
@@ -124,6 +124,7 @@ public class PhieuDatBanScheduler {
 
             hoaDonThanhToanRepository.save(hoaDon);
 
+            // 4. Ghi log
             ghiLichSu(
                     hoaDon,
                     null,
@@ -133,5 +134,16 @@ public class PhieuDatBanScheduler {
                     8
             );
         }
+    }
+
+    private void ghiLichSu(HoaDonThanhToan hd, Integer idNV, String hanhDong, String lyDo, Integer cu, Integer moi) {
+        LichSuHoaDon log = new LichSuHoaDon();
+        log.setIdHoaDon(hd);
+        log.setHanhDong(hanhDong);
+        log.setLyDoThucHien(lyDo);
+        log.setThoiGianThucHien(Instant.now());
+        log.setTrangThaiTruocDo(cu);
+        log.setTrangThaiMoi(moi);
+        lichSuHoaDonRepository.save(log);
     }
 }

@@ -12,6 +12,8 @@ const isLoading = ref(false);
 const isSubmitting = ref(false);
 const availableTables = ref([]);
 const hasCheckedTables = ref(false);
+const isNameLocked = ref(false);
+const isPhoneLocked = ref(false);
 // --- 2. DỮ LIỆU ĐẶT BÀN ---
 const bookingData = reactive({
   people: null,
@@ -128,6 +130,8 @@ onMounted(() => {
         userObj.phone ||
         "";
       customerInfo.email = userObj.email || "";
+      isNameLocked.value = !!customerInfo.fullName && customerInfo.fullName !== 'Người dùng';
+      isPhoneLocked.value = !!customerInfo.phone;
     } catch (e) {
       console.error("Lỗi parse thông tin user:", e);
     }
@@ -145,9 +149,12 @@ onMounted(() => {
       hasCheckedTables.value = true;
     }
 
-    if (parsed.customerInfo?.fullName) customerInfo.fullName = parsed.customerInfo.fullName;
-    if (parsed.customerInfo?.phone) customerInfo.phone = parsed.customerInfo.phone;
-    if (parsed.customerInfo?.email) customerInfo.email = parsed.customerInfo.email;
+    if (parsed.customerInfo?.fullName)
+      customerInfo.fullName = parsed.customerInfo.fullName;
+    if (parsed.customerInfo?.phone)
+      customerInfo.phone = parsed.customerInfo.phone;
+    if (parsed.customerInfo?.email)
+      customerInfo.email = parsed.customerInfo.email;
     if (parsed.customerInfo?.note) customerInfo.note = parsed.customerInfo.note;
 
     step.value = 2; // Nhảy thẳng vào màn 2
@@ -222,8 +229,8 @@ const checkAvailability = async () => {
     if (availableTables.value.length === 0) {
       Swal.fire({
         icon: "error",
-        title: "Hết bàn rồi!",
-        text: "Rất tiếc, nhà hàng đã hết bàn trống phù hợp vào khung giờ này. Bạn vui lòng chọn giờ hoặc giảm số lượng người nhé!",
+        title: "Không có bàn phù hợp!",
+        text: `Hiện nhà hàng không còn bàn trống nào phù hợp cho ${bookingData.people} người vào khung giờ này. Vui lòng thay đổi giờ hoặc số lượng khách!`,
         confirmButtonColor: "#7d161a",
       });
     } else {
@@ -246,10 +253,10 @@ const goBack = () => {
 const goToMenu = () => {
   sessionStorage.setItem(
     "pendingBooking",
-    JSON.stringify({ 
-      bookingData, 
+    JSON.stringify({
+      bookingData,
       customerInfo,
-      availableTables: availableTables.value
+      availableTables: availableTables.value,
     }),
   );
   router.push("/menu");
@@ -269,36 +276,97 @@ const submitFinalBooking = async () => {
     return;
   }
 
+  let depositHtml = "";
+  if (depositAmount.value > 0) {
+    depositHtml = `
+      <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px dashed #e0e0e0; margin-top: 12px;">
+        <span style="color: #666;"><i class="fas fa-money-bill-wave" style="width: 25px; color: #a0a0a0;"></i> Tiền cọc (40%):</span>
+        <strong style="color: #d32f2f; font-size: 16px;">${formatPrice(depositAmount.value)}</strong>
+      </div>
+    `;
+  }
+
   // BƯỚC XÁC NHẬN THÔNG TIN
   const isConfirm = await Swal.fire({
-    title: "Xác nhận thông tin đặt bàn",
+    title:
+      '<h3 style="font-weight: bold; color: #333; margin-bottom: 0px;">Xác Nhận Đặt Bàn</h3>',
     html: `
-      <div style="text-align: left; font-size: 15px; line-height: 1.6; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-        <div style="margin-bottom: 8px;"><b>👤 Khách hàng:</b> ${customerInfo.fullName}</div>
-        <div style="margin-bottom: 8px;"><b>📞 Số điện thoại:</b> ${customerInfo.phone}</div>
-        <div style="margin-bottom: 8px;"><b>⏰ Thời gian:</b> ${bookingData.time} - ${formattedDate.value}</div>
-        <div style="margin-bottom: 8px;"><b>👥 Số người:</b> ${bookingData.people}</div>
-        <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
-          <b>💰 Tạm tính:</b> ${formatPrice(totalAmount.value)}<br/>
-          <b style="color: #7d161a; font-size: 18px;">🔥 Tiền cọc (40%): ${formatPrice(depositAmount.value)}</b>
+      <p style="color: #888; font-size: 14px; margin-bottom: 20px;">Vui lòng kiểm tra lại thông tin trước khi xác nhận</p>
+
+      <div style="text-align: left; font-size: 14.5px; background: #fff; padding: 15px 20px; border-radius: 12px; border: 1px solid #eaeaea; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px;">
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5;">
+          <span style="color: #666;"><i class="fas fa-user" style="width: 25px; color: #a0a0a0;"></i> Họ và tên:</span>
+          <strong style="color: #333;">${customerInfo.fullName}</strong>
         </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5;">
+          <span style="color: #666;"><i class="fas fa-phone-alt" style="width: 25px; color: #a0a0a0;"></i> Số điện thoại:</span>
+          <strong style="color: #333;">${customerInfo.phone}</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5;">
+          <span style="color: #666;"><i class="fas fa-envelope" style="width: 25px; color: #a0a0a0;"></i> Email:</span>
+          <strong style="color: #333;">${customerInfo.email}</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5;">
+          <span style="color: #666;"><i class="fas fa-users" style="width: 25px; color: #a0a0a0;"></i> Số người:</span>
+          <strong style="color: #333;">${bookingData.people} người</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5;">
+          <span style="color: #666;"><i class="fas fa-calendar-alt" style="width: 25px; color: #a0a0a0;"></i> Ngày:</span>
+          <strong style="color: #333;">${formattedDate.value}</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0;">
+          <span style="color: #666;"><i class="fas fa-clock" style="width: 25px; color: #a0a0a0;"></i> Giờ:</span>
+          <strong style="color: #333;">${bookingData.time}</strong>
+        </div>
+
+        ${depositHtml}
       </div>
-      <div style="margin-top: 15px; font-size: 13px; color: #6c757d; font-style: italic;">
-        * Vui lòng kiểm tra kỹ thông tin. Nếu sai sót, nhà hàng xin phép không chịu trách nhiệm! :))))
+
+      <div style="background-color: #fffaf0; color: #b7791f; padding: 12px 15px; border-radius: 8px; font-size: 13px; text-align: left; display: flex; gap: 10px; align-items: flex-start; border: 1px solid #fce8b2;">
+        <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
+        <span>Sau khi xác nhận, bạn sẽ nhận được thông báo qua email/SMS. Vui lòng kiểm tra thông tin chính xác.</span>
       </div>
     `,
     icon: "question",
     showCancelButton: true,
-    confirmButtonColor: "#7d161a",
-    cancelButtonColor: "#6c757d",
-    confirmButtonText: "Đúng rồi, Đặt bàn luôn!",
-    cancelButtonText: "Từ từ, để sửa lại",
+    confirmButtonText:
+      '<i class="fas fa-check-circle me-1"></i> Xác Nhận Đặt Bàn',
+    cancelButtonText: '<i class="fas fa-times me-1"></i> Hủy',
+    buttonsStyling: false,
     customClass: {
       popup: "rounded-4",
+      confirmButton: "btn text-white fw-bold px-4 py-2 mx-2",
+      cancelButton: "btn text-dark fw-bold px-4 py-2 mx-2",
+    },
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      confirmBtn.style.background =
+        "linear-gradient(135deg, #7D161A 0%, #D32F2F 100%)";
+      confirmBtn.style.color = "white";
+      confirmBtn.style.border = "none";
+      confirmBtn.style.padding = "12px 30px";
+      confirmBtn.style.fontSize = "1.1rem";
+      confirmBtn.style.borderRadius = "10px";
+      confirmBtn.style.boxShadow = "0 4px 12px rgba(125, 22, 26, 0.2)";
+
+      cancelBtn.style.backgroundColor = "#f3f4f6";
+      cancelBtn.style.color = "#333";
+      cancelBtn.style.border = "none";
+      cancelBtn.style.padding = "12px 30px";
+      cancelBtn.style.fontSize = "1.1rem";
+      cancelBtn.style.borderRadius = "10px";
     },
   });
 
-  // Nếu khách bấm "Từ từ" hoặc bấm ra ngoài popup -> Dừng hàm lại luôn
+  // Nếu khách bấm "Hủy" hoặc bấm ra ngoài popup -> Dừng hàm lại luôn
   if (!isConfirm.isConfirmed) {
     return;
   }
@@ -306,7 +374,7 @@ const submitFinalBooking = async () => {
   // ==========================================================
   // NẾU KHÁCH ĐÃ CHỐT -> BẮT ĐẦU HIỆN LOADING VÀ GỌI API BE
   // ==========================================================
-  isSubmitting.value = true;
+  //isSubmitting.value = true;
   try {
     const payload = {
       idKhachHang: customerInfo.idKhachHang,
@@ -376,11 +444,27 @@ const submitFinalBooking = async () => {
       }
     } else {
       // 3. LUỒNG KHÔNG CẦN CỌC (Trạng thái = 0)
-      await Swal.fire(
-        "Thành công",
-        "Lịch hẹn của bạn đã được ghi nhận. Nhà hàng sẽ liên hệ xác nhận trong ít phút!",
-        "success",
-      );
+      await Swal.fire({
+        title: "Thành công",
+        text: "Lịch hẹn của bạn đã được ghi nhận. Nhà hàng sẽ liên hệ xác nhận trong ít phút!",
+        icon: "success",
+        confirmButtonText: "OK",
+        buttonsStyling: false,
+        customClass: {
+          popup: "rounded-4",
+          confirmButton: "btn text-white fw-bold px-4 py-2",
+        },
+        didOpen: () => {
+          const confirmBtn = Swal.getConfirmButton();
+          confirmBtn.style.background =
+            "linear-gradient(135deg, #7D161A 0%, #D32F2F 100%)";
+          confirmBtn.style.color = "white";
+          confirmBtn.style.border = "none";
+          confirmBtn.style.borderRadius = "10px";
+          confirmBtn.style.padding = "10px 30px";
+          confirmBtn.style.fontSize = "1rem";
+        },
+      });
       resetForm();
       router.push("/");
     }
@@ -393,7 +477,7 @@ const submitFinalBooking = async () => {
       "error",
     );
   } finally {
-    isSubmitting.value = false;
+    //isSubmitting.value = false;
   }
 };
 
@@ -630,7 +714,7 @@ const minDate = computed(() => {
                       v-model="customerInfo.fullName"
                       class="form-control custom-input border-0 border-bottom bg-transparent px-1 rounded-0 fw-bold text-dark fs-6"
                       placeholder="Nhập họ và tên..."
-                      :readonly="!!customerInfo.idKhachHang"
+                      :readonly="!!customerInfo.idKhachHang && isNameLocked"
                     />
                     <span
                       v-if="errors.fullName"
@@ -649,7 +733,7 @@ const minDate = computed(() => {
                       v-model="customerInfo.phone"
                       class="form-control custom-input border-0 border-bottom bg-transparent px-1 rounded-0 fw-bold text-dark fs-6"
                       placeholder="Nhập SĐT..."
-                      :readonly="!!customerInfo.idKhachHang"
+                      :readonly="!!customerInfo.idKhachHang && isPhoneLocked"
                     />
                     <span
                       v-if="errors.phone"
@@ -775,10 +859,10 @@ const minDate = computed(() => {
                     v-model="customerInfo.note"
                     class="form-control border-0 h-100 min-h-[100px]"
                     style="
-                      background-color: #a8a8a8;
-                      border-left: 4px solid #7d161a !important;
+                      background-color: #f8f9fa;
+                      border-left: 4px solid #d32f2f !important;
                       border-radius: 6px;
-                      color: #fff;
+                      color: #333;
                     "
                     placeholder=" Nhập ghi chú của bạn..."
                   ></textarea>
@@ -840,7 +924,15 @@ const minDate = computed(() => {
                     <button
                       @click="goToMenu"
                       class="btn btn-sm text-white"
-                      style="background-color: #7d161a; border-radius: 6px"
+                      style="
+                        background: linear-gradient(
+                          135deg,
+                          #7d161a 0%,
+                          #d32f2f 100%
+                        );
+                        border-radius: 8px;
+                        padding: 6px 20px;
+                      "
                     >
                       Chọn món ngay
                     </button>
@@ -925,18 +1017,10 @@ const minDate = computed(() => {
                     <button
                       @click="submitFinalBooking"
                       :disabled="isSubmitting"
-                      class="btn text-white px-5 py-2 fw-bold"
-                      style="
-                        background-color: #7d161a;
-                        border-radius: 8px;
-                        font-size: 1rem;
-                      "
+                      class="btn text-white px-5 py-2 fw-bold btn-custom-red"
+                      style="font-size: 1rem"
                     >
-                      <span
-                        v-if="isSubmitting"
-                        class="spinner-border spinner-border-sm me-2"
-                      ></span>
-                      {{ isSubmitting ? "ĐANG XỬ LÝ..." : "ĐẶT BÀN" }}
+                      ĐẶT BÀN
                     </button>
                   </div>
                 </div>
@@ -973,16 +1057,16 @@ textarea::placeholder {
 }
 
 .btn-custom-red {
-  background-color: #7d161a;
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%) !important;
+  color: white !important;
   border: none;
   border-radius: 8px;
   padding: 12px;
-  color: white;
-  transition: all 0.3s ease;
+  transition: 0.2s;
 }
 
 .btn-custom-red:hover:not(:disabled) {
-  background-color: #5e1013;
+  opacity: 0.9;
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(125, 22, 26, 0.2);

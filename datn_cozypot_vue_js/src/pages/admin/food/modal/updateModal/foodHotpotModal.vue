@@ -50,6 +50,7 @@ const handleFoodAdded = async () => {
     }
     Swal.fire({
         icon: 'success',
+        iconColor: '#7D161A',
         title: 'Đã cập nhật danh sách món!',
         toast: true,
         position: 'top-end',

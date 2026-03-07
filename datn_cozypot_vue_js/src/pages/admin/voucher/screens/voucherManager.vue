@@ -32,20 +32,23 @@
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Đối tượng</label>
-                        <Multiselect v-model="filters.doiTuong" :options="doiTuongOptions" mode="single" label="label"
+                        <Multiselect   class="custom-multiselect-theme"
+ v-model="filters.doiTuong" :options="doiTuongOptions" mode="single" label="label"
                             valueProp="value" trackBy="value"  placeholder="Chọn tất cả đối tượng"/>
 
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Loại giảm giá</label>
-                        <Multiselect v-model="filters.loaiGiamGia" :options="loaiGiamGiaOptions" mode="single"
+                        <Multiselect class="custom-multiselect-theme"
+ v-model="filters.loaiGiamGia" :options="loaiGiamGiaOptions" mode="single"
                             label="label" valueProp="value" trackBy="value"  placeholder="Chọn tất cả loại" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Trạng thái</label>
-                        <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" mode="single" label="label"
+                        <Multiselect   class="custom-multiselect-theme"
+ v-model="filters.trangThai" :options="trangThaiOptions" mode="single" label="label"
                             valueProp="value" trackBy="value"  placeholder="Chọn tất cả trạng thái" />
                     </div>
                     <div class="col-md-2 d-flex align-items-end gap-2">
@@ -785,6 +788,7 @@ const showConfirm = async (title, text) => {
         title,
         text,
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonText: 'Xác nhận',
         cancelButtonText: 'Hủy',

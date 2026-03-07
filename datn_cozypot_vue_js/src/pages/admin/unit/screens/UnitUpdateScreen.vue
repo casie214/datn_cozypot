@@ -151,6 +151,7 @@ const handleUpdate = async () => {
 
         Swal.fire({
             icon: 'success',
+            iconColor: '#7D161A',
             title: props.isQuickAddMode ? 'Đã thêm giá trị mới!' : 'Cập nhật thành công!',
             timer: 1200,
             showConfirmButton: false

@@ -160,6 +160,7 @@ const handleSave = async () => {
         title: 'Xác nhận',
         text: `Tạo đơn vị "${formData.value.tenDonVi}" với ${formData.value.values.length} giá trị?`,
         icon: 'question',
+        iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#8B0000',
         confirmButtonText: 'Đồng ý',
@@ -169,7 +170,7 @@ const handleSave = async () => {
     if (result.isConfirmed) {
         try {
             const res = await foodApi.createUnitType(formData.value);
-            Swal.fire({ icon: 'success', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
             const newUnitId = res.data?.id;
             emit('refresh', newUnitId); 
             emit('close');

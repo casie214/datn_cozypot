@@ -3,8 +3,10 @@ package com.example.datn_cozypot_spring_boot.repository;
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.setLau.TopSetLauResponse;
 import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,6 +15,11 @@ import java.util.List;
 
 @Repository
 public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, Integer> {
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE chi_tiet_hoa_don SET id_hoa_don = :idHoaDonChu WHERE id_hoa_don = :idHoaDonBiNuot", nativeQuery = true)
+    void chuyenHoaDonChoChiTietMon(@Param("idHoaDonChu") Integer idHoaDonChu, @Param("idHoaDonBiNuot") Integer idHoaDonBiNuot);
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +
@@ -47,6 +54,12 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
             "GROUP BY c.idSetLau " +
             "ORDER BY SUM(c.soLuong) DESC")
     List<TopSetLauResponse> findTopSellingSetLau(Pageable pageable);
+
+    // Thêm vào ChiTietHoaDonRepository.java
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query(value = "UPDATE chi_tiet_hoa_don SET id_hoa_don = :idHoaDonChu WHERE id_hoa_don = :idHoaDonBiNuot", nativeQuery = true)
+    void chuyenMonSangHoaDonMoi(@Param("idHoaDonChu") Integer idHoaDonChu, @Param("idHoaDonBiNuot") Integer idHoaDonBiNuot);
 
     List<ChiTietHoaDon> findByIdHoaDon_Id(Integer id);
 }

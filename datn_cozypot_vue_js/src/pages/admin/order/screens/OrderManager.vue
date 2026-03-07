@@ -157,7 +157,7 @@ const visiblePages = computed(() => {
 
       <div
         class="card shadow-sm"
-        style="border: 1px solid #dee2e6 !important; border-radius: 8px"
+        style="border: 1px solid #dee2e6 !important; border-radius: 15px"
       >
         <div class="card-body p-0">
           <div
@@ -192,8 +192,8 @@ const visiblePages = computed(() => {
                     {{ index + 1 + currentPage * pageSize }}
                   </td>
                   <td>{{ order.id }}</td>
-                  <td>{{ order.khachHang }}</td>
-                  <td>{{ order.sdt }}</td>
+                  <td>{{ order.khachHang || 'Khách vãng lai' }}</td>
+                  <td>{{ order.sdt || '---' }}</td>
                   <td>{{ order.ban }}</td>
                   <td>{{ order.loai }}</td>
                   <td>{{ order.ngayTao }}</td>

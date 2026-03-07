@@ -11,8 +11,8 @@ import {
   searchCustomerByPhone,
   searchDatBanService,
 } from "@/services/tableManageService";
-import Multiselect from '@vueform/multiselect';
-import '@vueform/multiselect/themes/default.css';
+import Multiselect from "@vueform/multiselect";
+import "@vueform/multiselect/themes/default.css";
 
 // dayjs.extend(utc);
 // dayjs.extend(timezone);
@@ -23,6 +23,7 @@ const totalPages = ref(0);
 const currentPage = ref(1); // Vue hiển thị từ trang 1
 const pageSize = ref(6);
 const refreshKey = ref(0); // Thêm biến này để ép component con tải lại
+const isSubmitting = ref(false);
 
 const searchForm = ref({
   soDienThoai: "",
@@ -41,6 +42,14 @@ const createForm = ref({
   thoiGianDat: "",
   soLuongKhach: 1,
   hinhThucDat: 1,
+});
+const formErrors = ref({
+  tenKhachHang: "",
+  soDienThoai: "",
+  email: "",
+  thoiGianDat: "",
+  soLuongKhach: "",
+  idBanAn: "",
 });
 const showCreateModal = ref(false);
 const listBanAn = ref([]);
@@ -221,6 +230,7 @@ const searchDatBan = async () => {
 // ================= OPEN MODAL =================
 const openCreateModal = async () => {
   selectedCustomer.value = null;
+  selectedTable.value = null;
   customerOptions.value = [];
   isOldCustomer.value = false;
 
@@ -236,6 +246,7 @@ const openCreateModal = async () => {
     soLuongKhach: 1,
     hinhThucDat: 1,
   };
+  resetCreateFormErrors();
 
   showCreateModal.value = true;
 
@@ -304,6 +315,9 @@ const handleSelectCustomer = (value) => {
     createForm.value.email = "";
     createForm.value.ngaySinh = "";
     createForm.value.gioiTinh = true;
+    formErrors.value.tenKhachHang = "";
+    formErrors.value.soDienThoai = "";
+    formErrors.value.email = "";
     return;
   }
 
@@ -315,6 +329,9 @@ const handleSelectCustomer = (value) => {
   createForm.value.email = c.email;
   createForm.value.ngaySinh = c.ngaySinh;
   createForm.value.gioiTinh = c.gioiTinh;
+  formErrors.value.tenKhachHang = "";
+  formErrors.value.soDienThoai = "";
+  formErrors.value.email = "";
 };
 
 const clearCustomer = () => {
@@ -323,8 +340,78 @@ const clearCustomer = () => {
   createForm.value.idKhachHang = null;
 };
 
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const isValidVietnamPhone = (phone) => /^(0|\+84)(3|5|7|8|9)\d{8}$/.test(phone);
+
+const resetCreateFormErrors = () => {
+  formErrors.value = {
+    tenKhachHang: "",
+    soDienThoai: "",
+    email: "",
+    thoiGianDat: "",
+    soLuongKhach: "",
+    idBanAn: "",
+  };
+};
+
+const validateCreateForm = () => {
+  const errors = {
+    tenKhachHang: "",
+    soDienThoai: "",
+    email: "",
+    thoiGianDat: "",
+    soLuongKhach: "",
+    idBanAn: "",
+  };
+
+  const tenKhachHang = (createForm.value.tenKhachHang || "").trim();
+  const soDienThoai = (createForm.value.soDienThoai || "").trim();
+  const email = (createForm.value.email || "").trim();
+  const thoiGianDat = createForm.value.thoiGianDat;
+  const soLuongKhach = Number(createForm.value.soLuongKhach);
+
+  if (!tenKhachHang) {
+    errors.tenKhachHang = "Vui lòng nhập tên khách hàng";
+  } else if (tenKhachHang.length < 2) {
+    errors.tenKhachHang = "Tên khách hàng phải có ít nhất 2 ký tự";
+  }
+
+  if (!soDienThoai) {
+    errors.soDienThoai = "Vui lòng nhập số điện thoại";
+  } else if (!isValidVietnamPhone(soDienThoai)) {
+    errors.soDienThoai = "Số điện thoại không đúng định dạng";
+  }
+
+  if (email && !isValidEmail(email)) {
+    errors.email = "Email không đúng định dạng";
+  }
+
+  if (!thoiGianDat) {
+    errors.thoiGianDat = "Vui lòng chọn thời gian đặt";
+  } else if (new Date(thoiGianDat) <= new Date()) {
+    errors.thoiGianDat = "Thời gian đặt phải lớn hơn ngày giờ hiện tại";
+  }
+
+  if (!Number.isInteger(soLuongKhach) || soLuongKhach < 1) {
+    errors.soLuongKhach = "Số lượng khách phải lớn hơn 0";
+  }
+
+  if (!createForm.value.idBanAn) {
+    errors.idBanAn = "Vui lòng chọn bàn";
+  }
+
+  formErrors.value = errors;
+  return !Object.values(errors).some(Boolean);
+};
+
+// ================= SUBMIT =================
 // ================= SUBMIT =================
 const submitCreate = async () => {
+  if (!validateCreateForm()) return;
+
+  isSubmitting.value = true; // Bật loading khi bắt đầu gọi API
+
   try {
     const thoiGianDat =
       createForm.value.thoiGianDat.length === 16
@@ -343,33 +430,39 @@ const submitCreate = async () => {
       showToast(
         "success",
         "✅ Tạo phiếu thành công!",
-        `Mail xác nhận đã gửi tới: ${res.emailGuiToi}`
+        `Mail xác nhận đã gửi tới: ${res.emailGuiToi}`,
       );
     } else {
       showToast(
         "warning",
         "✅ Tạo phiếu thành công!",
-        "Khách không có email nên không gửi được xác nhận."
+        "Khách không có email nên không gửi được xác nhận.",
       );
     }
   } catch (error) {
     showToast(
       "error",
       "❌ Tạo phiếu thất bại",
-      error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại."
+      error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.",
     );
+  } finally {
+    isSubmitting.value = false; // Tắt loading dù thành công hay thất bại
   }
 };
+
+
 const closeCreateModal = () => {
   showCreateModal.value = false;
   selectedCustomer.value = null;
+  selectedTable.value = null;
   customerOptions.value = [];
+  resetCreateFormErrors();
 };
 
 // ===== TOAST =====
 const toast = ref({
   show: false,
-  type: "success",   // "success" | "warning" | "error"
+  type: "success", // "success" | "warning" | "error"
   title: "",
   message: "",
 });
@@ -385,6 +478,91 @@ watch(
   () => createForm.value.thoiGianDat,
   (val) => {
     if (val) checkTablesByDate(val);
+    if (!formErrors.value.thoiGianDat) return;
+    if (!val) {
+      formErrors.value.thoiGianDat = "Vui long chon thoi gian dat";
+      return;
+    }
+    if (new Date(val) <= new Date()) {
+      formErrors.value.thoiGianDat =
+        "Thoi gian dat phai lon hon thoi diem hien tai";
+      return;
+    }
+    formErrors.value.thoiGianDat = "";
+  },
+);
+
+watch(
+  () => createForm.value.tenKhachHang,
+  (val) => {
+    if (!formErrors.value.tenKhachHang) return;
+    const value = (val || "").trim();
+    if (!value) {
+      formErrors.value.tenKhachHang = "Vui long nhap ten khach hang";
+      return;
+    }
+    if (value.length < 2) {
+      formErrors.value.tenKhachHang = "Ten khach hang phai co it nhat 2 ky tu";
+      return;
+    }
+    formErrors.value.tenKhachHang = "";
+  },
+);
+
+watch(
+  () => createForm.value.soDienThoai,
+  (val) => {
+    if (!formErrors.value.soDienThoai) return;
+    const value = (val || "").trim();
+    if (!value) {
+      formErrors.value.soDienThoai = "Vui long nhap so dien thoai";
+      return;
+    }
+    if (!isValidVietnamPhone(value)) {
+      formErrors.value.soDienThoai =
+        "So dien thoai khong dung dinh dang Viet Nam";
+      return;
+    }
+    formErrors.value.soDienThoai = "";
+  },
+);
+
+watch(
+  () => createForm.value.email,
+  (val) => {
+    if (!formErrors.value.email) return;
+    const value = (val || "").trim();
+    if (value && !isValidEmail(value)) {
+      formErrors.value.email = "Email khong dung dinh dang";
+      return;
+    }
+    formErrors.value.email = "";
+  },
+);
+
+watch(
+  () => createForm.value.soLuongKhach,
+  (val) => {
+    if (!formErrors.value.soLuongKhach) return;
+    const value = Number(val);
+    if (!Number.isInteger(value) || value < 1) {
+      formErrors.value.soLuongKhach =
+        "So luong khach phai la so nguyen lon hon 0";
+      return;
+    }
+    formErrors.value.soLuongKhach = "";
+  },
+);
+
+watch(
+  () => createForm.value.idBanAn,
+  (val) => {
+    if (!formErrors.value.idBanAn) return;
+    if (!val) {
+      formErrors.value.idBanAn = "Vui long chon ban";
+      return;
+    }
+    formErrors.value.idBanAn = "";
   },
 );
 
@@ -433,7 +611,7 @@ onMounted(() => {
       </ul>
       <hr />
       <div class="contain-frame mt-3">
-        <router-view :key="refreshKey"/>
+        <router-view :key="refreshKey" />
       </div>
     </div>
   </div>
@@ -455,7 +633,7 @@ onMounted(() => {
         placeholder="Tìm theo tên hoặc SĐT..."
         no-options-text="Không có khách hàng"
         no-results-text="Không tìm thấy"
-        class="custom-filter-multiselect" 
+        class="custom-filter-multiselect"
         @open="
           () => {
             customerOptions = allCustomers;
@@ -484,7 +662,11 @@ onMounted(() => {
             v-model="createForm.tenKhachHang"
             :disabled="isOldCustomer"
             placeholder="Tên khách"
+            :class="{ 'input-error': formErrors.tenKhachHang }"
           />
+          <small v-if="formErrors.tenKhachHang" class="error-text">{{
+            formErrors.tenKhachHang
+          }}</small>
         </div>
 
         <div>
@@ -493,7 +675,11 @@ onMounted(() => {
             v-model="createForm.soDienThoai"
             :disabled="isOldCustomer"
             placeholder="SĐT"
+            :class="{ 'input-error': formErrors.soDienThoai }"
           />
+          <small v-if="formErrors.soDienThoai" class="error-text">{{
+            formErrors.soDienThoai
+          }}</small>
         </div>
 
         <div>
@@ -502,7 +688,11 @@ onMounted(() => {
             v-model="createForm.email"
             :disabled="isOldCustomer"
             placeholder="Email"
+            :class="{ 'input-error': formErrors.email }"
           />
+          <small v-if="formErrors.email" class="error-text">{{
+            formErrors.email
+          }}</small>
         </div>
 
         <div>
@@ -521,7 +711,20 @@ onMounted(() => {
             <option :value="false">Nữ</option>
           </select>
         </div>
+
         <div>
+          <label>Thời gian đặt</label>
+          <input
+            type="datetime-local"
+            v-model="createForm.thoiGianDat"
+            :class="{ 'input-error': formErrors.thoiGianDat }"
+          />
+          <small v-if="formErrors.thoiGianDat" class="error-text">{{
+            formErrors.thoiGianDat
+          }}</small>
+        </div>
+
+        <!-- <div>
           <label>Chọn bàn</label>
           <Multiselect
             v-model="selectedTable"
@@ -541,6 +744,7 @@ onMounted(() => {
             "
             @search-change="searchTable"
             @select="handleSelectTable"
+            :class="{ 'input-error': formErrors.idBanAn }"
           >
             <template #option="{ option }">
               <div
@@ -577,24 +781,34 @@ onMounted(() => {
               </div>
             </template>
           </Multiselect>
-        </div>
-
-        <div>
-          <label>Thời gian đặt</label>
-          <input type="datetime-local" v-model="createForm.thoiGianDat" />
-        </div>
+          <small v-if="formErrors.idBanAn" class="error-text">{{
+            formErrors.idBanAn
+          }}</small>
+        </div> -->
 
         <div>
           <label>Số lượng khách</label>
-          <input type="number" min="1" v-model="createForm.soLuongKhach" />
+          <input
+            type="number"
+            min="1"
+            step="1"
+            v-model.number="createForm.soLuongKhach"
+            :class="{ 'input-error': formErrors.soLuongKhach }"
+          />
+          <small v-if="formErrors.soLuongKhach" class="error-text">{{
+            formErrors.soLuongKhach
+          }}</small>
         </div>
       </div>
 
       <div style="text-align: right; margin-top: 20px">
-        <button class="btn btn-custom-outline" @click="closeCreateModal">
+        <button class="btn btn-custom-outline" @click="closeCreateModal" :disabled="isSubmitting">
           Hủy
         </button>
-        <button class="btn ms-2" @click="submitCreate">Lưu</button>
+        <button class="btn ms-2" style="min-width: 80px;" @click="submitCreate" :disabled="isSubmitting">
+          <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
+          {{ isSubmitting ? 'Đang lưu...' : 'Lưu' }}
+        </button>
       </div>
     </div>
   </div>
@@ -631,20 +845,20 @@ onMounted(() => {
     </div>
   </div>
   <!-- ===== TOAST NOTIFICATION ===== -->
-<Transition name="toast">
-  <div v-if="toast.show" :class="['toast-noti', `toast-${toast.type}`]">
-    <div class="toast-icon">
-      <span v-if="toast.type === 'success'">✅</span>
-      <span v-else-if="toast.type === 'warning'">⚠️</span>
-      <span v-else>❌</span>
+  <Transition name="toast">
+    <div v-if="toast.show" :class="['toast-noti', `toast-${toast.type}`]">
+      <div class="toast-icon">
+        <span v-if="toast.type === 'success'">✅</span>
+        <span v-else-if="toast.type === 'warning'">⚠️</span>
+        <span v-else>❌</span>
+      </div>
+      <div class="toast-content">
+        <div class="toast-title">{{ toast.title }}</div>
+        <div class="toast-msg">{{ toast.message }}</div>
+      </div>
+      <button class="toast-close" @click="toast.show = false">×</button>
     </div>
-    <div class="toast-content">
-      <div class="toast-title">{{ toast.title }}</div>
-      <div class="toast-msg">{{ toast.message }}</div>
-    </div>
-    <button class="toast-close" @click="toast.show = false">×</button>
-  </div>
-</Transition>
+  </Transition>
 </template>
 
 <style scoped>
@@ -701,24 +915,75 @@ hr {
 }
 
 .custom-filter-multiselect {
-    --ms-border-color: #ddd;
-    --ms-radius: 8px;
-    
-    /* Vòng sáng khi click vào */
-    --ms-ring-color: rgba(125, 22, 26, 0.15);
-    --ms-border-color-active: #7d161a;
-    
-    /* Màu sắc Option khi trỏ chuột (hover) */
-    --ms-option-bg-pointed: #fcf4f4;
-    --ms-option-color-pointed: #7d161a;
-    
-    /* Màu sắc Option khi đã chọn */
-    --ms-option-bg-selected: #7d161a;
-    --ms-option-color-selected: #ffffff;
-    --ms-option-bg-selected-pointed: #5f0f12;
+  --ms-border-color: #ddd;
+  --ms-radius: 8px;
+
+  /* Vòng sáng khi click vào */
+  --ms-ring-color: rgba(125, 22, 26, 0.15);
+  --ms-border-color-active: #7d161a;
+
+  /* Màu sắc Option khi trỏ chuột (hover) */
+  --ms-option-bg-pointed: #fcf4f4;
+  --ms-option-color-pointed: #7d161a;
+
+  /* Màu sắc Option khi đã chọn */
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #5f0f12;
 }
 
+.custom-filter-multiselect :deep(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: white !important;
+}
 
+.custom-filter-multiselect :deep(.multiselect-option.is-selected.is-pointed) {
+  background-color: #5c0a16 !important; /* Đỏ sẫm hơn một chút khi hover vào mục đã chọn */
+}
+
+.custom-filter-multiselect :deep(.multiselect-option.is-selected::after) {
+  color: white !important; 
+}
+
+:global(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: white !important;
+}
+
+:global(.multiselect-option.is-selected.is-pointed) {
+  background-color: #5c0a16 !important;
+}
+
+:global(.multiselect-option.is-selected::after) {
+  background-color: transparent !important;
+  color: white !important;
+}
+
+:global(.multiselect-single-label-text) {
+  color: #7d161a !important;
+  font-weight: 600;
+}
+
+:global(.multiselect-option) {
+  color: #333 !important;
+}
+
+:global(.multiselect-option.is-pointed) {
+  color: #7d161a !important; 
+}
+
+:global(.multiselect-option.is-selected) {
+  background-color: #7d161a !important;
+  color: #ffffff !important; 
+}
+
+:global(.multiselect-placeholder) {
+  color: #999 !important;
+}
+
+.custom-filter-multiselect :deep(.multiselect-option span) {
+  color: inherit; 
+}
 
 @keyframes fadeIn {
   from {
@@ -758,22 +1023,23 @@ hr {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
+
 .table-container {
   border: 1px solid #dee2e6;
   border-radius: 15px;
   overflow: hidden;
+  box-shadow: var(--bs-box-shadow-sm) !important;
 }
 
-
 /* ================= BUTTON ================= */
-.btn{
-  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+.btn {
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
   color: white !important;
   transition: 0.2s;
 }
 
 .btn:hover {
-  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
   color: white !important;
   transform: scale(1.04);
 }
@@ -840,6 +1106,17 @@ hr {
   border-color: #7d161a;
   box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
   outline: none;
+}
+
+.input-error {
+  border-color: #dc3545 !important;
+}
+
+.error-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #dc3545;
 }
 
 /* ================= MULTISELECT FIX ================= */
@@ -953,9 +1230,15 @@ hr {
   border-left: 5px solid #ccc;
 }
 
-.toast-success { border-left-color: #27ae60; }
-.toast-warning { border-left-color: #f39c12; }
-.toast-error   { border-left-color: #e74c3c; }
+.toast-success {
+  border-left-color: #27ae60;
+}
+.toast-warning {
+  border-left-color: #f39c12;
+}
+.toast-error {
+  border-left-color: #e74c3c;
+}
 
 .toast-icon {
   font-size: 22px;
@@ -991,9 +1274,10 @@ hr {
   margin-top: -2px;
 }
 
-.toast-close:hover { color: #555; }
+.toast-close:hover {
+  color: #555;
+}
 
-/* Animation */
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s ease;
@@ -1009,4 +1293,19 @@ hr {
   transform: translateX(40px);
 }
 
+:global(.multiselect-option) {
+  color: #444 !important;
+}
+
+:global(.multiselect-option.is-selected *) {
+  color: #ffffff !important;
+}
+
+:global(.multiselect-option span) {
+  font-weight: 500;
+}
+
+:global(.multiselect-option.is-selected span[style*="color"]) {
+  color: #ffffff !important;
+}
 </style>

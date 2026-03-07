@@ -602,6 +602,7 @@ const handleSave = async () => {
 
     await Swal.fire({
       icon: 'success',
+      iconColor: '#7D161A',
       title: 'Thành công',
       text: "Cập nhật hồ sơ thành công!",
       timer: 2000,
