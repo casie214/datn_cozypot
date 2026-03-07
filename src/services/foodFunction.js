@@ -244,7 +244,8 @@ export function useCategoryAddModal(props, emit) {
         }
         Swal.fire({
             title: 'Xác nhận', text: 'Bạn có chắc chắn muốn thêm danh mục mới?', icon: 'question', iconColor: '#7D161A',
-            showCancelButton: true, confirmButtonColor: '#7D161A', cancelButtonColor: '#d33', confirmButtonText: 'Đồng ý'
+            showCancelButton: true, confirmButtonColor: '#7D161A', cancelButtonColor: '#d33', confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -322,7 +323,8 @@ export function useCategoryPutModal(props, emit) {
             iconColor: '#7D161A',
             showCancelButton: true, 
             confirmButtonColor: '#8B0000', 
-            confirmButtonText: 'Lưu'
+            confirmButtonText: 'Lưu thay đổi',
+            cancelButtonText: 'Hủy',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -472,7 +474,8 @@ export function useHotpotCategoryAddModal(props, emit) {
     const handleSave = () => {
         if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Tên phải trên 5 kí tự' });
         Swal.fire({
-            title: 'Thêm mới?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
+            title: 'Thêm mới?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -493,7 +496,8 @@ export function useCategoryHotpotPutModal(props, emit) {
     const handleSave = () => {
         if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Tên không hợp lệ' });
         Swal.fire({
-            title: 'Cập nhật?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu'
+            title: 'Cập nhật?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -771,7 +775,8 @@ export function useFoodForm(isEditMode = false) {
         
         Swal.fire({
             title: 'Xác nhận', text: isEditMode ? 'Cập nhật món ăn này?' : 'Thêm mới món ăn này?', icon: 'question', iconColor: '#7D161A',
-            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
+            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -1081,7 +1086,8 @@ export function useHotpotForm(isEditMode = false) {
         
         Swal.fire({
             title: 'Xác nhận', text: isEditMode ? 'Lưu thay đổi Set lẩu?' : 'Thêm Set lẩu mới?', icon: 'question', iconColor: '#7D161A',
-            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Đồng ý'
+            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {

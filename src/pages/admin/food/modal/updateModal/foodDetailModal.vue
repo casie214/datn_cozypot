@@ -262,7 +262,8 @@ const handleUpdate = async () => {
         iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#7D161A',
-        confirmButtonText: 'Đồng ý'
+        confirmButtonText: 'Lưu thay đổi',
+        cancelButtonText: 'Hủy',
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {

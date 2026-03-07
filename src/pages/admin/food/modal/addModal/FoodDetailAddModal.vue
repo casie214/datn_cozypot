@@ -284,7 +284,8 @@ const handleSave = async () => {
         iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#8B0000',
-        confirmButtonText: 'Đồng ý'
+        confirmButtonText: 'Lưu thay đổi',
+        cancelButtonText: 'Hủy',
     });
 
     if (result.isConfirmed) {

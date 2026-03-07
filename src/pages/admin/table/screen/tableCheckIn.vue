@@ -1550,7 +1550,8 @@ const handleSwitchTable = async (banMoi) => {
       }
     } else { return; }
   } else {
-    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7d161a' });
+    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonText: 'Lưu thay đổi',
+    cancelButtonText: 'Hủy', confirmButtonColor: '#7d161a' });
     if (!confirm.isConfirmed) return;
   }
 
