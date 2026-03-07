@@ -552,22 +552,44 @@ public class DatBanService {
     }
 
     public List<BanAn> timDanhSachBanTrong(DatBanRequest request) {
+        // 1. Kiểm tra xem DB có setup LOẠI BÀN nào đủ sức chứa không
         List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
-        if (danhSachBanPhuHop.isEmpty()) return new java.util.ArrayList<>();
+        if (danhSachBanPhuHop.isEmpty()) {
+            return new java.util.ArrayList<>(); // Đội quá đông, không có bàn/ghép bàn phù hợp
+        }
 
         LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
+        // Khung giờ +/- 2 tiếng (thời gian ăn trung bình)
         LocalDateTime start = thoiGianKhachDen.minusHours(2);
         LocalDateTime end = thoiGianKhachDen.plusHours(2);
 
-        List<BanAn> danhSachBanTrong = new java.util.ArrayList<>();
+        // 2. Lấy thông tin thống kê thực tế
+        List<BanAn> tatCaBanQuan = banAnRepository.findAll();
+        List<PhieuDatBan> phieuCungGio = phieuDatBanRepository.findPhieuOverlapping(start, end);
 
-        for (BanAn ban : danhSachBanPhuHop) {
-            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
-            if (!isTrung) {
-                danhSachBanTrong.add(ban);
-            }
+        // 3. Tính toán Quota
+        int tongSoBan = tatCaBanQuan.size();
+        int tongSucChua = tatCaBanQuan.stream().mapToInt(BanAn::getSoNguoiToiDa).sum();
+
+        int soPhieuDaDat = phieuCungGio.size();
+        int soKhachDaDat = phieuCungGio.stream().mapToInt(PhieuDatBan::getSoLuongKhach).sum();
+
+        // 4. KIỂM TRA ĐIỀU KIỆN (GÁC CỔNG)
+
+        // Điều kiện A: Số lượng đoàn khách không được vượt quá số lượng bàn vật lý
+        if (soPhieuDaDat >= tongSoBan) {
+            return new java.util.ArrayList<>(); // Hết bàn
         }
-        return danhSachBanTrong;
+
+        // Điều kiện B: Tổng khách không được vượt quá 90% sức chứa của quán
+        // (Chừa lại 10% rủi ro phân mảnh bàn và khách Walk-in vãng lai)
+        int maxCapacity = (int) (tongSucChua * 0.9);
+        if ((soKhachDaDat + request.getSoNguoi()) > maxCapacity) {
+            return new java.util.ArrayList<>(); // Rủi ro hết chỗ ngồi liền kề -> Chặn
+        }
+
+        // 5. Nếu vượt qua gác cổng -> Quán an toàn để nhận đơn.
+        return danhSachBanPhuHop;
     }
 
     public List<BanAnResponse> checkBanTrong(DatBanRequest request) {
@@ -579,32 +601,7 @@ public class DatBanService {
 
     @Transactional(rollbackOn = Exception.class)
     public Map<String, Object> taoPhieuDatBanOnline(DatBanOnlineRequest request) {
-        if (request.getIdBanAn() == null) {
-            throw new RuntimeException("Vui lòng chọn bàn trước khi tiếp tục!");
-        }
-
-        BanAn banDuocChon = banAnRepository.findById(request.getIdBanAn())
-                .orElseThrow(() -> new RuntimeException("Bàn ăn không tồn tại trong hệ thống!"));
-
-        if (banDuocChon.getSoNguoiToiDa() < request.getSoNguoi()) {
-            throw new RuntimeException("Bàn bạn chọn không đủ sức chứa cho " + request.getSoNguoi() + " người!");
-        }
-
-        if (banDuocChon.getSoNguoiToiDa() > request.getSoNguoi() + 4) {
-            throw new RuntimeException("Bàn bạn chọn có sức chứa quá lớn (" + banDuocChon.getSoNguoiToiDa() + " chỗ). Vui lòng chọn bàn khác phù hợp hơn!");
-        }
-
-        // 1. Kiểm tra xem bàn này có bị trùng giờ đặt không (trước và sau 2 tiếng)
-        LocalDateTime thoiGianKhachDen = request.getThoiGianDat();
-        LocalDateTime start = thoiGianKhachDen.minusHours(2);
-        LocalDateTime end = thoiGianKhachDen.plusHours(2);
-
-        boolean isTrung = phieuDatBanRepository.existsByTimeRange(banDuocChon, start, end);
-        if (isTrung) {
-            throw new RuntimeException("Rất tiếc, bàn này đã có người đặt trong khung giờ bạn chọn. Vui lòng chọn bàn hoặc giờ khác!");
-        }
-
-        // 2. Xử lý khách hàng (Đã tối ưu để tương thích với Google Login)
+        // 1. Xử lý khách hàng (Đã tối ưu để tương thích với Google Login)
         KhachHang khachHang = null;
 
         // Ưu tiên 1: Lấy ID từ tài khoản đang đăng nhập (Bao gồm cả Google)
@@ -637,7 +634,7 @@ public class DatBanService {
         }
 
         PhieuDatBan phieu = new PhieuDatBan();
-        phieu.getBanAns().add(banDuocChon); // 🚨 LOGIC N-N
+        //phieu.getBanAns().add(banDuocChon);
         phieu.setIdKhachHang(khachHang);
         phieu.setThoiGianDat(request.getThoiGianDat());
         phieu.setHinhThucDat(1);
@@ -647,8 +644,6 @@ public class DatBanService {
         phieu.setMaDatBan("PDB" + System.currentTimeMillis());
         phieu.setNgayTao(java.time.LocalDateTime.now());
         phieu = phieuDatBanRepository.save(phieu);
-
-        // * Đã xóa bỏ lệnh khóa bàn: banDuocChon.setTrangThai(2);
 
         HoaDonThanhToan hoaDon = new HoaDonThanhToan();
         hoaDon.setIdKhachHang(khachHang);
