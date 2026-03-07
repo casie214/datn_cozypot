@@ -71,6 +71,8 @@ public class DatBanService {
 
     @Autowired
     private com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
+    @Autowired
+    private ThamSoHeThongRepository thamSoHeThongRepository;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
@@ -765,7 +767,7 @@ public class DatBanService {
                 khachHang.setNgaySinh(req.getNgaySinh());
                 khachHang.setGioiTinh(req.getGioiTinh());
                 khachHang.setTrangThai(1);
-                khachHangRepository.save(khachHang);
+                khachHang = khachHangRepository.save(khachHang);
             }
         }
 
@@ -781,21 +783,68 @@ public class DatBanService {
             throw new RuntimeException("Bàn đã có lịch trong vòng 2 tiếng");
         }
 
+        // 1. TẠO PHIẾU ĐẶT BÀN
         PhieuDatBan pdb = new PhieuDatBan();
-        pdb.getBanAns().add(ban); // 🚨 LOGIC N-N
+        pdb.getBanAns().add(ban); // LOGIC N-N
         pdb.setIdKhachHang(khachHang);
         pdb.setThoiGianDat(req.getThoiGianDat());
         pdb.setHinhThucDat(req.getHinhThucDat());
         pdb.setSoLuongKhach(req.getSoLuongKhach());
         pdb.setTrangThai(0);
-
         PhieuDatBan saved = phieuDatBanRepository.save(pdb);
 
-        ban.setTrangThai(1);
+        ban.setTrangThai(0);
         banAnRepository.save(ban);
 
-        boolean daGuiMail = false;
+        // =======================================================
+        // 2. TẠO HÓA ĐƠN THANH TOÁN (KÈM LẤY VAT TỪ DB)
+        // =======================================================
+        HoaDonThanhToan hd = new HoaDonThanhToan();
+        hd.setIdPhieuDatBan(saved);
+        hd.setIdKhachHang(khachHang);
+        hd.setThoiGianTao(Instant.now());
+        hd.setTrangThaiHoaDon(0); // 0: Mới khởi tạo / Chờ cọc
 
+        // Set mặc định các trường tiền tệ
+        hd.setTongTienChuaGiam(BigDecimal.ZERO);
+        hd.setSoTienDaGiam(BigDecimal.ZERO);
+        hd.setTienCoc(BigDecimal.ZERO);
+        hd.setTienHoanTra(BigDecimal.ZERO);
+        hd.setTongTienThanhToan(BigDecimal.ZERO);
+        hd.setTienKhachDua(BigDecimal.ZERO);
+        hd.setTienThua(BigDecimal.ZERO);
+        hd.setDiemSuDung(0);
+        hd.setDiemCongThem(0);
+
+        // Lấy VAT từ bảng Tham Số Hệ Thống
+        Float vatApDung = 10.0F; // Dự phòng nếu lỗi
+        try {
+            Optional<ThamSoHeThong> optVat = thamSoHeThongRepository.findByMaThamSo("VAT");
+            if (optVat.isPresent()) {
+                vatApDung = Float.parseFloat(optVat.get().getGiaTri());
+            }
+        } catch (Exception e) {
+            log.warn("Không thể lấy VAT từ database, sử dụng mặc định 10%");
+        }
+        hd.setVatApDung(vatApDung);
+
+        // Lưu hóa đơn
+        hd = hoaDonThanhToanRepository.save(hd);
+
+        // 3. GHI LOG LỊCH SỬ HÓA ĐƠN
+        LichSuHoaDon ls = new LichSuHoaDon();
+        ls.setIdHoaDon(hd);
+        ls.setHanhDong("Tạo phiếu đặt bàn");
+        ls.setLyDoThucHien("Khách đặt trước bàn " + ban.getMaBan());
+        ls.setThoiGianThucHien(Instant.now());
+        ls.setTrangThaiTruocDo(null);
+        ls.setTrangThaiMoi(0);
+        lichSuHoaDonRepository.save(ls);
+        // =======================================================
+
+
+        // 4. XỬ LÝ GỬI EMAIL
+        boolean daGuiMail = false;
         if (khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
             EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
                     .tenKhachHang(khachHang.getTenKhachHang())
@@ -812,6 +861,11 @@ public class DatBanService {
                 emailDatBanService.sendXacNhanDatBanSync(emailDto);
                 saved.setTrangThai(1);
                 phieuDatBanRepository.save(saved);
+
+                // Cập nhật trạng thái Hóa đơn sang 1 (Chờ xác nhận)
+                hd.setTrangThaiHoaDon(1);
+                hoaDonThanhToanRepository.save(hd);
+
                 daGuiMail = true;
             } catch (Exception e) {
                 log.warn("⚠️ Gửi mail thất bại, phiếu PDB-{} giữ trạng thái chờ xác nhận: {}", saved.getId(), e.getMessage());
