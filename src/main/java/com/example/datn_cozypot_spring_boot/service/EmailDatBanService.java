@@ -19,7 +19,7 @@ public class EmailDatBanService {
 
     private final JavaMailSender bookingMailSender;
 
-    private static final String FROM_EMAIL = "khuatanhngoc6@gmail.com";
+    private static final String FROM_EMAIL = "5762382@gmail.com";
     private static final String FROM_NAME  = "CozyPot - Đặt bàn";
 
     public EmailDatBanService(

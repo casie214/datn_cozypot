@@ -15,8 +15,8 @@ public class MailReservedConfig {
 
         sender.setHost("smtp.gmail.com");
         sender.setPort(587);
-        sender.setUsername("khuatanhngoc6@gmail.com"); // ← thay vào
-        sender.setPassword("thtp vdzm mlno dajl");          // ← App Password
+        sender.setUsername("5762382@gmail.com"); // ← thay vào
+        sender.setPassword("jbxj lgwi nlxw mnnm");          // ← App Password
 
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
