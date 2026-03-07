@@ -6,6 +6,7 @@ import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
+import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,12 +26,18 @@ public class GuestController {
     private final MonAnService monAnService;
     private final BanAnRepository banAnRepository;
     private final ModelMapper modelMapper;
+    private final DatBanService datBanService;
 
     // 1. Lấy danh sách Danh Mục (Category) đang hoạt động
     @GetMapping("/category/active")
     @Operation(summary = "Lấy danh mục Active")
     public ResponseEntity<List<DanhMucResponse>> getDanhMucActive() {
         return ResponseEntity.ok(monAnService.findDanhMucActive());
+    }
+
+    @GetMapping("/ban-an/active")
+    public List<BanAnResponse> danhSachBanAn(){
+        return datBanService.getAllBanAn();
     }
 
     // 2. Lấy danh sách Loại Set Lẩu đang hoạt động
