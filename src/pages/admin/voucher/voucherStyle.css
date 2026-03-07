@@ -233,7 +233,7 @@
 .icon-tooltip .tooltip-text::after {
     content: "";
     position: absolute;
-    top: 100%;
+    top: 100%; 
     left: 50%;
     transform: translateX(-50%);
     border-width: 6px;
