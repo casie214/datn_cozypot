@@ -65,32 +65,6 @@ ORDER BY
     );
 
 
-    @Modifying
-    @Transactional
-    @Query("""
-        UPDATE PhieuDatBan p
-        SET p.idBanAn = :banAn
-        WHERE p.id = :idPhieu
-    """)
-    void updateBanChoPhieu(
-            @Param("idPhieu") Integer idPhieu,
-            @Param("banAn") BanAn banAn
-    );
-
-
-    @Modifying
-    @Transactional
-    @Query("""
-        UPDATE PhieuDatBan p
-        SET p.idBanAn = :banAn
-        WHERE p.id = :idPhieu
-    """)
-    void updateCheckIn(
-            @Param("idPhieu") Integer idPhieu,
-            @Param("banAn") BanAn banAn
-    );
-
-
     // Chức năng 1: Hiển thị tất cả phiếu trạng thái 1 của hôm nay
 //    @Query("""
 //        SELECT p FROM PhieuDatBan p
@@ -153,31 +127,41 @@ ORDER BY
     FROM PhieuDatBan p
     WHERE p.thoiGianDat >= :start
       AND p.thoiGianDat < :end
-      AND p.idBanAn IS NOT NULL
+      AND EXISTS (
+            SELECT 1 FROM PhieuDatBanBanAn pb
+            WHERE pb.phieuDatBan = p
+      )
 """)
     List<PhieuDatBan> findPhieuTrongNgay(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
 
-    @Query("SELECT p FROM PhieuDatBan p WHERE p.idBanAn.id = :idBanAn AND p.trangThai IN (2, 3) ORDER BY p.id DESC")
+    @Query("""
+    SELECT p FROM PhieuDatBan p
+    WHERE p.trangThai IN (2, 3)
+      AND EXISTS (
+            SELECT 1 FROM PhieuDatBanBanAn pb
+            WHERE pb.phieuDatBan = p
+              AND pb.banAn.id = :idBanAn
+      )
+    ORDER BY p.id DESC
+""")
     List<PhieuDatBan> findActivePhieuByBanAn(@Param("idBanAn") Integer idBanAn);
 
     @Query("SELECT p FROM PhieuDatBan p WHERE p.thoiGianDat >= :startOfDay AND p.thoiGianDat <= :endOfDay AND p.trangThai IN (1, 2, 3)")
     List<PhieuDatBan> findPhieuDatBanTrongNgay(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
-    boolean existsByIdBanAnAndThoiGianDat(
-            BanAn idBanAn,
-            LocalDateTime thoiGianDat);
-
     @Query("""
 SELECT COUNT(p) > 0
 FROM PhieuDatBan p
-WHERE p.idBanAn = :ban
-AND p.trangThai != 3
-AND (
-    p.thoiGianDat BETWEEN :start AND :end
-)
+WHERE p.trangThai != 3
+  AND p.thoiGianDat BETWEEN :start AND :end
+  AND EXISTS (
+      SELECT 1 FROM PhieuDatBanBanAn pb
+      WHERE pb.phieuDatBan = p
+        AND pb.banAn = :ban
+  )
 """)
     boolean existsByTimeRange(
             @Param("ban") BanAn ban,

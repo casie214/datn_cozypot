@@ -82,11 +82,8 @@ public class BanAn {
     @Column(name = "nguoi_sua", length = 100)
     private String nguoiSua;
 
-    @OneToMany(mappedBy = "idBanAn")
+    @OneToMany(mappedBy = "banAn")
     @JsonIgnore
-    private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "idBanAn")
-    private Set<PhieuDatBan> phieuDatBans = new LinkedHashSet<>();
+    private Set<PhieuDatBanBanAn> phieuDatBanBanAns = new LinkedHashSet<>();
 
 }

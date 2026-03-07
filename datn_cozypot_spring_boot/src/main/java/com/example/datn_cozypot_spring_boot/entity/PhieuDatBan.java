@@ -1,8 +1,8 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,10 +30,9 @@ public class PhieuDatBan {
     @Column(name = "id_phieu_dat_ban", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    @JoinColumn(name = "id_ban_an")
-    private BanAn idBanAn;
+    @OneToMany(mappedBy = "phieuDatBan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private Set<PhieuDatBanBanAn> dsBanAn = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -75,5 +74,24 @@ public class PhieuDatBan {
 
     @OneToMany(mappedBy = "idPhieuDatBan")
     private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
+
+    @Transient
+    public BanAn getIdBanAn() {
+        return dsBanAn.stream()
+                .map(PhieuDatBanBanAn::getBanAn)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void setIdBanAn(BanAn banAn) {
+        dsBanAn.clear();
+        if (banAn == null) return;
+
+        PhieuDatBanBanAn link = new PhieuDatBanBanAn();
+        link.setPhieuDatBan(this);
+        link.setBanAn(banAn);
+
+        dsBanAn.add(link);
+    }
 
 }
