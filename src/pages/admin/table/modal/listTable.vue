@@ -11,6 +11,7 @@ import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 
 import { usePermission } from "@/components/permissionHelper";
+import CommonPagination from "@/components/commonPagination.vue";
 const { handleActionWithAuth } = usePermission();
 const danhSachBan = ref([]);
 const currentPage = ref(1);
@@ -391,42 +392,15 @@ onMounted(() => {
         </tbody>
       </table>
     </div>
-    <div class="pagination-wrap mt-3">
-      <div class="page-size-box">
-        <label for="page-size-select">Hiển thị</label>
-        <select id="page-size-select" v-model.number="pageSize" class="page-size-select">
-          <option v-for="size in pageSizeOptions" :key="size" :value="size">
-            {{ size }}
-          </option>
-        </select>
-        <span>dòng/trang</span>
-      </div>
-      <nav>
-        <ul class="pagination mb-0">
-          <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
-              &laquo;
-            </a>
-          </li>
-
-          <li
-            v-for="page in totalPages"
-            :key="page"
-            class="page-item"
-            :class="{ active: page === currentPage }"
-          >
-            <a class="page-link" href="#" @click.prevent="changePage(page)">
-              {{ page }}
-            </a>
-          </li>
-
-          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
-              &raquo;
-            </a>
-          </li>
-        </ul>
-      </nav>
+    <div class="custom-pagination-wrapper mt-4 pt-3 border-top">
+      <CommonPagination 
+        v-model:currentPage="currentPage" 
+        v-model:pageSize="pageSize" 
+        :total-pages="totalPages"
+        :total-elements="danhSachBanFiltered.length" 
+        :current-count="danhSachBanPaginated.length" 
+        @change="() => { }"
+      />
     </div>
   </div>
   <!-- POPUP SỬA BÀN -->
@@ -670,36 +644,78 @@ tr:hover {
   box-shadow: var(--shadow-premium) !important;
 }
 
-.pagination-wrap {
+.pagination-footer-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Đẩy 3 khối ra 3 vị trí */
+  font-size: 14px;
+  color: #666;
+}
+
+/* 1. Phần bên trái */
+.page-size-select-v2 {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  outline: none;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+/* 2. Phần ở giữa (Căn giữa tuyệt đối) */
+.footer-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.pagination-v2 {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 15px; /* Khoảng cách rộng như trong hình */
+  align-items: center;
+}
+
+.page-item-v2 a {
+  text-decoration: none;
+  color: #ccc; /* Màu icon/chữ mặc định xám nhạt */
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+/* Icon mũi tên */
+.page-item-v2 i {
+  font-size: 12px;
+}
+
+/* Trang đang hoạt động: Màu đỏ rượu, bo tròn */
+.page-item-v2.active a {
+  background-color: #7D161A;
+  color: white !important;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  border-radius: 4px;
 }
 
-.page-size-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #555;
-  font-size: 14px;
+/* Hiệu ứng khi hover hoặc nút có thể bấm được */
+.page-item-v2:not(.disabled):not(.active) a:hover {
+  color: #7D161A;
 }
 
-.page-size-select {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 4px 8px;
-  background: #fff;
+.page-item-v2.disabled {
+  opacity: 0.3;
+  pointer-events: none;
 }
 
-.pagination .page-link {
-  color: #7d161a;
-}
-
-.pagination .page-item.active .page-link {
-  background-color: #7d161a;
-  border-color: #7d161a;
-  color: #fff;
+/* 3. Phần bên phải */
+.footer-right {
+  font-style: normal;
+  color: #888;
 }
 
 /* Body */
