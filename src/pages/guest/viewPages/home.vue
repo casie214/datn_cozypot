@@ -35,8 +35,7 @@ onMounted(() => {
 
 // Điều hướng
 const goToMenu = () => {
-  // router.push({ name: 'menu' });
-  alert("Chuyển đến trang thực đơn...");
+  router.push('/menu');
 };
 
 const goToBooking = () => {
@@ -226,12 +225,12 @@ const goToLogin = () => {
 button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all 0.3s; }
 
 .btn-primary {
-  background: #7d161a;
-  color: white;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   border: none;
   padding: 10px 24px;
+  transition: 0.2s;
 }
-.btn-primary:hover { background: #5c0a16; transform: translateY(-2px); }
 
 .btn-login {
   background: transparent;
@@ -294,14 +293,14 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
 }
 
 .btn-lg-primary {
-  background: #7d161a;
-  color: white;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   border: none;
   padding: 15px 40px;
   font-size: 1.1rem;
   border-radius: 50px;
+  transition: 0.2s;
 }
-.btn-lg-primary:hover { background: #a52a2a; }
 
 .btn-lg-outline {
   background: transparent;
@@ -336,7 +335,17 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   transition: transform 0.3s;
 }
 .menu-card:hover { transform: translateY(-10px); }
-
+.btn-primary:hover,
+.btn-lg-primary:hover,
+.btn-sm-primary:hover,
+.btn-full:hover {
+  /* Hạ độ sáng xuống còn 85% (làm nút đậm lên 15%) */
+  filter: brightness(0.90); 
+  /* Cho nút nẩy nhẹ lên một xíu để có cảm giác bấm */
+  transform: translateY(-2px); 
+  /* (Tùy chọn) Thêm chút bóng đổ để xịn hơn */
+  box-shadow: 0 6px 15px rgba(125, 22, 26, 0.4); 
+}
 .card-image { position: relative; height: 200px; overflow: hidden; }
 .card-image img { width: 100%; height: 100%; object-fit: cover; }
 .badge-price {
@@ -357,8 +366,16 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
 
 .card-actions { display: flex; gap: 10px; }
 .btn-sm-outline { flex: 1; border: 1px solid #ddd; background: white; padding: 8px; border-radius: 8px; }
-.btn-sm-primary { flex: 1; background: #7d161a; color: white; border: none; padding: 8px; border-radius: 8px; }
-.btn-sm-primary:hover { background: #5c0a16; }
+
+.btn-sm-primary {
+  flex: 1; 
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
+  border: none; 
+  padding: 8px; 
+  border-radius: 8px;
+  transition: 0.2s;
+}
 
 .btn-link { background: none; border: none; color: #7d161a; font-weight: bold; font-size: 1.1rem; text-decoration: underline; }
 
@@ -403,14 +420,16 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   color: #666;
   cursor: pointer;
 }
+
 .btn-full {
   width: 100%;
-  background: #7d161a;
-  color: white;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  color: white !important;
   border: none;
   padding: 12px;
   border-radius: 8px;
   font-size: 1.1rem;
+  transition: 0.2s;
 }
 
 /* --- 5. FOOTER --- */
