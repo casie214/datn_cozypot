@@ -5,12 +5,10 @@
     </div>
 
     <div class="filter-card-premium mb-4">
-      <div class="filter-header-simple">
-        <i class="fas fa-filter me-2"></i>Bộ lọc tìm kiếm
-      </div>
+
       <div class="row g-3 p-3 align-items-end">
         <div class="col-md-4">
-          <label class="filter-label">Từ khóa</label>
+          <label class="filter-label">Tìm kiếm</label>
           <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, email..."
             @input="onSearchInput">
         </div>
@@ -50,142 +48,139 @@
         </div>
       </div>
     </div>
-
-    <div class="shadow-sm mt-4"
-      style="background: #ffffff; border-radius: 12px; border: 1px solid #eef2f6; overflow: hidden;">
-
+    
+    <div class="mt-4">
       <div
-        style="padding: 16px 24px; border-bottom: 1px solid #f1f1f1; background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-
-        <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
-          <!-- Danh sách nhân viên -->
-        </h4>
-
-        <div style="display: flex; gap: 8px;">
-          <button @click="openModalAdd" title="Thêm nhân viên"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+      style="background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+      <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
+        <!-- Danh sách nhân viên -->
+      </h4>
+      <div class="d-flex justify-content-end mb-3 gap-2">
+        <div class="icon-tooltip">
+          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openModalAdd"
+            type="button">
             <i class="fas fa-plus"></i>
+            <span class="tooltip-text">Thêm nhân viên</span>
           </button>
+        </div>
 
-          <button @click="downloadTemplate" title="Tải file mẫu nhập liệu"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+        <div class="icon-tooltip">
+          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="downloadTemplate"
+            type="button">
             <i class="fas fa-file-download"></i>
+            <span class="tooltip-text">Tải file mẫu</span>
           </button>
+        </div>
 
-          <button @click="$refs.fileInput.click()" title="Nhập dữ liệu từ Excel"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+        <div class="icon-tooltip">
+          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="$refs.fileInput.click()"
+            type="button">
             <i class="fas fa-file-import"></i>
+            <span class="tooltip-text">Nhập Excel</span>
           </button>
+        </div>
+        <input type="file" ref="fileInput" @change="handleImportExcel" style="display: none" accept=".xlsx, .xls">
 
-          <input type="file" ref="fileInput" @change="handleImportExcel" style="display: none" accept=".xlsx, .xls">
-
-          <button @click="printToPDF" title="In bản PDF"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+        <div class="icon-tooltip">
+          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="printToPDF"
+            type="button">
             <i class="fas fa-print"></i>
+            <span class="tooltip-text">In bản PDF</span>
           </button>
+        </div>
 
-          <!-- <button @click="exportToExcel" title="Xuất Excel"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
-            <i class="fas fa-file-excel"></i>
-          </button> -->
-
-          <button
-            @click="handleSearch(true); Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
-            title="Làm mới dữ liệu"
-            style="width: 38px; height: 38px; background: #ffffff; border: 1.5px solid #800000; border-radius: 8px; color: #800000; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;">
+        <div class="icon-tooltip">
+          <button class="btn-red-dark d-flex align-items-center justify-content-center"
+            @click="handleSearch(true); Swal.fire({ icon: 'success', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
+            type="button">
             <i class="fas fa-sync-alt"></i>
+            <span class="tooltip-text">Làm mới</span>
           </button>
         </div>
       </div>
+    </div>
+      <div class="table-pagination-wrapper">
+        <div class="table-responsive">
+          <table class="table mb-0 custom-table align-middle">
+            <thead>
+              <tr style="background-color: #800000;">
+                <th class="text-center" style="width: 40px; border: none;">
+                  <input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isSelectAllPages">
+                </th>
+                <th class="text-center" style="color: white; border: none;">STT</th>
+                <th style="color: white; border: none;">Nhân viên</th>
+                <th class="text-center" style="color: white; border: none;">Chức vụ</th>
+                <th class="text-center" style="color: white; border: none;">Giới tính</th>
+                <th style="color: white; border: none;">Liên hệ</th>
+                <th style="color: white; border: none;">Địa chỉ</th>
+                <th class="text-center" style="color: white; border: none;">Trạng thái</th>
+                <th class="text-center" style="color: white; border: none;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(nv, index) in listNhanVien" :key="nv.id">
+                <td class="text-center">
+                  <input type="checkbox" class="form-check-input custom-checkbox" :value="nv.id" v-model="selectedIds"
+                    :checked="isSelectAllPages || selectedIds.includes(nv.id)">
+                </td>
+                <td class="text-center text-muted font-monospace">
+                  {{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}
+                </td>
+                <td>
+                  <div class="text-dark mb-0">{{ nv.hoTenNhanVien }}</div>
+                </td>
 
-      <div class="table-responsive p-3">
-        <table class="table mb-0 custom-table table-hover align-middle">
-          <thead>
-            <tr style="background-color: #800000;">
-              <th class="text-center" style="width: 40px; border: none;">
-                <input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isSelectAllPages">
-              </th>
-              <th class="text-center" style="color: white; border: none;">STT</th>
-              <th style="color: white; border: none;">Nhân viên</th>
-              <th class="text-center" style="color: white; border: none;">Chức vụ</th>
-              <th class="text-center" style="color: white; border: none;">Giới tính</th>
-              <th style="color: white; border: none;">Liên hệ</th>
-              <th style="color: white; border: none;">Địa chỉ</th>
-              <th class="text-center" style="color: white; border: none;">Trạng thái</th>
-              <th class="text-center" style="color: white; border: none;">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(nv, index) in listNhanVien" :key="nv.id">
-              <td class="text-center">
-                <input type="checkbox" class="form-check-input custom-checkbox" :value="nv.id" v-model="selectedIds"
-                  :checked="isSelectAllPages || selectedIds.includes(nv.id)">
-              </td>
-              <td class="text-center text-muted font-monospace">
-                {{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}
-              </td>
-
-              <td>
-                <div class="fw-bold text-dark mb-0">{{ nv.hoTenNhanVien }}</div>
-              </td>
-
-              <td class="text-center">
-                <span class="small fw-semibold" style="color: #555;">
-                  {{ nv.idVaiTro === 1 ? 'Quản lý' : 'Nhân viên' }}
-                </span>
-              </td>
-
-              <td class="text-center">{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
-
-              <td>
-                <div class="contact-box">
-                  <div class="small mb-1">
-                    <i class="far fa-envelope me-1" style="color: #800000;"></i>{{ nv.email }}
+                <td class="text-center">
+                  <span class="small " style="color: #555;">
+                    {{ nv.idVaiTro === 1 ? 'Quản lý' : 'Nhân viên' }}
+                  </span>
+                </td>
+                <td class="text-center">{{ nv.gioiTinh ? 'Nam' : 'Nữ' }}</td>
+                <td>
+                  <div class="contact-box">
+                    <div class="small mb-1">
+                      <i class="far fa-envelope me-1" style="color: #800000;"></i>{{ nv.email }}
+                    </div>
+                    <div class="text-danger small">
+                      <i class="fas fa-phone-alt me-1"></i>{{ nv.sdtNhanVien }}
+                    </div>
                   </div>
-                  <div class="text-danger small">
-                    <i class="fas fa-phone-alt me-1"></i>{{ nv.sdtNhanVien }}
+                </td>
+                <td>
+                  <div class="text-muted small text-wrap" style="max-width: 200px; line-height: 1.4;">
+                    {{ nv.diaChi }}
                   </div>
-                </div>
-              </td>
+                </td>
+                <td class="text-center">
+                  <span :class="['badge-status', nv.trangThaiLamViec === 1 ? 'status-active' : 'status-locked']">
+                    {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+                  </span>
+                </td>
+                <td class="text-center" style="vertical-align: middle;">
+                  <div class="d-flex justify-content-center align-items-center gap-3">
+                    <button class="btn btn-link p-0 action-edit-v2" :class="{ 'is-locked': nv.trangThaiLamViec !== 1 }"
+                      @click="handleEdit(nv)" :title="nv.trangThaiLamViec !== 1 ? 'Tài khoản bị khóa' : 'Chỉnh sửa'"
+                      style="text-decoration: none; transition: 0.3s; box-shadow: none; outline: none; border: none; background: none;">
+                      <i class="fas fa-pen" :style="{ color: nv.trangThaiLamViec !== 1 ? '#ccc' : '#444' }"></i>
+                    </button>
 
-              <td>
-                <div class="text-muted small text-wrap" style="max-width: 200px; line-height: 1.4;">
-                  {{ nv.diaChi }}
-                </div>
-              </td>
-
-              <td class="text-center">
-                <span :class="['badge-status', nv.trangThaiLamViec === 1 ? 'status-active' : 'status-locked']">
-                  {{ nv.trangThaiLamViec === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
-                </span>
-              </td>
-
-              <td class="text-center" style="vertical-align: middle;">
-                <div class="d-flex justify-content-center align-items-center gap-3">
-                  <button class="btn btn-link p-0 action-edit-v2" :class="{ 'is-locked': nv.trangThaiLamViec !== 1 }"
-                    @click="handleEdit(nv)" :title="nv.trangThaiLamViec !== 1 ? 'Tài khoản bị khóa' : 'Chỉnh sửa'"
-                    style="text-decoration: none; transition: 0.3s; box-shadow: none; outline: none; border: none; background: none;">
-                    <i class="fas fa-pen" :style="{ color: nv.trangThaiLamViec !== 1 ? '#ccc' : '#444' }"></i>
-                  </button>
-
-                  <div class="form-check form-switch" style="margin-bottom: 0; min-height: auto;">
-                    <input class="form-check-input cz-switch shadow-none" type="checkbox" role="switch"
-                      style="cursor: pointer; width: 2.5em; height: 1.25em;" :checked="nv.trangThaiLamViec === 1"
-                      @click.prevent="onToggleStatus(nv)">
+                    <div class="form-check form-switch" style="margin-bottom: 0; min-height: auto;">
+                      <input class="form-check-input cz-switch shadow-none" type="checkbox" role="switch"
+                        style="cursor: pointer; width: 2.5em; height: 1.25em;" :checked="nv.trangThaiLamViec === 1"
+                        @click.prevent="onToggleStatus(nv)">
+                    </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <CommonPagination v-model:currentPage="pagination.currentPage" v-model:pageSize="pagination.pageSize"
+          :totalPages="pagination.totalPages" :totalElements="pagination.totalElements"
+          :currentCount="listNhanVien.length" @change="handleSearch" />
+        <br>
       </div>
     </div>
-
-
-
-    <CommonPagination v-model:currentPage="pagination.currentPage" v-model:pageSize="pagination.pageSize"
-      :totalPages="pagination.totalPages" :totalElements="pagination.totalElements" :currentCount="listNhanVien.length"
-      @change="handleSearch" />
 
   </div>
 </template>
@@ -356,7 +351,6 @@ const exportToExcel = async () => {
       title: 'Thông báo',
       text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để xuất file!',
       icon: 'warning',
-      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
     return; // Dừng lại, không thực hiện tải
@@ -367,7 +361,6 @@ const exportToExcel = async () => {
     title: 'Xác nhận xuất file?',
     text: `Hệ thống sẽ tải về danh sách của ${selectedIds.value.length} nhân viên bạn đã chọn.`,
     icon: 'question',
-    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#800000',
     confirmButtonText: 'Tải xuống ngay',
@@ -400,7 +393,7 @@ const exportToExcel = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', iconColor: '#7D161A', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
     } catch (error) {
       console.error("Lỗi xuất file:", error);
       Swal.fire('Lỗi!', 'Không thể tải file. Có thể Server chưa hỗ trợ lọc theo ID.', 'error');
@@ -414,7 +407,6 @@ const downloadTemplate = async () => {
       title: 'Thông báo',
       text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để lấy dữ liệu mẫu!',
       icon: 'warning',
-      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
     return;
@@ -429,7 +421,6 @@ const downloadTemplate = async () => {
     title: 'Tải file mẫu nhập liệu?',
     text: confirmText,
     icon: 'question',
-    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonColor: '#800000',
     confirmButtonText: 'Tải mẫu ngay',
@@ -472,7 +463,7 @@ const downloadTemplate = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', iconColor: '#7D161A', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
     } catch (error) {
       console.error("Lỗi tải file mẫu:", error);
       Swal.fire('Lỗi!', 'Không thể tải file mẫu. Vui lòng kiểm tra lại hệ thống.', 'error');
@@ -537,7 +528,6 @@ const handleImportExcel = async (event) => {
       title: 'Thành công!',
       text: response.data.message || 'Đã nhập danh sách nhân viên thành công.',
       icon: 'success',
-      iconColor: '#7D161A',
       confirmButtonColor: '#800000'
     });
 
@@ -571,7 +561,7 @@ const handleImportExcel = async (event) => {
 const printToPDF = async () => {
   // 1. Kiểm tra điều kiện: Nếu không chọn "Tất cả" và mảng ID trống
   if (!isSelectAllPages.value && selectedIds.value.length === 0) {
-    Swal.fire({ title: 'Thông báo', iconColor: '#7D161A', text: 'Vui lòng chọn nhân viên!', icon: 'warning' });
+    Swal.fire({ title: 'Thông báo', text: 'Vui lòng chọn nhân viên!', icon: 'warning' });
     return;
   }
 

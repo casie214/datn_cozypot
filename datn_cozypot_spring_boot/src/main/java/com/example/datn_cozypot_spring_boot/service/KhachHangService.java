@@ -30,6 +30,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 // Import cho Java IO
 import java.io.ByteArrayOutputStream;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
@@ -115,7 +116,7 @@ public class KhachHangService {
         try {
             req.setTenDangNhap(req.getEmail());
             req.setMatKhauDangNhap(rawPassword);
-            userMailService.sendClientNotificationMail(req, "CREATE");
+            //userMailService.sendClientNotificationMail(req, "CREATE");
         } catch (Exception e) {
             System.err.println("Lỗi gửi mail khi tạo mới: " + e.getMessage());
         }
@@ -160,10 +161,16 @@ public class KhachHangService {
             }
 
             for (DiaChiRequest dcReq : req.getDanhSachDiaChi()) {
+                System.out.println("Tinh: " + dcReq.getTenTinhThanh());
+                System.out.println("Huyen: " + dcReq.getTenQuanHuyen());
+                System.out.println("Xa: " + dcReq.getTenPhuongXa());
                 DiaChiKhachHang dc = new DiaChiKhachHang();
                 dc.setIdTinhThanh(dcReq.getIdTinhThanh());
                 dc.setIdQuanHuyen(dcReq.getIdQuanHuyen());
                 dc.setIdPhuongXa(dcReq.getIdPhuongXa());
+                dc.setTenTinhThanh(dcReq.getTenTinhThanh());
+                dc.setTenQuanHuyen(dcReq.getTenQuanHuyen());
+                dc.setTenPhuongXa(dcReq.getTenPhuongXa());
                 dc.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
                 dc.setHoTenNhan(dcReq.getHoTenNhan());
                 dc.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
@@ -175,12 +182,14 @@ public class KhachHangService {
         KhachHang savedKh = repo.save(kh);
         try {
             req.setMatKhauDangNhap("******** (Đã bảo mật)");
-            userMailService.sendClientNotificationMail(req, "UPDATE");
+            //userMailService.sendClientNotificationMail(req, "UPDATE");
         } catch (Exception e) {
             System.err.println("Lỗi gửi mail update: " + e.getMessage());
         }
         return convertToResponse(savedKh);
     }
+
+
     @Transactional
     public KhachHangResponse toggleStatus(Integer id) {
         KhachHang kh = repo.findById(id)
@@ -202,12 +211,19 @@ public class KhachHangService {
     }
     private void saveDanhSachDiaChi(List<DiaChiRequest> danhSachRequest, KhachHang kh) {
         for (DiaChiRequest dcReq : danhSachRequest) {
+            System.out.println("===== DEBUG DIA CHI =====");
+            System.out.println("tenTinhThanh = " + dcReq.getTenTinhThanh());
+            System.out.println("tenQuanHuyen = " + dcReq.getTenQuanHuyen());
+            System.out.println("tenPhuongXa = " + dcReq.getTenPhuongXa());
             DiaChiKhachHang dcEntity = new DiaChiKhachHang();
 
             // Map dữ liệu từ Request sang Entity
             dcEntity.setIdTinhThanh(dcReq.getIdTinhThanh());
             dcEntity.setIdQuanHuyen(dcReq.getIdQuanHuyen());
             dcEntity.setIdPhuongXa(dcReq.getIdPhuongXa());
+            dcEntity.setTenTinhThanh(dcReq.getTenTinhThanh());
+            dcEntity.setTenQuanHuyen(dcReq.getTenQuanHuyen());
+            dcEntity.setTenPhuongXa(dcReq.getTenPhuongXa());
             dcEntity.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
             dcEntity.setHoTenNhan(dcReq.getHoTenNhan());
             dcEntity.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
@@ -392,18 +408,20 @@ public class KhachHangService {
                 return dto;
             }).collect(Collectors.toList());
             res.setDanhSachDiaChi(listDiaChiDto);
-            String diaChiMacDinh = kh.getDanhSachDiaChi().stream()
+            DiaChiKhachHang dcMacDinh = kh.getDanhSachDiaChi().stream()
                     .filter(dc -> Boolean.TRUE.equals(dc.getLaMacDinh()))
-                    .map(dc -> dc.getDiaChiChiTiet() != null ? dc.getDiaChiChiTiet() : "Chưa có địa chỉ cụ thể")
                     .findFirst()
-                    .orElseGet(() -> {
-                        if (!kh.getDanhSachDiaChi().isEmpty()) {
-                            String firstAddr = kh.getDanhSachDiaChi().get(0).getDiaChiChiTiet();
-                            return firstAddr != null ? firstAddr : "Chưa có địa chỉ";
-                        }
-                        return "Chưa có địa chỉ";
-                    });
-            res.setDiaChi(diaChiMacDinh);
+                    .orElse(kh.getDanhSachDiaChi().get(0));
+
+            String fullAddress = Stream.of(
+                            dcMacDinh.getDiaChiChiTiet(),
+                            dcMacDinh.getTenPhuongXa(),
+                            dcMacDinh.getTenQuanHuyen(),
+                            dcMacDinh.getTenTinhThanh()
+                    ).filter(Objects::nonNull)
+                    .collect(Collectors.joining(", "));
+
+            res.setDiaChi(fullAddress);
         } else {
             res.setDanhSachDiaChi(new ArrayList<>());
         }
@@ -444,6 +462,9 @@ public class KhachHangService {
                 dc.setIdTinhThanh(dcReq.getIdTinhThanh());
                 dc.setIdQuanHuyen(dcReq.getIdQuanHuyen());
                 dc.setIdPhuongXa(dcReq.getIdPhuongXa());
+                dc.setTenTinhThanh(dcReq.getTenTinhThanh());
+                dc.setTenQuanHuyen(dcReq.getTenQuanHuyen());
+                dc.setTenPhuongXa(dcReq.getTenPhuongXa());
                 dc.setDiaChiChiTiet(dcReq.getDiaChiChiTiet());
                 dc.setHoTenNhan(dcReq.getHoTenNhan());
                 dc.setSoDienThoaiNhan(dcReq.getSoDienThoaiNhan());
