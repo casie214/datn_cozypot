@@ -724,7 +724,7 @@ onMounted(() => {
           }}</small>
         </div>
 
-        <div>
+        <!-- <div>
           <label>Chọn bàn</label>
           <Multiselect
             v-model="selectedTable"
@@ -784,7 +784,7 @@ onMounted(() => {
           <small v-if="formErrors.idBanAn" class="error-text">{{
             formErrors.idBanAn
           }}</small>
-        </div>
+        </div> -->
 
         <div>
           <label>Số lượng khách</label>
