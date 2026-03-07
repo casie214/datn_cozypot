@@ -18,4 +18,7 @@ public class DiaChiRequest {
     private String idPhuongXa;
     private String diaChiChiTiet; // Đây là số nhà/tên đường
     private Boolean laMacDinh;
+    private String tenTinhThanh;
+    private String tenQuanHuyen;
+    private String tenPhuongXa;
 }
