@@ -1,8 +1,10 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.config.VNPayConfig;
+import com.example.datn_cozypot_spring_boot.dto.request.EmailDatBanDTO;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
+import com.example.datn_cozypot_spring_boot.service.EmailDatBanService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -31,6 +33,7 @@ public class VNPayController {
     private final LichSuThanhToanRepository lichSuThanhToanRepository;
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final NhanVienRepository nhanVienRepository;
+    private final EmailDatBanService emailDatBanService;
 
     private String vnp_TmnCode = "UKPOJ88W";
     private String vnp_HashSecret = "PN902AZ1XJ8BMLR5BPV1P8585EQ31RIU";
@@ -377,8 +380,6 @@ public class VNPayController {
                         phieuDatBanRepository.save(phieu);
                     }
 
-                    // (Lưu ý: KHÔNG giải phóng bàn ăn ở đây vì khách chưa tới)
-
                     // 3. Ghi log Lịch sử thanh toán VNPay
                     try {
                         PhuongThucThanhToan ptVnPay = phuongThucThanhToanRepository.findByMaPhuongThuc("PT01");
@@ -411,10 +412,57 @@ public class VNPayController {
                     } catch (Exception e) {
                         System.out.println("Lỗi lưu Log Hóa đơn: " + e.getMessage());
                     }
+
+                    try {
+                        KhachHang khachHang = hoaDon.getIdKhachHang();
+                        PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
+
+                        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank() && phieu != null) {
+                            String maTraCuu = "PDB" + String.format("%04d", phieu.getId());
+
+                            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                                    .tenKhachHang(khachHang.getTenKhachHang())
+                                    .soDienThoai(khachHang.getSoDienThoai())
+                                    .email(khachHang.getEmail())
+                                    .thoiGianDat(phieu.getThoiGianDat() != null ?
+                                            phieu.getThoiGianDat().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
+                                    .soLuongKhach(phieu.getSoLuongKhach())
+                                    .maPhieuDatBan(maTraCuu)
+                                    .build();
+
+                            // Gọi hàm Async để gửi ngầm, không làm chậm quá trình chuyển trang của khách
+                            emailDatBanService.sendEmailCamOnDatBan(emailDto);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Lỗi khi gửi mail cảm ơn sau VNPay: " + e.getMessage());
+                    }
                 }
                 // Trả về trang báo thành công kèm type=deposit
                 response.sendRedirect("http://localhost:5173/payment-success?type=deposit");
             } else {
+
+                HoaDonThanhToan hoaDonFailed = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
+                if(hoaDonFailed != null && hoaDonFailed.getTrangThaiHoaDon() == 1){
+                    try {
+                        KhachHang khachHang = hoaDonFailed.getIdKhachHang();
+                        PhieuDatBan phieu = hoaDonFailed.getIdPhieuDatBan();
+
+                        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank() && phieu != null) {
+                            String maTraCuu = "PDB" + String.format("%04d", phieu.getId());
+
+                            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                                    .tenKhachHang(khachHang.getTenKhachHang())
+                                    .email(khachHang.getEmail())
+                                    .maPhieuDatBan(maTraCuu)
+                                    .build();
+
+                            // Gọi hàm Async gửi mail báo lỗi
+                            emailDatBanService.sendEmailThanhToanThatBai(emailDto);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Lỗi gửi mail thanh toán thất bại: " + e.getMessage());
+                    }
+                }
                 response.sendRedirect("http://localhost:5173/payment-failed?type=deposit");
             }
         } else {
