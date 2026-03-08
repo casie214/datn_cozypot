@@ -464,7 +464,8 @@ const quickWalkInCheckIn = async (ban) => {
       idBanAn: ban.id, 
       trangThai: 1, 
       id: null, 
-      trangThaiPhieu: null 
+      trangThaiPhieu: null,
+      vatApDung: sysParams.value.VAT
     };
 
     await updateTrangThaiBan(payload);

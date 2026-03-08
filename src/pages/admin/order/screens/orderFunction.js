@@ -423,6 +423,7 @@ export function useOrderManager() {
         text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
         icon: "warning",
         showCancelButton: true,
+        iconColor: '#7D161A',
         confirmButtonColor: "#8b0000",
         cancelButtonColor: "#6c757d",
         confirmButtonText: "Đồng ý hủy",
