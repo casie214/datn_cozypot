@@ -1,6 +1,7 @@
 <script setup>
 import "@vuepic/vue-datepicker/dist/main.css";
 import { onMounted, ref, watch } from "vue";
+import dayjs from "dayjs";
 // import utc from "dayjs/plugin/utc";
 // import timezone from "dayjs/plugin/timezone";
 import {
@@ -42,7 +43,7 @@ const createForm = ref({
   gioiTinh: true,
   thoiGianDat: "",
   soLuongKhach: 1,
-  hinhThucDat: 1,
+  hinhThucDat: 2,
 });
 const formErrors = ref({
   tenKhachHang: "",
@@ -84,6 +85,12 @@ const createBanAnService = async (data) => {
 };
 
 const tableStatusMap = ref({}); // map: id → trạng thái theo ngày
+
+const normalizeBookingDateTime = (value) => {
+  if (!value) return "";
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("YYYY-MM-DDTHH:mm:ss") : "";
+};
 
 const checkTablesByDate = async (thoiGian) => {
   if (!thoiGian) {
@@ -245,7 +252,7 @@ const openCreateModal = async () => {
     gioiTinh: true,
     thoiGianDat: "",
     soLuongKhach: 1,
-    hinhThucDat: 1,
+    hinhThucDat: 2,
   };
   resetCreateFormErrors();
 
@@ -369,7 +376,7 @@ const validateCreateForm = () => {
   const tenKhachHang = (createForm.value.tenKhachHang || "").trim();
   const soDienThoai = (createForm.value.soDienThoai || "").trim();
   const email = (createForm.value.email || "").trim();
-  const thoiGianDat = createForm.value.thoiGianDat;
+  const thoiGianDat = normalizeBookingDateTime(createForm.value.thoiGianDat);
   const soLuongKhach = Number(createForm.value.soLuongKhach);
 
   if (!tenKhachHang) {
@@ -390,7 +397,7 @@ const validateCreateForm = () => {
 
   if (!thoiGianDat) {
     errors.thoiGianDat = "Vui lòng chọn thời gian đặt";
-  } else if (new Date(thoiGianDat) <= new Date()) {
+  } else if (dayjs(thoiGianDat).isSame(dayjs()) || dayjs(thoiGianDat).isBefore(dayjs())) {
     errors.thoiGianDat = "Thời gian đặt phải lớn hơn ngày giờ hiện tại";
   }
 
@@ -411,10 +418,7 @@ const submitCreate = async () => {
   isSubmitting.value = true; 
 
   try {
-    const thoiGianDat =
-      createForm.value.thoiGianDat.length === 16
-        ? createForm.value.thoiGianDat + ":00"
-        : createForm.value.thoiGianDat;
+    const thoiGianDat = normalizeBookingDateTime(createForm.value.thoiGianDat);
 
     // 🚨 GÁN CỨNG idBanAn LÀ 1 VÀO PAYLOAD GỬI LÊN
     const payload = { 
@@ -476,97 +480,98 @@ const showToast = (type, title, message, duration = 4000) => {
   }, duration);
 };
 
-watch(
-  () => createForm.value.thoiGianDat,
-  (val) => {
-    if (val) checkTablesByDate(val);
-    if (!formErrors.value.thoiGianDat) return;
-    if (!val) {
-      formErrors.value.thoiGianDat = "Vui long chon thoi gian dat";
-      return;
-    }
-    if (new Date(val) <= new Date()) {
-      formErrors.value.thoiGianDat =
-        "Thoi gian dat phai lon hon thoi diem hien tai";
-      return;
-    }
-    formErrors.value.thoiGianDat = "";
-  },
-);
+// watch(
+//   () => createForm.value.thoiGianDat,
+//   (val) => {
+//     const normalized = normalizeBookingDateTime(val);
+//     checkTablesByDate(normalized);
+//     if (!formErrors.value.thoiGianDat) return;
+//     if (!normalized) {
+//       formErrors.value.thoiGianDat = "Vui long chon thoi gian dat";
+//       return;
+//     }
+//     if (dayjs(normalized).isSame(dayjs()) || dayjs(normalized).isBefore(dayjs())) {
+//       formErrors.value.thoiGianDat =
+//         "Thoi gian dat phai lon hon thoi diem hien tai";
+//       return;
+//     }
+//     formErrors.value.thoiGianDat = "";
+//   },
+// );
 
-watch(
-  () => createForm.value.tenKhachHang,
-  (val) => {
-    if (!formErrors.value.tenKhachHang) return;
-    const value = (val || "").trim();
-    if (!value) {
-      formErrors.value.tenKhachHang = "Vui long nhap ten khach hang";
-      return;
-    }
-    if (value.length < 2) {
-      formErrors.value.tenKhachHang = "Ten khach hang phai co it nhat 2 ky tu";
-      return;
-    }
-    formErrors.value.tenKhachHang = "";
-  },
-);
+// watch(
+//   () => createForm.value.tenKhachHang,
+//   (val) => {
+//     if (!formErrors.value.tenKhachHang) return;
+//     const value = (val || "").trim();
+//     if (!value) {
+//       formErrors.value.tenKhachHang = "Vui long nhap ten khach hang";
+//       return;
+//     }
+//     if (value.length < 2) {
+//       formErrors.value.tenKhachHang = "Ten khach hang phai co it nhat 2 ky tu";
+//       return;
+//     }
+//     formErrors.value.tenKhachHang = "";
+//   },
+// );
 
-watch(
-  () => createForm.value.soDienThoai,
-  (val) => {
-    if (!formErrors.value.soDienThoai) return;
-    const value = (val || "").trim();
-    if (!value) {
-      formErrors.value.soDienThoai = "Vui long nhap so dien thoai";
-      return;
-    }
-    if (!isValidVietnamPhone(value)) {
-      formErrors.value.soDienThoai =
-        "So dien thoai khong dung dinh dang Viet Nam";
-      return;
-    }
-    formErrors.value.soDienThoai = "";
-  },
-);
+// watch(
+//   () => createForm.value.soDienThoai,
+//   (val) => {
+//     if (!formErrors.value.soDienThoai) return;
+//     const value = (val || "").trim();
+//     if (!value) {
+//       formErrors.value.soDienThoai = "Vui long nhap so dien thoai";
+//       return;
+//     }
+//     if (!isValidVietnamPhone(value)) {
+//       formErrors.value.soDienThoai =
+//         "So dien thoai khong dung dinh dang Viet Nam";
+//       return;
+//     }
+//     formErrors.value.soDienThoai = "";
+//   },
+// );
 
-watch(
-  () => createForm.value.email,
-  (val) => {
-    if (!formErrors.value.email) return;
-    const value = (val || "").trim();
-    if (value && !isValidEmail(value)) {
-      formErrors.value.email = "Email khong dung dinh dang";
-      return;
-    }
-    formErrors.value.email = "";
-  },
-);
+// watch(
+//   () => createForm.value.email,
+//   (val) => {
+//     if (!formErrors.value.email) return;
+//     const value = (val || "").trim();
+//     if (value && !isValidEmail(value)) {
+//       formErrors.value.email = "Email khong dung dinh dang";
+//       return;
+//     }
+//     formErrors.value.email = "";
+//   },
+// );
 
-watch(
-  () => createForm.value.soLuongKhach,
-  (val) => {
-    if (!formErrors.value.soLuongKhach) return;
-    const value = Number(val);
-    if (!Number.isInteger(value) || value < 1) {
-      formErrors.value.soLuongKhach =
-        "So luong khach phai la so nguyen lon hon 0";
-      return;
-    }
-    formErrors.value.soLuongKhach = "";
-  },
-);
+// watch(
+//   () => createForm.value.soLuongKhach,
+//   (val) => {
+//     if (!formErrors.value.soLuongKhach) return;
+//     const value = Number(val);
+//     if (!Number.isInteger(value) || value < 1) {
+//       formErrors.value.soLuongKhach =
+//         "So luong khach phai la so nguyen lon hon 0";
+//       return;
+//     }
+//     formErrors.value.soLuongKhach = "";
+//   },
+// );
 
-watch(
-  () => createForm.value.idBanAn,
-  (val) => {
-    if (!formErrors.value.idBanAn) return;
-    if (!val) {
-      formErrors.value.idBanAn = "Vui long chon ban";
-      return;
-    }
-    formErrors.value.idBanAn = "";
-  },
-);
+// watch(
+//   () => createForm.value.idBanAn,
+//   (val) => {
+//     if (!formErrors.value.idBanAn) return;
+//     if (!val) {
+//       formErrors.value.idBanAn = "Vui long chon ban";
+//       return;
+//     }
+//     formErrors.value.idBanAn = "";
+//   },
+// );
 
 // --- Lifecycle ---
 onMounted(() => {
@@ -659,7 +664,7 @@ onMounted(() => {
       </Multiselect>
       <div class="info-grid">
         <div>
-          <label>Tên khách</label>
+          <label>Tên khách <span class="required-star">*</span></label>
           <input
             v-model="createForm.tenKhachHang"
             :disabled="isOldCustomer"
@@ -672,7 +677,7 @@ onMounted(() => {
         </div>
 
         <div>
-          <label>Số điện thoại</label>
+          <label>Số điện thoại <span class="required-star">*</span></label>
           <input
             v-model="createForm.soDienThoai"
             :disabled="isOldCustomer"
@@ -696,6 +701,14 @@ onMounted(() => {
             formErrors.email
           }}</small>
         </div>
+        
+        <div>
+          <label>Giới tính</label>
+          <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
+            <option :value="true">Nam</option>
+            <option :value="false">Nữ</option>
+          </select>
+        </div>
 
         <div>
           <label>Ngày sinh</label>
@@ -706,19 +719,20 @@ onMounted(() => {
           />
         </div>
 
-        <div>
-          <label>Giới tính</label>
-          <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
-            <option :value="true">Nam</option>
-            <option :value="false">Nữ</option>
-          </select>
-        </div>
+        
 
         <div>
-          <label>Thời gian đặt</label>
-          <input
-            type="datetime-local"
+          <label>Thời gian đặt <span class="required-star">*</span></label>
+          <VueDatePicker
             v-model="createForm.thoiGianDat"
+            :enable-time-picker="true"
+            :is-24="true"
+            :hide-input-icon="true"
+            :clearable="false"
+            auto-apply
+            format="dd/MM/yyyy HH:mm"
+            placeholder="Chọn ngày giờ"
+            class="custom-datetime-picker"
             :class="{ 'input-error': formErrors.thoiGianDat }"
           />
           <small v-if="formErrors.thoiGianDat" class="error-text">{{
@@ -789,7 +803,7 @@ onMounted(() => {
         </div> -->
 
         <div>
-          <label>Số lượng khách</label>
+          <label>Số lượng khách <span class="required-star">*</span></label>
           <input
             type="number"
             min="1"
@@ -1094,6 +1108,12 @@ hr {
   margin-bottom: 4px;
 }
 
+.required-star {
+  color: #dc3545;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
 .info-grid input,
 .info-grid select {
   width: 100%;
@@ -1108,6 +1128,28 @@ hr {
   border-color: #7d161a;
   box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
   outline: none;
+}
+
+.custom-datetime-picker :deep(.dp__input) {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  transition: 0.2s;
+}
+
+.custom-datetime-picker :deep(.dp__input:focus) {
+  border-color: #7d161a;
+  box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
+  outline: none;
+}
+
+.custom-datetime-picker :deep(.dp__input_icon) {
+  display: none !important;
+}
+
+.custom-datetime-picker.input-error :deep(.dp__input) {
+  border-color: #dc3545 !important;
 }
 
 .input-error {
