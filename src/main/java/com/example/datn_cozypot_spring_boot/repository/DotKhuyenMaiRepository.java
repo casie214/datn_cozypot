@@ -47,7 +47,7 @@ SELECT km.*
 FROM dot_khuyen_mai km
 JOIN chi_tiet_khuyen_mai_mon ctm
     ON km.id_dot_khuyen_mai = ctm.id_dot_khuyen_mai
-WHERE ctm.id_mon_an_di_kem = :productId
+WHERE ctm.id_danh_muc_chi_tiet = :productId
 AND km.trang_thai = 1
 AND (
     :startDate <= km.ngay_ket_thuc
