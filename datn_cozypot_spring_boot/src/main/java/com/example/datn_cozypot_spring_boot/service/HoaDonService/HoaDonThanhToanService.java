@@ -87,7 +87,7 @@ public class HoaDonThanhToanService {
         BigDecimal tienCoc = hd.getTienCoc() != null ? hd.getTienCoc() : BigDecimal.ZERO;
         int trangThaiMoi;
 
-        if (tienCoc.compareTo(BigDecimal.ZERO) > 0 && Boolean.TRUE.equals(request.getIsLoiDoQuan())) {
+        if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0 && Boolean.TRUE.equals(request.getIsLoiDoQuan())) {
             hd.setTienHoanTra(tienCoc);
             trangThaiMoi = 9;
             hd.setTrangThaiHoaDon(trangThaiMoi);
@@ -132,7 +132,12 @@ public class HoaDonThanhToanService {
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
         log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Hoàn tiền" : "Hủy hóa đơn");
-        String prefixLyDo = (tienCoc.compareTo(BigDecimal.ZERO) > 0) ? (Boolean.TRUE.equals(request.getIsLoiDoQuan()) ? "[Đã hoàn cọc] " : "[Mất cọc] ") : "";
+        String prefixLyDo = "";
+        if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
+            prefixLyDo = Boolean.TRUE.equals(request.getIsLoiDoQuan()) ? "[Đã hoàn cọc] " : "[Mất cọc] ";
+        } else if (trangThaiHDCu == 1) {
+            prefixLyDo = "[Hủy chưa cọc] ";
+        }
         log.setLyDoThucHien(prefixLyDo + request.getLyDoThucHien());
         log.setThoiGianThucHien(Instant.now());
         log.setTrangThaiTruocDo(trangThaiHDCu);

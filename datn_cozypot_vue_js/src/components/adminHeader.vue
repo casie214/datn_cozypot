@@ -9,6 +9,8 @@ const dropdownRef = ref(null);
 const authStore = useAuthStore();
 const router = useRouter();
 const goBack = () => router.back();
+const handleLogin = () => router.push({ name: 'login' });
+const handleRegister = () => router.push({ name: 'register' });
 
 const isLoggedIn = computed(() => !!authStore.token);
 

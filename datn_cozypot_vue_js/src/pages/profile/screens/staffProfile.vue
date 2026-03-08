@@ -137,17 +137,27 @@
                       <div class="error-text">{{ errors.ngaySinh }}</div>
                     </div>
 
-                    <div class="col-md-6">
-                      <label class="form-label-custom">Giới tính <span class="star">*</span></label>
-                      <div class="gender-selector d-flex gap-3">
-                        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
-                          v-model="formData.gioiTinh" :disabled="!isEditing">
-                        <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label-custom fw-bold mb-2 d-block">Giới tính <span
+                          class="star text-danger">*</span></label>
+                      <div class="gender-radio-group d-flex gap-4 mt-2">
+                        <label class="radio-container">
+                          <input type="radio" name="gender" :value="true" v-model="formData.gioiTinh"
+                            :disabled="!isEditing">
+                          <span class="radio-checkmark"></span>
+                          <span class="radio-label">
+                             Nam
+                          </span>
+                        </label>
 
-                        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
-                          v-model="formData.gioiTinh" :disabled="!isEditing">
-                        <label class="btn btn-outline-wine w-100" for="female"><i
-                            class="fas fa-venus me-2"></i>Nữ</label>
+                        <label class="radio-container">
+                          <input type="radio" name="gender" :value="false" v-model="formData.gioiTinh"
+                            :disabled="!isEditing">
+                          <span class="radio-checkmark"></span>
+                          <span class="radio-label">
+                             Nữ
+                          </span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -254,7 +264,7 @@ const router = useRouter();
 const toast = useToast();
 const qrErrorMessage = ref("");
 const qrFileInput = ref(null);
-const isEditing = ref(false); 
+const isEditing = ref(false);
 const triggerQRFileInput = () => {
   qrErrorMessage.value = ""; // Xóa lỗi cũ
   qrFileInput.value.click();
@@ -265,7 +275,7 @@ const onQRFileChange = async (e) => {
   if (!file) return;
 
   qrErrorMessage.value = "";
-  loading.value = true; 
+  loading.value = true;
 
   try {
     const response = await staffService.scanQR(file);
@@ -288,7 +298,7 @@ const onQRFileChange = async (e) => {
     }
   } finally {
     loading.value = false;
-    e.target.value = ""; 
+    e.target.value = "";
   }
 };
 
@@ -495,7 +505,7 @@ const validateForm = async () => {
       { key: 'email', label: 'Email' },
       { key: 'sdtNhanVien', label: 'Số điện thoại' },
       { key: 'soCccd', label: 'Số CCCD' },
-      { key: 'tenDangNhap', label: 'Tên đăng nhập' } 
+      { key: 'tenDangNhap', label: 'Tên đăng nhập' }
     ];
     for (const item of checkList) {
       const res = await staffService.checkDuplicate({
@@ -507,7 +517,7 @@ const validateForm = async () => {
       if (res.data === true || res.data?.exists === true) {
         errors[item.key] = `${item.label} này đã tồn tại trên hệ thống`;
         ok = false;
-        break; 
+        break;
       }
     }
   } catch (e) {
@@ -589,13 +599,13 @@ const handleSave = async () => {
 
     if (authStore.user) {
       // 1. Cập nhật tên đăng nhập trong Store (để Menu đổi ngay)
-      authStore.user.username = formData.tenDangNhap; 
-      
+      authStore.user.username = formData.tenDangNhap;
+
       // 2. Nếu có đổi cả ảnh đại diện
       if (response.data && response.data.anhDaiDien) {
-         authStore.user.anhDaiDien = response.data.anhDaiDien;
+        authStore.user.anhDaiDien = response.data.anhDaiDien;
       }
-      
+
       // 3. Đừng quên cập nhật cả LocalStorage để F5 không bị mất
       localStorage.setItem('user', JSON.stringify(authStore.user));
     }
@@ -794,7 +804,7 @@ onMounted(async () => {
 }
 
 .gender-selector .btn-check:checked+.btn-outline-wine {
-  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important; 
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
   border-color: #800000;
   color: #fff;
 }
@@ -969,5 +979,89 @@ hr.dashed {
 
 .avatar-upload:hover .avatar-edit-overlay {
   opacity: 1;
+}
+
+/* Container chứa radio */
+.radio-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 30px; /* Tạo khoảng trống cho vòng tròn custom */
+  cursor: pointer;
+  font-size: 15px;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+/* Ẩn radio mặc định */
+.radio-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Tạo vòng tròn bên ngoài */
+.radio-checkmark {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  height: 20px;
+  width: 20px;
+  background-color: #fff;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+/* Khi hover vào container */
+.radio-container:hover input ~ .radio-checkmark {
+  border-color: #7D161A;
+}
+
+/* Khi radio được chọn (vòng tròn ngoài đổi màu) */
+.radio-container input:checked ~ .radio-checkmark {
+  background-color: #fff;
+  border-color: #7D161A;
+}
+
+/* Tạo chấm tròn nhỏ bên trong khi được chọn */
+.radio-checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+/* Hiển thị chấm tròn khi được chọn */
+.radio-container input:checked ~ .radio-checkmark:after {
+  display: block;
+}
+
+/* Định dạng chấm tròn bên trong */
+.radio-container .radio-checkmark:after {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #7D161A; /* Màu đỏ mận đồng bộ */
+}
+
+/* Hiệu ứng khi bị Disable (Xem chế độ không cho sửa) */
+.radio-container input:disabled ~ .radio-checkmark {
+  background-color: #f5f5f5;
+  border-color: #eee;
+  cursor: not-allowed;
+}
+.radio-container input:disabled ~ .radio-label {
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Label text bên cạnh */
+.radio-label {
+  font-weight: 500;
+  color: #444;
 }
 </style>
