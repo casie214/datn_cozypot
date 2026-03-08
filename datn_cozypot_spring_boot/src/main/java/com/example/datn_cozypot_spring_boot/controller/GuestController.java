@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.controller;
 
+import com.example.datn_cozypot_spring_boot.dto.*;
 import com.example.datn_cozypot_spring_boot.dto.MonAn.MonAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
@@ -15,11 +16,16 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/guest")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 @Tag(name = "Guest API - Menu & Món ăn", description = "API lấy dữ liệu hiển thị cho khách hàng (Chỉ lấy trạng thái Active)")
 public class GuestController {
 
@@ -27,6 +33,10 @@ public class GuestController {
     private final BanAnRepository banAnRepository;
     private final ModelMapper modelMapper;
     private final DatBanService datBanService;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucRepository danhMucRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.LoaiLauRepository loaiLauRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository danhMucChiTietRepository;
 
     // 1. Lấy danh sách Danh Mục (Category) đang hoạt động
     @GetMapping("/category/active")
@@ -86,5 +96,90 @@ public class GuestController {
                 }).toList();
 
         return ResponseEntity.ok(response);
+    }
+
+    private String saveBase64ToFile(String base64Data, String fileName) {
+        if (base64Data == null || !base64Data.contains(",")) return null;
+        try {
+            String base64Image = base64Data.split(",")[1];
+            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Image);
+
+            File uploadDir = new File("uploads");
+            if (!uploadDir.exists()) uploadDir.mkdir();
+
+            Path path = Paths.get("uploads/" + fileName + ".jpg");
+            Files.write(path, imageBytes);
+            return fileName + ".jpg";
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<MenuSummaryDTO> getMenuSummary() {
+        // 1. Lấy Danh mục
+        List<CategoryDTOCB> categories = danhMucRepository.findAll().stream()
+                .filter(dm -> dm.getTrangThai() == 1)
+                .map(dm -> new CategoryDTOCB(dm.getTenDanhMuc()))
+                .toList();
+
+        // 2. Lấy Loại Set Lẩu
+        List<LoaiSetLauDTOCB> setTypes = loaiLauRepository.findAll().stream()
+                .filter(ls -> ls.getTrangThai() == 1)
+                .map(ls -> new LoaiSetLauDTOCB(ls.getTenLoaiSet()))
+                .toList();
+
+        // 3. Lấy Set Lẩu cụ thể
+        List<SetLauDTOCB> sets = setLauRepository.findAll().stream()
+                .filter(s -> s.getTrangThai() == 1)
+                .map(s -> {
+                    // Lấy danh sách tên món từ bảng chi tiết
+                    List<String> monThanhPhan = s.getListChiTietSetLau().stream()
+                            .map(ct -> ct.getMonAn().getTenMon())
+                            .toList();
+
+                    return new SetLauDTOCB(
+                            s.getTenSetLau(),
+                            s.getIdLoaiSet().getTenLoaiSet(),
+                            s.getGiaBan(),
+                            s.getMoTa(),
+                            monThanhPhan // Đưa danh sách món vào đây
+                    );
+                })
+                .toList();
+
+        String baseUrl = "https://unrheumatic-gametically-yajaira.ngrok-free.dev/uploads/";
+        String placeholderUrl = baseUrl + "placeholder.jpg";
+        List<MonAnDTOCB> items = danhMucChiTietRepository.findAll().stream()
+                .filter(m -> m.getTrangThai() == 1)
+                .map(m -> {
+                    String finalImageUrl;
+
+                    // Kiểm tra dữ liệu trong DB
+                    if (m.getHinhAnh() != null && !m.getHinhAnh().isEmpty()) {
+                        String fileName = "monan_" + m.getId();
+                        saveBase64ToFile(m.getHinhAnh(), fileName);
+                        finalImageUrl = baseUrl + fileName + ".jpg";
+                    } else {
+                        // Nếu null hoặc rỗng, dùng ảnh placeholder
+                        finalImageUrl = placeholderUrl;
+                    }
+
+                    return new MonAnDTOCB(
+                            m.getTenMon(),
+                            m.getGiaBan(),
+                            m.getDanhMuc().getTenDanhMuc(),
+                            finalImageUrl
+                    );
+                }).toList();
+
+        MenuSummaryDTO summary = MenuSummaryDTO.builder()
+                .danhMuc(categories)
+                .loaiSetLau(setTypes)
+                .setLau(sets)
+                .monAnLe(items) // Đưa vào DTO tổng
+                .build();
+
+        return ResponseEntity.ok(summary);
     }
 }
