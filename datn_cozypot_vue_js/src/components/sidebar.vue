@@ -39,15 +39,23 @@ const menuItems = ref([
         query: { tab: 'dinhluong' },
         isOpen: false
     },
-    { name: 'Giảm giá', icon: "fa-solid fa-tags", path: '/admin/voucher' },
-
+// {
+//     name: 'Giảm giá',
+//     icon: "fa-solid fa-tags",
+//     isOpen: false,
+//     children: [
+//         { name: 'Phiếu giảm giá', path: '/admin/voucher' },
+//         { name: 'Đợt giảm giá', path: '/admin/promotion' }
+//     ]
+// },
+{
+    name: 'Giảm giá',
+    icon: "fa-solid fa-tags", path: '/admin/voucher' },
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
 
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/chatbox' },
     { name: 'Tham số', icon: "fa-solid fa-sliders", path: '/admin/parameters' },
-
-
 ]);
 
 const router = useRouter();
