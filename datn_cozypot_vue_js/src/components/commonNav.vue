@@ -83,6 +83,7 @@ onUnmounted(() => {
                 <li><router-link to="/menu" active-class="active">Thực đơn</router-link></li>
                 <li><router-link to="/offers" active-class="active">Ưu đãi</router-link></li>
                 <li><router-link to="/dat-ban" active-class="active">Đặt bàn</router-link></li>
+                <li><router-link to="/tra-cuu" active-class="active">Tra cứu</router-link></li>
             </ul>
 
             <div class="nav-auth">
@@ -108,10 +109,6 @@ onUnmounted(() => {
                             <div v-if="showDropdown" class="dropdown-menu">
                                 <div class="dropdown-item" @click="goToProfile">
                                     <i class="fa-solid fa-id-card"></i> Hồ sơ cá nhân
-                                </div>
-                                <div v-if="authStore.role === 'USER'" class="dropdown-item"
-                                    @click="router.push('/history')">
-                                    <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt bàn
                                 </div>
                                 <div class="dropdown-item" @click="goToChangePassword">
                                     <i class="fa-solid fa-key"></i> Đổi mật khẩu
