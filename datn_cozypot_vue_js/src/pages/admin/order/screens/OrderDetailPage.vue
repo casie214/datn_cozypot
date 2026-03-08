@@ -195,14 +195,18 @@ const handleConfirmOrder = async (idHoaDon) => {
   }
 
   const tenBan = selectedOrder.value?.ban;
-  if (!tenBan || tenBan === "Chưa xếp" || tenBan === "Chưa xếp bàn" || tenBan === "---") {
+  if (
+    !tenBan ||
+    tenBan === "Chưa xếp" ||
+    tenBan === "Chưa xếp bàn" ||
+    tenBan === "---"
+  ) {
     Swal.fire({
       icon: "warning",
       title: "Chưa xếp bàn!",
       text: "Vui lòng xếp bàn cho khách trước khi Xác nhận và Gửi mail.",
       confirmButtonColor: "#8b0000",
-      confirmButtonText:
-        'Đồng ý'
+      confirmButtonText: "Đồng ý",
     });
     return; // Dừng hàm tại đây, không cho hiện popup xác nhận bên dưới
   }
@@ -373,6 +377,12 @@ const handleConfirmOrder = async (idHoaDon) => {
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Thời gian tạo</label>
               <p class="mb-0 fw-medium">{{ selectedOrder?.ngayTao }}</p>
+            </div>
+            <div class="col-md">
+              <label class="d-block text-muted small mb-1">Thời gian đến</label>
+              <p class="mb-0 fw-bold">
+                {{ formatDateTime(selectedOrder?.thoiGianDat) }}
+              </p>
             </div>
           </div>
         </div>
@@ -1139,7 +1149,7 @@ const handleConfirmOrder = async (idHoaDon) => {
   padding: 8px 10px !important;
   vertical-align: middle !important;
   font-size: 14px !important;
-  color: #000 !important; 
+  color: #000 !important;
   border-radius: 0 !important;
 }
 

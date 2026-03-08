@@ -25,6 +25,7 @@ const pageSize = ref(5);
 const filters = ref({
   search: "",
   status: "Tất cả",
+  dateType: "booking",
   fromDate: today,
   toDate: "",
 });
@@ -181,6 +182,7 @@ export function useOrderManager() {
         trangThai: mapStatus(item.trangThaiHoaDon),
         trangThaiCode: item.trangThaiHoaDon,
         ngayTao: formatDate(item.thoiGianTao),
+        ngayTaoRaw: item.thoiGianTao,
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
       };
@@ -240,18 +242,28 @@ export function useOrderManager() {
           ? statusMap[filters.value.status]
           : null;
 
-      const tuNgayISO = filters.value.fromDate
-        ? `${filters.value.fromDate}T00:00:00Z`
-        : null;
-      const denNgayISO = filters.value.toDate
-        ? `${filters.value.toDate}T23:59:59Z`
-        : null;
+      let tuNgayTao = null;
+      let denNgayTao = null;
+      let tuNgayDat = null;
+      let denNgayDat = null;
+
+      if (filters.value.dateType === "created") {
+        // Nếu lọc theo ngày tạo hóa đơn (Kiểu Instant -> Có đuôi Z)
+        tuNgayTao = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
+        denNgayTao = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
+      } else {
+        // Nếu lọc theo ngày khách đến (Kiểu LocalDateTime -> KHÔNG có đuôi Z)
+        tuNgayDat = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00` : null;
+        denNgayDat = filters.value.toDate ? `${filters.value.toDate}T23:59:59` : null;
+      }
 
       const response = await BeSearchHoaDon(
         filters.value.search,
         trangThaiInt,
-        tuNgayISO,
-        denNgayISO,
+        tuNgayTao,    
+        denNgayTao,
+        tuNgayDat,  
+        denNgayDat,
         currentPage.value,
         pageSize.value,
       );
@@ -287,6 +299,7 @@ export function useOrderManager() {
     filters.value = {
       search: "",
       status: "Tất cả",
+      dateType: "booking",
       fromDate: today,
       toDate: "",
     };
@@ -685,5 +698,6 @@ export function useOrderManager() {
     confirmCancelOrder,
     closeCancelModal,
     handleHoanTatHoaDon,
+    formatDateTime
   };
 }
