@@ -82,6 +82,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
 
+                        .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/tra-cuu").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/lich-su-dat-ban/huy-don/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/ca-nhan").authenticated()
 
                         // Cho ADMIN và EMPLOYEE tự cập nhật profile
                         .requestMatchers(HttpMethod.GET, "/api/nhan-vien/my-profile")
@@ -89,7 +92,10 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.PUT, "/api/nhan-vien/update-my-profile")
                         .hasAnyRole("ADMIN", "EMPLOYEE")
-
+                        .requestMatchers(HttpMethod.POST, "/api/botpress/handoff").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/botpress/waiting-list").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/botpress/history/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/botpress/reply").hasAnyRole("ADMIN", "EMPLOYEE")
                         // General API Rules
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "EMPLOYEE")
@@ -111,7 +117,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOrigins(List.of("http://localhost:5173",
+                "https://unrheumatic-gametically-yajaira.ngrok-free.dev",
+                "https://*.ngrok-free.app"));
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS","PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

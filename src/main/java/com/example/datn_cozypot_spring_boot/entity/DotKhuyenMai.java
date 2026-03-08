@@ -90,7 +90,7 @@ public class DotKhuyenMai {
     @JoinTable(
             name = "chi_tiet_khuyen_mai_mon",
             joinColumns = @JoinColumn(name = "id_dot_khuyen_mai"),
-            inverseJoinColumns = @JoinColumn(name = "id_mon_an_di_kem")
+            inverseJoinColumns = @JoinColumn(name = "id_danh_muc_chi_tiet")
     )
     private Set<DanhMucChiTiet> monAnDiKems = new HashSet<>();
 }
