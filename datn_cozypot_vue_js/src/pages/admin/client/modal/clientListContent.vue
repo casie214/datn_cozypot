@@ -1,9 +1,7 @@
 <template>
   <div class="flex-grow-1 staff-manager-wrapper" style="padding: 25px; background: #ffffff; min-height: 100vh;">
     <div class="mb-3">
-      <h2 class="title-page-cozy" style="    color: var(--primary-red);
-    font-weight: 700;
-    font-size: 24px;">Quản lý khách hàng</h2>
+      <h2 class="title-page-cozy" >Quản lý khách hàng</h2>
 
     </div>
 
@@ -17,11 +15,9 @@
 
         <div class="col-md-3">
           <label class="filter-label">Trạng thái</label>
-          <select v-model="filters.trangThai" class="form-select custom-input" @change="handleSearch">
-            <option :value="null">Tất cả</option>
-            <option :value="1">Đang hoạt động</option>
-            <option :value="0">Ngừng hoạt động</option>
-          </select>
+          <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" label="label" valueProp="value"
+            placeholder="Chọn trạng thái" :searchable="false" :createOption="false" :canClear="true"
+            :closeOnSelect="true" class="custom-multiselect-theme" @update:modelValue="handleSearch" />
         </div>
 
         <div class="col-md-3">
@@ -52,39 +48,38 @@
         </div>
       </div>
     </div>
-  
+
     <div class="mt-4">
-      <div
-      style="  background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-      <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
-        <!-- Danh sách khách hàng -->
-      </h4>
-      <div class="d-flex justify-content-end mb-3 gap-2">
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openModalAdd"
-            type="button">
-            <i class="fas fa-plus"></i>
-            <span class="tooltip-text">Thêm khách hàng</span>
-          </button>
-        </div>
+      <div style="  background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+        <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
+          <!-- Danh sách khách hàng -->
+        </h4>
+        <div class="d-flex justify-content-end mb-3 gap-2">
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openModalAdd"
+              type="button">
+              <i class="fas fa-plus"></i>
+              <span class="tooltip-text">Thêm khách hàng</span>
+            </button>
+          </div>
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center"
-            @click="handleActionWithAuth(handleExportExcel, 'ADMIN')" type="button">
-            <i class="fas fa-file-excel"></i>
-            <span class="tooltip-text">Xuất Excel</span>
-          </button>
-        </div>
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center"
+              @click="handleActionWithAuth(handleExportExcel, 'ADMIN')" type="button">
+              <i class="fas fa-file-excel"></i>
+              <span class="tooltip-text">Xuất Excel</span>
+            </button>
+          </div>
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="handleRefresh"
-            type="button">
-            <i class="fas fa-sync-alt"></i>
-            <span class="tooltip-text">Làm mới</span>
-          </button>
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="handleRefresh"
+              type="button">
+              <i class="fas fa-sync-alt"></i>
+              <span class="tooltip-text">Làm mới</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
       <div class="table-pagination-wrapper">
         <div class="table-responsive">
           <div class="table-responsive">
@@ -197,7 +192,8 @@ import CommonPagination from '@/components/commonPagination.vue';
 import clientService from '@/services/clientService';
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
-import '../clientStyle.css';
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 import { useAuthStore } from "@/pages/guest/authentication/authenticationServices/authenticationService";
 const authStore = useAuthStore();
 const handleActionWithAuth = (callbackAction, requiredRole) => {
@@ -228,13 +224,21 @@ const filters = reactive({
   tuNgay: ''
 });
 const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0, totalElements: 0 });
-
+const trangThaiOptions = [
+  { label: "Đang làm việc", value: 1 },
+  { label: "Ngừng hoạt động", value: 2 }
+];
 const handleSearch = async (page = null) => {
   console.log("Hàm handleSearch đã chạy!");
   if (pagination.currentPage > pagination.totalPages && pagination.totalPages > 0) {
     pagination.currentPage = 1;
   }
   try {
+    const params = {
+      ...filters,
+      trangThai: filters.trangThai?.value ?? null
+    };
+
     const data = await fetchData(filters, pagination);
 
     listKhachHang.value = data.content || [];
@@ -458,3 +462,7 @@ const warnLocked = () => Swal.fire({ icon: 'info', title: 'Thông báo', text: '
 
 onMounted(handleSearch);
 </script>
+
+<style scoped>
+@import '../clientStyle.css';
+</style>
