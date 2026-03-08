@@ -60,14 +60,14 @@
                           <input class="form-check-input" type="radio" name="gender" id="male" :value="true"
                             v-model="formData.gioiTinh">
                           <label class="form-check-label" for="male">
-                             Nam
+                            Nam
                           </label>
                         </div>
                         <div class="form-check">
                           <input class="form-check-input" type="radio" name="gender" id="female" :value="false"
                             v-model="formData.gioiTinh">
                           <label class="form-check-label" for="female">
-                             Nữ
+                            Nữ
                           </label>
                         </div>
                       </div>
@@ -78,7 +78,7 @@
                       <div class="input-group-custom">
                         <i class="far fa-calendar-alt icon-input"></i>
                         <input type="date" class="form-control" :class="{ 'is-invalid': errors.ngaySinh }"
-                          v-model="formData.ngaySinh">
+                          v-model="formData.ngaySinh" :max="todayDate" @change="validateNgaySinh" />
                       </div>
                       <div class="error-text">{{ errors.ngaySinh }}</div>
                     </div>
@@ -116,49 +116,35 @@
                         <div class="row g-3">
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Tỉnh/Thành phố *</label>
-                            <Multiselect
-                              v-model="item.id_tinh_thanh"
-                              :options="listTinhThanh"
-                              placeholder="Chọn Tỉnh/Thành"
-                              :searchable="true"
-                              :canClear="false"
+                            <Multiselect v-model="item.id_tinh_thanh" :options="listTinhThanh"
+                              placeholder="Chọn Tỉnh/Thành" :searchable="true" :canClear="false"
                               class="custom-filter-multiselect"
                               :class="{ 'is-invalid-multi': item.errors?.id_tinh_thanh }"
-                              @change="onProvinceChange($event, index)"
-                            />
-                            <div class="error-text mt-1" v-if="item.errors?.id_tinh_thanh">{{ item.errors?.id_tinh_thanh }}</div>
+                              @change="onProvinceChange($event, index)" />
+                            <div class="error-text mt-1" v-if="item.errors?.id_tinh_thanh">{{ item.errors?.id_tinh_thanh
+                            }}</div>
                           </div>
 
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Quận/Huyện *</label>
-                            <Multiselect
-                              v-model="item.id_quan_huyen"
-                              :options="item.listHuyen"
-                              placeholder="Chọn Quận/Huyện"
-                              :searchable="true"
-                              :canClear="false"
-                              :disabled="!item.id_tinh_thanh"
-                              class="custom-filter-multiselect"
+                            <Multiselect v-model="item.id_quan_huyen" :options="item.listHuyen"
+                              placeholder="Chọn Quận/Huyện" :searchable="true" :canClear="false"
+                              :disabled="!item.id_tinh_thanh" class="custom-filter-multiselect"
                               :class="{ 'is-invalid-multi': item.errors?.id_quan_huyen }"
-                              @change="onDistrictChange($event, index)"
-                            />
-                            <div class="error-text mt-1" v-if="item.errors?.id_quan_huyen">{{ item.errors?.id_quan_huyen }}</div>
+                              @change="onDistrictChange($event, index)" />
+                            <div class="error-text mt-1" v-if="item.errors?.id_quan_huyen">{{ item.errors?.id_quan_huyen
+                            }}</div>
                           </div>
 
                           <div class="col-md-4">
                             <label class="small fw-bold text-secondary">Phường/Xã *</label>
-                            <Multiselect
-                              v-model="item.id_phuong_xa"
-                              :options="item.listXa"
-                              placeholder="Chọn Phường/Xã"
-                              :searchable="true"
-                              :canClear="false"
-                              :disabled="!item.id_quan_huyen"
+                            <Multiselect v-model="item.id_phuong_xa" :options="item.listXa" placeholder="Chọn Phường/Xã"
+                              :searchable="true" :canClear="false" :disabled="!item.id_quan_huyen"
                               class="custom-filter-multiselect"
                               :class="{ 'is-invalid-multi': item.errors?.id_phuong_xa }"
-                              @change="onWardChange($event, index)"
-                            />
-                            <div class="error-text mt-1" v-if="item.errors?.id_phuong_xa">{{ item.errors?.id_phuong_xa }}</div>
+                              @change="onWardChange($event, index)" />
+                            <div class="error-text mt-1" v-if="item.errors?.id_phuong_xa">{{ item.errors?.id_phuong_xa
+                            }}</div>
                           </div>
 
                           <div class="col-12">
@@ -168,7 +154,7 @@
                             <div class="invalid-feedback">{{ item.errors?.dia_chi_chi_tiet }}</div>
                           </div>
                         </div>
-                        
+
 
                         <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
                           <div class="form-check form-switch d-flex align-items-center gap-2">
@@ -241,7 +227,7 @@ const previewUrl = ref(null);
 const currentAddress = ref('');
 const selectedIndex = ref(0); // Mặc định chọn ô đầu tiên
 const editingIndex = ref(null);
-
+const todayDate = dayjs().subtract(16, "year").format("YYYY-MM-DD");
 const listTinhThanh = ref([]);
 // 1. Dữ liệu chính để gửi lên Backend
 const formData = reactive({
@@ -292,7 +278,7 @@ const initSelect2ForIndex = (index) => {
         const text = data.length ? data[0].text : '';
 
         // 🚨 ÉP GÁN GIÁ TRỊ VÀO VUE REACTIVE STATE
-        formData.danhSachDiaChi[index].id_tinh_thanh = val; 
+        formData.danhSachDiaChi[index].id_tinh_thanh = val;
         formData.danhSachDiaChi[index].tenTinhThanh = text;
 
         // reset huyện xã
@@ -300,10 +286,10 @@ const initSelect2ForIndex = (index) => {
         formData.danhSachDiaChi[index].tenQuanHuyen = '';
         formData.danhSachDiaChi[index].id_phuong_xa = '';
         formData.danhSachDiaChi[index].tenPhuongXa = '';
-        
+
         // Cập nhật giao diện lỗi (xóa báo đỏ nếu có)
-        if(formData.danhSachDiaChi[index].errors) {
-             formData.danhSachDiaChi[index].errors.id_tinh_thanh = '';
+        if (formData.danhSachDiaChi[index].errors) {
+          formData.danhSachDiaChi[index].errors.id_tinh_thanh = '';
         }
 
         // Gọi hàm load Huyện
@@ -465,12 +451,12 @@ const onProvinceChange = async (provinceId, index, isInitial = false) => {
     item.id_phuong_xa = '';
     item.listHuyen = [];
     item.listXa = [];
-    
+
     // Lưu tên Tỉnh để gửi lên Backend
     const tinhObj = listTinhThanh.value.find(t => t.value === provinceId);
-    if(tinhObj) item.tenTinhThanh = tinhObj.label;
-    
-    if(item.errors) item.errors.id_tinh_thanh = ''; // Xóa lỗi
+    if (tinhObj) item.tenTinhThanh = tinhObj.label;
+
+    if (item.errors) item.errors.id_tinh_thanh = ''; // Xóa lỗi
   }
 
   if (provinceId) {
@@ -490,9 +476,9 @@ const onDistrictChange = async (districtId, index, isInitial = false) => {
 
     // Lưu tên Huyện
     const huyenObj = item.listHuyen.find(h => h.value === districtId);
-    if(huyenObj) item.tenQuanHuyen = huyenObj.label;
+    if (huyenObj) item.tenQuanHuyen = huyenObj.label;
 
-    if(item.errors) item.errors.id_quan_huyen = '';
+    if (item.errors) item.errors.id_quan_huyen = '';
   }
 
   if (districtId) {
@@ -504,11 +490,11 @@ const onDistrictChange = async (districtId, index, isInitial = false) => {
 };
 
 const onWardChange = (wardId, index) => {
-   const item = formData.danhSachDiaChi[index];
-   const xaObj = item.listXa.find(x => x.value === wardId);
-   if(xaObj) item.tenPhuongXa = xaObj.label;
-   
-   if(item.errors) item.errors.id_phuong_xa = '';
+  const item = formData.danhSachDiaChi[index];
+  const xaObj = item.listXa.find(x => x.value === wardId);
+  if (xaObj) item.tenPhuongXa = xaObj.label;
+
+  if (item.errors) item.errors.id_phuong_xa = '';
 };
 
 
@@ -524,20 +510,14 @@ const swalConfig = {
   cancelButtonColor: '#6c757d',
 };
 // Theo dõi thay đổi để xóa báo đỏ
-watch(() => ({ ...formData }), (val) => {
+watch(formData, (val) => {
   Object.keys(val).forEach(key => {
-    if (val[key] && errors[key]) errors[key] = '';
+    if (val[key] && errors[key]) {
+      errors[key] = '';
+    }
   });
-
 }, { deep: true });
-const triggerFileInput = () => fileInput.value.click();
-const onFileChange = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    selectedFile.value = file;
-    previewUrl.value = URL.createObjectURL(file);
-  }
-};
+
 const tempAddressText = ref('');
 const defaultIndex = ref(0);   // Lưu vị trí mặc định (mặc định là cái đầu tiên)
 const preparePayload = () => {
@@ -568,10 +548,10 @@ const preparePayload = () => {
 
   // 3. Xử lý Mảng Danh sách địa chỉ
   if (formData.danhSachDiaChi && formData.danhSachDiaChi.length > 0) {
-    
+
     // Nếu chỉ có 1 địa chỉ, ép buộc nó là mặc định
     if (formData.danhSachDiaChi.length === 1) {
-       defaultIndex.value = 0;
+      defaultIndex.value = 0;
     }
 
     formData.danhSachDiaChi.forEach((addr, index) => {
@@ -596,24 +576,14 @@ const preparePayload = () => {
   }
 
   tempAddressText.value = '';
-  
+
   // Log ra để bạn dễ debug xem payload đã ghép chuẩn chưa
   console.log("Dữ liệu địa chỉ chuẩn bị gửi:", JSON.stringify(formData.danhSachDiaChi, null, 2));
-  
+
   return data;
 };
 
-// Bắt đầu sửa
-const startEdit = (index) => {
-  editingIndex.value = index;
-  tempAddressText.value =
-    formData.danhSachDiaChi[index].thong_tin_dia_chi;
-};
-// Hủy sửa
-const cancelEdit = () => {
-  editingIndex.value = null;
-  tempAddressText.value = '';
-};
+
 // Chọn địa chỉ mặc định
 const setDefault = (index) => {
   // 1. Cập nhật vị trí index mặc định để đổi màu ngôi sao trên giao diện
@@ -694,7 +664,32 @@ const handleBack = () => {
     router.push('/admin/client');
   }
 };
+const validateNgaySinh = () => {
+  const today = dayjs();
 
+  if (!formData.ngaySinh) {
+    errors.ngaySinh = "Vui lòng chọn ngày sinh";
+    return false;
+  }
+
+  const birth = dayjs(formData.ngaySinh);
+
+  // Không được lớn hơn hôm nay
+  if (birth.isAfter(today)) {
+    errors.ngaySinh = "Ngày sinh không thể lớn hơn ngày hiện tại";
+    return false;
+  }
+
+  // Phải đủ 16 tuổi
+  const age = today.diff(birth, "year");
+  if (age < 16) {
+    errors.ngaySinh = "Khách hàng phải đủ 16 tuổi!";
+    return false;
+  }
+
+  errors.ngaySinh = "";
+  return true;
+};
 const validateForm = async () => {
   let ok = true;
   const today = dayjs();
@@ -765,16 +760,12 @@ const validateForm = async () => {
     errors.email = 'Địa chỉ email không đúng định dạng';
     ok = false;
   }
-
-  if (formData.ngaySinh && dayjs(formData.ngaySinh).isAfter(today)) {
-    errors.ngaySinh = 'Ngày sinh không thể lớn hơn ngày hiện tại';
-    ok = false;
-  }
-
-  // Nếu đã có lỗi từ các bước kiểm tra cơ bản hoặc địa chỉ, dừng lại ngay
+if (!validateNgaySinh()) {
+  ok = false;
+}
+  
   if (!ok) return false;
 
-  // 4. KIỂM TRA TRÙNG LẶP QUA API (Backend)
   try {
     const checks = [
       { key: 'soDienThoai', label: 'Số điện thoại' },
@@ -825,6 +816,7 @@ const handleSave = async () => {
   // 1. Kiểm tra tính hợp lệ (Validate FE)
   const isValid = await validateForm();
   if (!isValid) {
+    await nextTick();
     // Hiện thông báo cảnh báo nếu có lỗi đỏ
     Swal.fire({
       ...swalConfig,
@@ -952,12 +944,12 @@ onMounted(async () => {
         defaultIndex.value = idx !== -1 ? idx : 0;
 
         nextTick(() => {
-        setTimeout(() => {
-          formData.danhSachDiaChi.forEach((_, index) => {
-            initSelect2ForIndex(index);
-          });
-        }, 300);
-      });
+          setTimeout(() => {
+            formData.danhSachDiaChi.forEach((_, index) => {
+              initSelect2ForIndex(index);
+            });
+          }, 300);
+        });
       }
     } catch (e) {
       console.error(e);
@@ -1367,15 +1359,15 @@ onMounted(async () => {
 .custom-filter-multiselect {
   --ms-border-color: #dee2e6;
   --ms-radius: 8px;
-  
+
   /* Màu vòng sáng khi focus */
-  --ms-ring-color: rgba(128, 0, 0, 0.1); 
+  --ms-ring-color: rgba(128, 0, 0, 0.1);
   --ms-border-color-active: #800000;
-  
+
   /* Hover vào Option chưa chọn */
   --ms-option-bg-pointed: #fdf2f2;
   --ms-option-color-pointed: #800000;
-  
+
   /* Màu Option khi đã được chọn */
   --ms-option-bg-selected: #800000;
   --ms-option-color-selected: #ffffff;

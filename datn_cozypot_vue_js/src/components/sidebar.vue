@@ -56,8 +56,6 @@ const menuItems = ref([
 
     { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
     { name: 'Tham số', icon: "fa-solid fa-sliders", path: '/admin/parameters' },
-
-
 ]);
 
 const router = useRouter();

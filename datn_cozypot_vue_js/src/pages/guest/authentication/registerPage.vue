@@ -1,14 +1,15 @@
 <script setup>
-import { ref, onMounted, watch, onUnmounted } from 'vue';
+import { ref, onMounted, watch, onUnmounted, reactive  } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import Swal from 'sweetalert2';
-import OtpModal from './OtpModal.vue'; 
+import OtpModal from './OtpModal.vue';
+import dayjs from 'dayjs';
 
 const router = useRouter();
 const authStore = useAuthStore();
-
+const todayDate = dayjs().subtract(16, "year").format("YYYY-MM-DD");
 // Form Data
 const tenDangNhap = ref('');
 const tenKhachHang = ref('');
@@ -50,7 +51,9 @@ const startCountdown = () => {
         }
     }, 1000);
 };
-
+const formData = reactive({
+  ngaySinh: ""
+});
 const stopCountdown = () => {
     clearInterval(timerInterval);
 };
@@ -91,7 +94,7 @@ onMounted(async () => {
             gioiTinh.value = formData.gioiTinh;
             selectedTinh.value = formData.idTinhThanh;
             diaChiChiTiet.value = formData.diaChiChiTiet;
-            
+
             // Xử lý logic load Quận/Phường chờ một chút để API tỉnh thành kịp load
             setTimeout(async () => {
                 selectedQuan.value = formData.idQuanHuyen;
@@ -135,42 +138,43 @@ watch(selectedQuan, async (newVal) => {
 const validate = () => {
     errors.value = {};
     let isValid = true;
-    if (!email.value) { 
-        errors.value.email = "Email không được để trống"; 
-        isValid = false; 
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) { 
-        errors.value.email = "Email không đúng định dạng"; 
-        isValid = false; 
+    if (!email.value) {
+        errors.value.email = "Email không được để trống";
+        isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        errors.value.email = "Email không đúng định dạng";
+        isValid = false;
     }
-    if (!matKhauDangNhap.value) { 
-        errors.value.matKhau = "Mật khẩu không được để trống"; 
-        isValid = false; 
-    } else if (matKhauDangNhap.value.length < 6) { 
-        errors.value.matKhau = "Mật khẩu ít nhất 6 ký tự"; 
-        isValid = false; 
+    if (!matKhauDangNhap.value) {
+        errors.value.matKhau = "Mật khẩu không được để trống";
+        isValid = false;
+    } else if (matKhauDangNhap.value.length < 6) {
+        errors.value.matKhau = "Mật khẩu ít nhất 6 ký tự";
+        isValid = false;
     }
     if (!tenKhachHang.value?.trim()) { errors.value.tenKhachHang = "Họ tên không được để trống"; isValid = false; }
     if (!tenDangNhap.value?.trim()) { errors.value.tenDangNhap = "Tên đăng nhập không được để trống"; isValid = false; }
-    
-    if (!soDienThoai.value) { 
-        errors.value.soDienThoai = "Số điện thoại không được để trống"; 
-        isValid = false; 
-    } else if (!/^(0[3|5|7|8|9])[0-9]{8}$/.test(soDienThoai.value)) { 
-        errors.value.soDienThoai = "SĐT phải đủ 10 số và đúng định dạng Việt Nam"; 
-        isValid = false; 
+
+    if (!soDienThoai.value) {
+        errors.value.soDienThoai = "Số điện thoại không được để trống";
+        isValid = false;
+    } else if (!/^(0[3|5|7|8|9])[0-9]{8}$/.test(soDienThoai.value)) {
+        errors.value.soDienThoai = "SĐT phải đủ 10 số và đúng định dạng Việt Nam";
+        isValid = false;
     }
-    if (!ngaySinh.value) { 
-        errors.value.ngaySinh = "Vui lòng chọn ngày sinh"; 
-        isValid = false; 
-    } else {
-        const selectedDate = new Date(ngaySinh.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (selectedDate > today) {
-            errors.value.ngaySinh = "Ngày sinh không được là ngày ở tương lai";
-            isValid = false;
-        }
-    }    if (!selectedTinh.value || !selectedQuan.value || !selectedPhuong.value || !diaChiChiTiet.value?.trim()) {
+    if (!formData.ngaySinh) {
+    errors.value.ngaySinh = "Vui lòng chọn ngày sinh";
+    isValid = false;
+} else {
+    const selectedDate = new Date(formData.ngaySinh);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (selectedDate > today) {
+        errors.value.ngaySinh = "Ngày sinh không được là ngày ở tương lai";
+        isValid = false;
+    }
+} if (!selectedTinh.value || !selectedQuan.value || !selectedPhuong.value || !diaChiChiTiet.value?.trim()) {
         errors.value.diaChi = "Vui lòng điền đầy đủ địa chỉ";
         isValid = false;
     }
@@ -195,7 +199,7 @@ const handleRegister = async () => {
         email: email.value,
         matKhauDangNhap: matKhauDangNhap.value,
         soDienThoai: soDienThoai.value,
-        ngaySinh: ngaySinh.value,
+        ngaySinh: formData.ngaySinh,
         gioiTinh: gioiTinh.value,
         idTinhThanh: String(selectedTinh.value),
         idQuanHuyen: String(selectedQuan.value),
@@ -243,7 +247,7 @@ const handleVerifyOtp = async (otpCode) => {
             email: email.value,
             otp: otpCode
         });
-        
+
         localStorage.removeItem('pending_registration');
         isOtpModalOpen.value = false;
         stopCountdown();
@@ -272,7 +276,7 @@ const handleCancelOtp = () => {
 const handleResendOtp = async () => {
     try {
         await axios.post('/api/auth/resend-otp', { email: email.value });
-        resendTimer.value = 10; 
+        resendTimer.value = 10;
         Swal.fire('Đã gửi lại', 'Mã OTP mới đã được gửi đến email của bạn', 'success');
     } catch (error) {
         Swal.fire('Lỗi', 'Không thể gửi lại mã lúc này', 'error');
@@ -314,9 +318,10 @@ const navigateToLogin = () => router.push('/login');
 
                         <div class="input-group-custom">
                             <label class="date-label">Ngày sinh *</label>
-                            <input v-model="ngaySinh" type="date" class="custom-input"
-                                :class="{ 'is-invalid': errors.ngaySinh }">
-                            <div class="invalid-feedback">{{ errors.ngaySinh }}</div>
+                            <input v-model="formData.ngaySinh" type="date" class="custom-input"
+                                :class="{ 'is-invalid': errors.ngaySinh }"
+                                :max="dayjs().subtract(16, 'year').format('YYYY-MM-DD')">
+                            <div class="error-text" v-if="errors.ngaySinh">{{ errors.ngaySinh }}</div>
                         </div>
 
                         <div class="gender-selection">
@@ -380,8 +385,8 @@ const navigateToLogin = () => router.push('/login');
 
                 <div class="form-footer">
                     <button type="submit" class="btn-submit-gold" :disabled="isSubmitting || isOtpModalOpen">
-    {{ isSubmitting ? 'Đang gửi mã...' : 'Hoàn tất đăng ký' }}
-</button>
+                        {{ isSubmitting ? 'Đang gửi mã...' : 'Hoàn tất đăng ký' }}
+                    </button>
                     <p class="mt-3">
                         Đã có tài khoản? <span class="login-link-text" @click="navigateToLogin">Đăng nhập ngay</span>
                     </p>
@@ -389,15 +394,8 @@ const navigateToLogin = () => router.push('/login');
             </form>
         </div>
     </div>
-    <OtpModal 
-        :is-open="isOtpModalOpen"
-        :email="email"
-        :time-left="timeLeft"
-        :resend-timer="resendTimer"
-        @verify="handleVerifyOtp"
-        @resend="handleResendOtp" 
-        @cancel="handleCancelOtp"
-    />
+    <OtpModal :is-open="isOtpModalOpen" :email="email" :time-left="timeLeft" :resend-timer="resendTimer"
+        @verify="handleVerifyOtp" @resend="handleResendOtp" @cancel="handleCancelOtp" />
 </template>
 
 <style scoped>
@@ -530,6 +528,7 @@ const navigateToLogin = () => router.push('/login');
     cursor: pointer;
     text-decoration: underline;
 }
+
 .login-link-text:hover {
     color: #c0520e;
 }
