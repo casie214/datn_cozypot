@@ -96,12 +96,10 @@ public class NhanVienService {
 
         return switch (type) {
             case "email" -> {
-                // 1. Kiểm tra trong bảng NHÂN VIÊN (Phải loại trừ chính mình)
                 boolean existsInNV = (excludeId != null)
                         ? repo.existsByEmailAndIdNot(val, excludeId) // repo ở đây là NhanVienRepository
                         : repo.existsByEmail(val);
 
-                // 2. Kiểm tra trong bảng KHÁCH HÀNG (Chỉ cần kiểm tra xem có ai dùng chưa)
                 boolean existsInKH = khachHangRepo.existsByEmail(val);
 
                 yield existsInNV || existsInKH;
@@ -181,11 +179,6 @@ public class NhanVienService {
         mapRequestToEntity(req, nv);
         nv.setTenDangNhap(currentUsernameInDb);
         nv.setMatKhauDangNhap(currentPasswordInDb);
-//        if (req.getMatKhauDangNhap() != null && !req.getMatKhauDangNhap().trim().isEmpty()) {
-//            nv.setMatKhauDangNhap(passwordEncoder.encode(req.getMatKhauDangNhap()));
-//        } else {
-//            nv.setMatKhauDangNhap(currentPasswordInDb);
-//        }
         if (file != null && !file.isEmpty()) {
             nv.setAnhDaiDien(saveImage(file));
         }
@@ -642,6 +635,7 @@ public class NhanVienService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên với email: " + email));
         return convertToResponse(nv);
     }
+
 }
 
 
