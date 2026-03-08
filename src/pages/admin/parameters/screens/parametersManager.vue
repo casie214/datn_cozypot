@@ -65,7 +65,8 @@
                             <td class="text-center">
                                 <div class="action-wrapper">
 
-                                    <button type="button" class="btn-icon" @click="openEditModal(item)">
+                                    <button type="button" class="btn-icon" data-bs-toggle="tooltip"
+    title="Chỉnh sửa" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
                                     </button>
 
@@ -286,6 +287,7 @@ const dataTypeOptions = ref([
 
 const handleSave = async () => {
     if (!validateEditForm()) return
+        showModal.value = false   // đóng modal trước
 
     const result = await Swal.fire({
         title: "Xác nhận cập nhật?",
@@ -317,10 +319,6 @@ const confirmSave = async () => {
 
         if (editingItem.value.moTa !== originalItem.value.moTa) {
             payload.moTa = editingItem.value.moTa
-        }
-
-        if (editingItem.value.kieuDuLieu?.value !== originalItem.value.kieuDuLieu) {
-            payload.kieuDuLieu = editingItem.value.kieuDuLieu.value
         }
 
         await axios.patch(
@@ -403,10 +401,6 @@ const validateEditForm = () => {
 
     if (!editingItem.value.giaTri?.toString().trim()) {
         errors.value.giaTri = "Giá trị không được để trống"
-    }
-
-    if (!editingItem.value.kieuDuLieu) {
-        errors.value.kieuDuLieu = "Vui lòng chọn kiểu dữ liệu"
     }
 
     if (editingItem.value.giaTri && editingItem.value.kieuDuLieu) {
@@ -689,7 +683,9 @@ const statusOptions = ref([
     padding: 10px 14px;
     border: 1px solid #d1d5db;
 }
-
+.swal2-container {
+    z-index: 20000 !important;
+}
 .custom-input:focus {
     border-color: #8B0000;
     box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
@@ -755,13 +751,14 @@ const statusOptions = ref([
 
 /* ================= ACTION BUTTON ================= */
 .btn-icon {
-    border: none;
-    background: white;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
     width: 36px;
     height: 36px;
     border-radius: 10px;
     margin: 0 4px;
     transition: 0.2s ease;
+    cursor: pointer;
 }
 
 .btn-icon i {

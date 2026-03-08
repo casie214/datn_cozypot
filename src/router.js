@@ -157,6 +157,14 @@ const routes = [
     meta: { requiresAuth: true, requiredRole: ["ADMIN", "EMPLOYEE"] },
   },
 
+  {
+    path: "/admin/chatbox",
+    name: "chatbox",
+    component: () =>
+      import("./pages/admin/chatbox/ChatSupport.vue"),
+    meta: { requiresAuth: true, requiredRole: ["ADMIN", "EMPLOYEE"] },
+  },
+
   // --- SET LẨU ---
   {
     path: "/manage/food/hotpot/add",
@@ -265,6 +273,12 @@ const routes = [
     component: () => import("./pages/guest/viewPages/BookingView.vue"),
     meta: { requiresAuth: false },
   },
+  {
+    path: "/tra-cuu",
+    name: "traCuu",
+    component: () => import("./pages/guest/viewPages/TraCuu.vue"), 
+    meta: { requiresAuth: false },
+  },
   // ================== QUẢN LÝ ĐƠN HÀNG==================
   {
     path: "/admin/orders",
@@ -368,14 +382,14 @@ const routes = [
   {
     path: "/ho-so",
     name: "userProfile",
-    component: () => import("@/pages/profile/screens/customerProfile.vue"), 
+    component: () => import("@/pages/profile/screens/customerProfile.vue"),
     meta: { requiresAuth: true }
   },
   {
     path: "/admin/profile",
     name: "adminProfile",
-    component: () => import("@/pages/profile/screens/staffProfile.vue"), 
-    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] } 
+    component: () => import("@/pages/profile/screens/staffProfile.vue"),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] }
   },
   
 ];

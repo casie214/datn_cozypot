@@ -175,8 +175,6 @@ const visibleSteps = computed(() => {
 const onBack = () => router.push({ name: "orderManager" });
 
 onMounted(async () => {
-  // 🚨 Kiểm tra lại: Nếu trong router.js bạn đặt path là "/detail/:id" thì giữ nguyên
-  // Nếu đặt là "/detail/:idHoaDon" thì phải đổi thành route.params.idHoaDon
   const orderDbId = route.params.id;
 
   if (orderDbId && orderDbId !== "undefined") {
@@ -194,6 +192,19 @@ const handleConfirmOrder = async (idHoaDon) => {
   if (!idHoaDon) {
     Swal.fire("Lỗi", "Không tìm thấy ID hóa đơn để xác nhận!", "error");
     return;
+  }
+
+  const tenBan = selectedOrder.value?.ban;
+  if (!tenBan || tenBan === "Chưa xếp" || tenBan === "Chưa xếp bàn" || tenBan === "---") {
+    Swal.fire({
+      icon: "warning",
+      title: "Chưa xếp bàn!",
+      text: "Vui lòng xếp bàn cho khách trước khi Xác nhận và Gửi mail.",
+      confirmButtonColor: "#8b0000",
+      confirmButtonText:
+        'Đồng ý'
+    });
+    return; // Dừng hàm tại đây, không cho hiện popup xác nhận bên dưới
   }
 
   try {
