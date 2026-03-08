@@ -91,9 +91,10 @@ onMounted(() => {
   <div class="app-container">
     <Sidebar class="app-sidebar" v-if="isAdminRoute" />
     <div class="main-layout">
-      <Header v-if="isAdminRoute" />
-      <CommonNav v-else />
-      <div class="app-content">
+      <Header v-if="isAdminRoute"/>
+      <CommonNav v-else/>
+
+      <div class="app-content" :class="{ 'admin-content': isAdminRoute }">
         <router-view />
       </div>
     </div>
@@ -122,12 +123,27 @@ html {
   margin: 0;
   padding: 0;
   height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-container {
+  display: flex; 
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.app-sidebar {
+  width: 250px;
+  flex-shrink: 0; 
+  height: 100%;
 }
 
 .app-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
 }
 
 .app-sidebar {
@@ -145,5 +161,15 @@ html {
   flex-grow: 1;
   overflow-y: auto;
   background-color: #fdfbfa;
+}
+
+.app-content.admin-content table thead tr {
+  background-color: #7d161a !important;
+}
+
+.app-content.admin-content table thead th {
+  background-color: #7d161a !important;
+  color: #ffffff !important;
+  border-color: #7d161a !important;
 }
 </style>

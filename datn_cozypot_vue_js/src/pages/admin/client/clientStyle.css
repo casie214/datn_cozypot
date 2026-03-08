@@ -1,7 +1,7 @@
 /* 1. KHAI BÁO BIẾN & THIẾT LẬP CHUNG */
 :root {
   --primary-red: #7B121C;
-  --dark-red: #800000;
+  --dark-red: #7d161a;
   --bg-white: #ffffff;
   --text-main: #2c3e50;
   --text-muted: #666;
@@ -174,7 +174,7 @@
 
 /* Đảm bảo header bảng luôn có màu đỏ đô */
 .custom-table thead tr {
-    background-color: #800000 !important;
+    background-color: #7d161a !important;
 }
 
 .icon-tooltip {
