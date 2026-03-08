@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LichSuHoaDonRepository extends JpaRepository<LichSuHoaDon, Integer> {
@@ -21,4 +22,6 @@ public interface LichSuHoaDonRepository extends JpaRepository<LichSuHoaDon, Inte
     @Transactional
     @Query(value = "UPDATE lich_su_thanh_toan SET id_hoa_don = :idHoaDonChu WHERE id_hoa_don = :idHoaDonBiNuot", nativeQuery = true)
     void chuyenLichSuThanhToanSangHoaDonMoi(@Param("idHoaDonChu") Integer idHoaDonChu, @Param("idHoaDonBiNuot") Integer idHoaDonBiNuot);
+
+    Optional<LichSuHoaDon> findFirstByIdHoaDon_IdAndTrangThaiMoiInOrderByThoiGianThucHienDesc(Integer idHoaDon, List<Integer> listTrangThai);
 }
