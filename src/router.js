@@ -368,16 +368,27 @@ const routes = [
   {
     path: "/ho-so",
     name: "userProfile",
-    component: () => import("@/pages/profile/screens/customerProfile.vue"), 
+    component: () => import("@/pages/profile/screens/customerProfile.vue"),
     meta: { requiresAuth: true }
   },
   {
     path: "/admin/profile",
     name: "adminProfile",
-    component: () => import("@/pages/profile/screens/staffProfile.vue"), 
-    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] } 
+    component: () => import("@/pages/profile/screens/staffProfile.vue"),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] }
   },
-  
+  // ============================Chat box=======================
+  {
+    path: '/chat',
+    name: 'client-chat',
+    component: () => import('@/pages/chatbox/client/ChatWidget.vue')
+  },
+
+  {
+    path: '/admin/messages',
+    name: 'adminMessages',
+    component: () => import('@/pages/chatbox/admin/AdminDashboard.vue'),
+  }
 ];
 
 const router = createRouter({
