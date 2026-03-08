@@ -4,7 +4,6 @@ import { ref, onMounted } from 'vue';
 import axiosClient from '@/services/axiosClient';
 import CommonNav from '@/components/commonNav.vue';
 import { computed } from 'vue';
-import ChatWidget from '@/pages/chatbox/client/ChatWidget.vue';
 
 // Giả sử bạn lưu thông tin user trong localStorage sau khi đăng nhập
 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -165,11 +164,6 @@ const goToLogin = () => {
         © 2024 CozyPot. All rights reserved.
       </div>
     </footer>
-    <div v-if="shouldShowChat" class="chat-launcher" @click="openChat">
-      <div class="chat-tooltip">Chat với CozyPot!</div>
-      <span class="pot-icon">🥘</span>
-    </div>
-    <ChatWidget :isVisible="isChatOpen" @close="isChatOpen = false" />
   </div>
 </template>
 
