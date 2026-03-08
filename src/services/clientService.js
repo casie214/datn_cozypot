@@ -14,7 +14,7 @@ const clientService = {
     });
   },
 
-  
+
   getDetail: (id) => {
     return axiosClient.get(`/khach-hang/${id}`);
   },
@@ -45,7 +45,7 @@ const clientService = {
     });
   },
   // clientService.js
-exportExcel: (params, listId = []) => {
+  exportExcel: (params, listId = []) => {
     return axiosClient.get('/khach-hang/export-excel', {
       params: {
         keyword: params.keyword || null,
@@ -54,9 +54,18 @@ exportExcel: (params, listId = []) => {
         // CHỖ NÀY QUAN TRỌNG: Biến mảng thành chuỗi 1,2,3 để Spring Boot tự convert sang List<Integer>
         listId: listId && listId.length > 0 ? listId.join(',') : null
       },
-      responseType: 'blob' 
+      responseType: 'blob'
     });
-}
+  },
+  // Thêm vào clientService.js
+updateMyProfile: (formData) => {
+    return axiosClient.put('/khach-hang/update-my-profile', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+},
+  
 };
 
 export default clientService;

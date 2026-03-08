@@ -368,14 +368,14 @@ const routes = [
   {
     path: "/ho-so",
     name: "userProfile",
-    component: () => import("@/pages/profile/screens/customerProfile.vue"), 
+    component: () => import("@/pages/profile/screens/customerProfile.vue"),
     meta: { requiresAuth: true }
   },
   {
     path: "/admin/profile",
     name: "adminProfile",
-    component: () => import("@/pages/profile/screens/staffProfile.vue"), 
-    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] } 
+    component: () => import("@/pages/profile/screens/staffProfile.vue"),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] }
   },
   
 ];
