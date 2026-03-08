@@ -273,6 +273,12 @@ const routes = [
     component: () => import("./pages/guest/viewPages/BookingView.vue"),
     meta: { requiresAuth: false },
   },
+  {
+    path: "/tra-cuu",
+    name: "traCuu",
+    component: () => import("./pages/guest/viewPages/TraCuu.vue"), 
+    meta: { requiresAuth: false },
+  },
   // ================== QUẢN LÝ ĐƠN HÀNG==================
   {
     path: "/admin/orders",
