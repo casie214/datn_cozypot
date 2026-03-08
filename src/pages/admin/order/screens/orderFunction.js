@@ -28,6 +28,7 @@ const filters = ref({
   fromDate: today,
   toDate: "",
 });
+let searchDebounceTimer = null;
 
 export function useOrderManager() {
   const totalPages = ref(0);
@@ -240,11 +241,24 @@ export function useOrderManager() {
           ? statusMap[filters.value.status]
           : null;
 
+      if (
+        filters.value.fromDate &&
+        filters.value.toDate &&
+        dayjs(filters.value.fromDate).isAfter(dayjs(filters.value.toDate))
+      ) {
+        Toast.fire({
+          icon: "warning",
+          title: "Khoảng ngày không hợp lệ",
+          text: "Từ ngày không được lớn hơn Đến ngày",
+        });
+        return;
+      }
+
       const tuNgayISO = filters.value.fromDate
-        ? `${filters.value.fromDate}T00:00:00Z`
+        ? dayjs(filters.value.fromDate).startOf("day").toISOString()
         : null;
       const denNgayISO = filters.value.toDate
-        ? `${filters.value.toDate}T23:59:59Z`
+        ? dayjs(filters.value.toDate).endOf("day").toISOString()
         : null;
 
       const response = await BeSearchHoaDon(
@@ -265,7 +279,10 @@ export function useOrderManager() {
     }
   };
   const handleSearch = () => {
-    performSearch(true);
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      performSearch(true);
+    }, 300);
   };
 
   const handlePageChange = async (page) => {
@@ -284,6 +301,7 @@ export function useOrderManager() {
   };
 
   const handleReset = () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     filters.value = {
       search: "",
       status: "Tất cả",
@@ -423,6 +441,7 @@ export function useOrderManager() {
         text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
         icon: "warning",
         showCancelButton: true,
+        iconColor: '#7D161A',
         confirmButtonColor: "#8b0000",
         cancelButtonColor: "#6c757d",
         confirmButtonText: "Đồng ý hủy",
@@ -687,3 +706,5 @@ export function useOrderManager() {
     handleHoanTatHoaDon,
   };
 }
+
+

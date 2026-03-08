@@ -101,7 +101,7 @@
         <div class="table-responsive">
           <table class="table mb-0 custom-table align-middle">
             <thead>
-              <tr style="background-color: #800000;">
+              <tr style="background-color: #7d161a;">
                 <th class="text-center" style="width: 40px; border: none;">
                   <input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isSelectAllPages">
                 </th>
@@ -137,7 +137,7 @@
                 <td>
                   <div class="contact-box">
                     <div class="small mb-1">
-                      <i class="far fa-envelope me-1" style="color: #800000;"></i>{{ nv.email }}
+                      <i class="far fa-envelope me-1" style="color: #7d161a;"></i>{{ nv.email }}
                     </div>
                     <div class="text-danger small">
                       <i class="fas fa-phone-alt me-1"></i>{{ nv.sdtNhanVien }}
@@ -357,7 +357,7 @@ const exportToExcel = async () => {
       title: 'Thông báo',
       text: 'Bạn chưa chọn nhân viên nào. Vui lòng tích chọn nhân viên để xuất file!',
       icon: 'warning',
-      confirmButtonColor: '#800000'
+      confirmButtonColor: '#7d161a'
     });
     return; // Dừng lại, không thực hiện tải
   }
@@ -368,7 +368,7 @@ const exportToExcel = async () => {
     text: `Hệ thống sẽ tải về danh sách của ${selectedIds.value.length} nhân viên bạn đã chọn.`,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#800000',
+    confirmButtonColor: '#7d161a',
     confirmButtonText: 'Tải xuống ngay',
     cancelButtonText: 'Để sau'
   });
