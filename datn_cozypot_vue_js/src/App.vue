@@ -21,7 +21,7 @@ const isAdminRoute = computed(() =>{
       <Header v-if="isAdminRoute"/>
       <CommonNav v-else/>
 
-      <div class="app-content">
+      <div class="app-content" :class="{ 'admin-content': isAdminRoute }">
         <router-view />
       </div>
     </div>
@@ -46,8 +46,8 @@ body, html {
 
 .app-container {
   display: flex; 
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -59,8 +59,8 @@ body, html {
 
 .app-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -101,5 +101,15 @@ body, html {
 .app-content::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 10px;
+}
+
+.app-content.admin-content table thead tr {
+  background-color: #7d161a !important;
+}
+
+.app-content.admin-content table thead th {
+  background-color: #7d161a !important;
+  color: #ffffff !important;
+  border-color: #7d161a !important;
 }
 </style>

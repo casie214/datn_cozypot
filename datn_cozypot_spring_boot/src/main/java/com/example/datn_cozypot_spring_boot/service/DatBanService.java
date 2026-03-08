@@ -872,13 +872,6 @@ public class DatBanService {
 
             try {
                 emailDatBanService.sendXacNhanDatBanSync(emailDto);
-                saved.setTrangThai(1);
-                phieuDatBanRepository.save(saved);
-
-                // Cập nhật trạng thái Hóa đơn sang 1 (Chờ xác nhận)
-                hd.setTrangThaiHoaDon(1);
-                hoaDonThanhToanRepository.save(hd);
-
                 daGuiMail = true;
             } catch (Exception e) {
                 log.warn("⚠️ Gửi mail thất bại, phiếu PDB-{} giữ trạng thái chờ xác nhận: {}", saved.getId(), e.getMessage());
