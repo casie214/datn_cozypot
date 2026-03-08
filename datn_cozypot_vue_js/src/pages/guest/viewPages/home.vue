@@ -3,7 +3,27 @@ import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
 import axiosClient from '@/services/axiosClient';
 import CommonNav from '@/components/commonNav.vue';
+import { computed } from 'vue';
+import ChatWidget from '@/pages/chatbox/client/ChatWidget.vue';
 
+// Giả sử bạn lưu thông tin user trong localStorage sau khi đăng nhập
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const isChatOpen = ref(false);
+const shouldShowChat = computed(() => {
+  // 1. Nếu không có user (chưa đăng nhập) -> Hiện
+  if (!user || !user.role) return true;
+
+  // 2. Nếu là khách hàng -> Hiện
+  if (user.role === 'customer' || user.role === 'GUEST') return true;
+
+  // 3. Các trường hợp khác (Admin, Staff) -> Ẩn
+  return false;
+});
+
+const openChat = () => {
+  isChatOpen.value = !isChatOpen.value;
+  console.log("Trạng thái khung chat:", isChatOpen.value);
+};
 const router = useRouter();
 
 // Dữ liệu giả lập cho các Set lẩu nổi bật
@@ -12,18 +32,18 @@ const featuredSets = ref([]);
 const fetchFeaturedSets = async () => {
   try {
     const response = await axiosClient.get('/guest/hotpot/top/3');
-    
+
     featuredSets.value = response.data.map(item => ({
       id: item.id,
-      name: item.tenSetLau, 
-      desc: item.moTa || 'Thơm ngon trọn vị', 
-      price: item.giaBan, 
-      image: item.hinhAnh || 'https://via.placeholder.com/300' 
+      name: item.tenSetLau,
+      desc: item.moTa || 'Thơm ngon trọn vị',
+      price: item.giaBan,
+      image: item.hinhAnh || 'https://via.placeholder.com/300'
     }));
 
   } catch (error) {
     console.error("Lỗi tải danh sách Set lẩu nổi bật:", error);
-    featuredSets.value = []; 
+    featuredSets.value = [];
   }
 };
 
@@ -56,7 +76,7 @@ const goToLogin = () => {
         <span class="subtitle">Chào mừng đến với CozyPot</span>
         <h1>Thưởng thức Lẩu Ngon<br>Trong Không Gian Ấm Cúng</h1>
         <p>
-          Hương vị lẩu trứ danh được chế biến từ nguyên liệu tươi ngon nhất. 
+          Hương vị lẩu trứ danh được chế biến từ nguyên liệu tươi ngon nhất.
           Đặt bàn ngay hôm nay để nhận ưu đãi đặc biệt!
         </p>
         <div class="hero-btns">
@@ -94,7 +114,7 @@ const goToLogin = () => {
           </div>
         </div>
       </div>
-      
+
       <div class="text-center mt-4">
         <button class="btn-link" @click="goToMenu">Xem toàn bộ thực đơn &rarr;</button>
       </div>
@@ -145,6 +165,11 @@ const goToLogin = () => {
         © 2024 CozyPot. All rights reserved.
       </div>
     </footer>
+    <div v-if="shouldShowChat" class="chat-launcher" @click="openChat">
+      <div class="chat-tooltip">Chat với CozyPot!</div>
+      <span class="pot-icon">🥘</span>
+    </div>
+    <ChatWidget :isVisible="isChatOpen" @close="isChatOpen = false" />
   </div>
 </template>
 
@@ -159,13 +184,14 @@ const goToLogin = () => {
   --text-dark: #2c3e50;
   --text-light: #666;
   --white: #ffffff;
-  --shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .guest-home {
   font-family: 'Segoe UI', sans-serif;
   color: #333;
-  background-color: #fdfbf7; /* Màu nền kem nhẹ */
+  background-color: #fdfbf7;
+  /* Màu nền kem nhẹ */
   width: 100%;
 }
 
@@ -178,7 +204,7 @@ const goToLogin = () => {
 /* --- 1. NAVBAR --- */
 .navbar {
   background: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -202,7 +228,10 @@ const goToLogin = () => {
   font-weight: 800;
   color: #7d161a;
 }
-.logo img { height: 40px; }
+
+.logo img {
+  height: 40px;
+}
 
 .nav-links {
   display: flex;
@@ -217,12 +246,25 @@ const goToLogin = () => {
   font-weight: 600;
   transition: color 0.3s;
 }
-.nav-links a:hover, .nav-links a.active { color: #7d161a; }
 
-.nav-auth { display: flex; gap: 15px; align-items: center; }
+.nav-links a:hover,
+.nav-links a.active {
+  color: #7d161a;
+}
+
+.nav-auth {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
 
 /* Buttons */
-button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all 0.3s; }
+button {
+  cursor: pointer;
+  border-radius: 30px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
 
 .btn-primary {
   background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
@@ -238,7 +280,10 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   color: #333;
   font-size: 1rem;
 }
-.btn-login:hover { color: #7d161a; }
+
+.btn-login:hover {
+  color: #7d161a;
+}
 
 /* --- 2. HERO SECTION --- */
 .hero {
@@ -255,7 +300,8 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5); /* Lớp phủ đen mờ */
+  background: rgba(0, 0, 0, 0.5);
+  /* Lớp phủ đen mờ */
 }
 
 .hero-content {
@@ -310,16 +356,41 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   font-size: 1.1rem;
   border-radius: 50px;
 }
-.btn-lg-outline:hover { background: white; color: #7d161a; }
+
+.btn-lg-outline:hover {
+  background: white;
+  color: #7d161a;
+}
 
 /* --- 3. MENU SECTION --- */
-.section-container { padding: 80px 20px; }
-.text-center { text-align: center; }
-.mt-4 { margin-top: 1.5rem; }
+.section-container {
+  padding: 80px 20px;
+}
 
-.section-header { text-align: center; margin-bottom: 50px; }
-.section-title { font-size: 2.5rem; color: #7d161a; font-weight: 800; margin-bottom: 10px; }
-.section-desc { color: #666; font-size: 1.1rem; }
+.text-center {
+  text-align: center;
+}
+
+.mt-4 {
+  margin-top: 1.5rem;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  color: #7d161a;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.section-desc {
+  color: #666;
+  font-size: 1.1rem;
+}
 
 .menu-grid {
   display: grid;
@@ -331,23 +402,38 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   background: white;
   border-radius: 15px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s;
 }
-.menu-card:hover { transform: translateY(-10px); }
+
+.menu-card:hover {
+  transform: translateY(-10px);
+}
+
 .btn-primary:hover,
 .btn-lg-primary:hover,
 .btn-sm-primary:hover,
 .btn-full:hover {
   /* Hạ độ sáng xuống còn 85% (làm nút đậm lên 15%) */
-  filter: brightness(0.90); 
+  filter: brightness(0.90);
   /* Cho nút nẩy nhẹ lên một xíu để có cảm giác bấm */
-  transform: translateY(-2px); 
+  transform: translateY(-2px);
   /* (Tùy chọn) Thêm chút bóng đổ để xịn hơn */
-  box-shadow: 0 6px 15px rgba(125, 22, 26, 0.4); 
+  box-shadow: 0 6px 15px rgba(125, 22, 26, 0.4);
 }
-.card-image { position: relative; height: 200px; overflow: hidden; }
-.card-image img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-image {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .badge-price {
   position: absolute;
   bottom: 15px;
@@ -357,27 +443,58 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   padding: 5px 15px;
   border-radius: 20px;
   font-weight: bold;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.card-details { padding: 20px; }
-.card-details h3 { font-size: 1.3rem; margin-bottom: 10px; color: #2c3e50; }
-.card-details p { color: #666; font-size: 0.95rem; height: 45px; overflow: hidden; margin-bottom: 20px; }
+.card-details {
+  padding: 20px;
+}
 
-.card-actions { display: flex; gap: 10px; }
-.btn-sm-outline { flex: 1; border: 1px solid #ddd; background: white; padding: 8px; border-radius: 8px; }
+.card-details h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.card-details p {
+  color: #666;
+  font-size: 0.95rem;
+  height: 45px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-sm-outline {
+  flex: 1;
+  border: 1px solid #ddd;
+  background: white;
+  padding: 8px;
+  border-radius: 8px;
+}
 
 .btn-sm-primary {
-  flex: 1; 
+  flex: 1;
   background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: white !important;
-  border: none; 
-  padding: 8px; 
+  border: none;
+  padding: 8px;
   border-radius: 8px;
   transition: 0.2s;
 }
 
-.btn-link { background: none; border: none; color: #7d161a; font-weight: bold; font-size: 1.1rem; text-decoration: underline; }
+.btn-link {
+  background: none;
+  border: none;
+  color: #7d161a;
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-decoration: underline;
+}
 
 /* --- 4. BOOKING BANNER --- */
 .booking-promo {
@@ -395,11 +512,32 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   gap: 50px;
 }
 
-.promo-text h2 { font-size: 2.2rem; margin-bottom: 15px; }
-.promo-text p { font-size: 1.1rem; margin-bottom: 25px; opacity: 0.9; }
-.features-list { display: flex; gap: 20px; }
-.features-list span { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.features-list i { color: #f1c40f; }
+.promo-text h2 {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+}
+
+.promo-text p {
+  font-size: 1.1rem;
+  margin-bottom: 25px;
+  opacity: 0.9;
+}
+
+.features-list {
+  display: flex;
+  gap: 20px;
+}
+
+.features-list span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.features-list i {
+  color: #f1c40f;
+}
 
 .promo-form-preview {
   background: white;
@@ -408,7 +546,13 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
   width: 350px;
   color: #333;
 }
-.promo-form-preview h3 { text-align: center; color: #7d161a; margin-bottom: 20px; }
+
+.promo-form-preview h3 {
+  text-align: center;
+  color: #7d161a;
+  margin-bottom: 20px;
+}
+
 .fake-input {
   border: 1px solid #ddd;
   padding: 12px;
@@ -433,28 +577,149 @@ button { cursor: pointer; border-radius: 30px; font-weight: 600; transition: all
 }
 
 /* --- 5. FOOTER --- */
-.footer { background: #222; color: white; padding: 50px 0 20px; }
-.footer-content { display: flex; justify-content: space-between; margin-bottom: 30px; }
-.footer-info h3 { color: #f1c40f; margin-bottom: 15px; }
-.socials { display: flex; gap: 15px; margin-top: 15px; font-size: 1.2rem; }
-.footer-contact h4 { margin-bottom: 15px; color: #ddd; }
-.footer-contact p { margin-bottom: 10px; color: #aaa; }
-.copyright { text-align: center; border-top: 1px solid #333; padding-top: 20px; color: #666; font-size: 0.9rem; }
+.footer {
+  background: #222;
+  color: white;
+  padding: 50px 0 20px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.footer-info h3 {
+  color: #f1c40f;
+  margin-bottom: 15px;
+}
+
+.socials {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+  font-size: 1.2rem;
+}
+
+.footer-contact h4 {
+  margin-bottom: 15px;
+  color: #ddd;
+}
+
+.footer-contact p {
+  margin-bottom: 10px;
+  color: #aaa;
+}
+
+.copyright {
+  text-align: center;
+  border-top: 1px solid #333;
+  padding-top: 20px;
+  color: #666;
+  font-size: 0.9rem;
+}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .nav-links, .nav-auth { display: none; } /* Ẩn menu trên mobile demo */
-  .hero-content h1 { font-size: 2.5rem; }
-  .promo-content { flex-direction: column; text-align: center; }
-  .features-list { flex-direction: column; align-items: center; }
-  .footer-content { flex-direction: column; gap: 30px; }
+
+  .nav-links,
+  .nav-auth {
+    display: none;
+  }
+
+  /* Ẩn menu trên mobile demo */
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .promo-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .features-list {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    gap: 30px;
+  }
 }
 
 .navbar {
   /* ... các thuộc tính cũ ... */
   height: 70px;
-  
+
   /* 👇 THÊM DÒNG NÀY */
-  overflow: visible !important; 
+  overflow: visible !important;
+}
+
+/* Khung chat của khách  */
+.chat-launcher {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 1000;
+  width: 65px;
+  height: 65px;
+  background: linear-gradient(135deg, #e63946, #fb8500);
+  border-radius: 50%;
+  border: 3px solid white;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(230, 57, 70, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chat-launcher:hover {
+  transform: scale(1.1);
+}
+
+.pot-icon {
+  line-height: 1;
+}
+
+.chat-tooltip {
+  position: absolute;
+  left: -140px;
+  background: #333;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.chat-launcher:hover .chat-tooltip {
+  opacity: 1;
+  left: -150px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ffc107;
+  color: #000;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
 }
 </style>
