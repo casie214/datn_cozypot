@@ -1,7 +1,9 @@
 <template>
   <div class="flex-grow-1 staff-manager-wrapper" style="padding: 25px; background: #ffffff;min-height: 100vh;">
     <div class="mb-3">
-      <h2 class="title-page-cozy">Quản lý nhân viên</h2>
+      <div class="staff-page">
+        <h2 class="title-page-cozy">Quản lý nhân viên</h2>
+      </div>
     </div>
 
     <div class="filter-card-premium mb-4">
@@ -15,13 +17,10 @@
 
         <div class="col-md-3">
           <label class="filter-label">Trạng thái</label>
-          <select v-model="filters.trangThai" class="form-select custom-input" @change="handleSearch">
-            <option :value="null">Tất cả</option>
-            <option :value="1">Đang làm việc</option>
-            <option :value="2">Ngừng hoạt động</option>
-          </select>
+          <Multiselect v-model="filters.trangThai" :options="trangThaiOptions" label="label" valueProp="value"
+            placeholder="Chọn trạng thái" :searchable="false" :createOption="false" :canClear="true"
+            :closeOnSelect="true" class="custom-multiselect-theme" @update:modelValue="handleSearch" />
         </div>
-
         <div class="col-md-3">
           <label class="filter-label">Giới tính</label>
           <div class="gender-filter-group">
@@ -48,57 +47,56 @@
         </div>
       </div>
     </div>
-    
+
     <div class="mt-4">
-      <div
-      style="background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-      <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
-        <!-- Danh sách nhân viên -->
-      </h4>
-      <div class="d-flex justify-content-end mb-3 gap-2">
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openModalAdd"
-            type="button">
-            <i class="fas fa-plus"></i>
-            <span class="tooltip-text">Thêm nhân viên</span>
-          </button>
-        </div>
+      <div style="background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+        <h4 style="font-size: 1.25rem; font-weight: 700; color: #800000; margin: 0; font-family: sans-serif;">
+          <!-- Danh sách nhân viên -->
+        </h4>
+        <div class="d-flex justify-content-end mb-3 gap-2">
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openModalAdd"
+              type="button">
+              <i class="fas fa-plus"></i>
+              <span class="tooltip-text">Thêm nhân viên</span>
+            </button>
+          </div>
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="downloadTemplate"
-            type="button">
-            <i class="fas fa-file-download"></i>
-            <span class="tooltip-text">Tải file mẫu</span>
-          </button>
-        </div>
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="downloadTemplate"
+              type="button">
+              <i class="fas fa-file-download"></i>
+              <span class="tooltip-text">Tải file mẫu</span>
+            </button>
+          </div>
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="$refs.fileInput.click()"
-            type="button">
-            <i class="fas fa-file-import"></i>
-            <span class="tooltip-text">Nhập Excel</span>
-          </button>
-        </div>
-        <input type="file" ref="fileInput" @change="handleImportExcel" style="display: none" accept=".xlsx, .xls">
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center"
+              @click="$refs.fileInput.click()" type="button">
+              <i class="fas fa-file-import"></i>
+              <span class="tooltip-text">Nhập Excel</span>
+            </button>
+          </div>
+          <input type="file" ref="fileInput" @change="handleImportExcel" style="display: none" accept=".xlsx, .xls">
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="printToPDF"
-            type="button">
-            <i class="fas fa-print"></i>
-            <span class="tooltip-text">In bản PDF</span>
-          </button>
-        </div>
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="printToPDF"
+              type="button">
+              <i class="fas fa-print"></i>
+              <span class="tooltip-text">In bản PDF</span>
+            </button>
+          </div>
 
-        <div class="icon-tooltip">
-          <button class="btn-red-dark d-flex align-items-center justify-content-center"
-            @click="handleSearch(true); Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
-            type="button">
-            <i class="fas fa-sync-alt"></i>
-            <span class="tooltip-text">Làm mới</span>
-          </button>
+          <div class="icon-tooltip">
+            <button class="btn-red-dark d-flex align-items-center justify-content-center"
+              @click="handleSearch(true); Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã tải lại dữ liệu', timer: 1500, showConfirmButton: false });"
+              type="button">
+              <i class="fas fa-sync-alt"></i>
+              <span class="tooltip-text">Làm mới</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
       <div class="table-pagination-wrapper">
         <div class="table-responsive">
           <table class="table mb-0 custom-table align-middle">
@@ -192,11 +190,12 @@ import { useStaffLogic } from '../screens/staffFunction.js';
 
 import dayjs from 'dayjs';
 import { useRouter } from 'vue-router';
-import '../staffStyle.css';
+// import '../staffStyle.css';
 import Swal from 'sweetalert2';
 import staffService from '@/services/staffService.js';
 import CommonPagination from '@/components/commonPagination.vue';
-
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 import logoCozyPot from '../img/logo_upscaled.jpg';
 const handlePrintPdf = () => {
   if (selectedIds.value.length === 0) {
@@ -231,7 +230,10 @@ const pagination = reactive({
   totalPages: 0,
   totalElements: 0
 });
-
+const trangThaiOptions = [
+  { label: "Đang làm việc", value: 1 },
+  { label: "Ngừng hoạt động", value: 2 }
+];
 const inputPage = ref(1); // Biến hỗ trợ ô nhập số trang
 
 const isDetailModalOpen = ref(false);
@@ -249,13 +251,17 @@ const formatDate = (date) => {
 };
 const handleSearch = async (showToast = false) => {
   try {
-    const data = await fetchData(filters, pagination);
+
+    const params = {
+      ...filters,
+      trangThai: filters.trangThai?.value ?? null
+    };
+
+    const data = await fetchData(params, pagination);
 
     listNhanVien.value = data.content || [];
     pagination.totalPages = data.totalPages || 0;
     pagination.totalElements = data.totalElements || 0;
-
-
 
   } catch (error) {
     console.error("Lỗi khi load danh sách:", error);
@@ -813,3 +819,7 @@ const printToPDF = async () => {
 
 onMounted(handleSearch);
 </script>
+
+<style scoped>
+@import '../staffStyle.css';
+</style>
