@@ -139,6 +139,9 @@ public class AuthService {
             diaChi.setIdTinhThanh(request.getIdTinhThanh());
             diaChi.setIdQuanHuyen(request.getIdQuanHuyen());
             diaChi.setIdPhuongXa(request.getIdPhuongXa());
+            diaChi.setTenTinhThanh(request.getTenTinhThanh());
+            diaChi.setTenQuanHuyen(request.getTenQuanHuyen());
+            diaChi.setTenPhuongXa(request.getTenPhuongXa());
             diaChi.setDiaChiChiTiet(request.getDiaChiChiTiet());
             diaChi.setHoTenNhan(request.getTenKhachHang());
             diaChi.setSoDienThoaiNhan(request.getSoDienThoai());
