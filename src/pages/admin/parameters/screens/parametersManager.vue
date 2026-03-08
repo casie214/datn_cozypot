@@ -65,7 +65,8 @@
                             <td class="text-center">
                                 <div class="action-wrapper">
 
-                                    <button type="button" class="btn-icon" @click="openEditModal(item)">
+                                    <button type="button" class="btn-icon" data-bs-toggle="tooltip"
+    title="Chỉnh sửa" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
                                     </button>
 
@@ -750,13 +751,14 @@ const statusOptions = ref([
 
 /* ================= ACTION BUTTON ================= */
 .btn-icon {
-    border: none;
-    background: white;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
     width: 36px;
     height: 36px;
     border-radius: 10px;
     margin: 0 4px;
     transition: 0.2s ease;
+    cursor: pointer;
 }
 
 .btn-icon i {

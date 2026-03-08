@@ -524,7 +524,14 @@
     vertical-align: middle;
     border-bottom: 1px solid #eee;
 }
+.custom-table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+    transition: 0.2s;
+}
 
+.custom-table tbody tr:hover {
+    background: #f9fafb;
+}
 .eye-icon,
 .edit-icon {
     cursor: pointer;
