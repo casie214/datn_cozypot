@@ -54,7 +54,7 @@ const menuItems = ref([
     { name: 'Nhân viên', icon: "fa-solid fa-user", path: '/admin/staff' },
     { name: 'Khách hàng', icon: "fa-solid fa-users", path: '/admin/client' },
 
-    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/messages' },
+    { name: 'Nhắn tin', icon: "fa-solid fa-comments", path: '/admin/chatbox' },
     { name: 'Tham số', icon: "fa-solid fa-sliders", path: '/admin/parameters' },
 ]);
 

@@ -157,6 +157,14 @@ const routes = [
     meta: { requiresAuth: true, requiredRole: ["ADMIN", "EMPLOYEE"] },
   },
 
+  {
+    path: "/admin/chatbox",
+    name: "chatbox",
+    component: () =>
+      import("./pages/admin/chatbox/ChatSupport.vue"),
+    meta: { requiresAuth: true, requiredRole: ["ADMIN", "EMPLOYEE"] },
+  },
+
   // --- SET LẨU ---
   {
     path: "/manage/food/hotpot/add",
