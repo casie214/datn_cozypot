@@ -292,7 +292,13 @@ public class DatBanService {
             hoaDonMoi.setTrangThaiHoaDon(4); // 4: Đang phục vụ
             hoaDonMoi.setTongTienChuaGiam(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTongTienThanhToan(java.math.BigDecimal.ZERO);
-            hoaDonMoi.setVatApDung(10.0f);
+            hoaDonMoi.setSoTienDaGiam(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTienHoanTra(java.math.BigDecimal.ZERO);
+
+            Double vatFromRequest = request.getVatApDung();
+            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 0f;
+            hoaDonMoi.setVatApDung(finalVat);
 
             if (request.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
@@ -355,12 +361,46 @@ public class DatBanService {
                         hanhDongLog = "Yêu cầu tính tiền";
                         lyDoLog = "Khách yêu cầu hóa đơn tạm tính";
                     } else if (trangThaiMoi == 6) {
+                        // ==========================================
+                        // 🚨 XỬ LÝ KHI THANH TOÁN (CÓ KIỂM TRA HOÀN TIỀN CỌC)
+                        // ==========================================
                         hanhDongLog = "Đã thanh toán";
                         lyDoLog = "Hoàn tất thanh toán tại quầy";
                         hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
                         phieu.setTrangThai(4); // Phiếu Hoàn Thành
 
-                        // 🚨 BẢO HIỂM THÊM 1 LỚP: Khi thanh toán tiền mặt xong, chắc chắn dọn hết bàn
+                        // Lấy các chỉ số tiền tệ để tính toán (Bảo vệ Null)
+                        BigDecimal tongChuaGiam = hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO;
+                        BigDecimal daGiam = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
+                        BigDecimal coc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+                        Float vat = hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : 0f;
+
+                        // 1. Tính tiền sau giảm
+                        BigDecimal sauGiam = tongChuaGiam.subtract(daGiam);
+                        if (sauGiam.compareTo(BigDecimal.ZERO) < 0) sauGiam = BigDecimal.ZERO;
+
+                        // 2. Tính VAT
+                        BigDecimal tienVat = sauGiam.multiply(BigDecimal.valueOf(vat / 100.0));
+
+                        // 3. Tính Tổng tiền cuối cùng phải trả (Final Bill)
+                        BigDecimal tongThanhToanCuoi = sauGiam.add(tienVat);
+                        hoaDon.setTongTienThanhToan(tongThanhToanCuoi); // Lưu tổng thực tế vào DB
+
+                        // 4. KIỂM TRA TIỀN CỌC CÓ THỪA KHÔNG?
+                        if (coc.compareTo(tongThanhToanCuoi) > 0) {
+                            // Tính tiền hoàn lại = Tiền cọc - Tổng hóa đơn
+                            BigDecimal tienHoan = coc.subtract(tongThanhToanCuoi);
+
+                            // Lưu tiền hoàn trả vào Database
+                            hoaDon.setTienHoanTra(tienHoan);
+
+                            // Ghi Log thứ 2 (Log nghiệp vụ hoàn tiền thừa)
+                            ghiLichSu(hoaDon, request.getIdNhanVien(),
+                                    "Hoàn trả tiền thừa: " + tienHoan.setScale(0) + "đ",
+                                    "Tiền cọc lớn hơn tổng hóa đơn", 6, 6);
+                        }
+
+                        // 5. Dọn sạch toàn bộ bàn
                         for (BanAn ban : phieu.getBanAns()) {
                             ban.setTrangThai(0);
                             banAnRepository.save(ban);
@@ -634,14 +674,12 @@ public class DatBanService {
         }
 
         PhieuDatBan phieu = new PhieuDatBan();
-        //phieu.getBanAns().add(banDuocChon);
         phieu.setIdKhachHang(khachHang);
         phieu.setThoiGianDat(request.getThoiGianDat());
         phieu.setHinhThucDat(1);
         phieu.setSoLuongKhach(request.getSoNguoi());
         phieu.setTrangThai(0);
         phieu.setNguoiTao("Khách hàng");
-        phieu.setMaDatBan("PDB" + System.currentTimeMillis());
         phieu.setNgayTao(java.time.LocalDateTime.now());
         phieu = phieuDatBanRepository.save(phieu);
 
@@ -742,11 +780,25 @@ public class DatBanService {
             dsLichSu.add(logChoCoc);
         }
 
-        // Lưu toàn bộ lịch sử trong 1 lần
         lichSuHoaDonRepository.saveAll(dsLichSu);
 
-        // 7. Lấy lại hóa đơn để nhận giá trị Tổng Tiền mới nhất (do Trigger cập nhật)
         HoaDonThanhToan hoaDonMoiNhat = hoaDonThanhToanRepository.findById(hoaDon.getId()).orElse(hoaDon);
+
+        if (trangThaiBanDau == 0 && request.getEmail() != null && !request.getEmail().isBlank()) {
+            String maTraCuu = "PDB" + String.format("%04d", phieu.getId());
+            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                    .tenKhachHang(request.getFullName())
+                    .soDienThoai(request.getPhone())
+                    .email(request.getEmail())
+                    .thoiGianDat(request.getThoiGianDat() != null ?
+                            request.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
+                    .soLuongKhach(request.getSoNguoi())
+                    .maPhieuDatBan(maTraCuu)
+                    .build();
+
+            // Gọi hàm Async, luồng chính vẫn tiếp tục chạy nhanh chóng
+            emailDatBanService.sendEmailCamOnDatBan(emailDto);
+        }
 
         // 8. Trả kết quả về cho Controller
         Map<String, Object> result = new HashMap<>();
@@ -872,13 +924,6 @@ public class DatBanService {
 
             try {
                 emailDatBanService.sendXacNhanDatBanSync(emailDto);
-                saved.setTrangThai(1);
-                phieuDatBanRepository.save(saved);
-
-                // Cập nhật trạng thái Hóa đơn sang 1 (Chờ xác nhận)
-                hd.setTrangThaiHoaDon(1);
-                hoaDonThanhToanRepository.save(hd);
-
                 daGuiMail = true;
             } catch (Exception e) {
                 log.warn("⚠️ Gửi mail thất bại, phiếu PDB-{} giữ trạng thái chờ xác nhận: {}", saved.getId(), e.getMessage());
@@ -927,6 +972,10 @@ public class DatBanService {
             throw new RuntimeException("Hóa đơn này không có phiếu đặt bàn liên kết!");
         }
 
+        if (phieu.getBanAns() == null || phieu.getBanAns().isEmpty()) {
+            throw new RuntimeException("Vui lòng xếp bàn cho khách trước khi Xác nhận và Gửi mail!");
+        }
+
         if (hoaDon.getTrangThaiHoaDon() != 0 && hoaDon.getTrangThaiHoaDon() != 2) {
             throw new RuntimeException("Trạng thái hóa đơn không hợp lệ để xác nhận!");
         }
@@ -943,8 +992,14 @@ public class DatBanService {
 
         KhachHang khachHang = hoaDon.getIdKhachHang();
 
-        // Lấy tên bàn đại diện (Bàn đầu tiên trong danh sách)
-        BanAn banAn = phieu.getBanAns().stream().findFirst().orElse(null);
+        String danhSachTenBan = phieu.getBanAns().stream()
+                .map(BanAn::getMaBan)
+                .collect(Collectors.joining(", "));
+
+        BanAn banDaiDien = phieu.getBanAns().iterator().next();
+        String tenKhuVuc = (banDaiDien.getIdKhuVuc() != null)
+                ? banDaiDien.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + banDaiDien.getIdKhuVuc().getTang()
+                : "Chưa xác định";
 
         if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
             EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
@@ -952,8 +1007,8 @@ public class DatBanService {
                     .soDienThoai(khachHang.getSoDienThoai())
                     .email(khachHang.getEmail())
                     .thoiGianDat(phieu.getThoiGianDat() != null ? phieu.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
-                    .tenBan(banAn != null ? banAn.getMaBan() : "Chưa xếp bàn")
-                    .khuVuc((banAn != null && banAn.getIdKhuVuc() != null) ? banAn.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + banAn.getIdKhuVuc().getTang() : "Chưa xác định")
+                    .tenBan(danhSachTenBan) // Gắn danh sách bàn vào mail
+                    .khuVuc(tenKhuVuc)
                     .soLuongKhach(phieu.getSoLuongKhach())
                     .maPhieuDatBan(phieu.getMaDatBan() != null ? phieu.getMaDatBan() : "PDB-" + phieu.getId())
                     .build();
@@ -963,10 +1018,10 @@ public class DatBanService {
                 log.info("✅ Đã gửi mail xác nhận thành công cho hóa đơn: {}", idHoaDon);
             } catch (Exception e) {
                 log.error("⚠️ Lỗi gửi mail cho hóa đơn {}: {}", idHoaDon, e.getMessage());
-                throw new RuntimeException("Xác nhận thành công nhưng lỗi khi gửi mail: " + e.getMessage());
+                throw new RuntimeException("Xác nhận thành công nhưng hệ thống gửi mail gặp sự cố. Vui lòng kiểm tra lại cấu hình Email!");
             }
         } else {
-            throw new RuntimeException("Khách hàng chưa cung cấp địa chỉ Email để gửi!");
+            throw new RuntimeException("Xác nhận thành công nhưng Khách hàng chưa cung cấp địa chỉ Email để gửi thông báo!");
         }
     }
 }

@@ -89,7 +89,7 @@ table{
 
 thead {
     border-radius: 10px;
-    background-color: #8B0000 !important;
+    background-color: #7d161a !important;
 }
 
 .page-title {
@@ -101,11 +101,11 @@ thead {
 
 thead tr{
     border-radius: 15px;
-    background-color: #8B0000 !important;
+    background-color: #7d161a !important;
 }
 
 thead tr:hover {
-    background-color: #8B0000;
+    background-color: #7d161a;
 }
 
 tr:hover {
