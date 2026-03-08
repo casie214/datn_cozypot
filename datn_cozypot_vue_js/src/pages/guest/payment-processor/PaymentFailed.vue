@@ -40,7 +40,7 @@ const goHome = () => {
 
 // Hàm chuyển hướng cho Khách hàng
 const goToHistory = () => {
-    router.push('/history'); 
+    router.push('/tra-cuu'); 
 };
 </script>
 

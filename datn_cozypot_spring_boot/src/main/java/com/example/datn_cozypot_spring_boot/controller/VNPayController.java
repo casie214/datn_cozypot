@@ -440,6 +440,29 @@ public class VNPayController {
                 // Trả về trang báo thành công kèm type=deposit
                 response.sendRedirect("http://localhost:5173/payment-success?type=deposit");
             } else {
+
+                HoaDonThanhToan hoaDonFailed = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
+                if(hoaDonFailed != null && hoaDonFailed.getTrangThaiHoaDon() == 1){
+                    try {
+                        KhachHang khachHang = hoaDonFailed.getIdKhachHang();
+                        PhieuDatBan phieu = hoaDonFailed.getIdPhieuDatBan();
+
+                        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank() && phieu != null) {
+                            String maTraCuu = "PDB" + String.format("%04d", phieu.getId());
+
+                            EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
+                                    .tenKhachHang(khachHang.getTenKhachHang())
+                                    .email(khachHang.getEmail())
+                                    .maPhieuDatBan(maTraCuu)
+                                    .build();
+
+                            // Gọi hàm Async gửi mail báo lỗi
+                            emailDatBanService.sendEmailThanhToanThatBai(emailDto);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Lỗi gửi mail thanh toán thất bại: " + e.getMessage());
+                    }
+                }
                 response.sendRedirect("http://localhost:5173/payment-failed?type=deposit");
             }
         } else {

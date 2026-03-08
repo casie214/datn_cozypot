@@ -923,6 +923,10 @@ public class DatBanService {
             throw new RuntimeException("Hóa đơn này không có phiếu đặt bàn liên kết!");
         }
 
+        if (phieu.getBanAns() == null || phieu.getBanAns().isEmpty()) {
+            throw new RuntimeException("Vui lòng xếp bàn cho khách trước khi Xác nhận và Gửi mail!");
+        }
+
         if (hoaDon.getTrangThaiHoaDon() != 0 && hoaDon.getTrangThaiHoaDon() != 2) {
             throw new RuntimeException("Trạng thái hóa đơn không hợp lệ để xác nhận!");
         }
@@ -939,8 +943,14 @@ public class DatBanService {
 
         KhachHang khachHang = hoaDon.getIdKhachHang();
 
-        // Lấy tên bàn đại diện (Bàn đầu tiên trong danh sách)
-        BanAn banAn = phieu.getBanAns().stream().findFirst().orElse(null);
+        String danhSachTenBan = phieu.getBanAns().stream()
+                .map(BanAn::getMaBan)
+                .collect(Collectors.joining(", "));
+
+        BanAn banDaiDien = phieu.getBanAns().iterator().next();
+        String tenKhuVuc = (banDaiDien.getIdKhuVuc() != null)
+                ? banDaiDien.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + banDaiDien.getIdKhuVuc().getTang()
+                : "Chưa xác định";
 
         if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
             EmailDatBanDTO emailDto = EmailDatBanDTO.builder()
@@ -948,8 +958,8 @@ public class DatBanService {
                     .soDienThoai(khachHang.getSoDienThoai())
                     .email(khachHang.getEmail())
                     .thoiGianDat(phieu.getThoiGianDat() != null ? phieu.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
-                    .tenBan(banAn != null ? banAn.getMaBan() : "Chưa xếp bàn")
-                    .khuVuc((banAn != null && banAn.getIdKhuVuc() != null) ? banAn.getIdKhuVuc().getTenKhuVuc() + " - Tầng " + banAn.getIdKhuVuc().getTang() : "Chưa xác định")
+                    .tenBan(danhSachTenBan) // Gắn danh sách bàn vào mail
+                    .khuVuc(tenKhuVuc)
                     .soLuongKhach(phieu.getSoLuongKhach())
                     .maPhieuDatBan(phieu.getMaDatBan() != null ? phieu.getMaDatBan() : "PDB-" + phieu.getId())
                     .build();
@@ -959,10 +969,10 @@ public class DatBanService {
                 log.info("✅ Đã gửi mail xác nhận thành công cho hóa đơn: {}", idHoaDon);
             } catch (Exception e) {
                 log.error("⚠️ Lỗi gửi mail cho hóa đơn {}: {}", idHoaDon, e.getMessage());
-                throw new RuntimeException("Xác nhận thành công nhưng lỗi khi gửi mail: " + e.getMessage());
+                throw new RuntimeException("Xác nhận thành công nhưng hệ thống gửi mail gặp sự cố. Vui lòng kiểm tra lại cấu hình Email!");
             }
         } else {
-            throw new RuntimeException("Khách hàng chưa cung cấp địa chỉ Email để gửi!");
+            throw new RuntimeException("Xác nhận thành công nhưng Khách hàng chưa cung cấp địa chỉ Email để gửi thông báo!");
         }
     }
 }

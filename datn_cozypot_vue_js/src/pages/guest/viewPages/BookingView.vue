@@ -38,7 +38,25 @@ const errors = reactive({
   email: "",
 });
 
-// --- CÁC HÀM VALIDATE ---
+//Gia trị mặc định
+const systemParams = reactive({
+  vat: 10, 
+  phanTramCoc: 40
+});
+
+const fetchSystemParams = async () => {
+  try {
+    const response = await axiosClient.get("/tham-so-he-thong/all-map");
+    const data = response.data;
+    if (data) {
+      if (data.VAT) systemParams.vat = parseFloat(data.VAT);
+      if (data.PHAN_TRAM_COC) systemParams.phanTramCoc = parseFloat(data.PHAN_TRAM_COC);
+    }
+  } catch (error) {
+    console.error("Lỗi khi tải tham số hệ thống:", error);
+  }
+};
+
 const validatePeople = () => {
   const p = bookingData.people;
   if (!p) {
@@ -103,7 +121,8 @@ const validateEmail = () => {
 const cart = ref([]);
 
 // --- 3. LIFECYCLE: PHỤC HỒI DỮ LIỆU & TỰ ĐỘNG ĐIỀN THÔNG TIN ---
-onMounted(() => {
+onMounted(async () => {
+  await fetchSystemParams();
   // 3.1. LUÔN LẤY THÔNG TIN USER ĐÃ ĐĂNG NHẬP TRƯỚC (QUÉT MỌI KEY CÓ THỂ CÓ)
   const userStr = localStorage.getItem("user");
   console.log(userStr);
@@ -172,9 +191,10 @@ const formattedDate = computed(() => {
 const subTotal = computed(() =>
   cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
 );
-const taxAmount = computed(() => subTotal.value * 0.1);
+
+const taxAmount = computed(() => subTotal.value * (systemParams.vat / 100));
 const totalAmount = computed(() => subTotal.value + taxAmount.value);
-const depositAmount = computed(() => totalAmount.value * 0.4);
+const depositAmount = computed(() => totalAmount.value * (systemParams.phanTramCoc / 100));
 
 // --- 4. LOGIC BƯỚC 1: KIỂM TRA BÀN ---
 const checkAvailability = async () => {
@@ -269,7 +289,7 @@ const submitFinalBooking = async () => {
   if (depositAmount.value > 0) {
     depositHtml = `
       <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px dashed #e0e0e0; margin-top: 12px;">
-        <span style="color: #666;"><i class="fas fa-money-bill-wave" style="width: 25px; color: #a0a0a0;"></i> Tiền cọc (40%):</span>
+        <span style="color: #666;"><i class="fas fa-money-bill-wave" style="width: 25px; color: #a0a0a0;"></i> Tiền cọc (${systemParams.phanTramCoc}%):</span>
         <strong style="color: #d32f2f; font-size: 16px;">${formatPrice(depositAmount.value)}</strong>
       </div>
     `;
@@ -923,7 +943,7 @@ const minDate = computed(() => {
                     }}</span>
                   </div>
                   <div class="d-flex justify-content-between mb-3">
-                    <span class="text-dark fw-bold small">Thuế (10%):</span>
+                    <span class="text-dark fw-bold small">Thuế ({{ systemParams.vat }}%):</span>
                     <span class="text-dark fw-bold small">{{
                       formatPrice(taxAmount)
                     }}</span>
@@ -940,7 +960,7 @@ const minDate = computed(() => {
                     }}</span>
                   </div>
                   <div class="d-flex justify-content-between mb-3">
-                    <span class="text-dark fw-bold small">Tiền cọc (40%):</span>
+                    <span class="text-dark fw-bold small">Tiền cọc ({{ systemParams.phanTramCoc }}%):</span>
                     <span class="text-dark fw-bold small">{{
                       formatPrice(depositAmount)
                     }}</span>
