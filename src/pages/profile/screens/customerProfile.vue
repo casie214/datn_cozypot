@@ -1525,4 +1525,5 @@ onMounted(async () => {
     color: #dc3545;
     font-weight: 500;
 }
+
 </style>
