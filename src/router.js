@@ -377,18 +377,7 @@ const routes = [
     component: () => import("@/pages/profile/screens/staffProfile.vue"),
     meta: { requiresAuth: true, roles: ['ADMIN', 'EMPLOYEE'] }
   },
-  // ============================Chat box=======================
-  {
-    path: '/chat',
-    name: 'client-chat',
-    component: () => import('@/pages/chatbox/client/ChatWidget.vue')
-  },
-
-  {
-    path: '/admin/messages',
-    name: 'adminMessages',
-    component: () => import('@/pages/chatbox/admin/AdminDashboard.vue'),
-  }
+  
 ];
 
 const router = createRouter({
