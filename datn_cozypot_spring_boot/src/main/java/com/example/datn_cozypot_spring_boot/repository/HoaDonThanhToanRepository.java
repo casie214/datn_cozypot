@@ -92,11 +92,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 """)
     List<KenhDatResponse> thongKeKenhDat();
 
-    List<HoaDonThanhToan> findByThoiGianTaoBetween(LocalDateTime start, LocalDateTime end);
-
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
-
-    Optional<HoaDonThanhToan> findByMaHoaDon(String idHoaDon);
 
     @Query("SELECT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan p WHERE p.maDatBan = :maPhieu")
     Optional<HoaDonThanhToan> findByMaPhieuDatBan(@Param("maPhieu") String maPhieu);

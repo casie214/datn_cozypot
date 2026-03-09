@@ -8,13 +8,54 @@ import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import Multiselect from '@vueform/multiselect';
 import { usePermission } from "@/components/permissionHelper";
+
 const { handleActionWithAuth } = usePermission();
+
+// ĐỔI TÊN handleToggleStatus thành originToggleStatus ở đây
 const {
-  hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllHotpotType,
+  hotpotTypeData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, 
+  handleToggleStatus: originToggleStatus, 
+  getAllHotpotType,
   paginatedData, searchQuery, statusFilter, sortOption, totalElements, exportToExcel,
   currentPage, totalPages, visiblePages, itemsPerPage, changePage
 } = useHotpotSetTypeManager();
+
 const router = useRouter();
+
+// HÀM XỬ LÝ MỚI: Thêm cảnh báo "Dây chuyền"
+const handleToggleStatus = async (item) => {
+  const isDeactivating = item.trangThai === 1; // 1 là đang kinh doanh -> chuẩn bị ngưng
+
+  if (isDeactivating) {
+    const result = await Swal.fire({
+      title: 'Xác nhận ngưng kinh doanh?',
+      html: `
+        <div style="text-align: left; font-size: 0.95rem;">
+          <p>Loại lẩu: <b style="color: #7D161A;">${item.tenLoaiSet}</b></p>
+          <p>Khi ngưng loại lẩu này, hệ thống sẽ:</p>
+          <ul>
+            <li>Ngưng hoạt động tất cả <b>Set lẩu</b> thuộc loại này.</li>
+            <li><b style="color: #7D161A;">Ngoại lệ:</b> Các Set lẩu đang phục vụ tại bàn sẽ không bị ảnh hưởng.</li>
+          </ul>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7D161A',
+      cancelButtonColor: '#6e7881',
+      confirmButtonText: 'Xác nhận ngưng',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (result.isConfirmed) {
+      await originToggleStatus(item);
+    }
+  } else {
+    // Nếu là mở khóa lại thì cho chạy luôn
+    await originToggleStatus(item);
+  }
+};
+
 const statusOptions = [
   { value: 'all', label: 'Tất cả' },
   { value: '1', label: 'Đang kinh doanh' },
@@ -31,10 +72,7 @@ const sortOptions = [
 
 const handleRefreshListBtn = async () => {
   try {
-    // Gọi API lấy lại dữ liệu mới nhất
     await getAllHotpotType(); 
-    
-    // Hiển thị thông báo nhỏ ở góc (Toast) cho chuyên nghiệp, không che màn hình
     Swal.fire({
       toast: true,
       position: 'top-end',

@@ -21,6 +21,6 @@ public class LoaiLauResponse {
     private Instant ngaySua;
     private String nguoiTao;
     private String nguoiSua;
-
+    private Integer soLuongSet;
     private Integer trangThai;
 }

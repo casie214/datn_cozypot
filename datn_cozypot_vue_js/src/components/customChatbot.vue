@@ -38,27 +38,29 @@ const triggerSdkHandshake = () => {
     const bp = (window as any).botpress;
     if (!bp) return;
 
-    console.log("⚡ Đang thực hiện quy trình Bật-Tắt thần tốc để ép sinh ID...");
+    console.log("⚡ Đang thực hiện quy trình cưỡng chế...");
 
-    // Bước 1: Mở ngầm (Shadow DOM sẽ bắt đầu nạp UI và mạng)
+    // 1. Ép hiển thị UI gốc (Phải show thì mạng mới chạy)
     bp.sendEvent({ type: 'show' });
 
-    // Bước 2: Chờ một chút cho mạng sẵn sàng rồi bắn tin nhắn mồi
     setTimeout(() => {
-        console.log("🚀 Bắn tin nhắn mồi...");
+        console.log("🚀 Đang nện Payload thô để ép sinh ID...");
         
-        // Thử cả 2 cách gửi để chắc chắn "nổ" mạng
-        if (typeof bp.sendMessage === 'function') {
-            bp.sendMessage("Bắt đầu");
+        // Dùng sendPayload thay vì sendMessage để lách qua Shadow DOM
+        if (typeof bp.sendPayload === 'function') {
+            bp.sendPayload({
+                type: 'text',
+                text: 'Bắt đầu' // Chữ này phải khớp với từ khóa bắt đầu trong flow Studio
+            });
         }
-        
-        // Bước 3: Đóng ngầm lại ngay lập tức sau khi đã bắn tin
+
+        // 2. Chờ Network nhảy (POST /messages) rồi mới đóng
         setTimeout(() => {
             bp.sendEvent({ type: 'hide' });
-            console.log("🤫 Đã đóng ngầm. Quá trình Handshake hoàn tất!");
-        }, 300); // 0.3 giây sau khi gửi tin thì đóng
-        
-    }, 1000); // Đợi 1 giây sau khi 'show' để đảm bảo Socket đã mở
+            console.log("🤫 Handshake hoàn tất.");
+        }, 1500); 
+
+    }, 1500); // Tăng thời gian chờ lên 1.5s để iFrame kịp nạp Config
 };
 
 // HÀM LẤY LỊCH SỬ TIN NHẮN

@@ -141,44 +141,63 @@ public class MonAnServiceImplementation implements MonAnService {
     }
 
     @Override
-    @Transactional // Bắt buộc có
+    @Transactional
     public DanhMucResponse updateDanhMuc(Integer id, DanhMucRequest request) {
-        // 1. Lấy danh mục cần sửa
-        DanhMuc d = danhMucRepository.findById(id).orElseThrow();
+        // 1. Tìm danh mục bằng ID khóa chính id_danh_muc
+        DanhMuc d = danhMucRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục ID: " + id));
 
-        // Cập nhật thông tin cơ bản
+        // 2. Cập nhật thông tin cơ bản
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setTrangThai(request.getTrangThai());
         d.setMoTa(request.getMoTa());
+        d.setNgaySua(java.time.Instant.now());
 
-        // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU (THAO TÁC TỪ PHÍA ĐƠN VỊ)
+        // 3. Logic "Dây chuyền": Ngưng món ăn nếu ngưng danh mục
+        if (request.getTrangThai() == 0) {
+            int rowsAffected = danhMucChiTietRepository.ngungKinhDoanhMonTheoDanhMuc(id);
+            System.out.println("🔥 [DEBUG] Số lượng món ăn đã bị ngưng hoạt động: " + rowsAffected);
+        }
 
-        // Bước A: Gỡ bỏ danh mục này khỏi TẤT CẢ các đơn vị cũ đang chứa nó
+        // 4. Xử lý logic Đơn vị (Many-to-Many của bạn)
         if (d.getListDonVi() != null) {
             for (DonVi dv : d.getListDonVi()) {
                 dv.getListDanhMuc().remove(d);
             }
         }
-
-        // Bước B: Thêm danh mục này vào các đơn vị MỚI mà Frontend gửi lên
         if (request.getListIdDonVi() != null && !request.getListIdDonVi().isEmpty()) {
             List<DonVi> donVisMoi = donViRepository.findAllById(request.getListIdDonVi());
-
             for (DonVi dv : donVisMoi) {
-                // Thêm danh mục vào đơn vị (Nếu chưa có thì mới thêm để tránh trùng)
                 if (!dv.getListDanhMuc().contains(d)) {
                     dv.getListDanhMuc().add(d);
                 }
             }
-
-            // Bắt buộc phải lưu danh sách Đơn vị thì Hibernate mới ghi bảng trung gian
             donViRepository.saveAll(donVisMoi);
         }
 
-        // 3. Lưu thông tin cơ bản của Danh mục
-        danhMucRepository.save(d);
+        // 5. Lưu và trả về DTO
+        DanhMuc savedDanhMuc = danhMucRepository.save(d);
+        return mapToResponse(savedDanhMuc);
+    }
 
-        return new DanhMucResponse();
+    private DanhMucResponse mapToResponse(DanhMuc d) {
+        DanhMucResponse res = new DanhMucResponse();
+        res.setId(d.getId());
+        res.setMaDanhMuc(d.getMaDanhMuc());
+        res.setTenDanhMuc(d.getTenDanhMuc());
+        res.setMoTa(d.getMoTa());
+        res.setTrangThai(d.getTrangThai());
+
+        // Map Audit fields
+        res.setNgayTao(d.getNgayTao());
+        res.setNgaySua(d.getNgaySua());
+        res.setNguoiTao(d.getNguoiTao());
+        res.setNguoiSua(d.getNguoiSua());
+
+        // Đếm số món ăn theo tên cột id_danh_muc
+        res.setSoLuongMon(danhMucChiTietRepository.countByDanhMucId(d.getId()));
+
+        return res;
     }
 
     @Override
@@ -633,14 +652,56 @@ public class MonAnServiceImplementation implements MonAnService {
         return new LoaiLauResponse();
     }
 
-    @Override
+    @Transactional
     public LoaiLauResponse updateLoaiSetLau(Integer id, LoaiLauRequest request) {
-        LoaiSetLau loai = loaiSetLauRepository.findById(id).orElseThrow();
-        loai.setTenLoaiSet(request.getTenLoaiSet());
-        loai.setMoTa(request.getMoTa());
-        loai.setTrangThai(request.getTrangThai());
-        loaiSetLauRepository.save(loai);
-        return new LoaiLauResponse();
+        // 1. Tìm Loại lẩu cần sửa
+        LoaiSetLau loaiSet = loaiSetLauRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy loại lẩu ID: " + id));
+
+        // 2. Cập nhật thông tin cơ bản
+        loaiSet.setTenLoaiSet(request.getTenLoaiSet());
+        loaiSet.setTrangThai(request.getTrangThai());
+        loaiSet.setMoTa(request.getMoTa());
+        loaiSet.setNgaySua(java.time.Instant.now());
+
+        // 3. LOGIC QUAN TRỌNG: Ngưng Set lẩu nếu ngưng Loại lẩu
+        if (request.getTrangThai() == 0) {
+            // Chỉ đổi trạng thái set_lau, KHÔNG đổi trạng thái danh_muc_chi_tiet (món ăn)
+            int affectedSets = setLauRepository.ngungKinhDoanhSetLauTheoLoai(id);
+            System.out.println("🔥 [DEBUG] Số lượng Set lẩu đã bị ngưng hoạt động: " + affectedSets);
+        }
+
+        // 4. Lưu Loại lẩu
+        LoaiSetLau savedLoaiSet = loaiSetLauRepository.save(loaiSet);
+
+        // 5. Trả về Response DTO (tương tự như Danh mục)
+        return mapToResponse(savedLoaiSet);
+    }
+
+    private LoaiLauResponse mapToResponse(LoaiSetLau l) {
+        LoaiLauResponse res = new LoaiLauResponse();
+
+        // 1. Ánh xạ các thông tin định danh và nội dung
+        // Lưu ý: getIdLoaiSet() là khóa chính id_loai_set trong DB của bạn
+        res.setId(l.getId());
+        res.setMaLoaiSet(l.getMaLoaiSet());
+        res.setTenLoaiSet(l.getTenLoaiSet());
+        res.setMoTa(l.getMoTa());
+        res.setTrangThai(l.getTrangThai());
+
+        // 2. Ánh xạ các trường Audit (Kiểm toán)
+        // Chuyển đổi từ LocalDateTime/Date sang Instant nếu DTO yêu cầu Instant
+        res.setNgayTao(l.getNgayTao());
+        res.setNgaySua(l.getNgaySua());
+        res.setNguoiTao(l.getNguoiTao());
+        res.setNguoiSua(l.getNguoiSua());
+
+        // 3. Đếm số lượng Set lẩu thuộc Loại lẩu này
+        // Sử dụng Repository để đếm trực tiếp từ Database (tối ưu hiệu năng)
+        Integer count = setLauRepository.countByIdLoaiSet(l.getId());
+        res.setSoLuongSet(count != null ? count : 0);
+
+        return res;
     }
 
     @Override

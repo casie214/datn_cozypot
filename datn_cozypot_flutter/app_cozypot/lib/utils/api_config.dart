@@ -23,8 +23,11 @@ class ApiConfig {
   static Future<Map<String, String>> getAuthHeader() async {
     String? token = await getToken();
     return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token', // Thẻ bài thông hành
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer $token',
+      // DÒNG QUAN TRỌNG: Ép Ngrok bỏ qua trang HTML cảnh báo
+      'ngrok-skip-browser-warning': 'true',
+      'Accept': 'application/json',
     };
   }
 

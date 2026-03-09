@@ -165,25 +165,46 @@ export function useCategoryManager() {
 
     // TỐI ƯU HÀM TOGGLE STATUS
     const handleToggleStatus = async (item) => {
-        const newStatus = Number(item.trangThai) === 1 ? 0 : 1;
-        
-        // Tạo Payload chuẩn khớp với CategoryRequest Backend
-        const payload = {
-            maDanhMuc: item.maDanhMuc,
-            tenDanhMuc: item.tenDanhMuc,
-            moTa: item.moTa || '',
-            trangThai: newStatus
-        };
-
-        try {
-            await foodApi.updateCategory(item.id, payload);
-            item.trangThai = newStatus; 
-            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã thay đổi trạng thái', timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
-        } catch (error) {
-            console.error("Lỗi API Toggle Category:", error.response?.data);
-            Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Không thể cập nhật trạng thái!' });
-        }
+    const newStatus = Number(item.trangThai) === 1 ? 0 : 1;
+    
+    const payload = {
+        maDanhMuc: item.maDanhMuc,
+        tenDanhMuc: item.tenDanhMuc,
+        moTa: item.moTa || '',
+        trangThai: newStatus,
+        // Thêm một flag (cờ) nếu Backend yêu cầu để biết đây là thao tác thay đổi trạng thái kèm món ăn
+        applyToFoods: true 
     };
+
+    try {
+        // API này khi nhận trạng thái = 0 và applyToFoods = true 
+        // Backend sẽ tự động thực hiện Query để lọc các món hợp lệ
+        await foodApi.updateCategory(item.id, payload);
+        
+        item.trangThai = newStatus; 
+        
+        // Tải lại danh sách để cập nhật số lượng món hoặc trạng thái mới nhất từ Server
+        getAllCategories(); 
+
+        Swal.fire({ 
+            icon: 'success', 
+            iconColor: '#7D161A', 
+            title: 'Thành công', 
+            text: 'Đã cập nhật trạng thái danh mục và các món liên quan', 
+            timer: 2000, 
+            showConfirmButton: false, 
+            toast: true, 
+            position: 'top-end' 
+        });
+    } catch (error) {
+        console.error("Lỗi API Toggle Category:", error.response?.data);
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'Lỗi hệ thống', 
+            text: error.response?.data?.message || 'Không thể cập nhật trạng thái!' 
+        });
+    }
+};
 
     onMounted(() => getAllCategories());
 

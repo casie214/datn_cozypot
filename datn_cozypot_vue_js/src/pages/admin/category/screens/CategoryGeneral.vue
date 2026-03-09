@@ -22,11 +22,44 @@ const sortOptionsList = [
 ];
 
 const {
-  categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus, getAllCategories,
+  categoryData, isModalOpen, isModalUpdateOpen, selectedItem, openModal, handleToggleStatus: originToggleStatus, getAllCategories,
   paginatedData, searchQuery, totalElements,
   sortOption, statusSort,
   currentPage, totalPages, visiblePages, itemsPerPage, changePage, exportToExcel
 } = useCategoryManager();
+
+const handleToggleStatus = async (item) => {
+  const isDeactivating = item.trangThai === 1; // Đang kinh doanh -> Ngưng
+
+  if (isDeactivating) {
+    const { isConfirmed } = await Swal.fire({
+      title: 'Xác nhận ngưng kinh doanh?',
+      html: `
+        <div style="text-align: left; font-size: 0.95rem;">
+          <p>Hệ thống sẽ ngưng kinh doanh danh mục: <b style="color: #7D161A;">${item.tenDanhMuc}</b></p>
+          <p>Tất cả món ăn thuộc danh mục này cũng sẽ bị <b>ngưng kinh doanh</b>, NGOẠI TRỪ:</p>
+          <ul style="color: #555;">
+            <li>Các món trong <b>Set lẩu</b> đang hoạt động.</li>
+            <li>Các món đang được <b>phục vụ</b> (Hóa đơn đã xác nhận hoặc khách đang ăn).</li>
+          </ul>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7D161A',
+      cancelButtonColor: '#6e7881',
+      confirmButtonText: 'Đồng ý ngưng',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (isConfirmed) {
+      await originToggleStatus(item);
+    }
+  } else {
+    // Nếu kích hoạt lại thì chạy bình thường
+    await originToggleStatus(item);
+  }
+};
 
 const handleRefreshList = () => {
   getAllCategories();

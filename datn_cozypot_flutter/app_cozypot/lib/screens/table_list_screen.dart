@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
 import 'order_food_screen.dart';
-import 'login_screen.dart'; // Để quay về nếu token hết hạn
+import 'login_screen.dart';
 
 class TableListScreen extends StatefulWidget {
   const TableListScreen({super.key});
@@ -14,186 +14,375 @@ class TableListScreen extends StatefulWidget {
 
 class _TableListScreenState extends State<TableListScreen> {
   bool isLoading = true;
-  List<dynamic> activeTables = [];
+  List<dynamic> allActiveTables = [];
+  List<dynamic> displayTables = [];
+
+  String searchQuery = "";
+  String selectedFloor = "Tất cả";
+  List<String> floors = ["Tất cả"];
 
   @override
   void initState() {
     super.initState();
-    fetchActiveTables();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fetchActiveTables();
+    });
   }
 
-  // 1. LẤY DANH SÁCH BÀN (Gắn Token + Fix lỗi Null)
+  // 1. LẤY DANH SÁCH BÀN (Lọc trạng thái & Sắp xếp tầng)
   Future<void> fetchActiveTables() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
       final authHeader = await ApiConfig.getAuthHeader();
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/guest/ban-an/active'),
-        headers: authHeader, // Thêm token để không bị 401
+        headers: authHeader,
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> allTables = jsonDecode(utf8.decode(response.bodyBytes));
-        setState(() {
-          // CHỐT CHẶN LỖI NULL: Kiểm tra ban != null và trangThai != null
-          activeTables = allTables.where((ban) {
-            if (ban == null) return false;
-            var status = ban['trangThai'];
-            return status != null && status == 1;
-          }).toList();
-        });
+        final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        List<dynamic> data = (decoded is List)
+            ? decoded
+            : (decoded['data'] ?? []);
+
+        if (mounted) {
+          setState(() {
+            // LỌC: Chỉ lấy các bàn đang có khách (trangThai == 1)
+            allActiveTables = data
+                .where((b) => b != null && b['trangThai'] == 1)
+                .toList();
+
+            // SẮP XẾP: Theo số tầng (soTang) tăng dần
+            allActiveTables.sort((a, b) {
+              int aFloor = a['soTang'] ?? 0;
+              int bFloor = b['soTang'] ?? 0;
+              return aFloor.compareTo(bFloor);
+            });
+
+            // TRÍCH XUẤT KHU VỰC: Lấy từ trường tenKhuVuc của bạn
+            final Set<String> floorSet = {"Tất cả"};
+            for (var ban in allActiveTables) {
+              String khuVuc = ban['tenKhuVuc']?.toString() ?? "Khu vực khác";
+              floorSet.add(khuVuc);
+            }
+
+            floors = floorSet.toList();
+            _applyFilter(shouldSetState: false);
+            isLoading = false;
+          });
+        }
       } else if (response.statusCode == 401) {
-        _handleLogout(); // Token hết hạn, bắt đăng nhập lại
-      } else {
-        showError('Lỗi Server: ${response.statusCode}');
+        _handleLogout();
       }
     } catch (e) {
+      debugPrint("Lỗi TableList: $e");
       showError('Lỗi kết nối: $e');
-    } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  // 2. XỬ LÝ CLICK BÀN (Gắn Token)
+  // 2. LOGIC LỌC TÌM KIẾM & KHU VỰC
+  void _applyFilter({bool shouldSetState = true}) {
+    final filtered = allActiveTables.where((ban) {
+      // Tìm theo mã bàn
+      final matchesSearch = (ban['maBan'] ?? '')
+          .toString()
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase());
+
+      // Lọc theo tên khu vực
+      final khuVucBan = ban['tenKhuVuc']?.toString() ?? "Khu vực khác";
+      final matchesFloor =
+          selectedFloor == "Tất cả" || khuVucBan == selectedFloor;
+
+      return matchesSearch && matchesFloor;
+    }).toList();
+
+    if (shouldSetState) {
+      setState(() => displayTables = filtered);
+    } else {
+      displayTables = filtered;
+    }
+  }
+
+  void _filterTables() => _applyFilter(shouldSetState: true);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFDFCFB), Color(0xFFE2D1C3)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _buildTopHeader(),
+                const SizedBox(height: 12),
+                _buildFilterBar(),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF7D161A),
+                          ),
+                        )
+                      : _buildTableGrid(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopHeader() {
+    return _buildGlassContainer(
+      child: Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.table_restaurant_outlined,
+              color: Color(0xFF7D161A),
+            ),
+            const SizedBox(width: 15),
+            const Text(
+              "DANH SÁCH BÀN ĐANG PHỤC VỤ",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: fetchActiveTables,
+              icon: const Icon(Icons.refresh, color: Colors.blueGrey),
+            ),
+            IconButton(
+              onPressed: _handleLogout,
+              icon: const Icon(Icons.logout, color: Colors.redAccent),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return _buildGlassContainer(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            TextField(
+              onChanged: (v) {
+                searchQuery = v;
+                _filterTables();
+              },
+              decoration: InputDecoration(
+                hintText: "Nhập mã bàn (VD: BA001)...",
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF7D161A)),
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: (floors).map((floor) {
+                  bool isSelected = selectedFloor == floor;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(floor),
+                      selected: isSelected,
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            selectedFloor = floor;
+                          });
+                          _filterTables();
+                        }
+                      },
+                      selectedColor: const Color(0xFF7D161A),
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      backgroundColor: Colors.white,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableGrid() {
+    if (displayTables.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.event_seat_outlined,
+              size: 60,
+              color: Colors.grey.withOpacity(0.5),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Không có bàn nào đang hoạt động!",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: displayTables.length,
+      itemBuilder: (context, index) {
+        final ban = displayTables[index];
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: InkWell(
+            onTap: () => handleTableClick(ban),
+            borderRadius: BorderRadius.circular(15),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.restaurant_menu,
+                  color: Color(0xFF7D161A),
+                  size: 30,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  ban['maBan'] ?? 'Bàn',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  ban['tenKhuVuc'] ?? 'Sảnh chính',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                const Text(
+                  'ĐANG ĂN',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGlassContainer({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.75),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withOpacity(0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  void _handleLogout() => Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const LoginScreen()),
+  );
+
+  void showError(String m) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(m), backgroundColor: Colors.red));
+  }
+
   Future<void> handleTableClick(dynamic ban) async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) =>
+      builder: (ctx) =>
           const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
-
     try {
       final authHeader = await ApiConfig.getAuthHeader();
-      final response = await http.get(
+      final res = await http.get(
         Uri.parse(
           '${ApiConfig.baseUrl}/hoa-don-thanh-toan/active-by-ban/${ban['id']}',
         ),
         headers: authHeader,
       );
-
       if (!mounted) return;
       Navigator.pop(context);
-
-      if (response.statusCode == 200 && response.body.isNotEmpty) {
-        var data = jsonDecode(utf8.decode(response.bodyBytes));
-
-        // Nếu Server trả về mảng, lấy phần tử đầu
-        var bill = (data is List) ? data[0] : data;
-
-        int idHoaDon = bill['idHoaDon'] ?? bill['id'] ?? 0;
-        int idKhachHang = bill['idKhachHang'] ?? 2;
-
-        if (idHoaDon != 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OrderFoodScreen(
-                idBan: ban['id'],
-                maBan: ban['maBan'] ?? 'Bàn ${ban['id']}',
-                idHoaDon: idHoaDon,
-                idKhachHang: idKhachHang,
-              ),
+      if (res.statusCode == 200 && res.body.isNotEmpty) {
+        final data = jsonDecode(utf8.decode(res.bodyBytes));
+        final bill = (data is List) ? data[0] : data;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderFoodScreen(
+              idBan: ban['id'],
+              maBan: ban['maBan'] ?? 'Bàn',
+              idHoaDon: bill['idHoaDon'] ?? bill['id'] ?? 0,
+              idKhachHang: bill['idKhachHang'] ?? 2,
             ),
-          );
-        } else {
-          showError('Dữ liệu hóa đơn không hợp lệ!');
-        }
+          ),
+        );
       } else {
-        showError('Bàn này chưa được mở hóa đơn (Check-in)!');
+        showError('Bàn chưa được mở hóa đơn!');
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
+      Navigator.pop(context);
       showError('Lỗi: $e');
     }
-  }
-
-  void _handleLogout() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  void showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Chọn bàn thêm món',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF7D161A),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: fetchActiveTables,
-          ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF7D161A)),
-            )
-          : activeTables.isEmpty
-          ? const Center(child: Text('Không có bàn nào đang phục vụ!'))
-          : Padding(
-              padding: const EdgeInsets.all(12),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: activeTables.length,
-                itemBuilder: (context, index) {
-                  var ban = activeTables[index];
-                  return InkWell(
-                    onTap: () => handleTableClick(ban),
-                    child: Card(
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFF7D161A)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.table_bar,
-                            color: Color(0xFF7D161A),
-                            size: 30,
-                          ),
-                          Text(
-                            ban['maBan'] ?? 'Bàn',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const Text(
-                            'Có khách',
-                            style: TextStyle(
-                              color: Colors.orange,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-    );
   }
 }
