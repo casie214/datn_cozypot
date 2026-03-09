@@ -28,8 +28,10 @@ public class PhieuDatBanScheduler {
         Integer minReserve = 15;
         try {
             minReserve = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("THOI_GIAN_GIU_BAN").get().getGiaTri());
-            System.out.println(minReserve);
-        } catch (Exception e) {}
+            System.out.println("Thời gian giữ bàn từ DB: " + minReserve);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy tham số THOI_GIAN_GIU_BAN, sử dụng mặc định 15 phút.");
+        }
 
         // Khách đến trễ quá số phút MIN_RESERVE sẽ bị hủy
         LocalDateTime limitTime = LocalDateTime.now().minusMinutes(minReserve);
@@ -68,12 +70,12 @@ public class PhieuDatBanScheduler {
 
                 hoaDonThanhToanRepository.save(hoaDon);
 
-                // 📝 3. Ghi log vào Timeline Lịch sử hóa đơn
+                // 📝 3. Ghi log vào Timeline Lịch sử hóa đơn (Dùng số phút động)
                 ghiLichSu(
                         hoaDon,
                         null, // Nhân viên là null vì hệ thống tự thực hiện
                         "Tự động hủy hóa đơn",
-                        "Quá 15 phút kể từ giờ hẹn mà khách không check-in",
+                        "Quá " + minReserve + " phút kể từ giờ hẹn mà khách không check-in",
                         trangThaiCu,
                         8
                 );
@@ -84,14 +86,21 @@ public class PhieuDatBanScheduler {
     @Scheduled(fixedRate = 5000)
     @Transactional
     public void autoCancelUnpaidDeposits() {
-        // Mốc thời gian: Hiện tại trừ đi 15 phút (Tính từ lúc tạo đơn)
-        Instant limitTime = Instant.now().minus(15, java.time.temporal.ChronoUnit.MINUTES);
+        Integer thoiGianChoCoc = 15;
+        try {
+            thoiGianChoCoc = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("THOI_GIAN_CHO_COC").get().getGiaTri());
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy tham số THOI_GIAN_CHO_COC, sử dụng mặc định 15 phút.");
+        }
 
-        // Tìm các hóa đơn đang ở trạng thái 1 (Chờ cọc) và đã quá 15 phút
+        // Mốc thời gian: Hiện tại trừ đi số phút chờ cọc lấy từ DB (Tính từ lúc tạo đơn)
+        Instant limitTime = Instant.now().minus(thoiGianChoCoc, java.time.temporal.ChronoUnit.MINUTES);
+
+        // Tìm các hóa đơn đang ở trạng thái 1 (Chờ cọc) và đã quá thời gian chờ
         List<HoaDonThanhToan> expiredDeposits = hoaDonThanhToanRepository.findAllByTrangThaiHoaDonAndThoiGianTaoBefore(1, limitTime);
 
         for (HoaDonThanhToan hoaDon : expiredDeposits) {
-            System.out.println("🤖 Hệ thống tự động hủy đơn do không cọc: Hóa đơn ID " + hoaDon.getId());
+            System.out.println("🤖 Hệ thống tự động hủy đơn do không cọc (Quá " + thoiGianChoCoc + " phút): Hóa đơn ID " + hoaDon.getId());
 
             Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
 
@@ -124,12 +133,11 @@ public class PhieuDatBanScheduler {
 
             hoaDonThanhToanRepository.save(hoaDon);
 
-            // 4. Ghi log
             ghiLichSu(
                     hoaDon,
                     null,
                     "Hủy tự động (Quá hạn cọc)",
-                    "Khách không thanh toán cọc trong vòng 15 phút kể từ lúc đặt",
+                    "Khách không thanh toán cọc trong vòng " + thoiGianChoCoc + " phút kể từ lúc đặt",
                     trangThaiCu,
                     8
             );
