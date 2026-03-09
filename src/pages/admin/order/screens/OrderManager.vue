@@ -4,6 +4,7 @@ import { useOrderManager } from "./orderFunction";
 import { useRouter } from "vue-router";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
+import CommonPagination from "@/components/commonPagination.vue";
 
 const router = useRouter();
 
@@ -35,45 +36,16 @@ const statusOptions = [
   "Đã hoàn tiền",
 ];
 
-const updatePageSize = (value) => {
-  pageSize.value = parseInt(value);
-  currentPage.value = 0;
-  handleSearch();
-};
-
-const visiblePages = computed(() => {
-  const total = totalPages.value;
-  const current = currentPage.value + 1;
-  const delta = 1;
-
-  const range = [];
-  const rangeWithDots = [];
-
-  for (let i = 1; i <= total; i++) {
-    if (
-      i === 1 ||
-      i === total ||
-      (i >= current - delta && i <= current + delta)
-    ) {
-      range.push(i);
-    }
-  }
-
-  let l;
-  for (let i of range) {
-    if (l) {
-      if (i - l === 2) {
-        rangeWithDots.push(l + 1); // Nếu chỉ cách nhau 1 số (vd 1 và 3) thì chèn luôn số 2 chứ không dùng ...
-      } else if (i - l !== 1) {
-        rangeWithDots.push("..."); // Nếu cách xa thì chèn ...
-      }
-    }
-    rangeWithDots.push(i);
-    l = i;
-  }
-
-  return rangeWithDots;
+const uiCurrentPage = computed({
+  get: () => currentPage.value + 1,
+  set: (val) => {
+    currentPage.value = Math.max(0, (Number(val) || 1) - 1);
+  },
 });
+
+const onPaginationChange = () => {
+  handlePageChange(currentPage.value);
+};
 </script>
 
 <template>
@@ -86,7 +58,7 @@ const visiblePages = computed(() => {
         style="border: 1px solid #dee2e6 !important; border-radius: 8px"
       >
         <div class="card-body">
-          <div class="row g-2 align-items-end">
+          <div class="row g-2 align-items-end filter-bar">
             <div class="col-md-3">
               <label class="form-label text-muted small fw-bold"
                 >Tìm kiếm</label
@@ -94,7 +66,7 @@ const visiblePages = computed(() => {
               <input
                 type="text"
                 v-model="filters.search"
-                @change="handleSearch"
+                @input="handleSearch"
                 class="form-control"
                 placeholder="Mã ĐH, tên KH, SĐT"
               />
@@ -139,7 +111,7 @@ const visiblePages = computed(() => {
               <input
                 type="date"
                 v-model="filters.fromDate"
-                @change="handleSearch"
+                @input="handleSearch"
                 class="form-control"
               />
             </div>
@@ -151,15 +123,14 @@ const visiblePages = computed(() => {
               <input
                 type="date"
                 v-model="filters.toDate"
-                @change="handleSearch"
+                @input="handleSearch"
                 class="form-control"
               />
             </div>
 
-            <div class="col-md-1">
+            <div class="col-md-auto d-flex">
               <button
-                class="btn btn-outline-custom w-100"
-                style="height: 38px"
+                class="btn btn-outline-custom btn-reset-filter"
                 @click="handleReset"
                 title="Làm mới"
               >
@@ -258,87 +229,26 @@ const visiblePages = computed(() => {
             border-radius: 0 0 8px 8px;
           "
         >
-          <div
-            class="d-flex justify-content-between align-items-center flex-wrap gap-3 px-2"
-          >
-            <div class="d-flex align-items-center">
-              <span class="me-2 text-muted small">Hiển thị</span>
-              <select
-                :value="pageSize"
-                @change="updatePageSize($event.target.value)"
-                class="form-select form-select-sm select-per-page"
-                style="width: auto"
-              >
-                <option :value="5">5 dòng</option>
-                <option :value="8">8 dòng</option>
-                <option :value="10">10 dòng</option>
-                <option :value="20">20 dòng</option>
-              </select>
-            </div>
-
-            <ul class="pagination mb-0">
-              <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                <button
-                  class="page-link text-dark"
-                  @click="handlePageChange(currentPage - 1)"
-                  :disabled="currentPage === 0"
-                >
-                  &lt;
-                </button>
-              </li>
-
-              <li
-                class="page-item"
-                v-for="(page, index) in visiblePages"
-                :key="index"
-              >
-                <span
-                  v-if="page === '...'"
-                  class="page-link border-0 text-muted"
-                  style="cursor: default; background: transparent"
-                >
-                  ...
-                </span>
-                <button
-                  v-else
-                  class="page-link"
-                  :class="
-                    currentPage === page - 1
-                      ? 'bg-custom-red border-custom-red text-white'
-                      : 'text-dark'
-                  "
-                  @click="handlePageChange(page - 1)"
-                >
-                  {{ page }}
-                </button>
-              </li>
-
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === totalPages - 1 }"
-              >
-                <button
-                  class="page-link text-dark"
-                  @click="handlePageChange(currentPage + 1)"
-                  :disabled="currentPage === totalPages - 1"
-                >
-                  &gt;
-                </button>
-              </li>
-            </ul>
-
-            <div class="text-muted small fw-bold">
-              Tổng số: <span class="text-dark">{{ totalElements }}</span> bản
-              ghi
-            </div>
-          </div>
+          
         </div>
       </div>
+      <div class="custom-pagination-wrapper mt-4 pt-3 border-top">
+            <CommonPagination
+              v-model:currentPage="uiCurrentPage"
+              v-model:pageSize="pageSize"
+              :total-pages="totalPages"
+              :total-elements="totalElements"
+              :current-count="orderList.length"
+              @change="onPaginationChange"
+            />
+          </div>
     </main>
   </div>
 </template>
 
 <style scoped>
+
+
 .page-title {
   color: #8b0000;
   font-size: 24px;
@@ -348,6 +258,10 @@ const visiblePages = computed(() => {
 .form-select {
   border-radius: 4px;
   border: 1px solid #ddd;
+}
+.filter-bar .form-control,
+.filter-bar .form-select {
+  height: 40px;
 }
 .form-control:focus,
 .form-select:focus {
@@ -372,6 +286,12 @@ const visiblePages = computed(() => {
   opacity: 0.9;
   color: white;
 }
+.btn-reset-filter {
+  height: 40px;
+  width: auto;
+  white-space: nowrap;
+  padding: 0 14px;
+}
 
 .table-header-red {
   background-color: #8b0000 !important;
@@ -380,10 +300,11 @@ const visiblePages = computed(() => {
 .table-header-red th {
   background-color: transparent !important;
   color: white;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   border-bottom: none;
+  font-family: "Segoe UI", sans-serif;
 }
 .btn-icon {
   background: transparent;
@@ -428,6 +349,10 @@ const visiblePages = computed(() => {
   --ms-option-bg-selected-pointed: #720e1e;
   border-radius: 4px;
   --ms-max-height: 200px;
+}
+:deep(.filter-bar .multiselect),
+:deep(.filter-bar .multiselect-wrapper) {
+  min-height: 40px;
 }
 .custom-multiselect-theme :global(.multiselect-is-active) {
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.1) !important;
@@ -475,3 +400,9 @@ const visiblePages = computed(() => {
   transform: translateX(-50%) translateY(-4px);
 }
 </style>
+
+
+
+
+
+

@@ -27,7 +27,7 @@
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="title-page">Quản lý giảm giá thực đơn</h2>
+                <h2 class="title-page">Quản lý đợt giảm giá</h2>
             </div>
 
 
@@ -40,13 +40,17 @@
                     </div>
                     <div class="col-md-4">
                         <label class="filter-label">Trạng thái</label>
-                        <select v-model.number="filters.trangThai" class="form-select custom-input"
-                            @change="handleSearch">
-                            <option :value="null">Tất cả trạng thái</option>
-                            <option :value="1">Đang hoạt động</option>
-                            <option :value="0">Ngừng hoạt động</option>
-                            <option :value="2">Đã hết hạn</option>
-                        </select>
+                        <Multiselect
+    v-model="filters.trangThai"
+    :options="statusOptions"
+    label="label"
+    track-by="value"
+    placeholder="Chọn trạng thái"
+    :multiple="false"
+    :close-on-select="true"
+    :clear-on-select="true"
+    @select="handleSearch"
+/>
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label">Từ ngày</label>
@@ -99,20 +103,21 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3 d-flex justify-content-end align-items-end">
+                    <div class="col-md-3 d-flex">
                         <button class="btn-reset-filter" @click="resetFilters">
-                            <i class="fas fa-sync-alt"></i> Bỏ lọc
+                            Xóa bộ lọc
                         </button>
                     </div>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end mb-3 gap-2">
-                <button class="btn-red-dark" @click="exportExcel">
-                    <i class="fas fa-file-excel me-2"></i> Xuất Excel
+                <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="exportExcel">
+                    <i class="fas fa-file-excel"></i>
                 </button>
-                <button class="btn-red-dark " @click="openFormAdd">
-                    <i class="fas fa-plus me-2"></i> Thêm giảm giá thực đơn
+
+                <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openFormAdd">
+                    <i class="fas fa-plus"></i>
                 </button>
             </div>
 
@@ -133,9 +138,9 @@
                         <!-- ✅ Có dữ liệu -->
                         <tr v-for="(km, index) in listKhuyenMai" :key="km.id">
                             <td>{{ (pagination.currentPage - 1) * pagination.pageSize + index + 1 }}</td>
-                            <td class="fw-bold text-dark">{{ km.maDotKhuyenMai }}</td>
+                            <td class=" text-dark">{{ km.maDotKhuyenMai }}</td>
                             <td>{{ km.tenDotKhuyenMai }}</td>
-                            <td class="text-center fw-bold">{{ km.phanTramGiam }}%</td>
+                            <td class="text-center ">{{ km.phanTramGiam }}%</td>
                             <td>
                                 <small>
                                     {{ km.ngayBatDau }}
@@ -240,7 +245,7 @@
 
                     <div class="total-info text-muted">
                         Hiển thị {{ listKhuyenMai.length }} /
-                        {{ pagination.totalElements }} giảm giá thực đơn
+                        {{ pagination.totalElements }} đợt giảm giá
                     </div>
 
                 </div>
@@ -262,11 +267,11 @@
                     <div class="row g-0">
                         <div class="col-md-7 p-4 border-end">
                             <h5 class="mb-4 text-primary-red d-flex align-items-center">
-                                <i class="fas fa-info-circle me-2"></i> Thông tin khuyến mãi thực đơn
+                                <i class="fas fa-info-circle me-2"></i> Thông tin đợt giảm giá
                             </h5>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold small ">Tên khuyến mãi thực đơn <span
+                                <label class="form-label fw-bold small ">Tên đợt giảm giá <span
                                         class="text-danger">*</span></label>
                                 <input v-model="formData.tenDotKhuyenMai" type="text"
                                     class="form-control custom-input shadow-none"
@@ -518,6 +523,15 @@ import Swal from 'sweetalert2';
 import { usePromotionLogic } from './promotionFunction.js';
 import promotionService from '@/services/promotionService';
 import '../promotionStyle.css';
+import Multiselect from 'vue-multiselect'
+import 'vue-multiselect/dist/vue-multiselect.min.css'
+
+const statusOptions = [
+    { value: null, label: 'Tất cả trạng thái' },
+    { value: 1, label: 'Đang hoạt động' },
+    { value: 0, label: 'Ngừng hoạt động' },
+    { value: 2, label: 'Đã hết hạn' }
+]
 const exportExcel = async () => {
     try {
         const response = await axiosClient.get(
@@ -809,11 +823,11 @@ const validateForm = () => {
 
 const handleSearch = async () => {
     const apiFilters = {
-        keyword: filters.keyword,
-        trangThai: filters.trangThai,
-        ngayBatDau: formatDateForApi(filters.ngayBatDau),
-        ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
-    };
+    keyword: filters.keyword,
+    trangThai: filters.trangThai ? filters.trangThai.value : null,
+    ngayBatDau: formatDateForApi(filters.ngayBatDau),
+    ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
+};
 
     // 🔥 LẤY TOÀN BỘ DATA (KHÔNG PHÂN TRANG)
     const data = await fetchData(apiFilters, {
@@ -832,24 +846,55 @@ const handleSearch = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // ===== LỌC TRẠNG THÁI =====
-    if (filters.trangThai === 1) {
-        results = results.filter(km => {
-            const end = new Date(km.ngayKetThuc);
-            end.setHours(0, 0, 0, 0);
+    // // ===== LỌC TRẠNG THÁI =====
+    // if (filters.trangThai === 1) {
+    //     results = results.filter(km => {
+    //         const end = new Date(km.ngayKetThuc);
+    //         end.setHours(0, 0, 0, 0);
+    //         return km.trangThai === 1 && end >= today;
+    //     });
+    // }
+    // else if (filters.trangThai === 0) {
+    //     results = results.filter(km => km.trangThai === 0);
+    // }
+    // else if (filters.trangThai === 2) {
+    //     results = results.filter(km => {
+    //         const end = new Date(km.ngayKetThuc);
+    //         end.setHours(0, 0, 0, 0);
+    //         return end < today;
+    //     });
+    // }
+
+    if (filters.trangThai && filters.trangThai.value !== null) {
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    results = results.filter(km => {
+
+        const end = new Date(km.ngayKetThuc);
+        end.setHours(0,0,0,0);
+
+        // Đang hoạt động
+        if (filters.trangThai.value === 1) {
             return km.trangThai === 1 && end >= today;
-        });
-    }
-    else if (filters.trangThai === 0) {
-        results = results.filter(km => km.trangThai === 0);
-    }
-    else if (filters.trangThai === 2) {
-        results = results.filter(km => {
-            const end = new Date(km.ngayKetThuc);
-            end.setHours(0, 0, 0, 0);
+        }
+
+        // Ngừng
+        if (filters.trangThai.value === 0) {
+            return km.trangThai === 0;
+        }
+
+        // Hết hạn
+        if (filters.trangThai.value === 2) {
             return end < today;
-        });
-    }
+        }
+
+        return true;
+    });
+
+
+}
 
     // ✅ LƯU DATA ĐÃ LỌC
     filteredKhuyenMai.value = results;

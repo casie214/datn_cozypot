@@ -144,15 +144,22 @@
 
                     <div class="col-md-6">
                       <label class="form-label-custom">Giới tính <span class="star">*</span></label>
-                      <div class="gender-selector d-flex gap-3">
-                        <input type="radio" class="btn-check" name="gender" id="male" :value="true"
-                          v-model="formData.gioiTinh">
-                        <label class="btn btn-outline-wine w-100" for="male"><i class="fas fa-mars me-2"></i>Nam</label>
+                      <div class="gender-radio-group d-flex gap-4 mt-2">
+                        <div class="form-check custom-radio">
+                          <input class="form-check-input" type="radio" name="gender" id="male" :value="true"
+                            v-model="formData.gioiTinh">
+                          <label class="form-check-label ms-1" for="male">
+                             Nam
+                          </label>
+                        </div>
 
-                        <input type="radio" class="btn-check" name="gender" id="female" :value="false"
-                          v-model="formData.gioiTinh">
-                        <label class="btn btn-outline-wine w-100" for="female"><i
-                            class="fas fa-venus me-2"></i>Nữ</label>
+                        <div class="form-check custom-radio">
+                          <input class="form-check-input" type="radio" name="gender" id="female" :value="false"
+                            v-model="formData.gioiTinh">
+                          <label class="form-check-label ms-1" for="female">
+                             Nữ
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>
