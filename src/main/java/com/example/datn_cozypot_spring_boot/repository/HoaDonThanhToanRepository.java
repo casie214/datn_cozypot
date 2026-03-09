@@ -46,7 +46,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "AND (CAST(:tuNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat >= :tuNgayDat) " +
             "AND (CAST(:denNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat <= :denNgayDat) " +
 
-            "AND (:keyword IS NULL OR TRIM(:keyword) = '' " +
+            "AND (:keyword IS NULL OR :keyword = '' " +
             "     OR LOWER(hd.maHoaDon) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
