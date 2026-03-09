@@ -7,10 +7,7 @@ void main() async {
   // Bắt buộc khởi tạo cho các plugin hệ thống
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Nạp cấu hình IP
-  await ApiConfig.loadSavedIP();
-
-  // Lấy token
+  // Lấy token trực tiếp từ bộ nhớ
   String? token = await ApiConfig.getToken();
 
   // Chốt chặn: Ép kiểu về bool tuyệt đối (không bao giờ null)
@@ -33,7 +30,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7D161A)),
         useMaterial3: true,
       ),
-      // Nếu đã có token thì vào thẳng TableList, ngược lại vào Login
+      // Nếu đã có token thì vào thẳng MainNavigation, ngược lại vào Login
       home: hasToken ? const MainNavigationScreen() : const LoginScreen(),
     );
   }

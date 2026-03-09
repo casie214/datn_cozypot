@@ -264,6 +264,7 @@ public class HoaDonThanhToanController {
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
 
+
         if (phieu.getIdKhachHang() != null) {
             res.setIdKhachHang(phieu.getIdKhachHang().getId());
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
@@ -334,6 +335,7 @@ public class HoaDonThanhToanController {
 
         if (hoaDon != null && hoaDon.getTrangThaiHoaDon() < 6) {
             res.setIdHoaDon(hoaDon.getId());
+            res.setMaHoaDon(hoaDon.getMaHoaDon());
             res.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam());
             res.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
             res.setTienCoc(hoaDon.getTienCoc());

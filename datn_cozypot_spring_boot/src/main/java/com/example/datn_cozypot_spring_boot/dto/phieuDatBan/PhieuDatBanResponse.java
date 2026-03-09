@@ -24,6 +24,7 @@ public class PhieuDatBanResponse {
     // 1. THÔNG TIN BÀN HIỆN TẠI (Bàn mà nhân viên đang click vào sơ đồ)
     private Integer idBanAn;
     private String maBan;
+    private String maHoaDon;
     private String tenKhuVuc;
     private Integer tang;
 

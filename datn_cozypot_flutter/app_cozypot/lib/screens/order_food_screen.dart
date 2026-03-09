@@ -7,6 +7,7 @@ class OrderFoodScreen extends StatefulWidget {
   final int idBan;
   final String maBan;
   final int idHoaDon;
+  final String? maHoaDon;
   final int idKhachHang;
 
   const OrderFoodScreen({
@@ -14,6 +15,7 @@ class OrderFoodScreen extends StatefulWidget {
     required this.idBan,
     required this.maBan,
     required this.idHoaDon,
+    this.maHoaDon,
     required this.idKhachHang,
   });
 
@@ -26,7 +28,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   bool isSubmitting = false;
 
   List<dynamic> allItems = [];
-  List<dynamic> orderedItems = []; // Danh sách món đã có trong phiếu
+  List<dynamic> orderedItems = [];
   List<dynamic> categories = [];
   List<dynamic> hotpotTypes = [];
 
@@ -35,15 +37,23 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   int? selectedHotpotTypeId;
   String selectedType = "Tất cả";
 
-  Map<int, int> cart = {};
+  Map<String, int> cart = {};
+
+  // 🚨 THÊM BIẾN LƯU MÃ HÓA ĐƠN LẤY TỪ API
+  String? currentMaHoaDon;
 
   @override
   void initState() {
     super.initState();
+    currentMaHoaDon = widget.maHoaDon; // Lấy tạm mã từ widget nếu có
     fetchAllData();
   }
 
-  // 1. Tải toàn bộ dữ liệu (Khớp chính xác với JSON bạn gửi)
+  String _getCartKey(dynamic item) {
+    bool isSet = item['tenSetLau'] != null;
+    return isSet ? 'set_${item['id']}' : 'food_${item['id']}';
+  }
+
   Future<void> fetchAllData() async {
     try {
       final header = await ApiConfig.getAuthHeader();
@@ -80,12 +90,31 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
           ...jsonDecode(utf8.decode(res[1].bodyBytes)),
         ];
 
-        // 🚨 SỬA TẠI ĐÂY: Khớp với JSON "chiTiet"
         var billData = jsonDecode(utf8.decode(res[2].bodyBytes));
+
+        // 🚀 LẤY MAHOADON TỪ API BACKEND TẠI ĐÂY
         if (billData is List && billData.isNotEmpty) {
           orderedItems = billData[0]['chiTiet'] ?? [];
-        } else {
+          currentMaHoaDon = billData[0]['maHoaDon'] ?? currentMaHoaDon;
+        } else if (billData is Map) {
           orderedItems = billData['chiTiet'] ?? [];
+          currentMaHoaDon = billData['maHoaDon'] ?? currentMaHoaDon;
+        }
+
+        cart.clear();
+        for (var ordered in orderedItems) {
+          if (ordered['trangThaiMon'] == 0) continue;
+
+          int qty = ordered['soLuong'] ?? 0;
+          int? productId = ordered['id'];
+          String itemType = ordered['type'] ?? '';
+
+          if (productId != null) {
+            String key = itemType == 'SET'
+                ? 'set_$productId'
+                : 'food_$productId';
+            cart[key] = (cart[key] ?? 0) + qty;
+          }
         }
 
         categories = jsonDecode(utf8.decode(res[3].bodyBytes));
@@ -98,23 +127,83 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
     }
   }
 
-  // Logic lọc dữ liệu
+  Future<void> _confirmOrder() async {
+    List<Map<String, dynamic>> payloadItems = [];
+
+    cart.forEach((key, qty) {
+      if (qty > 0) {
+        bool isSet = key.startsWith('set_');
+        int id = int.parse(key.split('_')[1]);
+
+        payloadItems.add({
+          "idChiTietMonAn": isSet ? null : id,
+          "idSetLau": isSet ? id : null,
+          "soLuong": qty,
+          "ghiChu": "",
+        });
+      }
+    });
+
+    if (payloadItems.isEmpty) {
+      _showSnackBar('Giỏ hàng trống! Hãy chọn ít nhất 1 món.', Colors.orange);
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    if (Navigator.canPop(context)) Navigator.pop(context);
+
+    try {
+      final header = await ApiConfig.getAuthHeader();
+      final url = Uri.parse('${ApiConfig.baseUrl}/hoa-don-thanh-toan/tao-don');
+
+      final body = jsonEncode({
+        "idHoaDon": widget.idHoaDon > 0 ? widget.idHoaDon : null,
+        "idBanAn": widget.idBan,
+        "idNhanVien": null,
+        "idKhachHang": widget.idKhachHang > 0 ? widget.idKhachHang : null,
+        "chiTietHoaDon": payloadItems,
+      });
+
+      final response = await http.post(url, headers: header, body: body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSnackBar('Cập nhật món thành công!', Colors.green);
+        setState(() => isLoading = true);
+        fetchAllData();
+      } else {
+        _showSnackBar('Lỗi: ${response.statusCode}', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Lỗi kết nối: $e', Colors.red);
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
   List<dynamic> get filteredItems {
     return allItems.where((item) {
       bool isSet = item['tenSetLau'] != null;
-      bool matchesSearch = (item['tenMon'] ?? item['tenSetLau'])
+
+      String name = (item['tenMon'] ?? item['tenSetLau'] ?? "")
           .toString()
-          .toLowerCase()
-          .contains(searchKey.toLowerCase());
+          .toLowerCase();
+      bool matchesSearch = name.contains(searchKey.toLowerCase());
+
       bool matchesType =
           selectedType == "Tất cả" ||
           (selectedType == "Món lẻ" && !isSet) ||
           (selectedType == "Set lẩu" && isSet);
-      bool matchesCategory =
-          selectedCategoryId == null || item['idDanhMuc'] == selectedCategoryId;
-      bool matchesHotpotType =
-          selectedHotpotTypeId == null ||
-          item['idLoaiSet'] == selectedHotpotTypeId;
+
+      bool matchesCategory = true;
+      if (selectedCategoryId != null) {
+        matchesCategory = !isSet && item['idDanhMuc'] == selectedCategoryId;
+      }
+
+      bool matchesHotpotType = true;
+      if (selectedHotpotTypeId != null) {
+        matchesHotpotType = isSet && item['idLoaiSet'] == selectedHotpotTypeId;
+      }
+
       return matchesSearch &&
           matchesType &&
           matchesCategory &&
@@ -128,27 +217,87 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   int get tempTotal {
     int total = 0;
     for (var item in allItems) {
-      if ((cart[item['id']] ?? 0) > 0)
-        total += (item['giaBan'] as int) * cart[item['id']]!;
+      String key = _getCartKey(item);
+      if ((cart[key] ?? 0) > 0) {
+        total += (item['giaBan'] as int) * cart[key]!;
+      }
     }
     return total;
   }
 
+  Widget _buildImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return const Center(
+        child: Icon(Icons.fastfood, color: Colors.grey, size: 40),
+      );
+    }
+
+    // 1. Xử lý ảnh dạng chuỗi Base64
+    if (imageUrl.startsWith('data:image')) {
+      try {
+        // Cắt bỏ phần "data:image/jpeg;base64," để lấy chuỗi mã gốc ở phía sau dấu phẩy
+        final base64String = imageUrl.split(',').last;
+
+        return Image.memory(
+          base64Decode(base64String), // Giải mã chuỗi thành hình ảnh
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+          ),
+        );
+      } catch (e) {
+        return const Center(
+          child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+        );
+      }
+    }
+
+    // 2. Xử lý ảnh dạng Link HTTP bình thường (Dự phòng nếu sau này BE đổi cách lưu)
+    String fullUrl = imageUrl.startsWith('http')
+        ? imageUrl
+        : '${ApiConfig.baseUrl.replaceAll('/api', '')}/$imageUrl';
+
+    return Image.network(
+      fullUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      errorBuilder: (context, error, stackTrace) => const Center(
+        child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 🚀 DÙNG BIẾN currentMaHoaDon THAY VÌ widget.maHoaDon
+    String titleText = 'Bàn ${widget.maBan}';
+    if (currentMaHoaDon != null && currentMaHoaDon!.isNotEmpty) {
+      titleText += ' - HĐ: $currentMaHoaDon';
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF7D161A),
         title: Text(
-          'Gọi món - ${widget.maBan}',
-          style: const TextStyle(color: Colors.white, fontSize: 18),
+          titleText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Stack(
+        children: [
+          if (isLoading)
+            const Center(child: CircularProgressIndicator())
+          else
+            Column(
               children: [
                 _buildFilterHeader(),
                 Expanded(
@@ -166,14 +315,21 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                         _buildFoodCard(filteredItems[index]),
                   ),
                 ),
-                if (tempTotal > 0 || orderedItems.isNotEmpty)
-                  _buildBottomSummary(),
+                if (tempTotal > 0) _buildBottomSummary(),
               ],
             ),
+          if (isSubmitting)
+            Container(
+              color: Colors.black45,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  // --- UI COMPONENTS ---
   Widget _buildFilterHeader() {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -197,6 +353,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
             ),
           ),
           const SizedBox(height: 8),
+
           Row(
             children: [
               Expanded(
@@ -204,30 +361,50 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                   "Loại",
                   ["Tất cả", "Món lẻ", "Set lẩu"],
                   selectedType,
-                  (v) => setState(() {
-                    selectedType = v!;
-                    selectedCategoryId = null;
-                    selectedHotpotTypeId = null;
-                  }),
+                  (v) {
+                    setState(() {
+                      selectedType = v!;
+                      selectedCategoryId = null;
+                      selectedHotpotTypeId = null;
+                    });
+                  },
                 ),
               ),
-              const SizedBox(width: 8),
-              if (selectedType != "Set lẩu")
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              if (selectedType == "Tất cả" || selectedType == "Món lẻ")
                 Expanded(
                   child: _buildDropdownID(
-                    "Danh mục",
+                    "Danh mục món lẻ",
                     categories,
                     selectedCategoryId,
-                    (v) => setState(() => selectedCategoryId = v),
+                    (v) {
+                      setState(() {
+                        selectedCategoryId = v;
+                        if (v != null) selectedHotpotTypeId = null;
+                        if (v != null) selectedType = "Món lẻ";
+                      });
+                    },
                   ),
                 ),
-              if (selectedType == "Set lẩu")
+              if (selectedType == "Tất cả") const SizedBox(width: 8),
+              if (selectedType == "Tất cả" || selectedType == "Set lẩu")
                 Expanded(
                   child: _buildDropdownID(
-                    "Loại Set",
+                    "Loại set lẩu",
                     hotpotTypes,
                     selectedHotpotTypeId,
-                    (v) => setState(() => selectedHotpotTypeId = v),
+                    (v) {
+                      setState(() {
+                        selectedHotpotTypeId = v;
+                        if (v != null) selectedCategoryId = null;
+                        if (v != null) selectedType = "Set lẩu";
+                      });
+                    },
                   ),
                 ),
             ],
@@ -277,11 +454,20 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
-          hint: Text(hint, style: const TextStyle(fontSize: 12)),
+          hint: Text(
+            hint,
+            style: const TextStyle(fontSize: 12, color: Colors.black87),
+          ),
           value: current,
           isExpanded: true,
           items: [
-            const DropdownMenuItem<int>(value: null, child: Text("Tất cả")),
+            DropdownMenuItem<int>(
+              value: null,
+              child: Text(
+                "➤ $hint",
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
             ...items.map(
               (e) => DropdownMenuItem<int>(
                 value: e['id'],
@@ -296,7 +482,9 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   }
 
   Widget _buildFoodCard(dynamic item) {
-    int qty = cart[item['id']] ?? 0;
+    String key = _getCartKey(item);
+    int qty = cart[key] ?? 0;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -311,7 +499,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                 Container(
                   width: double.infinity,
                   color: Colors.grey[100],
-                  child: const Icon(Icons.fastfood, color: Colors.grey),
+                  child: _buildImage(item['hinhAnh']),
                 ),
                 if (qty > 0)
                   Container(
@@ -338,7 +526,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['tenMon'] ?? item['tenSetLau'],
+                  item['tenMon'] ?? item['tenSetLau'] ?? 'Món không tên',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -358,7 +546,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                     ? SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => setState(() => cart[item['id']] = 1),
+                          onPressed: () => setState(() => cart[key] = 1),
                           child: const Text('+ Chọn'),
                         ),
                       )
@@ -368,7 +556,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                           IconButton(
                             icon: const Icon(Icons.remove_circle_outline),
                             onPressed: () =>
-                                setState(() => cart[item['id']] = qty - 1),
+                                setState(() => cart[key] = qty - 1),
                           ),
                           Text('$qty'),
                           IconButton(
@@ -377,7 +565,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                               color: Color(0xFF7D161A),
                             ),
                             onPressed: () =>
-                                setState(() => cart[item['id']] = qty + 1),
+                                setState(() => cart[key] = qty + 1),
                           ),
                         ],
                       ),
@@ -390,6 +578,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   }
 
   Widget _buildBottomSummary() {
+    int totalItems = cart.values.where((v) => v > 0).length;
     return Container(
       padding: const EdgeInsets.all(15),
       color: const Color(0xFF7D161A),
@@ -409,7 +598,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                 ),
               ),
               Text(
-                'Đã gọi: ${orderedItems.length} món',
+                'Tổng cộng: $totalItems loại món',
                 style: const TextStyle(color: Colors.white70, fontSize: 11),
               ),
             ],
@@ -429,7 +618,6 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
     );
   }
 
-  // --- BOTTOM SHEET XEM ĐƠN ---
   void _showOrderPreview() {
     showModalBottomSheet(
       context: context,
@@ -446,9 +634,13 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              const Text(
-                'Chi tiết đơn hàng',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // 🚀 CẬP NHẬT TITLE BẢNG XÁC NHẬN BẰNG BIẾN MỚI
+              Text(
+                'Danh sách gửi bếp (HĐ: ${currentMaHoaDon ?? 'Mới'})',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Divider(),
               Expanded(
@@ -456,58 +648,11 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                   controller: controller,
                   padding: const EdgeInsets.all(15),
                   children: [
-                    if (orderedItems.isNotEmpty) ...[
-                      const Row(
-                        children: [
-                          Icon(Icons.history, color: Colors.grey, size: 16),
-                          SizedBox(width: 5),
-                          Text(
-                            'MÓN ĐÃ ĐẶT',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      // 🚨 SỬA TẠI ĐÂY: Hiển thị đúng key tenMon và soLuong
-                      ...orderedItems.map(
-                        (item) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(item['tenMon'] ?? 'Món không tên'),
-                          trailing: Text(
-                            'x${item['soLuong']}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 30),
-                    ],
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.add_shopping_cart,
-                          color: Color(0xFF7D161A),
-                          size: 16,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          'MÓN ĐANG CHỌN',
-                          style: TextStyle(
-                            color: Color(0xFF7D161A),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
                     ...allItems
-                        .where((i) => (cart[i['id']] ?? 0) > 0)
-                        .map(
-                          (item) => ListTile(
+                        .where((i) => (cart[_getCartKey(i)] ?? 0) > 0)
+                        .map((item) {
+                          String key = _getCartKey(item);
+                          return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(item['tenMon'] ?? item['tenSetLau']),
                             trailing: Row(
@@ -516,25 +661,23 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () => setState(
-                                    () => cart[item['id']] =
-                                        cart[item['id']]! - 1,
+                                    () => cart[key] = cart[key]! - 1,
                                   ),
                                 ),
-                                Text('${cart[item['id']]}'),
+                                Text('${cart[key]}'),
                                 IconButton(
                                   icon: const Icon(
                                     Icons.add_circle,
                                     color: Color(0xFF7D161A),
                                   ),
                                   onPressed: () => setState(
-                                    () => cart[item['id']] =
-                                        cart[item['id']]! + 1,
+                                    () => cart[key] = cart[key]! + 1,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                   ],
                 ),
               ),
@@ -547,12 +690,11 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7D161A),
                     ),
-                    onPressed: () {
-                      /* Gọi hàm confirmOrder của bạn tại đây */
-                    },
-                    child: const Text(
-                      'XÁC NHẬN GỬI MÓN',
-                      style: TextStyle(
+                    onPressed: _confirmOrder,
+                    // 🚀 CẬP NHẬT TRÊN NÚT BẤM BẰNG BIẾN MỚI
+                    child: Text(
+                      'XÁC NHẬN GỬI BẾP - ${currentMaHoaDon ?? 'Mới'}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),

@@ -788,27 +788,38 @@ const statusOptions = ref([
     border: 1px solid #d1d5db;
 }
 
-/* Page buttons */
-.btn-page {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #8B0000;
-    transition: 0.2s;
+
+.btn-page{
+    background: transparent;
+    border: none;
+    color: #333;
+    padding: 5px 10px;
+    cursor: pointer;
 }
 
 .btn-page:hover:not(:disabled) {
-    background: #8B0000;
-    color: #ffffff;
-    border-color: #8B0000;
+    background: #8b0000;
+    color: white;
 }
 
 .btn-page:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+.page-number {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;    border-radius: 6px;
+    margin: 0 2px;
+    color: #8b0000;
+    font-weight: 500;
+    display: flex;
+    align-items: center;     /* căn giữa dọc */
+    justify-content: center; /* căn giữa ngang */
+    padding: 0;   
+}
+
 
 /* Page number */
 .page-number {
@@ -823,6 +834,7 @@ const statusOptions = ref([
     cursor: pointer;
     transition: 0.2s;
 }
+
 
 .page-number:hover {
     background: #f3f4f6;

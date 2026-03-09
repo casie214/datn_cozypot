@@ -17,17 +17,22 @@
     padding: 4px 8px;
 }
 
-.btn-page {
-    border: 1px solid #8b0000;
+/* .btn-page {
     background: white;
-    color: #8b0000;
-    border-radius: 8px;
     width: 36px;
     height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: 0.2s;
+} */
+
+.btn-page{
+    background: transparent;
+    border: none;
+    color: #333;
+    padding: 5px 10px;
+    cursor: pointer;
 }
 
 .btn-page:hover:not(:disabled) {
@@ -42,11 +47,15 @@
 
 .page-number {
     cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;    border-radius: 6px;
     margin: 0 2px;
     color: #8b0000;
     font-weight: 500;
+    display: flex;
+    align-items: center;     /* căn giữa dọc */
+    justify-content: center; /* căn giữa ngang */
+    padding: 0;   
 }
 
 .page-number:hover {
@@ -582,6 +591,11 @@
     font-weight: 600;
     color: #8b0000;
 }
+/* 
+.custom-table tbody td{
+    font-size: 14px;
+    color: white;
+} */
 
 /* Màu sắc icon */
 .lock-icon:hover {

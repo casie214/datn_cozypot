@@ -38,6 +38,12 @@ public class BotPressController {
         return botPressService.getMessages(conversationId);
     }
 
+    @PostMapping("/initialize")
+    public String initialize() {
+        // Gọi sang service để lấy conversationId mới
+        return botPressService.initializeConversation();
+    }
+
     // 4. API gửi tin nhắn trả lời từ Vue Admin
     @PostMapping("/reply")
     public void reply(@RequestBody Map<String, String> payload) {

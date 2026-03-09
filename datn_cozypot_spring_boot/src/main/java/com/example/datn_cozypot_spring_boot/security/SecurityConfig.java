@@ -94,7 +94,8 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(HttpMethod.POST, "/api/botpress/handoff").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/botpress/waiting-list").hasAnyRole("ADMIN", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.GET, "/api/botpress/history/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.GET, "/api/botpress/history/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/botpress/initialize").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/botpress/reply").hasAnyRole("ADMIN", "EMPLOYEE")
                         // General API Rules
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

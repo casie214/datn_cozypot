@@ -89,7 +89,7 @@ const resolveChat = async () => {
         await axiosClient.delete(`/botpress/resolve/${selectedId.value}`);
         selectedId.value = null;
         fetchWaitingList();
-        Swal.fire({ icon: 'success', title: 'Hoàn tất hỗ trợ!', timer: 1000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Hoàn tất hỗ trợ!', iconColor: '#7D161A', timer: 1000, showConfirmButton: false });
     } catch (error) {
         console.error(error);
     }
@@ -140,7 +140,7 @@ onUnmounted(() => {
                         <div class="input-group search-group">
                             <i class="fas fa-search search-icon"></i>
                             <input v-model="customerSearch" type="text" class="form-search form-control"
-                                placeholder="Tìm mã KH..." />
+                                placeholder="Tìm theo mã chat" />
                         </div>
                     </div>
                 </div>
@@ -490,11 +490,11 @@ onUnmounted(() => {
 
 .btn-resolve {
     color: #fff;
-    background: #28a745;
+    background: #7D161A;
 }
 
 .btn-resolve:hover {
-    background: #218838;
+    background: #7D161A;
 }
 
 /* 4. KHUNG HIỂN THỊ TIN NHẮN (Cuộn tại đây) */

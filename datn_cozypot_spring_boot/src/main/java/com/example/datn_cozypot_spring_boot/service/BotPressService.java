@@ -60,4 +60,36 @@ public class BotPressService {
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }
     }
+
+    public String initializeConversation() {
+        String url = "https://api.botpress.cloud/v1/chat/conversations";
+
+        try {
+            HttpHeaders headers = getCloudApiHeaders();
+
+            // 🚨 BỔ SUNG PAYLOAD BẮT BUỘC
+            Map<String, Object> body = new HashMap<>();
+            body.put("channel", "web"); // Xác định đây là kênh Webchat
+            body.put("tags", new HashMap<>()); // Thẻ trống (bắt buộc phải có object)
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            // Gọi POST
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("conversation")) {
+                Map<String, Object> conv = (Map<String, Object>) responseBody.get("conversation");
+                String newId = (String) conv.get("id");
+                System.out.println("✅ Đã tạo Conversation thành công: " + newId);
+
+                return "{\"conversationId\": \"" + newId + "\"}";
+            }
+
+            return "{\"error\": \"Không thể bóc tách ID\"}";
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi API: " + e.getMessage());
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        }
+    }
 }
