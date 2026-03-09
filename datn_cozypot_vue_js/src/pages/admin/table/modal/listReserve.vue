@@ -1,6 +1,6 @@
 <script setup>
 import "@vuepic/vue-datepicker/dist/main.css";
-import { computed, onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import dayjs from "dayjs";
 // import utc from "dayjs/plugin/utc";
 // import timezone from "dayjs/plugin/timezone";
@@ -9,7 +9,10 @@ import {
   searchDatBanService,
   updatePhieuDatBanService,
   updateTTPhieuDatBan,
+  fetchAllCheckIn
 } from "@/services/tableManageService";
+import Swal from "sweetalert2";
+import CommonPagination from "@/components/commonPagination.vue";
 
 // dayjs.extend(utc);
 // dayjs.extend(timezone);
@@ -17,8 +20,40 @@ import {
 // --- Khai báo State ---
 const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
-const currentPage = ref(1); // Vue hiển thị từ trang 1
-const pageSize = ref(6);
+const totalElements = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+const danhSachCho = ref([]);
+
+const loadDanhSachCho = async () => {
+  try {
+    danhSachCho.value = await fetchAllCheckIn(); 
+  } catch (error) {
+    console.error("Lỗi lấy danh sách khách chờ:", error);
+  }
+};
+
+const isTableReserved = (banId, thoiGianDatMoi) => {
+  if (!thoiGianDatMoi || danhSachCho.value.length === 0) return false;
+
+  const targetTime = dayjs(thoiGianDatMoi);
+
+  return danhSachCho.value.some(khach => {
+    if (khach.idDatBan === selectedPhieu.value?.idDatBan) return false;
+
+    const isMatchTable = khach.idBanAn === banId;
+    const isValidStatus = [0, 1, 3].includes(Number(khach.trangThai));
+
+    if (isMatchTable && isValidStatus && khach.thoiGianDat) {
+      const existTime = dayjs(khach.thoiGianDat);
+      const diffMinutes = Math.abs(existTime.diff(targetTime, 'minute'));
+
+      return diffMinutes <= 180; 
+    }
+    return false;
+  });
+};
 
 const searchForm = ref({
   soDienThoai: "",
@@ -27,10 +62,12 @@ const searchForm = ref({
 });
 
 const trangThaiList = [
-  { value: "0", label: "Chờ xác nhận" },
-  { value: "1", label: "Đã xác nhận" },
-  { value: "2", label: "Đã hủy" },
-  { value: "5", label: "Quá hạn" },
+  { value: "0", label: "Ch\u1EDD x\u00E1c nh\u1EADn" },
+  { value: "1", label: "\u0110\u00E3 x\u00E1c nh\u1EADn" },
+  { value: "2", label: "\u0110\u00E3 h\u1EE7y" },
+  { value: "3", label: "\u0110ang s\u1EED d\u1EE5ng" },
+  { value: "4", label: "Ho\u00E0n th\u00E0nh" },
+  { value: "5", label: "Qu\u00E1 h\u1EA1n" },
 ];
 
 const selectedPhieu = ref(null);
@@ -70,13 +107,30 @@ const searchDatBan = async () => {
     listPhieuDatBan.value = data.content;
     // listPhieuDatBanFiltered.value = data.content; 
     totalPages.value = data.totalPages;
+    totalElements.value = data.totalElements ?? data.content?.length ?? 0;
   } catch (error) {
     console.error("Lỗi searchDatBan:", error);
   }
 };
-const onSearchClick = () => {
+const onResetSearch = () => {
+  searchForm.value = {
+    soDienThoai: "",
+    trangThai: "",
+    thoiGianDat: "",
+  };
   currentPage.value = 1;
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDatBan();
+};
+
+let searchDebounceTimer = null;
+
+const triggerAutoSearch = () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    currentPage.value = 1;
+    searchDatBan();
+  }, 250);
 };
 // const listPhieuDatBanFiltered = computed(() => {
 //   return listPhieuDatBan.value.filter((phieu) => {
@@ -107,11 +161,14 @@ const changePage = (page) => {
   searchDatBan();
 };
 
-// 3. Xử lý modal và xếp bàn
 const openChonBanModal = async (phieu) => {
   selectedPhieu.value = phieu;
   try {
-    danhSachBan.value = await fetchAllBanAn();
+    const [banData] = await Promise.all([
+      fetchAllBanAn(),
+      loadDanhSachCho()
+    ]);
+    danhSachBan.value = banData;
     showModal.value = true;
   } catch (error) {
     console.error("Lỗi lấy danh sách bàn:", error);
@@ -138,12 +195,12 @@ const updatePhieuDatBan = async () => {
   try {
     await updatePhieuDatBanService(payload);
 
-    alert("Xếp bàn thành công!");
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
     closeModal();
     await searchDatBan(); // Load lại danh sách tại trang hiện tại
   } catch (err) {
     console.error(err);
-    alert("Có lỗi xảy ra khi xếp bàn");
+    Swal.fire('Lỗi', 'Không thể xếp bàn', 'error');
   }
 };
 
@@ -204,27 +261,31 @@ const onToggleCheckIn = async (phieu) => {
 onMounted(() => {
   searchDatBan();
 });
+
+onUnmounted(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+});
 </script>
 
 <template>
   <div class="layout-table">
-    <div class="navbar-search m-4">
+    <div class="navbar-search">
       <div class="search-form">
         Tìm kiếm
-        <form class="d-flex gap-2 mt-2" role="search">
+                <form class="d-flex gap-2 mt-2" role="search">
           <input
-            class="form-control"
+            class="form-control reserve-filter-phone"
             type="search"
-            placeholder="Số điện thoại khách hàng"
-            style="width: 30%"
+            placeholder="S&#7889; &#273;i&#7879;n tho&#7841;i kh&#225;ch h&#224;ng"
             v-model="searchForm.soDienThoai"
+            @input="triggerAutoSearch"
           />
           <select
             v-model="searchForm.trangThai"
-            class="form-select"
-            style="width: 25%"
+            @change="triggerAutoSearch"
+            class="form-select reserve-filter-status"
           >
-            <option value="" disabled>Trạng thái</option>
+            <option value="" disabled>Tr&#7841;ng th&#225;i</option>
             <option
               v-for="item in trangThaiList"
               :key="item.value"
@@ -234,16 +295,17 @@ onMounted(() => {
             </option>
           </select>
 
-          <div style="width: 30%">
+          <div class="reserve-filter-date">
             <input
               type="date"
               v-model="searchForm.thoiGianDat"
+              @input="triggerAutoSearch"
               class="form-control"
             />
           </div>
 
-          <button class="btn text-nowrap" type="button" @click="onSearchClick()">
-            <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm
+          <button class="btn text-nowrap" type="button" @click="onResetSearch">
+             X&#243;a b&#7897; l&#7885;c
           </button>
         </form>
       </div>
@@ -253,15 +315,15 @@ onMounted(() => {
             <thead>
               <tr>
                 <th scope="col">STT</th>
-                <th scope="col">Mã</th>
-                <th scope="col">Khách hàng</th>
-                <th scope="col">SDT</th>
-                <th scope="col">Bàn</th>
-                <th scope="col">Tầng</th>
-                <th scope="col">Ngày giờ</th>
-                <th scope="col">Số người</th>
-                <th scope="col">Trạng thái</th>
-                <th scope="col">Hành động</th>
+                <th scope="col">MÃ</th>
+                <th scope="col">KHÁCH HÀNG</th>
+                <th scope="col">SĐT</th>
+                <th scope="col">BÀN</th>
+                <th scope="col">TẦNG</th>
+                <th scope="col">NGÀY GIỜ</th>
+                <th scope="col">SỐ NGƯỜI</th>
+                <th scope="col">TRẠNG THÁI</th>
+                <th scope="col">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody>
@@ -283,6 +345,8 @@ onMounted(() => {
                   <button
                     v-else
                     class="btn btn-sm btn-custom-outline"
+                    :disabled="Number(phieuDatBan.trangThai) === 2"
+                    :title="Number(phieuDatBan.trangThai) === 2 ? 'Phiếu đã hủy, không thể chọn bàn' : 'Chọn bàn'"
                     @click="openChonBanModal(phieuDatBan)"
                   >
                     Chọn bàn
@@ -367,44 +431,15 @@ onMounted(() => {
           </table>
         </div>
       </div>
-      <div class="pagination mt-3 d-flex justify-content-center">
-        <nav>
-          <ul class="pagination">
-            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-              <a
-                class="page-link"
-                href="#"
-                @click.prevent="changePage(currentPage - 1)"
-              >
-                &laquo;
-              </a>
-            </li>
-
-            <li
-              v-for="page in totalPages"
-              :key="page"
-              class="page-item"
-              :class="{ active: page === currentPage }"
-            >
-              <a class="page-link" href="#" @click.prevent="changePage(page)">
-                {{ page }}
-              </a>
-            </li>
-
-            <li
-              class="page-item"
-              :class="{ disabled: currentPage === totalPages }"
-            >
-              <a
-                class="page-link"
-                href="#"
-                @click.prevent="changePage(currentPage + 1)"
-              >
-                &raquo;
-              </a>
-            </li>
-          </ul>
-        </nav>
+      <div class="custom-pagination-wrapper mt-4 pt-3 border-top">
+        <CommonPagination
+          v-model:currentPage="currentPage"
+          v-model:pageSize="pageSize"
+          :total-pages="totalPages"
+          :total-elements="totalElements"
+          :current-count="listPhieuDatBan.length"
+          @change="searchDatBan"
+        />
       </div>
     </div>
   </div>
@@ -434,7 +469,7 @@ onMounted(() => {
         </div>
         <div>
           <label>Ngày và giờ:</label>
-          <strong>{{ selectedPhieu?.thoiGianDat }}</strong>
+          <strong>{{ formatDate(selectedPhieu?.thoiGianDat) }}</strong>
         </div>
       </div>
 
@@ -449,11 +484,12 @@ onMounted(() => {
           class="ban-card"
           :class="{
             selected: selectedBan?.id === ban.id,
-            disabled: ban.soCho < selectedPhieu.soLuongKhach,
+            /* 🚨 Điều kiện Disabled: Không đủ chỗ HOẶC Bị đụng giờ */
+            disabled: ban.soCho < selectedPhieu.soLuongKhach || isTableReserved(ban.id, selectedPhieu.thoiGianDat),
+            reserved: isTableReserved(ban.id, selectedPhieu.thoiGianDat)
           }"
           @click="chonBan(ban)"
         >
-          <!-- ⭐ icon khi được chọn -->
           <i
             v-if="selectedBan?.id === ban.id"
             class="fa-solid fa-star suggest"
@@ -461,6 +497,10 @@ onMounted(() => {
 
           <div class="ban-name">{{ ban.maBan }}</div>
           <div class="ban-size">({{ ban.soCho }} chỗ)</div>
+          
+          <div v-if="isTableReserved(ban.id, selectedPhieu.thoiGianDat)" class="conflict-badge">
+            Trùng lịch
+          </div>
         </div>
       </div>
 
@@ -486,6 +526,16 @@ onMounted(() => {
 .layout-table {
   display: flex;
   background-color: white;
+}
+
+.table tr th{
+  padding: 14px 15px;
+}
+
+.table tr th {
+  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .search-form {
@@ -849,4 +899,30 @@ hr {
   box-shadow: var(--bs-box-shadow-sm) !important;
   border-radius: 15px;
 }
+
+.reserve-filter-phone {
+  width: 30%;
+}
+
+.reserve-filter-status {
+  width: 25%;
+}
+
+.reserve-filter-date {
+  width: 30%;
+}
+
+@media (max-width: 992px) {
+  .reserve-filter-phone,
+  .reserve-filter-status,
+  .reserve-filter-date {
+    width: 100%;
+  }
+}
 </style>
+
+
+
+
+
+

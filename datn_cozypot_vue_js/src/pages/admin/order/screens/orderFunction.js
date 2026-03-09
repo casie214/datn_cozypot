@@ -29,6 +29,7 @@ const filters = ref({
   fromDate: today,
   toDate: "",
 });
+let searchDebounceTimer = null;
 
 export function useOrderManager() {
   const totalPages = ref(0);
@@ -277,7 +278,10 @@ export function useOrderManager() {
     }
   };
   const handleSearch = () => {
-    performSearch(true);
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      performSearch(true);
+    }, 300);
   };
 
   const handlePageChange = async (page) => {
@@ -296,6 +300,7 @@ export function useOrderManager() {
   };
 
   const handleReset = () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     filters.value = {
       search: "",
       status: "Tất cả",
@@ -436,6 +441,7 @@ export function useOrderManager() {
         text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
         icon: "warning",
         showCancelButton: true,
+        iconColor: '#7D161A',
         confirmButtonColor: "#8b0000",
         cancelButtonColor: "#6c757d",
         confirmButtonText: "Đồng ý hủy",
@@ -701,3 +707,5 @@ export function useOrderManager() {
     formatDateTime
   };
 }
+
+

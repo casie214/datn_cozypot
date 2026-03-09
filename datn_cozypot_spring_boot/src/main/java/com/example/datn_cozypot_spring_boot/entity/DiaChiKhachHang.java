@@ -42,5 +42,16 @@ public class DiaChiKhachHang {
     @Column(name = "dia_chi_chi_tiet", columnDefinition = "NVARCHAR(500)")
     private String diaChiChiTiet;
 
+    @Nationalized
+    @Column(name = "ten_tinh_thanh")
+    private String tenTinhThanh;
+
+    @Nationalized
+    @Column(name = "ten_quan_huyen")
+    private String tenQuanHuyen;
+
+    @Nationalized
+    @Column(name = "ten_phuong_xa")
+    private String tenPhuongXa;
 
 }

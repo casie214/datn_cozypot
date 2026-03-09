@@ -14,4 +14,7 @@ public class DiaChiResponse {
     private String idPhuongXa;
     private String diaChiChiTiet;
     private Boolean laMacDinh;
+    private String tenTinhThanh;
+    private String tenQuanHuyen;
+    private String tenPhuongXa;
 }
