@@ -176,17 +176,33 @@ public class DatBanService {
 
     @Transactional
     public void updateBanChoPhieu(DatBanUpdateRequest req) {
-        // 🚨 UPDATE FOR N-N
+        // Lấy thông tin Bàn mới
         BanAn banAnMoi = banAnRepository.findById(req.getIdBanAn())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
 
-
+        // Lấy thông tin Phiếu
         PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
 
-        // Dọn sạch bàn cũ, gán bàn mới (Luồng cập nhật đổi 1 lấy 1)
-        phieu.getBanAns().clear();
-        phieu.getBanAns().add(banAnMoi);
+        // 🚨 BƯỚC 1: Dọn sạch các liên kết bàn cũ trong bảng trung gian
+        // (JPA sẽ tự động phát lệnh DELETE nhờ orphanRemoval = true)
+        phieu.getDsBanAn().clear();
+
+        // 🚨 BƯỚC 2: Tạo liên kết bảng trung gian mới
+        PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
+        linkMoi.setPhieuDatBan(phieu);
+        linkMoi.setBanAn(banAnMoi);
+
+        // Khởi tạo Khóa chính kép (EmbeddedId)
+        PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+        linkId.setIdPhieuDatBan(phieu.getId());
+        linkId.setIdBanAn(banAnMoi.getId());
+        linkMoi.setId(linkId);
+
+        // 🚨 BƯỚC 3: Thêm vào tập hợp GỐC
+        phieu.getDsBanAn().add(linkMoi);
+
+        // Lưu lại, Hibernate sẽ tự động INSERT dòng mới vào phieu_dat_ban_ban_an
         phieuDatBanRepository.save(phieu);
     }
 
@@ -276,7 +292,13 @@ public class DatBanService {
             hoaDonMoi.setTrangThaiHoaDon(4); // 4: Đang phục vụ
             hoaDonMoi.setTongTienChuaGiam(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTongTienThanhToan(java.math.BigDecimal.ZERO);
-            hoaDonMoi.setVatApDung(10.0f);
+            hoaDonMoi.setSoTienDaGiam(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
+            hoaDonMoi.setTienHoanTra(java.math.BigDecimal.ZERO);
+
+            Double vatFromRequest = request.getVatApDung();
+            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 0f;
+            hoaDonMoi.setVatApDung(finalVat);
 
             if (request.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
@@ -339,12 +361,46 @@ public class DatBanService {
                         hanhDongLog = "Yêu cầu tính tiền";
                         lyDoLog = "Khách yêu cầu hóa đơn tạm tính";
                     } else if (trangThaiMoi == 6) {
+                        // ==========================================
+                        // 🚨 XỬ LÝ KHI THANH TOÁN (CÓ KIỂM TRA HOÀN TIỀN CỌC)
+                        // ==========================================
                         hanhDongLog = "Đã thanh toán";
                         lyDoLog = "Hoàn tất thanh toán tại quầy";
                         hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
                         phieu.setTrangThai(4); // Phiếu Hoàn Thành
 
-                        // 🚨 BẢO HIỂM THÊM 1 LỚP: Khi thanh toán tiền mặt xong, chắc chắn dọn hết bàn
+                        // Lấy các chỉ số tiền tệ để tính toán (Bảo vệ Null)
+                        BigDecimal tongChuaGiam = hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO;
+                        BigDecimal daGiam = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
+                        BigDecimal coc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+                        Float vat = hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : 0f;
+
+                        // 1. Tính tiền sau giảm
+                        BigDecimal sauGiam = tongChuaGiam.subtract(daGiam);
+                        if (sauGiam.compareTo(BigDecimal.ZERO) < 0) sauGiam = BigDecimal.ZERO;
+
+                        // 2. Tính VAT
+                        BigDecimal tienVat = sauGiam.multiply(BigDecimal.valueOf(vat / 100.0));
+
+                        // 3. Tính Tổng tiền cuối cùng phải trả (Final Bill)
+                        BigDecimal tongThanhToanCuoi = sauGiam.add(tienVat);
+                        hoaDon.setTongTienThanhToan(tongThanhToanCuoi); // Lưu tổng thực tế vào DB
+
+                        // 4. KIỂM TRA TIỀN CỌC CÓ THỪA KHÔNG?
+                        if (coc.compareTo(tongThanhToanCuoi) > 0) {
+                            // Tính tiền hoàn lại = Tiền cọc - Tổng hóa đơn
+                            BigDecimal tienHoan = coc.subtract(tongThanhToanCuoi);
+
+                            // Lưu tiền hoàn trả vào Database
+                            hoaDon.setTienHoanTra(tienHoan);
+
+                            // Ghi Log thứ 2 (Log nghiệp vụ hoàn tiền thừa)
+                            ghiLichSu(hoaDon, request.getIdNhanVien(),
+                                    "Hoàn trả tiền thừa: " + tienHoan.setScale(0) + "đ",
+                                    "Tiền cọc lớn hơn tổng hóa đơn", 6, 6);
+                        }
+
+                        // 5. Dọn sạch toàn bộ bàn
                         for (BanAn ban : phieu.getBanAns()) {
                             ban.setTrangThai(0);
                             banAnRepository.save(ban);
@@ -868,13 +924,6 @@ public class DatBanService {
 
             try {
                 emailDatBanService.sendXacNhanDatBanSync(emailDto);
-                saved.setTrangThai(1);
-                phieuDatBanRepository.save(saved);
-
-                // Cập nhật trạng thái Hóa đơn sang 1 (Chờ xác nhận)
-                hd.setTrangThaiHoaDon(1);
-                hoaDonThanhToanRepository.save(hd);
-
                 daGuiMail = true;
             } catch (Exception e) {
                 log.warn("⚠️ Gửi mail thất bại, phiếu PDB-{} giữ trạng thái chờ xác nhận: {}", saved.getId(), e.getMessage());

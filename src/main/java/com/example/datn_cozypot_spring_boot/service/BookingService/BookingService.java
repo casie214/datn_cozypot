@@ -55,7 +55,7 @@ public class BookingService {
         phieuDatBan.setThoiGianDat(request.getThoiGianDat());
         phieuDatBan.setSoLuongKhach(request.getSoNguoi());
         phieuDatBan.setHinhThucDat(1); // 1 = Đặt online
-        phieuDatBan.setTrangThai(1);   // 1 = Đã xác nhận / Chờ check-in
+        phieuDatBan.setTrangThai(0);   // 0 = Chờ xác nhận
         phieuDatBan.setNgayTao(LocalDateTime.now());
 
         PhieuDatBan savedPhieu = phieuDatBanRepo.save(phieuDatBan);
