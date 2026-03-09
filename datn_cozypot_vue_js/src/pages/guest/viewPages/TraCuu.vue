@@ -519,6 +519,7 @@ const finalBalance = computed(() => {
                     <tr>
                       <th class="ps-4 py-3">TÊN MÓN</th>
                       <th class="text-center py-3">SỐ LƯỢNG</th>
+                      <th class="text-center py-3">ĐƠN GIÁ</th>
                       <th class="text-end py-3 pe-4">THÀNH TIỀN</th>
                     </tr>
                   </thead>
@@ -537,6 +538,7 @@ const finalBalance = computed(() => {
                         </div>
                       </td>
                       <td class="text-center fw-bold">{{ item.soLuong }}</td>
+                      <td class="text-center fw-bold">{{ formatMoney(item.donGia) }}</td>
                       <td class="text-end fw-bold pe-4">
                         {{ formatMoney(item.thanhTien) }}
                       </td>

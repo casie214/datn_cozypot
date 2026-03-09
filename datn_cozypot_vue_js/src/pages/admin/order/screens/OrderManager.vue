@@ -59,7 +59,7 @@ const onPaginationChange = () => {
       >
         <div class="card-body">
           <div class="row g-2 align-items-end filter-bar">
-            <div class="col-md-3">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Tìm kiếm</label
               >
@@ -72,7 +72,7 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái hóa đơn</label
               >
@@ -92,7 +92,7 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Loại thời gian</label
               >
@@ -106,7 +106,7 @@ const onPaginationChange = () => {
               </select>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold">Từ ngày</label>
               <input
                 type="date"
@@ -116,7 +116,7 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Đến ngày</label
               >
@@ -400,9 +400,3 @@ const onPaginationChange = () => {
   transform: translateX(-50%) translateY(-4px);
 }
 </style>
-
-
-
-
-
-
