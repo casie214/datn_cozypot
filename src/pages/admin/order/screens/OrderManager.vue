@@ -163,7 +163,7 @@ const visiblePages = computed(() => {
                 @click="handleReset"
                 title="Làm mới"
               >
-                <i class="fas fa-undo"></i> Hủy
+                Xóa bộ lọc
               </button>
             </div>
           </div>
