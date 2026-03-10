@@ -89,6 +89,16 @@ public class DatBanService {
                 .toList();
     }
 
+    public List<DatBanListResponse> getAllByTrangThaiPreCheckedIn(){
+        LocalDateTime thoiGianBatDau = LocalDateTime.now().minusHours(3); // Cho phép trễ tối đa 3 tiếng
+        LocalDateTime thoiGianKetThuc = LocalDateTime.now().plusDays(2).toLocalDate().atTime(23, 59, 59); // Lấy cho cả ngày mai
+
+        return phieuDatBanRepository.findWaitingListTodayPreCheckedIn(thoiGianBatDau, thoiGianKetThuc)
+                .stream()
+                .map(DatBanListResponse::new)
+                .toList();
+    }
+
     public List<BanAnResponse> getAllBanAn(){
         List<BanAn> allBan = banAnRepository.findAll();
 
@@ -176,33 +186,62 @@ public class DatBanService {
 
     @Transactional
     public void updateBanChoPhieu(DatBanUpdateRequest req) {
-        // Lấy thông tin Bàn mới
-        BanAn banAnMoi = banAnRepository.findById(req.getIdBanAn())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
-
-        // Lấy thông tin Phiếu
+        // 1. Lấy thông tin Phiếu
         PhieuDatBan phieu = phieuDatBanRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu"));
 
-        // 🚨 BƯỚC 1: Dọn sạch các liên kết bàn cũ trong bảng trung gian
-        // (JPA sẽ tự động phát lệnh DELETE nhờ orphanRemoval = true)
+        // 2. Lấy thông tin Bàn mới
+        BanAn banAnMoi = banAnRepository.findById(req.getIdBanAn())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn"));
+
+        // =========================================================
+        // 🚨 BƯỚC MỚI: KIỂM TRA TRÙNG LỊCH BÀN TRƯỚC KHI XẾP
+        // =========================================================
+        // Lấy thời gian khách dự kiến đến
+        LocalDateTime thoiGianDatMoi = phieu.getThoiGianDat();
+
+        // Tạo khoảng thời gian an toàn (Ví dụ: bàn này sẽ bị chiếm dụng trong 3 tiếng = 180 phút)
+        LocalDateTime thoiGianBatDau = thoiGianDatMoi.minusMinutes(180);
+        LocalDateTime thoiGianKetThuc = thoiGianDatMoi.plusMinutes(180);
+
+        // Truy vấn xem trong khoảng thời gian [thoiGianBatDau -> thoiGianKetThuc],
+        // Bàn này có nằm trong Phiếu nào khác đang ở trạng thái 0, 1, 3 không?
+        boolean isConflict = phieuDatBanRepository.existsByBanAnIdAndTimeRangeAndStatus(
+                banAnMoi.getId(),
+                phieu.getId(), // Truyền ID phiếu hiện tại vào để loại trừ chính nó
+                thoiGianBatDau,
+                thoiGianKetThuc,
+                Arrays.asList(0, 1, 3)
+        );
+
+        if (isConflict) {
+            // Ném Exception -> Frontend sẽ bắt được lỗi này (Lỗi 400/500) và hiện SweetAlert2
+            throw new RuntimeException("Lỗi: Bàn " + banAnMoi.getMaBan() + " đã có khách đặt trong khung giờ này. Vui lòng chọn bàn khác!");
+        }
+        // =========================================================
+
+
+        // 3. Dọn sạch các liên kết bàn cũ trong bảng trung gian
         phieu.getDsBanAn().clear();
 
-        // 🚨 BƯỚC 2: Tạo liên kết bảng trung gian mới
+        // Do Hibernate/JPA cần thời gian flush() lệnh clear() trên Set (tránh lỗi duplicate key)
+        // Nên gọi flush ở đây nếu cần, hoặc tùy cấu hình Hibernate
+        phieuDatBanRepository.flush();
+
+        // 4. Tạo liên kết bảng trung gian mới
         PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
         linkMoi.setPhieuDatBan(phieu);
         linkMoi.setBanAn(banAnMoi);
 
-        // Khởi tạo Khóa chính kép (EmbeddedId)
         PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
         linkId.setIdPhieuDatBan(phieu.getId());
         linkId.setIdBanAn(banAnMoi.getId());
         linkMoi.setId(linkId);
 
-        // 🚨 BƯỚC 3: Thêm vào tập hợp GỐC
+        // 5. Thêm vào tập hợp GỐC
         phieu.getDsBanAn().add(linkMoi);
 
-        // Lưu lại, Hibernate sẽ tự động INSERT dòng mới vào phieu_dat_ban_ban_an
+        // 6. Lưu lại
         phieuDatBanRepository.save(phieu);
     }
 
