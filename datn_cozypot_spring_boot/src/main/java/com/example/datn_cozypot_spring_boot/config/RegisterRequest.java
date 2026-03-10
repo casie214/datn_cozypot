@@ -45,7 +45,9 @@ public class RegisterRequest {
 
     @NotBlank(message = "Vui lòng chọn Phường/Xã")
     private String idPhuongXa;
-
+    private String tenTinhThanh;
+    private String tenQuanHuyen;
+    private String tenPhuongXa;
     @NotBlank(message = "Vui lòng nhập địa chỉ chi tiết")
     private String diaChiChiTiet;
 
