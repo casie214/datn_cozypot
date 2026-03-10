@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -66,19 +67,27 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) String tuNgay,
-            @RequestParam(required = false) String denNgay,
+            @RequestParam(required = false) String tuNgayTao,
+            @RequestParam(required = false) String denNgayTao,
+            @RequestParam(required = false) String tuNgayDat,
+            @RequestParam(required = false) String denNgayDat,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "size", defaultValue = "5") Integer size) {
-        Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
-        Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
+
+        Instant startTao = (tuNgayTao != null && !tuNgayTao.trim().isEmpty()) ? Instant.parse(tuNgayTao) : null;
+        Instant endTao = (denNgayTao != null && !denNgayTao.trim().isEmpty()) ? Instant.parse(denNgayTao) : null;
+
+        LocalDateTime startDat = (tuNgayDat != null && !tuNgayDat.trim().isEmpty()) ? LocalDateTime.parse(tuNgayDat) : null;
+        LocalDateTime endDat = (denNgayDat != null && !denNgayDat.trim().isEmpty()) ? LocalDateTime.parse(denNgayDat) : null;
 
         if (key != null) {
             key = key.trim();
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
+
+        return hoaDonThanhToanService.searchHoaDon(key, trangThai, startTao, endTao, startDat, endDat, pageable
+        );
     }
 
     @GetMapping("/get-by-id/{id}")
