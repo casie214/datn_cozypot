@@ -1403,4 +1403,16 @@ onMounted(async () => {
   color: #dc3545;
   font-weight: 500;
 }
+/* Radio khi được chọn */
+.form-check-input:checked {
+  background-color: #800000;
+  border-color: #800000;
+}
+
+/* Khi focus */
+.form-check-input:focus {
+  border-color: #800000;
+  box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
+}
+
 </style>
