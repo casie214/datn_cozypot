@@ -592,43 +592,37 @@ public class DatBanService {
     }
 
     public List<BanAn> timDanhSachBanTrong(DatBanRequest request) {
-        // 1. Kiểm tra xem DB có setup LOẠI BÀN nào đủ sức chứa không
+
         List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
         if (danhSachBanPhuHop.isEmpty()) {
-            return new java.util.ArrayList<>(); // Đội quá đông, không có bàn/ghép bàn phù hợp
+            return Collections.emptyList();
         }
 
         LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
-        // Khung giờ +/- 2 tiếng (thời gian ăn trung bình)
+
         LocalDateTime start = thoiGianKhachDen.minusHours(2);
         LocalDateTime end = thoiGianKhachDen.plusHours(2);
 
-        // 2. Lấy thông tin thống kê thực tế
-        List<BanAn> tatCaBanQuan = banAnRepository.findAll();
         List<PhieuDatBan> phieuCungGio = phieuDatBanRepository.findPhieuOverlapping(start, end);
 
-        // 3. Tính toán Quota
-        int tongSoBan = tatCaBanQuan.size();
-        int tongSucChua = tatCaBanQuan.stream().mapToInt(BanAn::getSoNguoiToiDa).sum();
+        int tongSucChua = banAnRepository.getTongSucChua();
 
-        int soPhieuDaDat = phieuCungGio.size();
-        int soKhachDaDat = phieuCungGio.stream().mapToInt(PhieuDatBan::getSoLuongKhach).sum();
+        int soKhachDaDat = phieuCungGio.stream()
+                .mapToInt(PhieuDatBan::getSoLuongKhach)
+                .sum();
 
-        // 4. KIỂM TRA ĐIỀU KIỆN (GÁC CỔNG)
-
-        // Điều kiện A: Số lượng đoàn khách không được vượt quá số lượng bàn vật lý
-        if (soPhieuDaDat >= tongSoBan) {
-            return new java.util.ArrayList<>(); // Hết bàn
+        long tongSoBan = banAnRepository.count();
+        if (phieuCungGio.size() >= tongSoBan) {
+            return Collections.emptyList();
         }
 
-        // Điều kiện B: Tổng khách không được vượt quá 90% sức chứa của quán
-        // (Chừa lại 10% rủi ro phân mảnh bàn và khách Walk-in vãng lai)
+        // Check 90% capacity
         int maxCapacity = (int) (tongSucChua * 0.9);
+
         if ((soKhachDaDat + request.getSoNguoi()) > maxCapacity) {
-            return new java.util.ArrayList<>(); // Rủi ro hết chỗ ngồi liền kề -> Chặn
+            return Collections.emptyList();
         }
 
-        // 5. Nếu vượt qua gác cổng -> Quán an toàn để nhận đơn.
         return danhSachBanPhuHop;
     }
 
@@ -641,7 +635,16 @@ public class DatBanService {
 
     @Transactional(rollbackOn = Exception.class)
     public Map<String, Object> taoPhieuDatBanOnline(DatBanOnlineRequest request) {
-        // 1. Xử lý khách hàng (Đã tối ưu để tương thích với Google Login)
+        DatBanRequest checkRequest = new DatBanRequest();
+        checkRequest.setNgayDat(request.getThoiGianDat().toLocalDate());
+        checkRequest.setGioDat(request.getThoiGianDat().toLocalTime());
+        checkRequest.setSoNguoi(request.getSoNguoi());
+
+        if (timDanhSachBanTrong(checkRequest).isEmpty()) {
+            throw new RuntimeException("Khung giờ này đã hết chỗ");
+        }
+
+        // 1. Xử lý khách hàng
         KhachHang khachHang = null;
 
         // Ưu tiên 1: Lấy ID từ tài khoản đang đăng nhập (Bao gồm cả Google)
@@ -718,7 +721,6 @@ public class DatBanService {
         logTaoMoi.setThoiGianThucHien(Instant.now());
         dsLichSu.add(logTaoMoi);
 
-        // 5. Lưu Chi Tiết Món Ăn (Đã tối ưu dùng saveAll)
         if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
             List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
 
@@ -761,14 +763,12 @@ public class DatBanService {
                 dsLichSu.add(logDatMon);
             }
 
-            // Lưu toàn bộ chi tiết món ăn trong 1 lần
             chiTietHoaDonRepository.saveAll(dsChiTiet);
 
             // Ép Hibernate xả dữ liệu để Trigger tính tổng tiền trong Database chạy
             chiTietHoaDonRepository.flush();
         }
 
-        // 6. Ghi log Lịch Sử Hóa Đơn cọc
         if (trangThaiBanDau == 1) {
             LichSuHoaDon logChoCoc = new LichSuHoaDon();
             logChoCoc.setIdHoaDon(hoaDon);
@@ -800,7 +800,6 @@ public class DatBanService {
             emailDatBanService.sendEmailCamOnDatBan(emailDto);
         }
 
-        // 8. Trả kết quả về cho Controller
         Map<String, Object> result = new HashMap<>();
         result.put("idHoaDon", hoaDonMoiNhat.getId());
         result.put("tienCoc", hoaDonMoiNhat.getTienCoc());
