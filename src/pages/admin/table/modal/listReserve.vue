@@ -9,7 +9,8 @@ import {
   searchDatBanService,
   updatePhieuDatBanService,
   updateTTPhieuDatBan,
-  fetchAllCheckIn
+  fetchAllCheckIn,
+  fetchAllPreCheckIn
 } from "@/services/tableManageService";
 import Swal from "sweetalert2";
 import CommonPagination from "@/components/commonPagination.vue";
@@ -28,31 +29,10 @@ const danhSachCho = ref([]);
 
 const loadDanhSachCho = async () => {
   try {
-    danhSachCho.value = await fetchAllCheckIn(); 
+    danhSachCho.value = await fetchAllPreCheckIn(); 
   } catch (error) {
     console.error("Lỗi lấy danh sách khách chờ:", error);
   }
-};
-
-const isTableReserved = (banId, thoiGianDatMoi) => {
-  if (!thoiGianDatMoi || danhSachCho.value.length === 0) return false;
-
-  const targetTime = dayjs(thoiGianDatMoi);
-
-  return danhSachCho.value.some(khach => {
-    if (khach.idDatBan === selectedPhieu.value?.idDatBan) return false;
-
-    const isMatchTable = khach.idBanAn === banId;
-    const isValidStatus = [0, 1, 3].includes(Number(khach.trangThai));
-
-    if (isMatchTable && isValidStatus && khach.thoiGianDat) {
-      const existTime = dayjs(khach.thoiGianDat);
-      const diffMinutes = Math.abs(existTime.diff(targetTime, 'minute'));
-
-      return diffMinutes <= 180; 
-    }
-    return false;
-  });
 };
 
 const searchForm = ref({
@@ -180,7 +160,64 @@ const closeModal = () => {
   selectedBan.value = null;
 };
 
+const isTableReserved = (banId, thoiGianDatMoi) => {
+  if (!thoiGianDatMoi || danhSachCho.value.length === 0) return false;
+
+  const timeMoi_BatDau = dayjs(thoiGianDatMoi);
+  // Giả sử mỗi ca ăn kéo dài 3 tiếng (180 phút)
+  const timeMoi_KetThuc = timeMoi_BatDau.add(180, 'minute');
+
+  return danhSachCho.value.some(khach => {
+    // 1. Bỏ qua chính cái phiếu mình đang thao tác xếp bàn (Tránh tự chặn chính mình)
+    if (khach.idDatBan === selectedPhieu.value?.idDatBan) return false;
+
+    // 2. Bỏ qua nếu phiếu kia chưa được xếp bàn nào cả
+    if (!khach.idBanAn) return false;
+
+    // 3. Nếu phiếu kia đang giữ ĐÚNG cái bàn mình đang xét
+    if (khach.idBanAn === banId) {
+      
+      // 4. Chỉ tính các phiếu đang Active (0: Chờ XN, 1: Đã XN, 3: Đang ăn)
+      // Dựa vào JSON của bạn, trạng thái đang là 1
+      if ([0, 1, 3].includes(Number(khach.trangThai))) {
+        
+        const timeKhach_BatDau = dayjs(khach.thoiGianDat);
+        const timeKhach_KetThuc = timeKhach_BatDau.add(180, 'minute');
+
+        // 5. Logic kiểm tra Giao nhau thời gian (Overlap)
+        // (Bắt đầu A < Kết thúc B) VÀ (Bắt đầu B < Kết thúc A)
+        const isOverlap = timeMoi_BatDau.isBefore(timeKhach_KetThuc) && timeKhach_BatDau.isBefore(timeMoi_KetThuc);
+        
+        if (isOverlap) {
+           return true; // Phất cờ báo hiệu TRÙNG LỊCH!
+        }
+      }
+    }
+    return false;
+  });
+};
+
+// 2. HÀM XỬ LÝ CHẶN CLICK VÀO BÀN
 const chonBan = (ban) => {
+  // Bỏ chọn nếu bấm lại vào bàn đang chọn
+  if (selectedBan.value?.id === ban.id) {
+    selectedBan.value = null;
+    return;
+  }
+
+  // Check 1: Bàn không đủ chỗ
+  if (ban.soCho < selectedPhieu.value?.soLuongKhach) {
+     Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Bàn không đủ chỗ!', showConfirmButton: false, timer: 2000 });
+     return; // Chặn
+  }
+  
+  // Check 2: Bị trùng lịch
+  if (isTableReserved(ban.id, selectedPhieu.value?.thoiGianDat)) {
+     Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Bàn đã bị đặt trong khung giờ này!', showConfirmButton: false, timer: 2000 });
+     return; // Chặn
+  }
+
+  // Hợp lệ thì mới gán
   selectedBan.value = ban;
 };
 
@@ -363,7 +400,6 @@ onUnmounted(() => {
                 <td>{{ phieuDatBan.tenTrangThai }}</td>
                 <td>
                   <div class="action-groups d-flex align-items-center gap-3">
-                    <i class="fa-solid fa-eye"></i>
 
                     <div class="checkbox-wrapper-5">
                       <!-- From Uiverse.io by JaydipPrajapati1910 -->
@@ -483,10 +519,9 @@ onUnmounted(() => {
           :key="ban.id"
           class="ban-card"
           :class="{
-            selected: selectedBan?.id === ban.id,
-            /* 🚨 Điều kiện Disabled: Không đủ chỗ HOẶC Bị đụng giờ */
-            disabled: ban.soCho < selectedPhieu.soLuongKhach || isTableReserved(ban.id, selectedPhieu.thoiGianDat),
-            reserved: isTableReserved(ban.id, selectedPhieu.thoiGianDat)
+            'selected': selectedBan?.id === ban.id,
+            /* 🚨 Xóa bỏ cái disabled cũ, chỉ giữ lại disabled-table */
+            'disabled-table': ban.soCho < selectedPhieu.soLuongKhach || isTableReserved(ban.id, selectedPhieu.thoiGianDat)
           }"
           @click="chonBan(ban)"
         >
@@ -499,7 +534,10 @@ onUnmounted(() => {
           <div class="ban-size">({{ ban.soCho }} chỗ)</div>
           
           <div v-if="isTableReserved(ban.id, selectedPhieu.thoiGianDat)" class="conflict-badge">
-            Trùng lịch
+            <i class="fa-regular fa-clock"></i> Đã có khách đặt
+          </div>
+          <div v-else-if="ban.soCho < selectedPhieu.soLuongKhach" class="conflict-badge bg-warning text-dark">
+            <i class="fa-solid fa-users-slash"></i> Thiếu chỗ
           </div>
         </div>
       </div>
@@ -919,10 +957,40 @@ hr {
     width: 100%;
   }
 }
+
+.ban-card.disabled-table {
+  background: repeating-linear-gradient(
+    45deg,
+    #f5f5f5,
+    #f5f5f5 10px,
+    #e9e9e9 10px,
+    #e9e9e9 20px
+  );
+  border-color: #ddd;
+  color: #a0a0a0;
+  cursor: not-allowed;
+  opacity: 0.65;
+  /* Chặn hoàn toàn hover/click trên CSS */
+  pointer-events: none; 
+}
+
+/* Badge thông báo lỗi ngay trên thẻ bàn */
+.conflict-badge {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #dc3545;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+:global(.swal2-container) {
+  z-index: 99999 !important; /* Phải cao hơn 9999 của .modal-overlay */
+}
 </style>
-
-
-
-
-
-

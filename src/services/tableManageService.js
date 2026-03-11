@@ -49,6 +49,15 @@ export const fetchAllCheckIn = async () => {
     }
 }
 
+export const fetchAllPreCheckIn = async () => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach-dat-truoc`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+
 export const addBanAn = async (banAn) => {
     try {
         // Axios tự động stringify body

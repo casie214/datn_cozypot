@@ -59,7 +59,7 @@ const timeWindowOptions = [
   { label: '15p', value: 15 },
   { label: '30p', value: 30 },
   { label: '1h', value: 60 },
-  { label: '2h', value: 120 },
+  { label: '3h', value: 180 },
   { label: 'Hết ngày', value: 1440 }
 ];
 
@@ -1402,6 +1402,16 @@ const activeBookingTableIds = computed(() => {
 });
 
 watch(selectedDate, async () => { await fetchTableStatus(); }, { immediate: true });
+
+watch(isQuickWalkInMode, (newVal) => {
+  if (newVal === true) {
+    selectedTimeWindow.value = 180;
+    handleFetchAllCheckIn();
+  } else {
+    selectedTimeWindow.value = 15;
+    handleFetchAllCheckIn();
+  }
+});
 
 const props = defineProps({
     initialItems: { type: Array, default: () => [] }

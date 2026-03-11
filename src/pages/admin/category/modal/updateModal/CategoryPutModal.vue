@@ -184,18 +184,6 @@ const handleUnitAdded = async (newUnitData) => {
                         <label>Mô tả</label>
                         <textarea v-model="formData.moTa" rows="3"></textarea>
                     </div>
-
-                    <div class="form-group full-width">
-                        <label>Trạng thái</label>
-                        <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
-                            <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
-                                <div class="toggle-knob"></div>
-                            </div>
-                            <span :class="{ 'text-active': formData.trangThai === 1 }">
-                                {{ formData.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
-                            </span>
-                        </div>
-                    </div>
                 </div>
             </div>
 
