@@ -68,6 +68,11 @@ public class DatBanController {
         return datBanService.getAllByTrangThai();
     }
 
+    @GetMapping("/danh-sach-dat-truoc")
+    public List<DatBanListResponse> danhSachPreCheckedIn(){
+        return datBanService.getAllByTrangThaiPreCheckedIn();
+    }
+
     @GetMapping("/danh-sach-ban-an")
     public List<BanAnResponse> danhSachBanAn(){
         return datBanService.getAllBanAn();
