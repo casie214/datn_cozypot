@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -108,4 +109,21 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan, Intege
     // 🚨 ĐÃ CẬP NHẬT: Query Method theo chuẩn đặt tên mới của dsBanAn -> banAn -> id
     List<PhieuDatBan> findByDsBanAn_BanAn_IdAndTrangThaiInOrderByThoiGianDatAsc(Integer idBanAn, List<Integer> listTrangThai);
 
+    @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 OR p.trangThai = 0 AND p.thoiGianDat >= :thoiGianBatDau AND p.thoiGianDat <= :thoiGianKetThuc ORDER BY p.thoiGianDat ASC")
+    List<PhieuDatBan> findWaitingListTodayPreCheckedIn(@Param("thoiGianBatDau") LocalDateTime thoiGianBatDau, @Param("thoiGianKetThuc") LocalDateTime thoiGianKetThuc);
+
+    @Query("SELECT CASE WHEN COUNT(pdb) > 0 THEN true ELSE false END " +
+            "FROM PhieuDatBan pdb JOIN pdb.dsBanAn link " +
+            "WHERE link.banAn.id = :idBanAn " +
+            "AND pdb.id <> :idPhieuHienTai " + // Loại trừ chính phiếu đang thao tác
+            "AND pdb.trangThai IN :dsTrangThai " +
+            "AND pdb.thoiGianDat > :thoiGianBatDau " +
+            "AND pdb.thoiGianDat < :thoiGianKetThuc")
+    boolean existsByBanAnIdAndTimeRangeAndStatus(
+            @Param("idBanAn") Integer idBanAn,
+            @Param("idPhieuHienTai") Integer idPhieuHienTai,
+            @Param("thoiGianBatDau") LocalDateTime thoiGianBatDau,
+            @Param("thoiGianKetThuc") LocalDateTime thoiGianKetThuc,
+            @Param("dsTrangThai") List<Integer> dsTrangThai
+    );
 }
