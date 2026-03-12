@@ -280,15 +280,60 @@ const confirmAddToCart = () => {
 };
 
 // ==========================================
-// C. LOGIC GIỎ HÀNG
+// C. LOGIC GIỎ HÀNG (CHỐNG SPAM TOÀN DIỆN)
 // ==========================================
+const getMaxQty = (itemType) => {
+  return itemType === "SET" ? 5 : 20;
+};
+
+// Thiết lập giới hạn tổng
+const MAX_TOTAL_ITEMS = 50;
+const MAX_TOTAL_PRICE = 5000000; // 5 triệu VNĐ
+
+// Hàm hiển thị cảnh báo chuẩn màu CozyPot
+const showWarning = (title, text) => {
+  Swal.fire({
+    icon: "warning",
+    title: title,
+    text: text,
+    confirmButtonText: "Đã hiểu",
+    confirmButtonColor: "#7d161a", // Màu đỏ đô của quán
+  });
+};
+
 const pushToCart = (newItem) => {
+  // 1. Check giới hạn TỔNG TIỀN
+  const currentTotal = totalPrice.value;
+  const itemTotal = newItem.price * newItem.quantity;
+  if (currentTotal + itemTotal > MAX_TOTAL_PRICE) {
+    return showWarning("Vượt hạn mức", `Tổng hóa đơn đặt trước không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}. Vui lòng liên hệ Hotline nếu bạn muốn đặt tiệc lớn!`);
+  }
+
+  // 2. Check giới hạn TỔNG SỐ LƯỢNG MÓN
+  const currentTotalItems = totalCount.value;
+  if (currentTotalItems + newItem.quantity > MAX_TOTAL_ITEMS) {
+    return showWarning("Giỏ hàng đầy", `Hệ thống chỉ nhận tối đa ${MAX_TOTAL_ITEMS} món trên một đơn đặt online. Bạn có thể gọi thêm khi đến quán!`);
+  }
+
+  // 3. Check giới hạn TỪNG MÓN (Như cũ)
+  const MAX_QTY = getMaxQty(newItem.type);
   const existingIndex = cart.value.findIndex(
     (i) => i.id === newItem.id && i.type === newItem.type,
   );
+
   if (existingIndex !== -1) {
-    cart.value[existingIndex].quantity += newItem.quantity;
+    const newTotal = cart.value[existingIndex].quantity + newItem.quantity;
+    if (newTotal > MAX_QTY) {
+      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      cart.value[existingIndex].quantity = MAX_QTY;
+    } else {
+      cart.value[existingIndex].quantity = newTotal;
+    }
   } else {
+    if (newItem.quantity > MAX_QTY) {
+      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      newItem.quantity = MAX_QTY;
+    }
     cart.value.push(newItem);
   }
 };
@@ -298,11 +343,31 @@ const openCartModal = () => {
 };
 const closeCartModal = () => (isCartOpen.value = false);
 
-const increaseQty = (index) => cart.value[index].quantity++;
+const increaseQty = (index) => {
+  const item = cart.value[index];
+  const MAX_QTY = getMaxQty(item.type);
+
+  // Check 3 lớp bảo vệ khi bấm dấu + trong giỏ hàng
+  if (totalPrice.value + item.price > MAX_TOTAL_PRICE) {
+    return showWarning("Vượt hạn mức", `Tổng hóa đơn không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}.`);
+  }
+  
+  if (totalCount.value + 1 > MAX_TOTAL_ITEMS) {
+    return showWarning("Giỏ hàng đầy", `Bạn đã đạt giới hạn ${MAX_TOTAL_ITEMS} món trong giỏ hàng.`);
+  }
+
+  if (item.quantity < MAX_QTY) {
+    item.quantity++;
+  } else {
+    showWarning("Giới hạn món", `Nhà hàng chỉ nhận đặt trước tối đa ${MAX_QTY} phần cho món này.`);
+  }
+};
+
 const decreaseQty = (index) => {
   if (cart.value[index].quantity > 1) cart.value[index].quantity--;
   else removeItem(index);
 };
+
 const removeItem = (index) => {
   cart.value.splice(index, 1);
   if (cart.value.length === 0) closeCartModal();
@@ -349,10 +414,15 @@ const getFilteredItems = (section) => {
   if (section.activeFilter === "all") return section.items;
   return section.items.filter((item) => item.groupId === section.activeFilter);
 };
-const selectFilter = (section, filterId) => {
-  section.activeFilter = filterId;
-};
 
+const selectFilter = (section, filterId) => {
+  const originalSection = menuData.value.find(
+    (s) => s.categoryId === section.categoryId,
+  );
+  if (originalSection) {
+    originalSection.activeFilter = filterId;
+  }
+};
 const allSearchItem = computed(() =>
   menuData.value ? menuData.value.flatMap((s) => s.items) : [],
 );
@@ -884,7 +954,16 @@ onUnmounted(() => {
                 -
               </button>
               <span>{{ modalQuantity }}</span>
-              <button @click="modalQuantity++">+</button>
+              <button
+                @click="
+                  modalQuantity < getMaxQty(selectedProduct?.type)
+                    ? modalQuantity++
+                    : null
+                "
+                :disabled="modalQuantity >= getMaxQty(selectedProduct?.type)"
+              >
+                +
+              </button>
             </div>
             <button class="btn-confirm-add" @click="confirmAddToCart">
               Thêm -

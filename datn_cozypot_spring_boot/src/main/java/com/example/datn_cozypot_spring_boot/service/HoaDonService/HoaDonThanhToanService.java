@@ -61,8 +61,8 @@ public class HoaDonThanhToanService {
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
     }
 
-    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgay, Instant denNgay, Pageable pageable){
-        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, tuNgay, denNgay, pageable);
+    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgayTao, Instant denNgayTao, LocalDateTime tuNgayDat, LocalDateTime denNgayDat,Pageable pageable){
+        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, tuNgayTao, denNgayTao, tuNgayDat, denNgayDat, pageable);
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
