@@ -18,6 +18,8 @@ import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonSe
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/hoa-don-thanh-toan")
 @CrossOrigin(origins = "http://localhost:5173")
 public class HoaDonThanhToanController {
+    private static final Logger log = LoggerFactory.getLogger(HoaDonThanhToanController.class);
     private final HoaDonThanhToanService hoaDonThanhToanService;
 
     private final ChiTietHoaDonService chiTietHoaDonService;
@@ -369,10 +372,24 @@ public class HoaDonThanhToanController {
                                 dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
                                 dto.setId(item.getIdChiTietMonAn().getId());
                                 dto.setType("FOOD");
+
+                                Integer vatType = 1;
+                                try {
+                                    if (item.getIdChiTietMonAn().getDanhMuc() != null &&
+                                            item.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung() != null) {
+
+                                        vatType = item.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung();
+                                    }
+                                } catch (Exception e) {
+                                    log.error(e.getMessage());
+                                }
+                                dto.setApDungLoaiVat(vatType);
+
                             } else if (item.getIdSetLau() != null) {
                                 dto.setTenMon(item.getIdSetLau().getTenSetLau());
                                 dto.setId(item.getIdSetLau().getId());
                                 dto.setType("SET");
+                                dto.setApDungLoaiVat(1);
                             }
                             return dto;
                         }).collect(Collectors.toList());

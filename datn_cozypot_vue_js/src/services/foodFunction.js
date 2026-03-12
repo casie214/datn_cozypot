@@ -229,23 +229,47 @@ export function useCategoryManager() {
 }
 
 export function useCategoryAddModal(props, emit) {
-    const formData = ref({ tenDanhMuc: '', moTa: '', trangThai: 1 });
+    // 1. THÊM 2 TRƯỜNG MỚI VÀO FORM MẶC ĐỊNH
+    const formData = ref({ 
+        tenDanhMuc: '', 
+        moTa: '', 
+        trangThai: 1,
+        phanLoaiMayIn: 1, // Mặc định: 1 - In Bếp
+        apDungLoaiVat: 1  // Mặc định: 1 - VAT Cửa hàng
+    });
 
     watch(() => props.isOpen, (val) => {
-        if (val) formData.value = { tenDanhMuc: '', moTa: '', trangThai: 1 };
+        if (val) {
+            formData.value = { 
+                tenDanhMuc: '', 
+                moTa: '', 
+                trangThai: 1,
+                phanLoaiMayIn: 1, 
+                apDungLoaiVat: 1,
+                listIdDonVi: [] // Đảm bảo clear đơn vị tính
+            };
+        }
     });
 
     const handleSave = () => {
         formData.value.tenDanhMuc = (formData.value.tenDanhMuc || '').trim();
         formData.value.moTa = (formData.value.moTa || '').trim();
 
-        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
+        // 2. VALIDATE CÁC TRƯỜNG
+        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.length < 5) {
             return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Tên danh mục phải chứa ít nhất 5 kí tự' });
         }
+        if (!formData.value.phanLoaiMayIn) {
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng chọn Khu vực in liên đơn' });
+        }
+        if (!formData.value.apDungLoaiVat) {
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng chọn Loại VAT áp dụng' });
+        }
+
         Swal.fire({
             title: 'Xác nhận', text: 'Bạn có chắc chắn muốn thêm danh mục mới?', icon: 'question', iconColor: '#7D161A',
             showCancelButton: true, confirmButtonColor: '#7D161A', cancelButtonColor: '#d33', confirmButtonText: 'Lưu thay đổi',
-    cancelButtonText: 'Hủy',
+            cancelButtonText: 'Hủy',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -265,43 +289,42 @@ export function useCategoryAddModal(props, emit) {
 }
 
 export function useCategoryPutModal(props, emit) {
-    // 1. Thêm listIdDonVi: [] vào form mặc định
+    // 1. Thêm 2 trường mới vào form mặc định
     const formData = ref({ 
         id: null, 
         maDanhMuc: '', 
         tenDanhMuc: '', 
         moTa: '', 
         trangThai: 1,
+        phanLoaiMayIn: 1, // Thêm mới
+        apDungLoaiVat: 1, // Thêm mới
         listIdDonVi: [] 
     });
 
     // 2. Xử lý map dữ liệu khi nhận item từ prop
     watch(() => props.itemList, async (newItem) => {
         if (newItem && newItem.id) {
-            // 1. Gán các thông tin cơ bản có sẵn từ bảng vào form
-            formData.value = { ...newItem, listIdDonVi: [] };
+            // Gán dữ liệu cũ từ bảng vào form (bao gồm cả phanLoaiMayIn và apDungLoaiVat nếu API list trả về)
+            formData.value = { 
+                ...newItem, 
+                // Đảm bảo không bị null nếu database cũ chưa có dữ liệu
+                phanLoaiMayIn: newItem.phanLoaiMayIn || 1, 
+                apDungLoaiVat: newItem.apDungLoaiVat || 1,
+                listIdDonVi: [] 
+            };
 
             try {
-                // 2. GỌI API CHUYÊN DỤNG LẤY ĐỊNH LƯỢNG CỦA DANH MỤC NÀY
-                // (Giống hệt cách bạn đã làm ở màn hình Thêm Món Ăn)
+                // Lấy định lượng cũ
                 const resUnits = await foodApi.getUnitTypesByCategory(newItem.id); 
-                
                 const arrDonVi = resUnits.data || [];
 
-                // 3. MAP LẤY ID ĐỂ NHÉT VÀO MULTISELECT
-                // Tùy thuộc vào việc arrDonVi trả về array id hay array object
                 if (arrDonVi.length > 0) {
-                    // Kiểm tra xem phần tử đầu tiên là Object hay là Số
                     if (typeof arrDonVi[0] === 'object') {
                         formData.value.listIdDonVi = arrDonVi.map(item => item.id);
                     } else {
-                        // Nếu nó trả sẵn mảng [1, 2, 3] thì gán thẳng luôn
                         formData.value.listIdDonVi = [...arrDonVi];
                     }
                 }
-
-                console.log("👉 ĐÃ TẢI THÀNH CÔNG ĐỊNH LƯỢNG CŨ:", formData.value.listIdDonVi);
-
             } catch (e) {
                 console.error("Lỗi lấy danh sách định lượng của danh mục:", e);
             }
@@ -312,8 +335,15 @@ export function useCategoryPutModal(props, emit) {
         formData.value.tenDanhMuc = (formData.value.tenDanhMuc || '').trim();
         formData.value.moTa = (formData.value.moTa || '').trim();
 
-        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
+        // 3. Validate dữ liệu
+        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.length < 5) {
             return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
+        }
+        if (!formData.value.phanLoaiMayIn) {
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng chọn Khu vực in liên đơn' });
+        }
+        if (!formData.value.apDungLoaiVat) {
+            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng chọn Loại VAT áp dụng' });
         }
         
         Swal.fire({
@@ -328,13 +358,15 @@ export function useCategoryPutModal(props, emit) {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    // 3. THÊM listIdDonVi VÀO PAYLOAD GỬI XUỐNG BACKEND
+                    // 4. Gắn 2 trường mới vào payload gửi đi
                     const payload = {
                         maDanhMuc: formData.value.maDanhMuc,
                         tenDanhMuc: formData.value.tenDanhMuc,
                         moTa: formData.value.moTa || '',
                         trangThai: formData.value.trangThai,
-                        listIdDonVi: formData.value.listIdDonVi || [] // << Thêm dòng này
+                        phanLoaiMayIn: formData.value.phanLoaiMayIn, // Truyền xuống BE
+                        apDungLoaiVat: formData.value.apDungLoaiVat, // Truyền xuống BE
+                        listIdDonVi: formData.value.listIdDonVi || []
                     };
 
                     await foodApi.updateCategory(formData.value.id, payload);

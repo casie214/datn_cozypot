@@ -18,6 +18,7 @@ import '@vueform/multiselect/themes/default.css';
 
 const sysParams = ref({
   VAT: 10,
+  VAT_DONG_GOI: 8, 
   MIN_RESERVE: 30,
   THOI_GIAN_GIU_BAN: 15,
   THOI_GIAN_HUY_HOAN_COC: 120
@@ -28,6 +29,7 @@ const loadSystemParams = async () => {
     const res = await axiosClient.get('/tham-so-he-thong/all-map');
     if (res.data) {
       sysParams.value.VAT = Number(res.data.VAT || 10);
+      sysParams.value.VAT_DONG_GOI = Number(res.data.VAT_DONG_GOI || 8); 
       sysParams.value.MIN_RESERVE = Number(res.data.MIN_RESERVE || 30);
       sysParams.value.THOI_GIAN_GIU_BAN = Number(res.data.THOI_GIAN_GIU_BAN || 15);
       sysParams.value.THOI_GIAN_HUY_HOAN_COC = Number(res.data.THOI_GIAN_HUY_HOAN_COC || 120);
@@ -349,6 +351,22 @@ const handleFetchAllCheckIn = async () => {
   } catch (error) {
     console.error("Lỗi fetch khách chờ:", error);
   }
+};
+
+const getItemVatInfo = (item) => {
+  let rate = 0;
+  // Lấy tỷ lệ % dựa theo loại cấu hình của món
+  if (item.vatType === 1) {
+      rate = sysParams.value.VAT;
+  } else if (item.vatType === 2) {
+      rate = sysParams.value.VAT_DONG_GOI;
+  }
+
+  const subtotal = item.price * item.quantity; // Tiền món (Chưa VAT)
+  const vatAmount = subtotal * (rate / 100);   // Tiền VAT của món này
+  const totalWithVat = subtotal + vatAmount;   // Tổng tiền = Tiền món + Tiền VAT
+
+  return { rate, subtotal, vatAmount, totalWithVat };
 };
 
 const isQuickWalkInMode = ref(false);
@@ -918,7 +936,11 @@ const mapAndGroupItems = (rawList) => {
         quantity: mon.soLuong || 1,
         price: mon.donGia || 0,
         note: formattedNote,
-        served: mon.trangThaiMon === 2
+        served: mon.trangThaiMon === 2,
+        
+        // 🚨 THÊM DÒNG NÀY: Lấy cấu hình VAT từ Backend (Nếu null thì mặc định loại 1)
+        // Lưu ý: Đổi "apDungLoaiVat" thành đúng tên field mà API của bạn trả về
+        vatType: mon.apDungLoaiVat || mon.ap_dung_loai_vat || 1 
       };
     }
   });
@@ -967,20 +989,41 @@ const toggleGopBan = (ban) => {
 };
 
 const billSummary = computed(() => {
-  const tong = listMonDaChon.value.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  let tongTienMon = 0;
+  let tongTienVat = 0;
+
+  // Quét qua từng món đã chọn để tính VAT riêng cho nó
+  listMonDaChon.value.forEach(item => {
+    const thanhTienCuaMon = item.price * item.quantity;
+    tongTienMon += thanhTienCuaMon;
+
+    // Xác định % VAT dựa trên loại VAT của danh mục món đó
+    let tyLeVat = 0;
+    if (item.vatType === 1) {
+        tyLeVat = sysParams.value.VAT; // Vd: 10%
+    } else if (item.vatType === 2) {
+        tyLeVat = sysParams.value.VAT_DONG_GOI; // Vd: 8%
+    }
+    // Nếu vatType === 3 (Không VAT) thì tyLeVat = 0
+
+    // Cộng dồn tiền VAT của món này vào Tổng VAT hóa đơn
+    tongTienVat += thanhTienCuaMon * (tyLeVat / 100);
+  });
+
   const giam = selectedPhieu.value?.soTienDaGiam || 0;
-  let sauGiam = tong - giam;
-  if (sauGiam < 0) sauGiam = 0;
-  
-  // 🚨 Thay 10 bằng sysParams.value.VAT
-  const vatRate = selectedPhieu.value?.vatApDung ?? sysParams.value.VAT; 
-  const tienVat = sauGiam * (vatRate / 100);
   const coc = selectedPhieu.value?.tienCoc || 0;
   
-  let canThu = sauGiam + tienVat - coc; 
+  // Công thức thanh toán: (Tiền món + Tiền VAT) - Khuyến mãi - Tiền cọc
+  let canThu = (tongTienMon + tongTienVat) - giam - coc; 
   if (canThu < 0) canThu = 0;
   
-  return { tong, giam, coc, canThu, vatRate, tienVat, sauGiam }; 
+  return { 
+    tong: tongTienMon, 
+    tienVat: tongTienVat, 
+    giam: giam, 
+    coc: coc, 
+    canThu: canThu 
+  }; 
 });
 
 const currentRawTotal = computed(() => billSummary.value.tong || 0);
@@ -2199,11 +2242,8 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         </div>
                     </div>                    
                     <div class="d-flex justify-content-between text-muted small mb-1">
-                      <span>Thuế VAT:</span>
-                      <div class="">
-                        <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
-                        <span>: + {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
-                      </div>
+                      <span>Thuế VAT (Tính theo món):</span>
+                      <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
                     </div>
                     <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between text-danger small mb-1 fw-bold"><span><i class="fa-solid fa-piggy-bank me-1"></i> Khách đã cọc:</span><span>- {{ (billSummary?.coc || 0).toLocaleString() }} đ</span></div>
                     <div class="d-flex justify-content-between mt-2 pt-2 border-top border-2">
@@ -2334,9 +2374,30 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
             <div v-for="(item, index) in listMonDaChon" :key="item.dbDetailId" class="order-item-card" :class="{'served': item.served}">
               <div class="checkbox-wrapper" @click="toggleItemServed(item)"><div class="custom-checkbox" :class="{'checked': item.served}"><i v-if="item.served" class="fa-solid fa-check"></i></div></div>
               <div class="item-icon-box"><i v-if="item.type === 'SET'" class="fa-solid fa-bowl-food"></i><i v-else class="fa-solid fa-burger"></i></div>
+              
               <div class="item-details flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start mb-1"><span class="fw-bold item-name">{{ item.name }}</span><button class="btn btn-sm btn-delete-item" @click.stop="handleDeleteItem(item, index)" title="Hủy món này"><i class="fa-solid fa-xmark"></i></button></div>
-                <div class="d-flex justify-content-between align-items-center text-muted small mt-1"><span>SL: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Giá: {{ item.price.toLocaleString() }} đ</span><div class="d-flex align-items-center gap-3"><span class="badge" :class="item.served ? 'bg-success' : 'bg-secondary'">{{ item.served ? 'Đã lên' : 'Chưa lên' }}</span><span class="fw-bold text-dark text-end" style="min-width: 100px;">Tổng: {{ (item.price * item.quantity).toLocaleString() }} đ</span></div></div>
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                  <span class="fw-bold item-name">{{ item.name }}</span>
+                  <button class="btn btn-sm btn-delete-item" @click.stop="handleDeleteItem(item, index)" title="Hủy món này"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-end text-muted small mt-1">
+                  <div class="d-flex flex-column gap-1">
+                    <span>SL: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Giá: {{ item.price.toLocaleString() }} đ</span>
+                    <span class="text-danger" style="font-size: 11px;">
+                      <i class="fa-solid fa-file-invoice-dollar me-1"></i> + VAT ({{ getItemVatInfo(item).rate }}%): {{ getItemVatInfo(item).vatAmount.toLocaleString() }} đ
+                    </span>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-3">
+                    <span class="badge" :class="item.served ? 'bg-success' : 'bg-secondary'">{{ item.served ? 'Đã lên' : 'Chưa lên' }}</span>
+                    
+                    <div class="d-flex flex-column text-end" style="min-width: 100px;">
+                      <span class="text-muted" style="font-size: 11px; text-decoration: underline;">Món: {{ getItemVatInfo(item).subtotal.toLocaleString() }} đ</span>
+                      <span class="fw-bold text-dark mt-1" style="font-size: 14px;">Tổng: {{ getItemVatInfo(item).totalWithVat.toLocaleString() }} đ</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2360,9 +2421,8 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
             </div>
 
             <div class="d-flex justify-content-between mb-2 text-muted small">
-                <span>Thuế VAT:</span>
-                <span>({{ billSummary?.vatRate || 0 }}% tổng gộp)</span>
-                <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
+                <span>Thuế VAT (Tính theo món):</span>
+                <span class="text-dark fw-bold">+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
             </div>
 
             <div v-if="(billSummary?.coc || 0) > 0" class="d-flex justify-content-between mb-3 fw-bold" style="color: #007bff;">
