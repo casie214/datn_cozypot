@@ -1939,6 +1939,14 @@ const isServing = computed(() => {
          selectedPhieu.value.idHoaDon !== null;
 });
 
+const monDangCho = computed(() => {
+  return listMonDaChon.value.filter(item => !item.served);
+});
+
+const monDaLen = computed(() => {
+  return listMonDaChon.value.filter(item => item.served);
+});
+
 const checkExpiredTickets = async () => {
   const now = dayjs(currentTime.value);
   let needRefresh = false;
@@ -2371,35 +2379,64 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           </div>
 
           <div class="order-items-list flex-grow-1 overflow-auto pe-2 mb-3" style="min-height: 100px;">
-            <div v-for="(item, index) in listMonDaChon" :key="item.dbDetailId" class="order-item-card" :class="{'served': item.served}">
-              <div class="checkbox-wrapper" @click="toggleItemServed(item)"><div class="custom-checkbox" :class="{'checked': item.served}"><i v-if="item.served" class="fa-solid fa-check"></i></div></div>
-              <div class="item-icon-box"><i v-if="item.type === 'SET'" class="fa-solid fa-bowl-food"></i><i v-else class="fa-solid fa-burger"></i></div>
+            
+            <div class="mb-4">
+              <h6 class="fw-bold text-danger mb-2">
+                <i class="fa-solid fa-fire-burner me-2"></i>Đang chờ phục vụ ({{ monDangCho.length }})
+              </h6>
               
-              <div class="item-details flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                  <span class="fw-bold item-name">{{ item.name }}</span>
-                  <button class="btn btn-sm btn-delete-item" @click.stop="handleDeleteItem(item, index)" title="Hủy món này"><i class="fa-solid fa-xmark"></i></button>
+              <div v-if="monDangCho.length === 0" class="text-center text-muted small py-3 bg-light rounded border border-dashed">
+                <i class="fa-solid fa-check-double me-1"></i> Bàn này đã lên đủ món!
+              </div>
+
+              <div v-for="(item, index) in monDangCho" :key="'wait-'+item.dbDetailId" class="order-item-card pending-item border-danger border-opacity-50">
+                <div class="item-icon-box bg-danger text-white bg-opacity-75">
+                  <i v-if="item.type === 'SET'" class="fa-solid fa-bowl-food"></i>
+                  <i v-else class="fa-solid fa-burger"></i>
                 </div>
                 
-                <div class="d-flex justify-content-between align-items-end text-muted small mt-1">
-                  <div class="d-flex flex-column gap-1">
-                    <span>SL: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Giá: {{ item.price.toLocaleString() }} đ</span>
-                    <span class="text-danger" style="font-size: 11px;">
-                      <i class="fa-solid fa-file-invoice-dollar me-1"></i> + VAT ({{ getItemVatInfo(item).rate }}%): {{ getItemVatInfo(item).vatAmount.toLocaleString() }} đ
-                    </span>
+                <div class="item-details flex-grow-1 ms-3">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <span class="fw-bold item-name fs-6">{{ item.name }}</span>
+                    <button class="btn btn-sm text-danger p-0" @click.stop="handleDeleteItem(item, index)" title="Hủy món này">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
                   </div>
-
-                  <div class="d-flex align-items-center gap-3">
-                    <span class="badge" :class="item.served ? 'bg-success' : 'bg-secondary'">{{ item.served ? 'Đã lên' : 'Chưa lên' }}</span>
-                    
-                    <div class="d-flex flex-column text-end" style="min-width: 100px;">
-                      <span class="text-muted" style="font-size: 11px; text-decoration: underline;">Món: {{ getItemVatInfo(item).subtotal.toLocaleString() }} đ</span>
-                      <span class="fw-bold text-dark mt-1" style="font-size: 14px;">Tổng: {{ getItemVatInfo(item).totalWithVat.toLocaleString() }} đ</span>
+                  
+                  <div class="d-flex justify-content-between align-items-end mt-2">
+                    <div class="text-muted small">
+                      Số lượng: <strong class="text-danger fs-6">{{ item.quantity }}</strong>
+                      <div class="mt-1" style="font-size: 11px;">Giá: {{ item.price.toLocaleString() }}đ</div>
                     </div>
+                    
+                    <button class="btn btn-sm fw-bold px-3 py-1 text-white shadow-sm" style="background-color: #7d161a; border-radius: 6px;" @click="toggleItemServed(item)">
+                      <i class="fa-solid fa-hand-holding-hand me-1"></i> Đã lên món
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div v-if="monDaLen.length > 0">
+              <h6 class="fw-bold text-success mb-2 border-top pt-3">
+                <i class="fa-solid fa-check-circle me-2"></i>Đã phục vụ ({{ monDaLen.length }})
+              </h6>
+
+              <div v-for="(item, index) in monDaLen" :key="'done-'+item.dbDetailId" class="order-item-card served-item bg-light border-0 mb-2 p-2">
+                <div class="d-flex align-items-center w-100 opacity-75">
+                  <i class="fa-solid fa-check text-success me-3 fs-5"></i>
+                  <div class="flex-grow-1">
+                    <div class="fw-bold text-dark" style="text-decoration: line-through;">{{ item.name }}</div>
+                    <small class="text-muted">SL: {{ item.quantity }} | {{ (item.price * item.quantity).toLocaleString() }}đ</small>
+                  </div>
+                  
+                  <button class="btn btn-link text-muted p-0 ms-2" style="font-size: 12px;" @click="toggleItemServed(item)" title="Chưa lên món này">
+                    <i class="fa-solid fa-rotate-left"></i> Hoàn tác
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div class="order-summary-card flex-shrink-0" style="background-color: #fff9f9; border: 1px solid #ffccd5;">
