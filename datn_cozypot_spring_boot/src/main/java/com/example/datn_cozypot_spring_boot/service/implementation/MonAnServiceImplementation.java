@@ -99,6 +99,8 @@ public class MonAnServiceImplementation implements MonAnService {
             res.setSoLuongMon(e.getSoLuongMon() != null ? e.getSoLuongMon() : 0);
             res.setMoTa(e.getMoTa());
             res.setTrangThai(e.getTrangThai());
+            res.setApDungLoaiVat(e.getLoaiVatApDung());
+            res.setPhanLoaiMayIn(e.getPhanLoaiMayIn());
             return res;
         }).collect(Collectors.toList());
     }
@@ -106,13 +108,15 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional // Bắt buộc có để đảm bảo tính toàn vẹn dữ liệu khi lưu nhiều bảng
     public DanhMucResponse createDanhMuc(DanhMucRequest request) {
-        // 1. Tạo và map dữ liệu cơ bản cho Danh Mục
         DanhMuc d = new DanhMuc();
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setMoTa(request.getMoTa());
         d.setTrangThai(1);
         d.setMaDanhMuc(generateNextCode(request.getTenDanhMuc(), "DANH_MUC"));
         d.setNgayTao(Instant.now());
+        d.setLoaiVatApDung(request.getLoaiVatApDung());
+        System.out.println("asdsadsa: " + request.getLoaiVatApDung());
+        d.setPhanLoaiMayIn(request.getPhanLoaiMayIn());
 
         // Lưu Danh Mục xuống DB trước để Hibernate cấp phát ID (ID này cần để tạo liên kết)
         DanhMuc savedDanhMuc = danhMucRepository.save(d);
@@ -150,6 +154,8 @@ public class MonAnServiceImplementation implements MonAnService {
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setTrangThai(request.getTrangThai());
         d.setMoTa(request.getMoTa());
+        d.setLoaiVatApDung(request.getLoaiVatApDung());
+        d.setPhanLoaiMayIn(request.getPhanLoaiMayIn());
 
         // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU (THAO TÁC TỪ PHÍA ĐƠN VỊ)
 

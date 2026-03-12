@@ -40,6 +40,14 @@ public class DanhMuc {
     @Column(name = "mo_ta")
     private String moTa;
 
+    @Nationalized
+    @Column(name = "ap_dung_loai_vat")
+    private Integer loaiVatApDung;
+
+    @Nationalized
+    @Column(name = "phan_loai_may_in")
+    private Integer phanLoaiMayIn;
+
     @ColumnDefault("getdate()")
     @Column(name = "ngay_tao")
     private Instant ngayTao;
@@ -70,4 +78,6 @@ public class DanhMuc {
     @ManyToMany(mappedBy = "listDanhMuc")
     @JsonIgnore // Tránh loop JSON
     private List<DonVi> listDonVi;
+
+
 }

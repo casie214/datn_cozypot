@@ -77,6 +77,7 @@ public class PhieuDatBanResponse {
         private String type; // "FOOD" hoặc "SET"
         private Integer idChiTietMonAn;
         private Integer idSetLau;
+        private Integer apDungLoaiVat;
 
         // Dùng để Frontend nhóm món ăn hiển thị (Ví dụ: [Bàn S02] Ít cay)
         private String ghiChu;

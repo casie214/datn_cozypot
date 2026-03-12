@@ -24,6 +24,17 @@ const {
     handleDialogClose
 } = useCategoryPutModal(props, emit);
 
+const printerOptions = [
+  { value: 1, label: 'Máy in Bếp (Đồ ăn)' },
+  { value: 2, label: 'Máy in Quầy Bar (Nước)' },
+  { value: 3, label: 'Không in phiếu' }
+];
+
+const vatOptions = [
+  { value: 1, label: 'Áp dụng VAT Nhà Hàng' },
+  { value: 2, label: 'Áp dụng VAT Đóng Gói' }
+];
+
 // ==========================================
 // THÊM LOGIC QUẢN LÝ ĐỊNH LƯỢNG VÀ THÊM NHANH (ENTER)
 // ==========================================
@@ -145,6 +156,36 @@ const handleUnitAdded = async (newUnitData) => {
                     <div class="form-group full-width">
                         <label>Tên danh mục <span class="required">*</span></label>
                         <input v-model="formData.tenDanhMuc" type="text">
+                    </div>
+
+                    <div class="d-flex gap-3 mt-3 mb-1">
+                        <div class="form-group w-50 m-0">
+                            <label>Máy in liên đơn <span class="required">*</span></label>
+                            <Multiselect
+                                v-model="formData.phanLoaiMayIn"
+                                :options="printerOptions"
+                                valueProp="value"
+                                label="label"
+                                placeholder="-- Chọn khu vực in --"
+                                :searchable="false"
+                                :canClear="false"
+                                class="custom-multiselect-theme"
+                            />
+                        </div>
+                        
+                        <div class="form-group w-50 m-0">
+                            <label>Loại VAT <span class="required">*</span></label>
+                            <Multiselect
+                                v-model="formData.apDungLoaiVat"
+                                :options="vatOptions"
+                                valueProp="value"
+                                label="label"
+                                placeholder="-- Chọn loại VAT --"
+                                :searchable="false"
+                                :canClear="false"
+                                class="custom-multiselect-theme"
+                            />
+                        </div>
                     </div>
 
                     <div class="form-group full-width" style="margin-top: 5px;">
