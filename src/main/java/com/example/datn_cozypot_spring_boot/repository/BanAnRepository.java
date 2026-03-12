@@ -41,6 +41,9 @@ LEFT JOIN PhieuDatBan p
     @Query("SELECT b FROM BanAn b WHERE b.soNguoiToiDa >= :soNguoi AND b.soNguoiToiDa <= :soNguoi + 4")
     List<BanAn> findBanPhuHopChoDatBan(@Param("soNguoi") Integer soNguoi);
 
+    @Query("SELECT SUM(b.soNguoiToiDa) FROM BanAn b")
+    Integer getTongSucChua();
+
     @Modifying
     @Transactional
     @Query(value = "UPDATE ban_an SET trang_thai = 0 WHERE id_ban_an IN (SELECT id_ban_an FROM phieu_dat_ban_ban_an WHERE id_phieu_dat_ban = :idPhieu)", nativeQuery = true)
