@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted, watch, onUnmounted, reactive  } from 'vue';
+import { ref, onMounted, watch, onUnmounted, reactive } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './authenticationServices/authenticationService';
 import Swal from 'sweetalert2';
 import OtpModal from './OtpModal.vue';
 import dayjs from 'dayjs';
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -52,7 +54,7 @@ const startCountdown = () => {
     }, 1000);
 };
 const formData = reactive({
-  ngaySinh: ""
+    ngaySinh: ""
 });
 const stopCountdown = () => {
     clearInterval(timerInterval);
@@ -163,18 +165,18 @@ const validate = () => {
         isValid = false;
     }
     if (!formData.ngaySinh) {
-    errors.value.ngaySinh = "Vui lòng chọn ngày sinh";
-    isValid = false;
-} else {
-    const selectedDate = new Date(formData.ngaySinh);
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    if (selectedDate > today) {
-        errors.value.ngaySinh = "Ngày sinh không được là ngày ở tương lai";
+        errors.value.ngaySinh = "Vui lòng chọn ngày sinh";
         isValid = false;
-    }
-} if (!selectedTinh.value || !selectedQuan.value || !selectedPhuong.value || !diaChiChiTiet.value?.trim()) {
+    } else {
+        const selectedDate = new Date(formData.ngaySinh);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            errors.value.ngaySinh = "Ngày sinh không được là ngày ở tương lai";
+            isValid = false;
+        }
+    } if (!selectedTinh.value || !selectedQuan.value || !selectedPhuong.value || !diaChiChiTiet.value?.trim()) {
         errors.value.diaChi = "Vui lòng điền đầy đủ địa chỉ";
         isValid = false;
     }
@@ -201,9 +203,15 @@ const handleRegister = async () => {
         soDienThoai: soDienThoai.value,
         ngaySinh: formData.ngaySinh,
         gioiTinh: gioiTinh.value,
+
         idTinhThanh: String(selectedTinh.value),
         idQuanHuyen: String(selectedQuan.value),
         idPhuongXa: String(selectedPhuong.value),
+
+        tenTinhThanh: listTinh.value.find(t => t.code == selectedTinh.value)?.name,
+        tenQuanHuyen: listQuan.value.find(q => q.code == selectedQuan.value)?.name,
+        tenPhuongXa: listPhuong.value.find(p => p.code == selectedPhuong.value)?.name,
+
         diaChiChiTiet: diaChiChiTiet.value
     };
 
@@ -352,26 +360,22 @@ const navigateToLogin = () => router.push('/login');
                             <div class="invalid-feedback">{{ errors.matKhau }}</div>
                         </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-4">
-                                <select v-model="selectedTinh" class="custom-input p-2 small-text">
-                                    <option value="">Tỉnh/TP</option>
-                                    <option v-for="t in listTinh" :key="t.code" :value="t.code">{{ t.name }}</option>
-                                </select>
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <Multiselect v-model="selectedTinh" :options="listTinh" valueProp="code" label="name"
+                                    placeholder="Chọn Tỉnh / Thành phố" :searchable="true" :canClear="false" />
                             </div>
-                            <div class="col-4">
-                                <select v-model="selectedQuan" class="custom-input p-2 small-text"
-                                    :disabled="!selectedTinh">
-                                    <option value="">Quận/Huyện</option>
-                                    <option v-for="q in listQuan" :key="q.code" :value="q.code">{{ q.name }}</option>
-                                </select>
+
+                            <div class="col-6">
+                                <Multiselect v-model="selectedQuan" :options="listQuan" valueProp="code" label="name"
+                                    placeholder="Chọn Quận / Huyện" :searchable="true" :canClear="false"
+                                    :disabled="!selectedTinh" />
                             </div>
-                            <div class="col-4">
-                                <select v-model="selectedPhuong" class="custom-input p-2 small-text"
-                                    :disabled="!selectedQuan">
-                                    <option value="">Phường/Xã</option>
-                                    <option v-for="w in listPhuong" :key="w.code" :value="w.code">{{ w.name }}</option>
-                                </select>
+
+                            <div class="col-6">
+                                <Multiselect v-model="selectedPhuong" :options="listPhuong" valueProp="code"
+                                    label="name" placeholder="Chọn Phường / Xã" :searchable="true" :canClear="false"
+                                    :disabled="!selectedQuan" />
                             </div>
                         </div>
 
@@ -414,7 +418,7 @@ const navigateToLogin = () => router.push('/login');
     width: 100%;
     max-width: 950px;
     padding: 50px;
-    border-radius: 30px;
+    border-radius: 10px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
 }
 
@@ -445,6 +449,20 @@ const navigateToLogin = () => router.push('/login');
     gap: 10px;
 }
 
+:deep(.multiselect-option.is-pointed) {
+    background: #f7dcdc !important;
+    color: #7D161A !important;
+}
+
+:deep(.multiselect-option.is-selected) {
+    background: #f2c4c4 !important;
+    color: #7D161A !important;
+}
+
+:deep(.multiselect-option.is-selected.is-pointed) {
+    background: #eab3b3 !important;
+}
+
 .input-group-custom {
     margin-bottom: 18px;
     position: relative;
@@ -455,7 +473,7 @@ const navigateToLogin = () => router.push('/login');
     padding: 12px 18px;
     background: #f9f9f9;
     border: 1px solid #edebeb;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 14px;
     transition: all 0.3s ease;
 }
@@ -557,5 +575,80 @@ const navigateToLogin = () => router.push('/login');
 
 .small-text {
     font-size: 12px;
+}
+
+/* ===== SELECT ADDRESS ===== */
+
+.multiselect {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid #ddd;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    background: #f9f9f9;
+}
+
+
+.multiselect-wrapper {
+    border: 1px solid #dcdcdc !important;
+    
+    background: #fff;
+}
+
+
+
+/* khi focus */
+.multiselect.is-active {
+    border-color: #7D161A !important;
+    box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.08);
+}
+
+/* placeholder */
+.multiselect-placeholder {
+    font-size: 13px;
+    color: #888;
+}
+
+/* label sau khi chọn */
+.multiselect-single-label {
+    font-size: 13px;
+}
+
+/* dropdown */
+.multiselect-dropdown {
+    border: 1px solid #eee;
+}
+
+/* hover option */
+.multiselect-option.is-pointed {
+    background: #f7e4e5 !important;
+    color: #7D161A !important;
+}
+
+/* option đã chọn */
+.multiselect-option.is-selected {
+    background: #7D161A !important;
+    color: #fff !important;
+}
+
+/* bỏ màu xanh mặc định */
+.multiselect-option.is-selected.is-pointed {
+    background: #7D161A !important;
+}
+
+/* search input */
+.multiselect-search {
+    font-size: 13px;
+}
+
+/* đổi toàn bộ màu xanh của Multiselect */
+
+:root {
+    --ms-option-bg-selected: #f7dcdc;
+    --ms-option-bg-selected-pointed: #f2c4c4;
+    --ms-option-bg-pointed: #f7dcdc;
+
+    --ms-option-color-selected: #7D161A;
 }
 </style>

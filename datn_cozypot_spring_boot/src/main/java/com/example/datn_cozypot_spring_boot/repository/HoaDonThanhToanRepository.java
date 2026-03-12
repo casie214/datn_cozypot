@@ -39,8 +39,13 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
-            "AND (CAST(:tuNgay AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgay) " +
-            "AND (CAST(:denNgay AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgay) " +
+
+            "AND (CAST(:tuNgayTao AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgayTao) " +
+            "AND (CAST(:denNgayTao AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgayTao) " +
+
+            "AND (CAST(:tuNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat >= :tuNgayDat) " +
+            "AND (CAST(:denNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat <= :denNgayDat) " +
+
             "AND (:keyword IS NULL OR :keyword = '' " +
             "     OR LOWER(hd.maHoaDon) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
@@ -49,8 +54,15 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
-            @Param("tuNgay") Instant tuNgay,
-            @Param("denNgay") Instant denNgay,
+
+            // Cặp tham số cho Ngày tạo (Kiểu Instant)
+            @Param("tuNgayTao") Instant tuNgayTao,
+            @Param("denNgayTao") Instant denNgayTao,
+
+            // Cặp tham số cho Ngày đặt (Kiểu LocalDateTime)
+            @Param("tuNgayDat") LocalDateTime tuNgayDat,
+            @Param("denNgayDat") LocalDateTime denNgayDat,
+
             Pageable pageable
     );
 
@@ -92,11 +104,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 """)
     List<KenhDatResponse> thongKeKenhDat();
 
-    List<HoaDonThanhToan> findByThoiGianTaoBetween(LocalDateTime start, LocalDateTime end);
-
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
-
-    Optional<HoaDonThanhToan> findByMaHoaDon(String idHoaDon);
 
     @Query("SELECT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan p WHERE p.maDatBan = :maPhieu")
     Optional<HoaDonThanhToan> findByMaPhieuDatBan(@Param("maPhieu") String maPhieu);

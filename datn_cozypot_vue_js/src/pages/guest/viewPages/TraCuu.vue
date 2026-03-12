@@ -511,7 +511,7 @@ const finalBalance = computed(() => {
           <div class="col-lg-8 d-flex flex-column gap-4">
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-                🍴 Chi tiết món ăn đã đặt
+                <i class="fas fa-utensils" style="color: silver;"></i> Chi tiết món ăn đã đặt
               </div>
               <div class="card-body p-0 table-responsive">
                 <table class="table align-middle mb-0">
@@ -519,6 +519,7 @@ const finalBalance = computed(() => {
                     <tr>
                       <th class="ps-4 py-3">TÊN MÓN</th>
                       <th class="text-center py-3">SỐ LƯỢNG</th>
+                      <th class="text-center py-3">ĐƠN GIÁ</th>
                       <th class="text-end py-3 pe-4">THÀNH TIỀN</th>
                     </tr>
                   </thead>
@@ -537,6 +538,7 @@ const finalBalance = computed(() => {
                         </div>
                       </td>
                       <td class="text-center fw-bold">{{ item.soLuong }}</td>
+                      <td class="text-center fw-bold">{{ formatMoney(item.donGia) }}</td>
                       <td class="text-end fw-bold pe-4">
                         {{ formatMoney(item.thanhTien) }}
                       </td>
@@ -552,7 +554,7 @@ const finalBalance = computed(() => {
                           class="fa-solid fa-bell-concierge fs-1 opacity-25 mb-3"
                         ></i>
                         <p class="mb-0">
-                          Đơn hàng này chỉ đặt giữ bàn, chưa chọn món trước.
+                          Không tìm thấy món ăn
                         </p>
                       </td>
                     </tr>
@@ -563,7 +565,7 @@ const finalBalance = computed(() => {
 
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-                🕒 Hành trình đơn hàng
+                <i class="far fa-clock"></i> Hành trình đơn hàng
               </div>
               <div
                 class="card-body p-4"
@@ -637,7 +639,7 @@ const finalBalance = computed(() => {
           <div class="col-lg-4 d-flex flex-column gap-4">
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-                💰 Thông tin thanh toán
+                <i class="fas fa-sack-dollar" style="color: orange;"></i> Thông tin thanh toán
               </div>
               <div class="card-body p-4 d-flex flex-column">
                 <div class="d-flex justify-content-between mb-2">
@@ -734,7 +736,7 @@ const finalBalance = computed(() => {
               class="card border-0 shadow-sm rounded-4"
             >
               <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-                💳 Giao dịch thanh toán
+                <i class="fas fa-credit-card" style="color: cornflowerblue;"></i> Giao dịch thanh toán
               </div>
               <div class="card-body p-4">
                 <div

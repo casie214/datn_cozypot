@@ -51,8 +51,7 @@
 
                     <tbody>
                         <tr v-for="(item, index) in paginatedList" :key="item.id">
-                            <td>{{ index + 1 }}</td>
-                            <td class="fw-bold">{{ item.maThamSo }}</td>
+<td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>                            <td class="fw-bold">{{ item.maThamSo }}</td>
                             <td>{{ item.tenThamSo }}</td>
                             <td>{{ formatValue(item) }}</td>
 
@@ -788,21 +787,18 @@ const statusOptions = ref([
     border: 1px solid #d1d5db;
 }
 
-/* Page buttons */
-.btn-page {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #8B0000;
-    transition: 0.2s;
+
+.btn-page{
+    background: transparent;
+    border: none;
+    color: #333;
+    padding: 5px 10px;
+    cursor: pointer;
 }
 
 .btn-page:hover:not(:disabled) {
-    background: #8B0000;
-    color: #ffffff;
-    border-color: #8B0000;
+    background: #8b0000;
+    color: white;
 }
 
 .btn-page:disabled {
@@ -810,8 +806,22 @@ const statusOptions = ref([
     cursor: not-allowed;
 }
 
-/* Page number */
 .page-number {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;    border-radius: 6px;
+    margin: 0 2px;
+    color: #8b0000;
+    font-weight: 500;
+    display: flex;
+    align-items: center;     /* căn giữa dọc */
+    justify-content: center; /* căn giữa ngang */
+    padding: 0;   
+}
+
+
+/* Page number */
+/* .page-number {
     width: 40px;
     height: 40px;
     border-radius: 10px;
@@ -822,7 +832,8 @@ const statusOptions = ref([
     justify-content: center;
     cursor: pointer;
     transition: 0.2s;
-}
+} */
+
 
 .page-number:hover {
     background: #f3f4f6;
@@ -1085,14 +1096,45 @@ const statusOptions = ref([
     border-radius: 12px;
 }
 
-.multiselect__option--highlight {
+/* Hover option */
+.multiselect__option:hover {
+    background: #8B0000 !important;
+    color: white !important;
+}
+
+:deep(.multiselect__option--highlight) {
+    background: #8B0000 !important;
+    color: white !important;
+}
+
+:deep(.multiselect__option:hover) {
+    background: #8B0000 !important;
+    color: white !important;
+}
+
+:deep(.multiselect__tag) {
     background: #8B0000 !important;
 }
 
-.multiselect__tag {
-    background: #8B0000;
+:deep(.multiselect__option--selected) {
+    background: #f3d6d6 !important;
+    color: #8B0000 !important;
+}
+/* Option đã chọn */
+.multiselect__option--selected {
+    background: #f3d6d6 !important;
+    color: #8B0000 !important;
 }
 
+/* Tag khi chọn */
+.multiselect__tag {
+    background: #8B0000 !important;
+    color: white;
+}
+.multiselect:focus-within .multiselect__tags {
+    border-color: #8B0000;
+    box-shadow: 0 0 0 2px rgba(139,0,0,0.1);
+}
 .action-wrapper {
     display: flex;
     align-items: center;
