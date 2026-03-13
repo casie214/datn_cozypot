@@ -368,8 +368,10 @@ public class HoaDonThanhToanController {
             res.setTienCoc(hoaDon.getTienCoc());
             res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
             res.setVatApDung(hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.valueOf(0));
-            res.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
-            res.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getMaPhieuGiamGia());
+            if (hoaDon.getIdPhieuGiamGia() != null) {
+                res.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
+                res.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getCodeGiamGia()); // Lưu ý: Tên trường trong Entity PhieuGiamGia thường là codeGiamGia
+            }
 
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
             if (chiTietHD != null) {
