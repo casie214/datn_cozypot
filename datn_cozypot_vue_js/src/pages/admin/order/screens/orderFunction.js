@@ -171,6 +171,7 @@ export function useOrderManager() {
         khachHang: item.tenKhachHang,
         sdt: item.sdtKhachHang,
         ban: item.tenBan,
+        danhSachTenBan: item.danhSachTenBan || (item.tenBan ? [item.tenBan] : []),
         loai: mapOrderType(item.hinhThucDat),
         soLuongKhach: item.soLuongKhach,
         tongTien: formatCurrency(item.tongTienChuaGiam),

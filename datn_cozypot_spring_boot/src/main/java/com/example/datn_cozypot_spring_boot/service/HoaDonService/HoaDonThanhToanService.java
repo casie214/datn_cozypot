@@ -63,8 +63,26 @@ public class HoaDonThanhToanService {
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
     }
 
-    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgayTao, Instant denNgayTao, LocalDateTime tuNgayDat, LocalDateTime denNgayDat,Pageable pageable){
-        return hoaDonThanhToanRepository.searchHoaDon(key, trangThai, tuNgayTao, denNgayTao, tuNgayDat, denNgayDat, pageable);
+    public Page<HoaDonThanhToanResponse> searchHoaDon(String key, Integer trangThai, Instant tuNgayTao, Instant denNgayTao, LocalDateTime tuNgayDat, LocalDateTime denNgayDat, Pageable pageable) {
+        // 1. Lấy trang dữ liệu thô (chưa có mảng bàn) từ Repository
+        Page<HoaDonThanhToanResponse> page = hoaDonThanhToanRepository.searchHoaDon(key, trangThai, tuNgayTao, denNgayTao, tuNgayDat, denNgayDat, pageable);
+
+        // 2. Với mỗi kết quả, đi tìm danh sách bàn tương ứng
+        page.getContent().forEach(res -> {
+            // Tìm lại Entity HoaDon để truy cập vào Set bàn (hoặc dùng query riêng để tối ưu)
+            HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(res.getId()).orElse(null);
+            if (hd != null && hd.getIdPhieuDatBan() != null) {
+                List<String> tenBans = hd.getIdPhieuDatBan().getBanAns()
+                        .stream()
+                        .map(BanAn::getMaBan) // Hoặc getTenBan() tùy bạn
+                        .collect(Collectors.toList());
+                res.setDanhSachTenBan(tenBans);
+            } else {
+                res.setDanhSachTenBan(new ArrayList<>());
+            }
+        });
+
+        return page;
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
