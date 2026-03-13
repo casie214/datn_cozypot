@@ -524,7 +524,7 @@ const handleCheckInGuest = async (khach) => {
     });
 
     if (swalResult.isConfirmed) {
-      selectedPhieu.value = khach; 
+      selectedPhieu.value = { ...khach, soNguoi: soKhach };
       await openManageModal(ban);
       return;
     } else if (swalResult.isDenied) {
@@ -553,40 +553,48 @@ const handleCheckInGuest = async (khach) => {
 
 const handleSplitTableLogic = async (khach, banGoc) => {
   try {
-    // 1. Thực hiện Check-in bàn gốc NHƯ BÌNH THƯỜNG
+    // 1. TÍNH TOÁN SỐ KHÁCH TRƯỚC
+    const soKhachBanDau = Number(khach.soNguoi) || 1;
+    const sucChuaBanGoc = Number(banGoc.soCho || banGoc.soNguoiToiDa) || 0; // Tùy key FE bạn đang dùng
+    
+    // Bàn gốc sẽ ngồi full sức chứa (hoặc ngồi hết số khách nếu khách ít hơn sức chứa)
+    const soNguoiNgoiBanGoc = soKhachBanDau > sucChuaBanGoc ? sucChuaBanGoc : soKhachBanDau;
+    
+    // Số khách bị dư ra cần xếp sang bàn phụ
+    const soKhachConLai = soKhachBanDau - soNguoiNgoiBanGoc;
+
+    // 2. THỰC HIỆN CHECK-IN BÀN GỐC KÈM SỐ NGƯỜI
     const payloadBanGoc = {
       idBanAn: banGoc.id, 
       trangThai: 1, 
       id: khach.id, 
       trangThaiPhieu: 3,
-      vatApDung: 10.0
+      vatApDung: 0, // 🚨 Sửa thành 0 theo logic Flat VAT (Tiền thực tế) đã thống nhất
+      soNguoi: soNguoiNgoiBanGoc // 🚨 GỬI KÈM SỐ NGƯỜI NGỒI BÀN CHÍNH
     };
     await updateTrangThaiBan(payloadBanGoc); 
     
-    // 2. Chờ 1 nhịp và Tự động gọi API lấy Hóa đơn vừa tạo ra để có idHoaDonGoc
+    // 3. CHỜ 1 NHỊP VÀ LẤY ID HÓA ĐƠN
     const resHoaDon = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${banGoc.id}`);
     if (!resHoaDon.data || !resHoaDon.data.idHoaDon) {
         throw new Error("Lỗi không tạo được hóa đơn cho bàn chính!");
     }
 
-    const idHoaDonVuaTao = resHoaDon.data.idHoaDon; // 🚨 ĐÂY LÀ CHÌA KHÓA NỐI BÀN PHỤ!
-    
-    const soKhachBanDau = Number(khach.soNguoi) || 1;
-    const sucChuaBanGoc = Number(banGoc.soCho) || 0;
-    const soKhachConLai = soKhachBanDau - sucChuaBanGoc;
+    const idHoaDonVuaTao = resHoaDon.data.idHoaDon; 
 
+    // 4. HIỂN THỊ THÔNG BÁO CHO NHÂN VIÊN
     await Swal.fire({
       title: 'Đã Check-in Bàn 1',
-      html: `Đã xếp ${sucChuaBanGoc} khách vào bàn <b>${banGoc.maBan}</b>.<br><br>
+      html: `Đã xếp ${soNguoiNgoiBanGoc} khách vào bàn <b>${banGoc.maBan}</b>.<br><br>
              Đoàn còn <b style="color:red">${soKhachConLai} người</b> chưa có chỗ.<br>
              Vui lòng <b>Click vào một bàn trống khác</b> trên sơ đồ để tiếp tục xếp chỗ.`,
       icon: 'info',
       confirmButtonText: 'Đã hiểu'
     });
 
-    // 3. GHI NHỚ ID HÓA ĐƠN CHÍNH
+    // 5. GHI NHỚ THÔNG TIN VÀO LOCALSTORAGE CHO BÀN TIẾP THEO
     localStorage.setItem("pendingSplitCustomer", JSON.stringify({
-      idHoaDonGoc: idHoaDonVuaTao, // 🚨 Lưu Id Hóa Đơn thay vì Mã Đặt Bàn
+      idHoaDonGoc: idHoaDonVuaTao, 
       tenKhachHang: khach.tenKhachHang || 'Khách vãng lai',
       soKhachCanXep: soKhachConLai
     }));
@@ -594,6 +602,7 @@ const handleSplitTableLogic = async (khach, banGoc) => {
     await handleFetchAllCheckIn();
     await fetchAllBan();
   } catch (error) {
+    console.error("Lỗi ghép bàn gốc:", error);
     Swal.fire({ title: 'Lỗi', text: 'Không thể check-in bàn gốc lúc này', icon: 'error', confirmButtonText: 'Đóng' });
   }
 };
@@ -875,7 +884,9 @@ const openManageModal = async (ban, forceStatus = null, targetKhach = null) => {
           tenKhachHang: targetKhach ? targetKhach.tenKhachHang : (data.tenKhachHang || 'Khách tại quán'),
           idKhachHang: targetKhach ? targetKhach.idKhachHang : data.idKhachHang, 
           thoiGianDat: targetKhach ? targetKhach.thoiGianDat : data.thoiGianDat,
-          soNguoi: targetKhach ? (targetKhach.soNguoi || targetKhach.soLuongKhach) : data.soNguoi,
+          soNguoi: (data.soNguoiBanNay && data.soNguoiBanNay > 0) 
+                   ? data.soNguoiBanNay 
+                   : (targetKhach ? (targetKhach.soNguoi || targetKhach.soLuongKhach) : data.soNguoi),
           tongTienChuaGiam: data.tongTienChuaGiam || 0,
           soTienDaGiam: data.soTienDaGiam || 0,
           tienCoc: data.tienCoc !== undefined ? data.tienCoc : (targetKhach ? targetKhach.tienCoc : 0), 
@@ -1523,20 +1534,32 @@ const handleSwitchTable = async (banMoi) => {
 
   // 3. TRƯỜNG HỢP: ĐANG TÁCH / THÊM BÀN PHỤ
   if (isSelectingSecondTable.value || localStorage.getItem("pendingSplitCustomer")) {
-    try {
-      const pendingText = localStorage.getItem("pendingSplitCustomer");
-      let idHoaDonGoc = pendingText ? JSON.parse(pendingText).idHoaDonGoc : selectedPhieu.value?.idHoaDon;
-      let khachDangCho = pendingText ? Number(JSON.parse(pendingText).soKhachCanXep) : 0;
+        try {
+          const pendingText = localStorage.getItem("pendingSplitCustomer");
+          let idHoaDonGoc = pendingText ? JSON.parse(pendingText).idHoaDonGoc : selectedPhieu.value?.idHoaDon;
+          let khachDangCho = pendingText ? Number(JSON.parse(pendingText).soKhachCanXep) : 0;
 
-      if (!idHoaDonGoc) return Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy Hóa đơn gốc để ghép!', icon: 'error', confirmButtonText: 'Đóng' });
+          if (!idHoaDonGoc) return Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy Hóa đơn gốc để ghép!', icon: 'error', confirmButtonText: 'Đóng' });
 
-      Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
+          Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
 
-      await axiosClient.post(`/hoa-don-thanh-toan/${idHoaDonGoc}/them-ban-phu`, {
-          idBanMoi: banMoi.id
-      });
-      
-      const conLai = khachDangCho - Number(banMoi.soCho);
+          // 🚨 TÍNH TOÁN SỐ NGƯỜI
+          const sucChuaBanMoi = Number(banMoi.soCho);
+          const soNguoiNgoiBanMoi = khachDangCho > sucChuaBanMoi ? sucChuaBanMoi : khachDangCho;
+
+          // In ra console của trình duyệt (F12) để chắc chắn biến không bị undefined
+          console.log("PAYLOAD GỬI ĐI THÊM BÀN PHỤ:", { 
+              idBanMoi: banMoi.id, 
+              soNguoi: soNguoiNgoiBanMoi 
+          });
+
+          // GỌI API
+          await axiosClient.post(`/hoa-don-thanh-toan/${idHoaDonGoc}/them-ban-phu`, {
+              idBanMoi: banMoi.id,
+              soNguoi: soNguoiNgoiBanMoi
+          });
+          
+          const conLai = khachDangCho - sucChuaBanMoi;
 
       if (conLai <= 0) {
           Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Hoàn tất', text: 'Đã ghép bàn thành công!', timer: 1500 });
@@ -2289,8 +2312,18 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         </button>
                     </div>
                     <div v-else class="d-flex gap-2 mt-2">
-                        <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openChangeTableView"><i class="fa-solid fa-right-left me-1"></i> Đổi bàn</button>
-                        <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openMergeTableView"><i class="fa-solid fa-link me-1"></i> Gộp bàn</button>
+                        <button 
+                            :disabled="!isServing || (selectedPhieu?.danhSachBan && selectedPhieu.danhSachBan.length > 1)" 
+                            class="btn-action flex-grow-1" 
+                            @click="openChangeTableView"
+                            :title="(selectedPhieu?.danhSachBan && selectedPhieu.danhSachBan.length > 1) ? 'Đoàn đang ngồi nhiều bàn, không thể đổi!' : ''"
+                        >
+                            <i class="fa-solid fa-right-left me-1"></i> Đổi bàn
+                        </button>
+                        
+                        <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openMergeTableView">
+                            <i class="fa-solid fa-link me-1"></i> Gộp bàn
+                        </button>
                     </div>
                   </div>
                 <div v-else class="text-center text-muted mb-3"><small><i>Bàn trống. Cần Check-in phiếu đặt để thực hiện các thao tác thêm món.</i></small></div>

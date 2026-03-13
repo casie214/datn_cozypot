@@ -252,13 +252,31 @@ public class DatBanService {
             BanAn banMoi = banAnRepository.findById(request.getIdBanAnMoi())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn mới"));
 
-            String maBanCu = banCu.getMaBan();
-            String maBanMoi = banMoi.getMaBan();
+            // 🚨 KIỂM TRA BÀN MỚI CÓ ĐANG TRỐNG KHÔNG (Chặn đè khách)
+            if (banMoi.getTrangThai() != 0) {
+                throw new RuntimeException("Bàn " + banMoi.getMaBan() + " không trống, không thể chuyển sang!");
+            }
 
-            // 🚨 LOGIC N-N: Rút bàn cũ ra khỏi Phiếu, nhét bàn mới vào
-            phieu.getBanAns().remove(banCu);
-            phieu.getBanAns().add(banMoi);
+            // =========================================================
+            // 🚨 THAO TÁC TRỰC TIẾP LÊN BẢNG TRUNG GIAN N-N
+            // =========================================================
+            // 1. Gỡ bỏ liên kết với Bàn Cũ trong SQL
+            phieu.getDsBanAn().removeIf(link -> link.getBanAn().getId().equals(banCu.getId()));
 
+            // 2. Tạo liên kết với Bàn Mới
+            PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
+            linkMoi.setPhieuDatBan(phieu);
+            linkMoi.setBanAn(banMoi);
+
+            PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+            linkId.setIdPhieuDatBan(phieu.getId());
+            linkId.setIdBanAn(banMoi.getId());
+            linkMoi.setId(linkId);
+
+            phieu.getDsBanAn().add(linkMoi);
+            // =========================================================
+
+            // Cập nhật trạng thái hiển thị
             banCu.setTrangThai(0);
             banMoi.setTrangThai(1);
 
@@ -266,9 +284,13 @@ public class DatBanService {
             banAnRepository.save(banMoi);
             phieuDatBanRepository.save(phieu);
 
+            // 🚨 BẮT BUỘC FLUSH: Ép Hibernate thực thi lệnh DELETE và INSERT xuống SQL Server ngay lập tức
+            phieuDatBanRepository.flush();
+            banAnRepository.flush();
+
             if (hoaDon != null) {
                 ghiLichSu(hoaDon, request.getIdNhanVien(),
-                        "Đổi bàn: " + maBanCu + " -> " + maBanMoi,
+                        "Đổi bàn: " + banCu.getMaBan() + " -> " + banMoi.getMaBan(),
                         "Chuyển một phần/toàn bộ khách sang bàn mới",
                         hoaDon.getTrangThaiHoaDon(), hoaDon.getTrangThaiHoaDon());
             }

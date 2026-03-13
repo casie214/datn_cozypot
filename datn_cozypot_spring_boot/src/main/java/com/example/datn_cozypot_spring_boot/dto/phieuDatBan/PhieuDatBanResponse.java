@@ -17,6 +17,7 @@ public class PhieuDatBanResponse {
     private String tenKhachHang;
     private String sdtKhachHang;
     private LocalDateTime thoiGianDat;
+    private Integer soNguoiBanNay;
     private Integer soNguoi;
     private Integer trangThai;
     private String ghiChu;

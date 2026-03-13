@@ -56,6 +56,8 @@ public class HoaDonThanhToanService {
     private KhachHangRepository khachHangRepository;
     @Autowired
     private PhieuGiamGiaService phieuGiamGiaService;
+    @Autowired
+    private phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
 
     public Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable){
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
@@ -266,21 +268,42 @@ public class HoaDonThanhToanService {
 
         // Nếu khách tự vào bàn (chưa có phiếu nào cả) -> Tự động sinh Phiếu và Hóa đơn
         if (hoaDon == null) {
-            // A. Tạo Phiếu Đặt Bàn Khách Vãng Lai
+            // A. Lưu Phiếu Đặt Bàn TRƯỚC để Hibernate cấp phát ID
             PhieuDatBan newPhieu = new PhieuDatBan();
-            newPhieu.getBanAns().add(banAn);
             newPhieu.setTrangThai(3); // 3 = Đã Check-in
             newPhieu.setThoiGianDat(LocalDateTime.now());
             newPhieu.setSoLuongKhach(1);
+            // Lưu xuống DB ngay để có ID
             newPhieu = phieuDatBanRepository.save(newPhieu);
 
-            // B. Tạo Hóa Đơn gắn với Phiếu đó
+            // =========================================================
+            // 🚨 B. TẠO LIÊN KẾT BẢNG TRUNG GIAN CHO BÀN CHÍNH (FIX LỖI 204)
+            // =========================================================
+            PhieuDatBanBanAn linkGoc = new PhieuDatBanBanAn();
+            linkGoc.setPhieuDatBan(newPhieu);
+            linkGoc.setBanAn(banAn);
+
+
+            PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+            linkId.setIdPhieuDatBan(newPhieu.getId());
+            linkId.setIdBanAn(banAn.getId());
+            linkGoc.setId(linkId);
+
+            // Đẩy vào danh sách và cập nhật
+            newPhieu.getDsBanAn().add(linkGoc);
+            phieuDatBanRepository.save(newPhieu);
+
+            // Ép Hibernate xả dữ liệu xuống SQL Server ngay lập tức
+            phieuDatBanRepository.flush();
+
+            // C. Tạo Hóa Đơn gắn với Phiếu đó
             hoaDon = new HoaDonThanhToan();
-            hoaDon.setIdPhieuDatBan(newPhieu); // 🚨 Mấu chốt kiến trúc mới nằm ở đây
+            hoaDon.setIdPhieuDatBan(newPhieu);
             hoaDon.setThoiGianTao(Instant.now());
             hoaDon.setTrangThaiHoaDon(4); // 4 = Đang phục vụ
             hoaDon.setTongTienChuaGiam(BigDecimal.ZERO);
             hoaDon.setTongTienThanhToan(BigDecimal.ZERO);
+            hoaDon.setVatApDung(BigDecimal.ZERO); // Khởi tạo VAT = 0 cho khách vãng lai
 
             if (req.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(req.getIdNhanVien()).orElse(null);
@@ -606,7 +629,7 @@ public class HoaDonThanhToanService {
     // Thêm hàm này vào HoaDonThanhToanService.java
 
     @Transactional
-    public void themBanVaoHoaDon(Integer idHoaDonGoc, Integer idBanMoi) {
+    public void themBanVaoHoaDon(Integer idHoaDonGoc, Integer idBanMoi, Integer soNguoiNgoi) {
         // 1. Tìm Hóa đơn gốc và Bàn mới
         HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(idHoaDonGoc)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hóa đơn gốc"));
@@ -614,25 +637,70 @@ public class HoaDonThanhToanService {
         BanAn banMoi = banAnRepo.findById(idBanMoi)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Bàn ăn mới"));
 
-        // Kiểm tra xem bàn mới có đang trống không
+        // 2. Kiểm tra trạng thái vật lý
         if (banMoi.getTrangThai() != 0) {
             throw new RuntimeException("Bàn " + banMoi.getMaBan() + " không trống, không thể ghép vào đoàn!");
         }
 
-        // 2. Gắn Bàn mới vào Phiếu (Logic N-N)
         PhieuDatBan phieu = hd.getIdPhieuDatBan();
         if (phieu == null) {
             throw new RuntimeException("Hóa đơn này không có phiếu liên kết!");
         }
 
-        phieu.getBanAns().add(banMoi);
-        phieuDatBanRepository.save(phieu);
+        // 3. KIỂM TRA TRÙNG LỊCH
+        LocalDateTime thoiGianHienTai = LocalDateTime.now();
+        LocalDateTime thoiGianKetThucDuKien = thoiGianHienTai.plusHours(3);
 
-        // 3. Đổi trạng thái Bàn mới thành Có khách (1)
+        boolean isConflict = phieuDatBanRepository.existsByBanAnIdAndTimeRangeAndStatus(
+                banMoi.getId(),
+                phieu.getId(),
+                thoiGianHienTai.minusHours(1),
+                thoiGianKetThucDuKien,
+                Arrays.asList(0, 1, 3)
+        );
+
+        if (isConflict) {
+            throw new RuntimeException("Không thể ghép! Bàn " + banMoi.getMaBan() + " đã có khách đặt trước trong khung giờ này.");
+        }
+
+        // 4. KIỂM TRA HÓA ĐƠN TÀNG HÌNH
+        Optional<HoaDonThanhToan> existingBill = hoaDonThanhToanRepository.findActiveBillByBanAn(banMoi.getId());
+        if (existingBill.isPresent()) {
+            throw new RuntimeException("Lỗi dữ liệu: Bàn này đang bị kẹt ở Hóa đơn #" + existingBill.get().getMaHoaDon());
+        }
+
+        // =========================================================
+        // 5. TẠO VÀ LƯU TRỰC TIẾP LIÊN KẾT BẢNG TRUNG GIAN N-N
+        // =========================================================
+        PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
+        linkMoi.setPhieuDatBan(phieu);
+        linkMoi.setBanAn(banMoi);
+        linkMoi.setSoNguoiNgoi(soNguoiNgoi != null ? soNguoiNgoi : 0);
+
+        PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+        linkId.setIdPhieuDatBan(phieu.getId());
+        linkId.setIdBanAn(banMoi.getId());
+        linkMoi.setId(linkId);
+
+        // 1. Lưu xuống DB và HỨNG LẠI object đã được Hibernate quản lý (Managed Entity)
+        PhieuDatBanBanAn savedLink = phieuDatBanBanAnRepository.saveAndFlush(linkMoi);
+
+        // 2. Dọn dẹp rác (nếu có) để đảm bảo không bị double link trong RAM
+        phieu.getDsBanAn().removeIf(l -> l.getBanAn().getId().equals(banMoi.getId()));
+
+        // 3. Add chính cái Object đã quản lý đó vào danh sách của phiếu
+        phieu.getDsBanAn().add(savedLink);
+        // =========================================================
+
+        // 6. Đổi trạng thái Bàn mới thành Có khách (1)
         banMoi.setTrangThai(1);
         banAnRepo.save(banMoi);
 
-        // 4. Ghi Log Lịch sử Hóa đơn
+        // 7. ÉP HIBERNATE LƯU NGAY XUỐNG SQL (Triệt tiêu độ trễ API)
+        phieuDatBanRepository.flush(); // Có thể giữ hoặc bỏ nếu không sửa phiếu
+        banAnRepo.flush();
+
+        // 8. Ghi Log Lịch sử Hóa đơn
         ghiLichSu(hd, null, "Mở rộng bàn", "Xếp thêm đoàn vào Bàn " + banMoi.getMaBan(), hd.getTrangThaiHoaDon(), hd.getTrangThaiHoaDon());
     }
 }

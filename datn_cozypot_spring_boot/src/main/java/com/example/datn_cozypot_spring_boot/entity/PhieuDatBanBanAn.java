@@ -1,13 +1,7 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,5 +27,8 @@ public class PhieuDatBanBanAn {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_ban_an")
     private BanAn banAn;
+
+    @Column(name = "so_nguoi_ngoi")
+    private Integer soNguoiNgoi;
 }
 
