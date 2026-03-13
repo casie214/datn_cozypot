@@ -44,6 +44,9 @@ const weightOptions = ref([]);  // Option cho combobox Khối lượng
 // ==========================================
 // 3. LẤY DỮ LIỆU BAN ĐẦU
 // ==========================================
+
+const existingFoods = ref([]);
+
 onMounted(async () => {
     const id = route.params.id;
     if (!id) return goBack();
@@ -52,12 +55,14 @@ onMounted(async () => {
         isLoading.value = true;
 
         // Gọi API lấy Chi tiết món và Danh sách Danh mục
-        const [resFood, resCat] = await Promise.all([
+        const [resFood, resCat, resFoods] = await Promise.all([
             foodApi.getFoodById(id),
-            foodApi.getCategories()
+            foodApi.getCategories(),
+            foodApi.getFoods()
         ]);
 
         listCategories.value = resCat.data || [];
+        existingFoods.value = resFoods.data?.content || resFoods.data || []; // Gán data vào biến
         const data = resFood.data;
         originalInfo.value = { ...data };
 
@@ -208,14 +213,33 @@ const validateForm = () => {
     errors.value = {};
     let isValid = true;
 
+    // 1. Check rỗng
     if (!formData.value.tenMon || formData.value.tenMon.trim() === '') {
-        errors.value.tenMon = 'Vui lòng nhập tên món ăn'; isValid = false;
+        errors.value.tenMon = 'Vui lòng nhập tên món ăn'; 
+        isValid = false;
+    } 
+    // 🔥 2. CHECK TRÙNG TÊN:
+    else {
+        const inputName = formData.value.tenMon.trim().toLowerCase();
+        
+        // Tìm xem có món nào trong DB có tên giống hệt (nhưng khác ID với món đang sửa) không
+        const isDuplicate = existingFoods.value.some(
+            food => food.tenMon.toLowerCase() === inputName && food.id !== formData.value.id
+        );
+
+        if (isDuplicate) {
+            errors.value.tenMon = 'Tên món ăn này đã tồn tại trong hệ thống!'; 
+            isValid = false;
+        }
     }
+
     if (!formData.value.idDanhMuc) {
-        errors.value.idDanhMuc = 'Vui lòng chọn danh mục'; isValid = false;
+        errors.value.idDanhMuc = 'Vui lòng chọn danh mục'; 
+        isValid = false;
     }
     if (formData.value.giaBan <= 0) {
-        errors.value.giaBan = 'Giá bán phải lớn hơn 0'; isValid = false;
+        errors.value.giaBan = 'Giá bán phải lớn hơn 0'; 
+        isValid = false;
     }
 
     return isValid;
