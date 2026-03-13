@@ -75,11 +75,7 @@ public class BookingService {
         hoaDon.setGhiChu(request.getGhiChu());
         hoaDon.setThoiGianTao(Instant.now());
         hoaDon.setTrangThaiHoaDon(0); // 0 = Chưa thanh toán
-        float VAT = 10.0F;
-        try {
-            VAT = Integer.parseInt(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
-            System.out.println(VAT);
-        } catch (Exception e) {}
+        BigDecimal VAT = BigDecimal.ZERO;
         hoaDon.setVatApDung(VAT);
 
         HoaDonThanhToan savedHoaDon = hoaDonThanhToanRepository.save(hoaDon);

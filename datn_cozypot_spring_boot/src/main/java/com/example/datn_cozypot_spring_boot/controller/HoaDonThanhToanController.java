@@ -350,7 +350,7 @@ public class HoaDonThanhToanController {
             res.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
             res.setTienCoc(hoaDon.getTienCoc());
             res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-            res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
+            res.setVatApDung(hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.valueOf(0));
 
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
             if (chiTietHD != null) {
