@@ -277,6 +277,7 @@ public class HoaDonThanhToanController {
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
 
+
         if (phieu.getIdKhachHang() != null) {
             res.setIdKhachHang(phieu.getIdKhachHang().getId());
             res.setTenKhachHang(phieu.getIdKhachHang().getTenKhachHang());
@@ -367,6 +368,8 @@ public class HoaDonThanhToanController {
             res.setTienCoc(hoaDon.getTienCoc());
             res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
             res.setVatApDung(hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.valueOf(0));
+            res.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
+            res.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getMaPhieuGiamGia());
 
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
             if (chiTietHD != null) {
