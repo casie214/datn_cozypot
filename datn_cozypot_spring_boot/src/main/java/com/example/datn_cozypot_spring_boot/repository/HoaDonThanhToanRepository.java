@@ -18,10 +18,9 @@ import java.util.Optional;
 @Repository
 public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan, Integer> {
 
-    // 🚨 ĐÃ SỬA: pdb.banAns -> pdb.dsBanAn link JOIN link.banAn ban
+    // 1. Lấy tất cả hóa đơn (15 tham số Constructor)
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
@@ -29,47 +28,37 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "LEFT JOIN hd.idPhieuDatBan pdb")
     Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
-    // 🚨 ĐÃ SỬA: pdb.banAns -> pdb.dsBanAn link JOIN link.banAn ban
+    // 2. Tìm kiếm nâng cao (15 tham số Constructor)
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
-
             "AND (CAST(:tuNgayTao AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgayTao) " +
             "AND (CAST(:denNgayTao AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgayTao) " +
-
             "AND (CAST(:tuNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat >= :tuNgayDat) " +
             "AND (CAST(:denNgayDat AS timestamp) IS NULL OR pdb.thoiGianDat <= :denNgayDat) " +
-
             "AND (:keyword IS NULL OR :keyword = '' " +
             "     OR LOWER(hd.maHoaDon) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "ORDER BY hd.thoiGianTao ASC")
+            "ORDER BY hd.thoiGianTao DESC")
     Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,
-
-            // Cặp tham số cho Ngày tạo (Kiểu Instant)
             @Param("tuNgayTao") Instant tuNgayTao,
             @Param("denNgayTao") Instant denNgayTao,
-
-            // Cặp tham số cho Ngày đặt (Kiểu LocalDateTime)
             @Param("tuNgayDat") LocalDateTime tuNgayDat,
             @Param("denNgayDat") LocalDateTime denNgayDat,
-
             Pageable pageable
     );
 
-    // 🚨 ĐÃ SỬA TƯƠNG TỰ
+    // 3. Lấy 1 hóa đơn theo ID (15 tham số Constructor)
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
-            "(SELECT MIN(ban.tenBan) FROM hd.idPhieuDatBan p2 JOIN p2.dsBanAn link JOIN link.banAn ban), " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung) " +
             "FROM HoaDonThanhToan hd " +
@@ -78,11 +67,16 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 
-    // 🚨 ĐÃ SỬA: JOIN pdb.dsBanAn link JOIN link.banAn b
+    // 4. Tìm mảng tên bàn để bổ sung vào DTO ở Service
+    @Query("SELECT b.maBan FROM HoaDonThanhToan h " +
+            "JOIN h.idPhieuDatBan p JOIN p.dsBanAn link JOIN link.banAn b " +
+            "WHERE h.id = :idHoaDon")
+    List<String> findMaBansByIdHoaDon(@Param("idHoaDon") Integer idHoaDon);
+
+    // 5. Các hàm lấy thực thể (Entity) để xử lý logic nội bộ
     @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (4)")
     Optional<HoaDonThanhToan> findActiveBillByBanAn(@Param("idBanAn") int idBanAn);
 
-    // 🚨 ĐÃ SỬA TƯƠNG TỰ
     @Query("SELECT DISTINCT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan pdb JOIN pdb.dsBanAn link JOIN link.banAn b WHERE b.id = :idBanAn AND h.trangThaiHoaDon IN (1, 2) ORDER BY h.id DESC")
     List<HoaDonThanhToan> findActiveBills(@Param("idBanAn") Integer idBanAn);
 
@@ -90,18 +84,10 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
 
     @Query("""
     SELECT new com.example.datn_cozypot_spring_boot.dto.thongKe.KenhDatResponse(
-        CASE 
-            WHEN pdb.hinhThucDat = 1 THEN 'Online'
-            WHEN pdb.hinhThucDat = 2 THEN 'Offline'
-            ELSE 'Khác'
-        END,
+        CASE WHEN pdb.hinhThucDat = 1 THEN 'Online' WHEN pdb.hinhThucDat = 2 THEN 'Offline' ELSE 'Khác' END,
         COUNT(h)
-    )
-    FROM HoaDonThanhToan h
-    LEFT JOIN h.idPhieuDatBan pdb
-    WHERE pdb.hinhThucDat IS NOT NULL
-    GROUP BY pdb.hinhThucDat
-""")
+    ) FROM HoaDonThanhToan h LEFT JOIN h.idPhieuDatBan pdb WHERE pdb.hinhThucDat IS NOT NULL GROUP BY pdb.hinhThucDat
+    """)
     List<KenhDatResponse> thongKeKenhDat();
 
     HoaDonThanhToan findByIdPhieuDatBan_Id(Integer id);
