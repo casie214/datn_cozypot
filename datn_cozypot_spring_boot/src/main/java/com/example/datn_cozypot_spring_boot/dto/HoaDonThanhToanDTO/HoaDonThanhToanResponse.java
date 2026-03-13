@@ -31,7 +31,7 @@ public class HoaDonThanhToanResponse {
     private LocalDateTime thoiGianDat;
 
     private Integer soLuongKhach;
-    private Float vatApDung;
+    private BigDecimal vatApDung;
 
     public HoaDonThanhToanResponse(
             Integer id,
@@ -50,7 +50,7 @@ public class HoaDonThanhToanResponse {
             // 🔥 SỬA Ở ĐÂY: Tham số constructor cũng phải là LocalDateTime
             LocalDateTime thoiGianDat,
             Integer soLuongKhach,
-            Float vatApDung
+            BigDecimal vatApDung
     ) {
         this.id = id;
         this.maHoaDon = maHoaDon;

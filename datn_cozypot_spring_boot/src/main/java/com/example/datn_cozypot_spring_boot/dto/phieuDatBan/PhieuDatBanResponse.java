@@ -43,7 +43,7 @@ public class PhieuDatBanResponse {
     private BigDecimal soTienDaGiam;
     private BigDecimal tienCoc;
     private BigDecimal tongTienThanhToan;
-    private Double vatApDung;
+    private BigDecimal vatApDung;
 
     // 4. DANH SÁCH MÓN ĂN
     private List<ChiTietMonResponse> chiTiet;

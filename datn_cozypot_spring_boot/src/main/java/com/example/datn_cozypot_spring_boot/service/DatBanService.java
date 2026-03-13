@@ -326,9 +326,7 @@ public class DatBanService {
             hoaDonMoi.setTienCoc(java.math.BigDecimal.ZERO);
             hoaDonMoi.setTienHoanTra(java.math.BigDecimal.ZERO);
 
-            Double vatFromRequest = request.getVatApDung();
-            float finalVat = (vatFromRequest != null) ? vatFromRequest.floatValue() : 0f;
-            hoaDonMoi.setVatApDung(finalVat);
+            hoaDonMoi.setVatApDung(BigDecimal.ZERO);
 
             if (request.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
@@ -403,20 +401,22 @@ public class DatBanService {
                         BigDecimal tongChuaGiam = hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO;
                         BigDecimal daGiam = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
                         BigDecimal coc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
-                        Float vat = hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : 0f;
+
+                        // 🚨 LẤY TIỀN VAT (Ép kiểu an toàn từ Float/Double sang BigDecimal)
+                        BigDecimal tienVat = BigDecimal.ZERO;
+                        if (hoaDon.getVatApDung() != null) {
+                            tienVat = new BigDecimal(hoaDon.getVatApDung().toString());
+                        }
 
                         // 1. Tính tiền sau giảm
                         BigDecimal sauGiam = tongChuaGiam.subtract(daGiam);
                         if (sauGiam.compareTo(BigDecimal.ZERO) < 0) sauGiam = BigDecimal.ZERO;
 
-                        // 2. Tính VAT
-                        BigDecimal tienVat = sauGiam.multiply(BigDecimal.valueOf(vat / 100.0));
-
-                        // 3. Tính Tổng tiền cuối cùng phải trả (Final Bill)
+                        // 2. 🚨 TÍNH TỔNG TIỀN PHẢI TRẢ = Tiền sau giảm + TIỀN VAT FLAT
                         BigDecimal tongThanhToanCuoi = sauGiam.add(tienVat);
                         hoaDon.setTongTienThanhToan(tongThanhToanCuoi); // Lưu tổng thực tế vào DB
 
-                        // 4. KIỂM TRA TIỀN CỌC CÓ THỪA KHÔNG?
+                        // 3. KIỂM TRA TIỀN CỌC CÓ THỪA KHÔNG?
                         if (coc.compareTo(tongThanhToanCuoi) > 0) {
                             // Tính tiền hoàn lại = Tiền cọc - Tổng hóa đơn
                             BigDecimal tienHoan = coc.subtract(tongThanhToanCuoi);
@@ -430,7 +430,7 @@ public class DatBanService {
                                     "Tiền cọc lớn hơn tổng hóa đơn", 6, 6);
                         }
 
-                        // 5. Dọn sạch toàn bộ bàn
+                        // 4. Dọn sạch toàn bộ bàn
                         for (BanAn ban : phieu.getBanAns()) {
                             ban.setTrangThai(0);
                             banAnRepository.save(ban);
@@ -911,16 +911,7 @@ public class DatBanService {
         hd.setDiemCongThem(0);
 
         // Lấy VAT từ bảng Tham Số Hệ Thống
-        Float vatApDung = 10.0F; // Dự phòng nếu lỗi
-        try {
-            Optional<ThamSoHeThong> optVat = thamSoHeThongRepository.findByMaThamSo("VAT");
-            if (optVat.isPresent()) {
-                vatApDung = Float.parseFloat(optVat.get().getGiaTri());
-            }
-        } catch (Exception e) {
-            log.warn("Không thể lấy VAT từ database, sử dụng mặc định 10%");
-        }
-        hd.setVatApDung(vatApDung);
+        hd.setVatApDung(BigDecimal.ZERO);
 
         // Lưu hóa đơn
         hd = hoaDonThanhToanRepository.save(hd);

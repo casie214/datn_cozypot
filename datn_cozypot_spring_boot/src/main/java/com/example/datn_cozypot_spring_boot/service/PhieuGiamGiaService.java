@@ -576,7 +576,7 @@ public class PhieuGiamGiaService {
         BigDecimal tongTienChuaGiam = hoaDon.getTongTienChuaGiam() != null ? hoaDon.getTongTienChuaGiam() : BigDecimal.ZERO;
         BigDecimal giamGia = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
         BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
-        BigDecimal vatPhanTram = hoaDon.getVatApDung() != null ? BigDecimal.valueOf(hoaDon.getVatApDung()) : BigDecimal.TEN;
+        BigDecimal vatPhanTram = hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.ZERO;
 
         // 1. Tiền sau giảm = Tổng tiền - Giảm giá
         BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);

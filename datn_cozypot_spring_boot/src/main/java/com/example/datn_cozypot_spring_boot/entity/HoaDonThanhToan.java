@@ -76,7 +76,7 @@ public class HoaDonThanhToan {
     private BigDecimal tongTienThanhToan;
 
     @Column(name = "vat_ap_dung", precision = 18)
-    private Float vatApDung;
+    private BigDecimal vatApDung;
 
     @Column(name = "diem_su_dung")
     private Integer diemSuDung;
