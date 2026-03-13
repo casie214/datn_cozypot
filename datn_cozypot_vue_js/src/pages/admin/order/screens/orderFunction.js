@@ -366,6 +366,7 @@ export function useOrderManager() {
           khachHang: invoiceInfo.tenKhachHang || "Khách vãng lai",
           sdt: invoiceInfo.sdtKhachHang || "---",
           ban: invoiceInfo.tenBan,
+          danhSachTenBan: invoiceInfo.danhSachTenBan || (invoiceInfo.tenBan ? [invoiceInfo.tenBan] : []),
           loai: mapOrderType(invoiceInfo.hinhThucDat),
           soLuongKhach: invoiceInfo.soLuongKhach,
           tongTien: formatCurrency(invoiceInfo.tongTienThanhToan),
@@ -415,92 +416,32 @@ export function useOrderManager() {
     isHistoryModalOpen.value = true;
   };
 
-  //2 cái này để chuyển trạng thái món đã lên(tích vô ô là đã lên)
-  // const handleUpdateMonDaLen = async (idChiTietHD) => {
-  //   try {
-  //     await BeUpdateMonDaLen(idChiTietHD);
-  //     if (selectedOrder.value) {
-  //       orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-  //     }
-  //   } catch (error) {
-  //     alert("Lỗi cập nhật món!");
-  //   }
-  // };
-
-  // const handleUpdateTatCaDaLen = async () => {
-  //   if (!selectedOrder.value) return;
-  //   try {
-  //     await BeUpdateTatCaDaLen(selectedOrder.value.dbId);
-  //     orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-  //     alert("Đã xác nhận tất cả món!");
-  //   } catch (error) {
-  //     alert("Cập nhật thất bại!");
-  //   }
-  // };
-
   //Hủy hóa đơn
   const openCancelModal = async (order) => {
     if (!order) return;
 
-    if (!order.tienCocRaw || order.tienCocRaw === 0) {
-      // Hiện Popup hỏi xác nhận
-      Swal.fire({
-        title: "Xác nhận hủy đơn?",
-        text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
-        icon: "warning",
-        showCancelButton: true,
-        iconColor: '#7D161A',
-        confirmButtonColor: "#8b0000",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Đồng ý hủy",
-        cancelButtonText: "Thoát",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const payload = {
-            idHoaDon: order.dbId,
-            idNhanVien: 1, // Lấy ID nhân viên sau
-            hanhDong: "Hủy hóa đơn",
-            lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
-            isLoiDoQuan: false,
-            trangThaiLichSuTruocDo: 1,
-            thoiGianThucHien: new Date().toISOString(),
-          };
+    // 1. Kiểm tra xem hóa đơn đã có cọc hay chưa?
+    // - Trạng thái 0 (Vừa tạo), 1 (Chờ cọc) -> Coi như chưa cọc
+    // - Hoặc tiền cọc bằng 0
+    const khongCoCoc = order.trangThaiCode === 0 || order.trangThaiCode === 1 || !order.tienCocRaw || order.tienCocRaw === 0;
 
-          try {
-            await BeHuyHoaDon(payload);
-
-            // Hiện thông báo thành công (Góc phải)
-            Toast.fire({
-              icon: "success",
-              title: "Thành công",
-              text: "Hủy hóa đơn thành công!",
-            });
-
-            if (filters.value.search || filters.value.status !== "Tất cả") {
-              performSearch(false);
-            } else {
-              fetchOrders();
-            }
-            if (
-              selectedOrder.value &&
-              selectedOrder.value.dbId === order.dbId
-            ) {
-              await handleViewDetail(order.dbId);
-            }
-          } catch (error) {
-            console.error(error);
-            // Hiện thông báo lỗi (Góc phải)
-            Toast.fire({
-              icon: "error",
-              title: "Lỗi",
-              text: error.response?.data?.message || error.message,
-            });
-          }
-        }
-      });
+    if (khongCoCoc) {
+      // THAY ĐỔI Ở ĐÂY: Dùng chung Modal với đơn có cọc để bắt buộc nhập lý do
+      cancelModalState.value = {
+        isOpen: true,
+        orderData: order,
+        isDeposit: false,
+        isWarning: false,
+        warningMessage: "",
+        reason: "",
+        isSafe: true, // Không có cọc nên mặc định là safe
+      };
       return;
     }
 
+    // ========================================================
+    // 2. LUỒNG BÊN DƯỚI DÀNH CHO HÓA ĐƠN ĐÃ CÓ CỌC (Trạng thái >= 2 và tienCoc > 0)
+    // ========================================================
     const hasDeposit = true;
     const bookingTime = dayjs(order.thoiGianDat);
     const now = dayjs();
@@ -569,6 +510,7 @@ export function useOrderManager() {
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: cancelModalState.value.reason,
       isLoiDoQuan: isLoiDoQuan,
+      trangThaiLichSuTruocDo: cancelModalState.value.orderData.trangThaiCode, // Lưu trạng thái cũ vào log
       thoiGianThucHien: new Date().toISOString(),
     };
 
@@ -578,13 +520,16 @@ export function useOrderManager() {
       // Đóng Modal Vue
       closeCancelModal();
 
-      // Hiện Toast thông báo thành công
+      // Hiện Toast thông báo thành công (Dựa vào việc có cọc hay không)
+      let toastText = "Đã hủy hóa đơn thành công!";
+      if (cancelModalState.value.isDeposit) {
+        toastText = isLoiDoQuan ? "Đã hủy & Hoàn tiền cọc!" : "Đã hủy & Giữ tiền cọc!";
+      }
+
       Toast.fire({
         icon: "success",
         title: "Thành công",
-        text: isLoiDoQuan
-          ? "Đã hủy & Hoàn tiền cọc!"
-          : "Đã hủy & Giữ tiền cọc!",
+        text: toastText,
       });
 
       if (filters.value.search || filters.value.status !== "Tất cả") {

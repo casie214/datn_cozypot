@@ -190,13 +190,9 @@ const handleConfirmOrder = async (idHoaDon) => {
     return;
   }
 
-  const tenBan = selectedOrder.value?.ban;
-  if (
-    !tenBan ||
-    tenBan === "Chưa xếp" ||
-    tenBan === "Chưa xếp bàn" ||
-    tenBan === "---"
-  ) {
+  const danhSachBan = selectedOrder.value?.danhSachTenBan || [];
+
+  if (danhSachBan.length === 0) {
     Swal.fire({
       icon: "warning",
       title: "Chưa xếp bàn!",
@@ -204,7 +200,7 @@ const handleConfirmOrder = async (idHoaDon) => {
       confirmButtonColor: "#8b0000",
       confirmButtonText: "Đồng ý",
     });
-    return; // Dừng hàm tại đây, không cho hiện popup xác nhận bên dưới
+    return;
   }
 
   try {
@@ -264,6 +260,37 @@ const handleConfirmOrder = async (idHoaDon) => {
     });
   }
 };
+
+const cannotCancel = computed(() => {
+  if (isReadOnly.value) return true;
+
+  const code = selectedOrder.value?.trangThaiCode;
+
+  // Khách đã check-in -> không cho hủy
+  if (code >= 4) return true;
+
+  // Nếu đã lên món -> không cho hủy
+  if (hasServedDish.value) return true;
+
+  return false;
+});
+
+const cannotPrint = computed(() => {
+  // Hóa đơn Đã hủy hoặc Hoàn tiền -> Không cho in
+  const code = selectedOrder.value?.trangThaiCode;
+  if (code === 8 || code === 9) return true;
+
+  // Danh sách món rỗng hoặc tất cả các món đều bị hủy (Code 0) -> Không cho in
+  if (!orderDetails.value || orderDetails.value.length === 0) return true;
+
+  // Kiểm tra xem có ít nhất 1 món có trạng thái khác 0 không
+  const hasValidItems = orderDetails.value.some(
+    (item) => item.trangThaiCode !== 0,
+  );
+  if (!hasValidItems) return true;
+
+  return false;
+});
 </script>
 
 <template>
@@ -363,8 +390,29 @@ const handleConfirmOrder = async (idHoaDon) => {
               <p class="mb-0 fw-medium">{{ selectedOrder?.sdt || "---" }}</p>
             </div>
             <div class="col-md">
-              <label class="d-block text-muted small mb-1">Bàn</label>
-              <p class="mb-0 fw-bold">{{ selectedOrder?.ban }}</p>
+              <label class="d-block text-muted small mb-1">Danh sách bàn</label>
+              <div
+                class="d-flex flex-wrap gap-1 align-items-center"
+                style="max-height: 80px; overflow-y: auto; padding-right: 5px"
+              >
+                <template v-if="selectedOrder?.danhSachTenBan?.length > 0">
+                  <span
+                    v-for="(tenBan, bIdx) in selectedOrder.danhSachTenBan"
+                    :key="bIdx"
+                    class="badge table-badge-item"
+                  >
+                    {{ tenBan }}
+                  </span>
+                </template>
+
+                <span
+                  v-else
+                  class="text-danger fw-bold"
+                  style="font-size: 0.9rem"
+                >
+                  <i class="fas fa-exclamation-circle me-1"></i> Chưa xếp bàn
+                </span>
+              </div>
             </div>
             <div class="col-md">
               <label class="d-block text-muted small mb-1">Tiền cọc</label>
@@ -391,7 +439,8 @@ const handleConfirmOrder = async (idHoaDon) => {
         style="border-radius: 15px; overflow: hidden"
       >
         <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-          <i class="fas fa-utensils" style="color: silver;"></i> Thông tin món đã đặt
+          <i class="fas fa-utensils" style="color: silver"></i> Thông tin món đã
+          đặt
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -514,7 +563,8 @@ const handleConfirmOrder = async (idHoaDon) => {
             style="border-radius: 15px; overflow: hidden"
           >
             <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-              <i class="fas fa-credit-card" style="color: cornflowerblue;"></i> Lịch sử thanh toán
+              <i class="fas fa-credit-card" style="color: cornflowerblue"></i>
+              Lịch sử thanh toán
             </div>
             <div class="card-body p-3">
               <div
@@ -579,7 +629,8 @@ const handleConfirmOrder = async (idHoaDon) => {
             style="border-radius: 15px; overflow: hidden"
           >
             <div class="card-header bg-white border-bottom py-3 fw-bold fs-5">
-              <i class="fas fa-sack-dollar" style="color: orange;"></i> Tổng kết đơn hàng
+              <i class="fas fa-sack-dollar" style="color: orange"></i> Tổng kết
+              đơn hàng
             </div>
             <div class="card-body p-4 d-flex flex-column">
               <div class="d-flex justify-content-between mb-1">
@@ -595,9 +646,7 @@ const handleConfirmOrder = async (idHoaDon) => {
               />
 
               <div class="d-flex justify-content-between mb-3">
-                <span class="text-muted fw-medium"
-                  >Thuế VAT:</span
-                >
+                <span class="text-muted fw-medium">Thuế VAT:</span>
                 <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
               </div>
 
@@ -652,7 +701,7 @@ const handleConfirmOrder = async (idHoaDon) => {
             v-if="!isReadOnly"
             class="btn btn-outline-custom px-4 py-2 fw-medium"
             @click="openCancelModal(selectedOrder)"
-            :disabled="hasServedDish"
+            :disabled="cannotCancel"
           >
             Hủy hóa đơn
           </button>
@@ -689,10 +738,7 @@ const handleConfirmOrder = async (idHoaDon) => {
           <button
             class="btn btn-print px-4 py-2 fw-medium text-white"
             @click="handlePrintOrder(selectedOrder?.id)"
-            :disabled="
-              selectedOrder?.trangThaiCode === 8 ||
-              selectedOrder?.trangThaiCode === 9
-            "
+            :disabled="cannotPrint"
           >
             In hóa đơn
           </button>
@@ -790,43 +836,55 @@ const handleConfirmOrder = async (idHoaDon) => {
               </button>
 
               <div class="d-flex gap-2">
-                <template v-if="!cancelModalState.isSafe">
+                <template v-if="!cancelModalState.isDeposit">
                   <button
                     type="button"
-                    class="btn btn-outline-custom"
+                    class="btn btn-custom px-4"
                     @click="confirmCancelOrder('khach')"
-                    title="Khách vi phạm -> Mất cọc"
                   >
-                    Lỗi do Khách <br />
-                    <small style="font-size: 0.7rem">(Không hoàn cọc)</small>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="btn btn-custom"
-                    @click="confirmCancelOrder('quan')"
-                    title="Lỗi quán -> Hoàn cọc"
-                  >
-                    Lỗi do Quán <br />
-                    <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
+                    Xác nhận Hủy đơn
                   </button>
                 </template>
 
                 <template v-else>
-                  <div
-                    class="d-flex align-items-center me-2 text-warning small fw-bold"
-                  >
-                    <i class="fa-solid fa-check-circle me-1"></i> Hủy đúng hạn
-                  </div>
-                  <button
-                    type="button"
-                    class="btn btn-custom px-4"
-                    @click="confirmCancelOrder('quan')"
-                    title="Hủy đúng quy định -> Hoàn tiền"
-                  >
-                    Xác nhận Hủy đơn <br />
-                    <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
-                  </button>
+                  <template v-if="!cancelModalState.isSafe">
+                    <button
+                      type="button"
+                      class="btn btn-outline-custom"
+                      @click="confirmCancelOrder('khach')"
+                      title="Khách vi phạm -> Mất cọc"
+                    >
+                      Lỗi do Khách <br />
+                      <small style="font-size: 0.7rem">(Không hoàn cọc)</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-custom"
+                      @click="confirmCancelOrder('quan')"
+                      title="Lỗi quán -> Hoàn cọc"
+                    >
+                      Lỗi do Quán <br />
+                      <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
+                    </button>
+                  </template>
+
+                  <template v-else>
+                    <div
+                      class="d-flex align-items-center me-2 text-warning small fw-bold"
+                    >
+                      <i class="fa-solid fa-check-circle me-1"></i> Hủy đúng hạn
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-custom px-4"
+                      @click="confirmCancelOrder('quan')"
+                      title="Hủy đúng quy định -> Hoàn tiền"
+                    >
+                      Xác nhận Hủy đơn <br />
+                      <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
+                    </button>
+                  </template>
                 </template>
               </div>
             </div>
@@ -898,7 +956,16 @@ const handleConfirmOrder = async (idHoaDon) => {
               >
                 (Ngày đặt: {{ formatDate(selectedOrder?.thoiGianDat) }})
               </p>
-              <p class="mb-0 text-end">Bàn: {{ selectedOrder?.ban }}</p>
+              <p class="mb-0 text-end">
+                Bàn:
+                <span class="fw-bold">
+                  {{
+                    selectedOrder?.danhSachTenBan?.length > 0
+                      ? selectedOrder.danhSachTenBan.join(", ")
+                      : "Chưa xếp bàn"
+                  }}
+                </span>
+              </p>
             </div>
           </div>
         </div>
@@ -948,9 +1015,7 @@ const handleConfirmOrder = async (idHoaDon) => {
                   <td class="text-end fw-bold">{{ formatMoney(subTotal) }}</td>
                 </tr>
                 <tr>
-                  <td class="fw-medium" style="width: 70%">
-                    Thuế VAT:
-                  </td>
+                  <td class="fw-medium" style="width: 70%">Thuế VAT:</td>
                   <td class="text-end fw-bold">{{ formatMoney(taxAmount) }}</td>
                 </tr>
                 <tr v-if="discount > 0">
@@ -1237,5 +1302,14 @@ const handleConfirmOrder = async (idHoaDon) => {
   text-align: center;
   letter-spacing: 0.5px;
   margin-top: 6px;
+}
+.table-badge-item {
+  background-color: #fff5f5;
+  color: #8b0000;
+  border: 1px solid #ffcccc;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 6px;
 }
 </style>

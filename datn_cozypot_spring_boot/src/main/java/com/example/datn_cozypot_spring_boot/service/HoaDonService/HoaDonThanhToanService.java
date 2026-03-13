@@ -86,7 +86,22 @@ public class HoaDonThanhToanService {
     }
 
     public HoaDonThanhToanResponse getHoaDonById(Integer id) {
-        return hoaDonThanhToanRepository.getHoaDonById(id);
+        HoaDonThanhToanResponse res = hoaDonThanhToanRepository.getHoaDonById(id);
+
+        if (res != null) {
+            HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(id).orElse(null);
+            if (hd != null && hd.getIdPhieuDatBan() != null) {
+                List<String> tenBans = hd.getIdPhieuDatBan().getBanAns()
+                        .stream()
+                        .map(BanAn::getMaBan)
+                        .collect(Collectors.toList());
+                res.setDanhSachTenBan(tenBans);
+            } else {
+                res.setDanhSachTenBan(new ArrayList<>());
+            }
+        }
+
+        return res;
     }
 
     @Transactional
