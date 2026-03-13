@@ -187,6 +187,9 @@ export function useOrderManager() {
         ngayTaoRaw: item.thoiGianTao,
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
+        // 🔥 THÊM 2 DÒNG NÀY:
+        idPhieuGiamGia: item.idPhieuGiamGia,
+        maPhieuGiamGia: item.maPhieuGiamGia,
       };
     });
   };
@@ -354,7 +357,8 @@ export function useOrderManager() {
       const details = await BeGetChiTietHoaDon(dbId);
       orderDetails.value = details;
       const invoiceInfo = await BeGetHoaDonById(dbId);
-      console.log(invoiceInfo);
+      console.log("Chi tiết hóa đơn từ BE:", invoiceInfo); // Log ra để kiểm tra có maPhieuGiamGia không
+      
       if (invoiceInfo) {
         selectedOrder.value = {
           id: invoiceInfo.maHoaDon,
@@ -376,6 +380,9 @@ export function useOrderManager() {
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
           thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao,
+          // 🔥 THÊM 2 DÒNG NÀY ĐỂ UI HIỂN THỊ ĐƯỢC MÃ GIẢM GIÁ:
+          idPhieuGiamGia: invoiceInfo.idPhieuGiamGia,
+          maPhieuGiamGia: invoiceInfo.maPhieuGiamGia,
         };
 
         await Promise.all([

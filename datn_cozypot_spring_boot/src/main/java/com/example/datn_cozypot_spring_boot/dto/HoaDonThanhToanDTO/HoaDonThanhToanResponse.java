@@ -27,6 +27,8 @@ public class HoaDonThanhToanResponse {
     private LocalDateTime thoiGianDat;
     private Integer soLuongKhach;
     private BigDecimal vatApDung;
+    private Integer idPhieuGiamGia;
+    private String maPhieuGiamGia;
 
     // 🚨 CONSTRUCTOR NÀY DÀNH RIÊNG CHO REPOSITORY (15 Tham số - KHÔNG CÓ List danhSachTenBan)
     public HoaDonThanhToanResponse(
@@ -34,7 +36,8 @@ public class HoaDonThanhToanResponse {
             BigDecimal tongTienChuaGiam, BigDecimal soTienDaGiam, BigDecimal tongTienThanhToan,
             BigDecimal tienCoc, BigDecimal tienHoanTra, Integer trangThaiHoaDon,
             Instant thoiGianTao, Integer hinhThucDat, LocalDateTime thoiGianDat,
-            Integer soLuongKhach, BigDecimal vatApDung
+            Integer soLuongKhach, BigDecimal vatApDung,
+            Integer idPhieuGiamGia, String maPhieuGiamGia // 🔥 THÊM 2 BIẾN NÀY VÀO CUỐI
     ) {
         this.id = id;
         this.maHoaDon = maHoaDon;
@@ -51,19 +54,9 @@ public class HoaDonThanhToanResponse {
         this.thoiGianDat = thoiGianDat;
         this.soLuongKhach = soLuongKhach;
         this.vatApDung = vatApDung;
-    }
 
-    // 🚨 CONSTRUCTOR ĐẦY ĐỦ (16 Tham số - CÓ List danhSachTenBan) - Dùng khi cần copy data
-    public HoaDonThanhToanResponse(
-            Integer id, String maHoaDon, String tenKhachHang, String sdtKhachHang,
-            List<String> danhSachTenBan, BigDecimal tongTienChuaGiam, BigDecimal soTienDaGiam,
-            BigDecimal tongTienThanhToan, BigDecimal tienCoc, BigDecimal tienHoanTra,
-            Integer trangThaiHoaDon, Instant thoiGianTao, Integer hinhThucDat,
-            LocalDateTime thoiGianDat, Integer soLuongKhach, BigDecimal vatApDung
-    ) {
-        this(id, maHoaDon, tenKhachHang, sdtKhachHang, tongTienChuaGiam, soTienDaGiam,
-                tongTienThanhToan, tienCoc, tienHoanTra, trangThaiHoaDon, thoiGianTao,
-                hinhThucDat, thoiGianDat, soLuongKhach, vatApDung);
-        this.danhSachTenBan = danhSachTenBan;
+        // 🔥 Gán giá trị
+        this.idPhieuGiamGia = idPhieuGiamGia;
+        this.maPhieuGiamGia = maPhieuGiamGia;
     }
 }
