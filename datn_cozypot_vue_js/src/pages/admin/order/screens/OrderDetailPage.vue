@@ -73,19 +73,15 @@ const finalTotal = computed(() => {
   return baseTotal;
 });
 
-const appliedVAT = computed(() => {
+const taxAmount = computed(() => {
   if (
     selectedOrder.value?.vatApDung !== undefined &&
     selectedOrder.value?.vatApDung !== null
   ) {
+    // Ép kiểu về Number để đảm bảo an toàn tính toán
     return Number(selectedOrder.value.vatApDung);
   }
-  return Number(currentVAT.value || 0);
-});
-
-const taxAmount = computed(() => {
-  if (subTotal.value === 0) return 0;
-  return subTotal.value * (appliedVAT.value / 100);
+  return 0; // Mặc định là 0 nếu không có dữ liệu
 });
 
 const isReadOnly = computed(() => {
@@ -600,7 +596,7 @@ const handleConfirmOrder = async (idHoaDon) => {
 
               <div class="d-flex justify-content-between mb-3">
                 <span class="text-muted fw-medium"
-                  >Thuế VAT ({{ appliedVAT }}%):</span
+                  >Thuế VAT:</span
                 >
                 <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
               </div>
@@ -948,7 +944,7 @@ const handleConfirmOrder = async (idHoaDon) => {
                 </tr>
                 <tr>
                   <td class="fw-medium" style="width: 70%">
-                    Thuế VAT ({{ appliedVAT }}%):
+                    Thuế VAT:
                   </td>
                   <td class="text-end fw-bold">{{ formatMoney(taxAmount) }}</td>
                 </tr>
