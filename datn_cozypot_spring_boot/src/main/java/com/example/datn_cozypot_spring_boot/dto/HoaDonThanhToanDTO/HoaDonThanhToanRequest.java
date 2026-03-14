@@ -17,6 +17,7 @@ public class HoaDonThanhToanRequest {
 
     private Integer idKhachHang;
     private Integer idPhieuDatBan;
+    private Integer idPhieuGiamGia;
 
     private List<ChiTietHoaDonRequest> chiTietHoaDon;
 }

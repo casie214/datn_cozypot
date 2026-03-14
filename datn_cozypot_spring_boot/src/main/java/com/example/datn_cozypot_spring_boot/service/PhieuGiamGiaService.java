@@ -601,7 +601,7 @@ public class PhieuGiamGiaService {
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(request.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hóa đơn"));
 
-        // 🚨 BƯỚC 0: Nếu hóa đơn đã có voucher cũ, hoàn lại số lượng cho mã cũ trước khi đổi mã mới
+        // 🚨 BƯỚC 0: Nếu hóa đơn đã có voucher cũ, hoàn lại số lượng cho mã cũ trước
         hoanLaiSoLuongVoucher(hoaDon);
 
         PhieuGiamGia phieu = null;
@@ -651,7 +651,6 @@ public class PhieuGiamGiaService {
         if (phieu.getLoaiGiamGia() == 0) {
             soTienGiam = phieu.getGiaTriGiam();
         } else if (phieu.getLoaiGiamGia() == 1) {
-            // Lưu ý: Dùng nhân trước chia sau để tránh mất số thập phân
             soTienGiam = request.getTongTienHienTai().multiply(phieu.getGiaTriGiam()).divide(BigDecimal.valueOf(100));
             if (soTienGiam.compareTo(phieu.getGiaTriGiamToiDa()) > 0) soTienGiam = phieu.getGiaTriGiamToiDa();
         }
@@ -659,9 +658,8 @@ public class PhieuGiamGiaService {
         // 5. Cập nhật Hóa đơn
         hoaDon.setSoTienDaGiam(soTienGiam);
 
-        // Xóa dấu vết voucher cũ trong ghi chú (nếu có) trước khi thêm mới
-        String sachGhiChu = hoaDon.getGhiChu() != null ? hoaDon.getGhiChu().replaceAll("\\[VOUCHER:\\d+\\]", "").trim() : "";
-        hoaDon.setGhiChu((sachGhiChu + " [VOUCHER:" + phieu.getId() + "]").trim());
+        // 🔥 THÊM MỚI: Cập nhật trực tiếp Khóa Ngoại thay vì ghi chú
+        hoaDon.setIdPhieuGiamGia(phieu);
 
         tinhLaiTongTienThanhToan(hoaDon);
         hoaDonThanhToanRepository.save(hoaDon);
@@ -672,17 +670,14 @@ public class PhieuGiamGiaService {
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Hóa đơn"));
 
-        // 🚨 BƯỚC 1: Hoàn lại số lượng cho kho (nếu là mã Public)
+        // 🚨 BƯỚC 1: Hoàn lại số lượng cho kho
         hoanLaiSoLuongVoucher(hoaDon);
 
         // 2. Trả lại các trường tài chính
         hoaDon.setSoTienDaGiam(BigDecimal.ZERO);
 
-        // 3. Xóa ghi chú voucher
-        if (hoaDon.getGhiChu() != null) {
-            String newGhiChu = hoaDon.getGhiChu().replaceAll("\\[VOUCHER:\\d+\\]", "").trim();
-            hoaDon.setGhiChu(newGhiChu);
-        }
+        // 🔥 XÓA MỚI: Xóa khóa ngoại voucher ra khỏi hóa đơn
+        hoaDon.setIdPhieuGiamGia(null);
 
         tinhLaiTongTienThanhToan(hoaDon);
         hoaDonThanhToanRepository.save(hoaDon);
@@ -697,71 +692,49 @@ public class PhieuGiamGiaService {
     }
 
     private void hoanLaiSoLuongVoucher(HoaDonThanhToan hoaDon) {
-        String ghiChu = hoaDon.getGhiChu();
-        if (ghiChu != null && ghiChu.contains("[VOUCHER:")) {
-            try {
-                // Sử dụng Regex để trích xuất ID từ chuỗi [VOUCHER:7]
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\[VOUCHER:(\\d+)\\]");
-                java.util.regex.Matcher matcher = pattern.matcher(ghiChu);
+        // 🔥 SỬA LẠI: Trích xuất trực tiếp từ khóa ngoại, không cần Regex phức tạp
+        PhieuGiamGia p = hoaDon.getIdPhieuGiamGia();
 
-                if (matcher.find()) {
-                    Integer voucherId = Integer.parseInt(matcher.group(1));
-
-                    // Tìm phiếu giảm giá gốc
-                    phieuGiamGiaRepository.findById(voucherId).ifPresent(p -> {
-                        // 🚨 Chỉ hoàn số lượng nếu là mã PUBLIC (0)
-                        if (p.getDoiTuong() != null && p.getDoiTuong() == 0) {
-                            p.setSoLuong(p.getSoLuong() + 1);
-                            phieuGiamGiaRepository.save(p);
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                System.out.println("Lỗi khi hoàn số lượng voucher: " + e.getMessage());
+        if (p != null) {
+            // Chỉ hoàn số lượng nếu là mã PUBLIC (0)
+            if (p.getDoiTuong() != null && p.getDoiTuong() == 0) {
+                p.setSoLuong(p.getSoLuong() + 1);
+                phieuGiamGiaRepository.save(p);
             }
         }
     }
 
     @Transactional
     public void kiemTraLaiDieuKienVoucher(Integer idHoaDon) {
-        System.out.println("I FUCK KIDS");
         HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
-        if (hoaDon == null || hoaDon.getSoTienDaGiam().compareTo(BigDecimal.ZERO) == 0) {
-            return; // Hóa đơn này không có voucher, bỏ qua
-        }
 
-        String ghiChu = hoaDon.getGhiChu();
-        if (ghiChu == null || !ghiChu.contains("[VOUCHER:")) {
+        // Bỏ qua nếu hóa đơn không tồn tại hoặc chưa áp dụng voucher nào
+        if (hoaDon == null || hoaDon.getIdPhieuGiamGia() == null) {
             return;
         }
 
-        // Dùng Regex để lấy ID Voucher ra từ chuỗi ghi chú, vd: "[VOUCHER:5]"
-        Pattern pattern = Pattern.compile("\\[VOUCHER:(\\d+)\\]");
-        Matcher matcher = pattern.matcher(ghiChu);
+        // 🔥 SỬA LẠI: Lấy phiếu trực tiếp từ Entity
+        PhieuGiamGia phieu = hoaDon.getIdPhieuGiamGia();
 
-        if (matcher.find()) {
-            Integer idPhieuGiamGia = Integer.parseInt(matcher.group(1));
-            PhieuGiamGia phieu = phieuGiamGiaRepository.findById(idPhieuGiamGia).orElse(null);
+        // Tính lại tổng tiền món hiện tại của hóa đơn
+        BigDecimal tongTienMoi = hoaDon.getTongTienChuaGiam();
 
-            if (phieu != null) {
-                // Tính lại tổng tiền món hiện tại của hóa đơn
-                BigDecimal tongTienMoi = hoaDon.getTongTienChuaGiam(); // Backend bạn phải cập nhật biến này khi cập nhật món
+        // Nếu tổng tiền rớt xuống thấp hơn yêu cầu của phiếu -> HỦY PHIẾU TỰ ĐỘNG
+        if (tongTienMoi.compareTo(phieu.getDonHangToiThieu()) < 0) {
+            huyVoucher(idHoaDon);
+        } else {
+            // CẬP NHẬT LẠI SỐ TIỀN GIẢM
+            if (phieu.getLoaiGiamGia() == 1) { // 1 = Theo %
+                BigDecimal phanTram = phieu.getGiaTriGiam().divide(BigDecimal.valueOf(100));
+                BigDecimal soTienGiamMoi = tongTienMoi.multiply(phanTram);
 
-                // Nếu tổng tiền rớt xuống thấp hơn yêu cầu của phiếu -> HỦY PHIẾU TỰ ĐỘNG
-                if (tongTienMoi.compareTo(phieu.getDonHangToiThieu()) < 0) {
-                    huyVoucher(idHoaDon); // Tái sử dụng hàm hủy đã viết trước đó
-                } else {
-                    // CẬP NHẬT LẠI SỐ TIỀN GIẢM (Phòng trường hợp giảm theo % và tiền tổng bị thay đổi)
-                    if (phieu.getLoaiGiamGia() == 1) { // 1 = Theo %
-                        BigDecimal phanTram = phieu.getGiaTriGiam().divide(BigDecimal.valueOf(100));
-                        BigDecimal soTienGiamMoi = tongTienMoi.multiply(phanTram);
-                        if (soTienGiamMoi.compareTo(phieu.getGiaTriGiamToiDa()) > 0) {
-                            soTienGiamMoi = phieu.getGiaTriGiamToiDa();
-                        }
-                        hoaDon.setSoTienDaGiam(soTienGiamMoi);
-                        hoaDonThanhToanRepository.save(hoaDon);
-                    }
+                if (soTienGiamMoi.compareTo(phieu.getGiaTriGiamToiDa()) > 0) {
+                    soTienGiamMoi = phieu.getGiaTriGiamToiDa();
                 }
+
+                hoaDon.setSoTienDaGiam(soTienGiamMoi);
+                tinhLaiTongTienThanhToan(hoaDon); // Cập nhật cả tổng thanh toán
+                hoaDonThanhToanRepository.save(hoaDon);
             }
         }
     }

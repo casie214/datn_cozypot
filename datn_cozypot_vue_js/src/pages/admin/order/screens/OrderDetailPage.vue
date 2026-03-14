@@ -653,12 +653,17 @@ const cannotPrint = computed(() => {
               <div v-if="discount > 0">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-muted fw-medium">Giảm giá:</span>
-                  <span class="fw-bold text-custom-red"
-                    >({{ formatMoney(discount) }})</span
-                  >
+                  <span class="fw-bold text-custom-red">({{ formatMoney(discount) }})</span>
                 </div>
-                <div class="text-end text-muted small mb-3 fst-italic">
-                  Khuyến mãi áp dụng
+                
+                <div class="d-flex justify-content-end mb-3">
+                   <div v-if="selectedOrder?.maPhieuGiamGia" class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-3 py-1 d-inline-flex align-items-center">
+                     <i class="fa-solid fa-ticket-simple me-2"></i>
+                     <span>{{ selectedOrder.maPhieuGiamGia }}</span>
+                   </div>
+                   <div v-else class="text-muted small fst-italic">
+                     Khuyến mãi áp dụng
+                   </div>
                 </div>
               </div>
 
@@ -1014,8 +1019,15 @@ const cannotPrint = computed(() => {
                   <td class="text-end fw-bold">{{ formatMoney(taxAmount) }}</td>
                 </tr>
                 <tr v-if="discount > 0">
-                  <td class="fw-medium">Giảm giá / Voucher:</td>
-                  <td class="text-end fw-bold text-danger">
+                  <td class="fw-medium">
+                    Giảm giá / Voucher:
+                    <div v-if="selectedOrder?.maPhieuGiamGia" class="mt-1">
+                      <span style="font-size: 12px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 2px 8px; border-radius: 4px; display: inline-block;">
+                        Mã HĐ: {{ selectedOrder.maPhieuGiamGia }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-end fw-bold text-danger align-middle">
                     - {{ formatMoney(discount) }}
                   </td>
                 </tr>

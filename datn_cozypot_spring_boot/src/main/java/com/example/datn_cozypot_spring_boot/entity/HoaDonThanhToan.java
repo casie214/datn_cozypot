@@ -87,6 +87,10 @@ public class HoaDonThanhToan {
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_phieu_giam_gia")
+    private PhieuGiamGia idPhieuGiamGia;
+
     @Nationalized
     @Lob
     @Column(name = "ghi_chu")

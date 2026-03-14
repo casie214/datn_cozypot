@@ -892,6 +892,8 @@ const openManageModal = async (ban, forceStatus = null, targetKhach = null) => {
           tienCoc: data.tienCoc !== undefined ? data.tienCoc : (targetKhach ? targetKhach.tienCoc : 0), 
           tongTienThanhToan: data.tongTienThanhToan || 0,
           vatApDung: data.vatApDung ?? 10,
+          idPhieuGiamGia: data.idPhieuGiamGia || null,
+          maPhieuGiamGia: data.maPhieuGiamGia || null,
           trangThai: targetKhach ? targetKhach.trangThai : data.trangThai,
           
           // 🚨 ĐÃ FIX: Nhận mảng danhSachBan từ BE (Nếu BE trả về rỗng, tạo mảng chứa chính nó)
@@ -2263,15 +2265,23 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     </ul>
                     <div class="financial-breakdown border-top pt-2 mt-2">
                     <div class="d-flex justify-content-between text-muted small mb-1"><span>Tạm tính (Tiền món):</span><span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span></div>
-                    <div v-if="(billSummary?.giam || 0) > 0" class="d-flex justify-content-between align-items-center text-success small mb-1">
-                        <span>Khuyến mãi / Giảm giá:</span>
-                        <div class="d-flex align-items-center">
-                            <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
-                            <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+                    <div v-if="(billSummary?.giam || 0) > 0" class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center text-success small mb-1">
+                            <span>Khuyến mãi / Giảm giá:</span>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>                    
+                        <div class="d-flex justify-content-end">
+                           <div v-if="selectedPhieu?.maPhieuGiamGia" class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-2 py-1 d-inline-flex align-items-center" style="font-size: 10px;">
+                             <i class="fa-solid fa-ticket-simple me-1"></i>
+                             <span>Mã: {{ selectedPhieu.maPhieuGiamGia }}</span>
+                           </div>
+                        </div>
+                    </div>              
                     <div class="d-flex justify-content-between text-muted small mb-1">
                       <span>Thuế VAT (Tính theo món):</span>
                       <span>+ {{ (billSummary?.tienVat || 0).toLocaleString() }} đ</span>
@@ -2480,14 +2490,22 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 <span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span>
             </div>
             
-            <div v-if="(billSummary?.giam || 0) > 0" class="d-flex justify-content-between align-items-center mb-2 text-success small">
-                <span>Khuyến mãi / Giảm giá:</span>
-                <div class="d-flex align-items-center">
-                    <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
-                    <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
+            <div v-if="(billSummary?.giam || 0) > 0">
+              <div class="d-flex justify-content-between align-items-center mb-1 text-success small">
+                  <span>Khuyến mãi / Giảm giá:</span>
+                  <div class="d-flex align-items-center">
+                      <span class="fw-bold me-2">- {{ (billSummary?.giam || 0).toLocaleString() }} đ</span>
+                      <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size: 10px;" @click="removeVoucher" title="Hủy mã này">
+                          <i class="fa-solid fa-xmark"></i>
+                      </button>
+                  </div>
+              </div>
+              <div class="d-flex justify-content-end mb-2">
+                 <div v-if="selectedPhieu?.maPhieuGiamGia" class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-2 py-1 d-inline-flex align-items-center" style="font-size: 11px;">
+                   <i class="fa-solid fa-ticket-simple me-1"></i>
+                   <span>Mã: {{ selectedPhieu.maPhieuGiamGia }}</span>
+                 </div>
+              </div>
             </div>
 
             <div class="d-flex justify-content-between mb-2 text-muted small">
