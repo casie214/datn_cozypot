@@ -34,6 +34,8 @@ public class SetLauResponse {
 
     private Integer trangThai;
 
+    private Double phanTramVat;
+
     private List<SetLauChiTietResponse> listChiTietSetLau;
     private List<MonAnInSetResponse> danhSachMon;
 }

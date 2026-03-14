@@ -773,6 +773,8 @@ public class DatBanService {
         logTaoMoi.setThoiGianThucHien(Instant.now());
         dsLichSu.add(logTaoMoi);
 
+        BigDecimal tongTienVatCuaHoaDon = BigDecimal.ZERO;
+
         if (request.getChiTiet() != null && !request.getChiTiet().isEmpty()) {
             List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
 
@@ -802,6 +804,15 @@ public class DatBanService {
                 ct.setTrangThaiMon(1);
                 ct.setNgayGioTao(java.time.LocalDateTime.now());
 
+                // ---> XỬ LÝ LƯU THUẾ VAT TỪ FRONTEND <---
+                // Lấy tiền VAT từng món từ FE gửi xuống (nếu có), không có thì set = 0
+                BigDecimal tienVatMon = mon.getTienVat() != null ? mon.getTienVat() : BigDecimal.ZERO;
+                ct.setTienVat(tienVatMon);
+
+                // Cộng dồn vào tổng VAT của hóa đơn
+                tongTienVatCuaHoaDon = tongTienVatCuaHoaDon.add(tienVatMon);
+                // ----------------------------------------
+
                 dsChiTiet.add(ct);
 
                 // Tạo log cho từng món
@@ -816,10 +827,11 @@ public class DatBanService {
             }
 
             chiTietHoaDonRepository.saveAll(dsChiTiet);
-
-            // Ép Hibernate xả dữ liệu để Trigger tính tổng tiền trong Database chạy
             chiTietHoaDonRepository.flush();
         }
+
+        hoaDon.setVatApDung(tongTienVatCuaHoaDon);
+        hoaDonThanhToanRepository.save(hoaDon);
 
         if (trangThaiBanDau == 1) {
             LichSuHoaDon logChoCoc = new LichSuHoaDon();

@@ -119,6 +119,7 @@ const fetchData = async () => {
             ? baseName
             : `${baseName} (${variantName})`,
         image: m.hinhAnh,
+        phanTramVat: m.phanTramVat || 0
       });
     });
 
@@ -152,6 +153,7 @@ const fetchData = async () => {
           groupId: item.idLoaiSet || item.loaiSet?.id,
           isRange: false,
           hasVariants: false,
+          phanTramVat: item.phanTramVat || 0
         })),
       });
     }
@@ -222,6 +224,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "SET",
       quantity: 1,
+      phanTramVat: item.phanTramVat || 0
     });
     return;
   }
@@ -241,6 +244,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "MON",
       quantity: 1,
+      phanTramVat: variant.phanTramVat || 0
     });
   } else {
     // Có nhiều lựa chọn -> Bật Modal
@@ -275,6 +279,7 @@ const confirmAddToCart = () => {
     image: variant.image ? getImg(variant.image) : selectedProduct.value.image,
     type: "MON",
     quantity: modalQuantity.value,
+    phanTramVat: variant.phanTramVat || 0
   });
   closeDetailModal();
 };

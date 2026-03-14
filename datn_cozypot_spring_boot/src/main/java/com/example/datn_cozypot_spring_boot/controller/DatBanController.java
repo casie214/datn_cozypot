@@ -249,8 +249,6 @@ public Page<DatBanListResponse> searchDatBan(
     public ResponseEntity<?> taoPhieuDatBanOnline(@RequestBody DatBanOnlineRequest request) {
         try {
             Map<String, Object> responseData = datBanService.taoPhieuDatBanOnline(request);
-
-            // Trả Object JSON này về cho Frontend (VueJS sẽ đọc response.data.idHoaDon, v.v..)
             return ResponseEntity.ok(responseData);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
