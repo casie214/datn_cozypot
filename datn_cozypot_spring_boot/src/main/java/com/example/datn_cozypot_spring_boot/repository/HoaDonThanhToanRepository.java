@@ -45,7 +45,7 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             "     OR LOWER(hd.maHoaDon) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.tenKhachHang) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "ORDER BY hd.thoiGianTao DESC")
+            "ORDER BY hd.thoiGianTao ASC")
     Page<HoaDonThanhToanResponse> searchHoaDon(
             @Param("keyword") String keyword,
             @Param("trangThai") Integer trangThai,

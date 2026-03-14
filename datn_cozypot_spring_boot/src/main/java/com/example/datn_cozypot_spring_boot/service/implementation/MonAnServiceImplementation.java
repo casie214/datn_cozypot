@@ -17,6 +17,7 @@ import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 
 import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepository;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.DonViRepository;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import jakarta.transaction.Transactional;
@@ -47,6 +48,7 @@ public class MonAnServiceImplementation implements MonAnService {
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.ChiTietSetLauRepository chiTietSetLauRepository;
     private final DonViRepository donViRepository; // Repository mới cho bảng Cha
     private final ModelMapper modelMapper;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     // --- UTILS ---
     private String generatePrefixFromData(String name) {
@@ -576,8 +578,25 @@ public class MonAnServiceImplementation implements MonAnService {
 
     @Override
     public List<MonAnResponse> findMonAnActive() {
+        // 1. Query VAT 1 lần duy nhất từ DB để tối ưu hiệu năng
+        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+        Double vatDongGoi = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT_DONG_GOI").get().getGiaTri());
+
         return danhMucChiTietRepository.findByTrangThai(1).stream()
-                .map(this::mapToMonAnResponse)
+                .map(mon -> {
+                    // 2. Vẫn dùng nguyên hàm map của bạn kia
+                    MonAnResponse res = mapToMonAnResponse(mon);
+
+                    // 3. Bơm thêm % VAT chỉ cho API của mình
+                    if (mon.getDanhMuc() != null && mon.getDanhMuc().getLoaiVatApDung() != null) {
+                        int loaiVat = mon.getDanhMuc().getLoaiVatApDung();
+                        res.setPhanTramVat(loaiVat == 2 ? vatDongGoi : vatChung);
+                    } else {
+                        res.setPhanTramVat(vatChung);
+                    }
+
+                    return res;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -675,8 +694,19 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional
     public List<SetLauResponse> findSetLauActive() {
+        // 1. Query VAT chung
+        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+
         return setLauRepository.findByTrangThai(1).stream()
-                .map(this::mapToSetLauResponse)
+                .map(set -> {
+                    // 2. Vẫn dùng nguyên hàm map của bạn kia
+                    SetLauResponse res = mapToSetLauResponse(set);
+
+                    // 3. Bơm thêm VAT cho Set Lẩu (mặc định loại 1)
+                    res.setPhanTramVat(vatChung);
+
+                    return res;
+                })
                 .collect(Collectors.toList());
     }
 

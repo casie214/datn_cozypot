@@ -194,7 +194,14 @@ const subTotal = computed(() =>
   cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
 );
 
-const taxAmount = computed(() => subTotal.value * (systemParams.vat / 100));
+const taxAmount = computed(() => {
+  return cart.value.reduce((sum, item) => {
+    const vatRate = item.phanTramVat || 0;
+    const tienVatCuaMon = item.price * item.quantity * (vatRate / 100);
+    return sum + tienVatCuaMon;
+  }, 0);
+});
+
 const totalAmount = computed(() => subTotal.value + taxAmount.value);
 const depositAmount = computed(
   () => totalAmount.value * (systemParams.phanTramCoc / 100),
@@ -400,13 +407,18 @@ const submitFinalBooking = async () => {
       ghiChu: customerInfo.note,
       tongTien: totalAmount.value,
       tienCoc: depositAmount.value,
+      chiTiet: cart.value.map((item) => {
+        const vatRate = item.phanTramVat || 0;
 
-      chiTiet: cart.value.map((item) => ({
-        idChiTietMonAn: item.type === "MON" ? item.id : null,
-        idSetLau: item.type === "SET" ? item.id : null,
-        soLuong: item.quantity,
-        donGia: item.price,
-      })),
+        return {
+          idChiTietMonAn: item.type === "MON" ? item.id : null,
+          idSetLau: item.type === "SET" ? item.id : null,
+          soLuong: item.quantity,
+          donGia: item.price,
+          phanTramVat: vatRate,
+          tienVat: item.price * item.quantity * (vatRate / 100),
+        };
+      }),
     };
 
     // 1. GỌI API ĐẶT BÀN LÊN BACKEND
@@ -947,9 +959,10 @@ const minDate = computed(() => {
                         formatPrice(subTotal)
                       }}</span>
                     </div>
+
                     <div class="d-flex justify-content-between mb-3">
                       <span class="text-dark fw-bold small"
-                        >Thuế ({{ systemParams.vat }}%):</span
+                        >Tổng thuế VAT:</span
                       >
                       <span class="text-dark fw-bold small">{{
                         formatPrice(taxAmount)
