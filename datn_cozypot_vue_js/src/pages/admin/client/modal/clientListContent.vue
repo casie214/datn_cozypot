@@ -1,12 +1,11 @@
 <template>
   <div class="flex-grow-1 staff-manager-wrapper" style="padding: 25px; background: #ffffff; min-height: 100vh;">
     <div class="mb-3">
-      <h2 class="title-page-cozy" >Quản lý khách hàng</h2>
+      <h2 class="title-page-cozy">Quản lý khách hàng</h2>
 
     </div>
-
     <div class="filter-card-premium mb-4">
-      <div class="row g-3 p-3 align-items-end">
+      <div class="row  p-3 align-items-end">
         <div class="col-md-4">
           <label class="filter-label">Tìm kiếm</label>
           <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, SĐT, email..."
@@ -226,7 +225,7 @@ const filters = reactive({
 const pagination = reactive({ currentPage: 1, pageSize: 8, totalPages: 0, totalElements: 0 });
 const trangThaiOptions = [
   { label: "Đang làm việc", value: 1 },
-  { label: "Ngừng hoạt động", value: 2 }
+  { label: "Ngừng hoạt động", value: 0 }
 ];
 const handleSearch = async (page = null) => {
   console.log("Hàm handleSearch đã chạy!");
@@ -364,6 +363,7 @@ const handleExportExcel = async () => {
         text: 'File đã được tải xuống.',
         icon: 'success',
         timer: 2000,
+        iconColor: '#7D161A',
         showConfirmButton: false
       });
 
@@ -436,6 +436,7 @@ const handleToggleStatus = async (kh) => {
         text: `Đã ${isLocking ? 'khóa' : 'mở khóa'} khách hàng thành công.`,
         icon: 'success',
         timer: 1500,
+        iconColor: '#7D161A',
         showConfirmButton: false
       });
 

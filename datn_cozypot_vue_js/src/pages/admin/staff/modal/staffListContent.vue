@@ -5,10 +5,9 @@
         <h2 class="title-page-cozy">Quản lý nhân viên</h2>
       </div>
     </div>
-
     <div class="filter-card-premium mb-4">
 
-      <div class="row g-3 p-3 align-items-end">
+      <div class="row p-3 align-items-end">
         <div class="col-md-4">
           <label class="filter-label">Tìm kiếm</label>
           <input v-model="filters.keyword" class="form-control custom-input" placeholder="Tên, mã, email..."
@@ -251,13 +250,9 @@ const formatDate = (date) => {
 };
 const handleSearch = async (showToast = false) => {
   try {
-
-    const params = {
-      ...filters,
-      trangThai: filters.trangThai?.value ?? null
-    };
-
-    const data = await fetchData(params, pagination);
+    // Truyền trực tiếp filters và pagination vào fetchData
+    // Không bóc tách trangThai ở đây nữa
+    const data = await fetchData(filters, pagination); 
 
     listNhanVien.value = data.content || [];
     pagination.totalPages = data.totalPages || 0;
@@ -266,7 +261,6 @@ const handleSearch = async (showToast = false) => {
   } catch (error) {
     console.error("Lỗi khi load danh sách:", error);
     listNhanVien.value = [];
-
     Swal.fire('Lỗi!', 'Không thể tải dữ liệu.', 'error');
   }
 };
@@ -399,7 +393,7 @@ const exportToExcel = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false, iconColor: '#7D161A', });
     } catch (error) {
       console.error("Lỗi xuất file:", error);
       Swal.fire('Lỗi!', 'Không thể tải file. Có thể Server chưa hỗ trợ lọc theo ID.', 'error');
@@ -469,7 +463,7 @@ const downloadTemplate = async () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Thành công!', icon: 'success', timer: 1500, showConfirmButton: false, iconColor: '#7D161A', });
     } catch (error) {
       console.error("Lỗi tải file mẫu:", error);
       Swal.fire('Lỗi!', 'Không thể tải file mẫu. Vui lòng kiểm tra lại hệ thống.', 'error');
@@ -534,7 +528,8 @@ const handleImportExcel = async (event) => {
       title: 'Thành công!',
       text: response.data.message || 'Đã nhập danh sách nhân viên thành công.',
       icon: 'success',
-      confirmButtonColor: '#800000'
+      confirmButtonColor: '#800000',
+      iconColor: '#7D161A',
     });
 
     // Sau khi import xong thì gọi hàm load lại dữ liệu bảng

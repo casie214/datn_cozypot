@@ -662,6 +662,7 @@ const handleSave = async () => {
       title: 'Thành công',
       text: message,
       timer: 2000,
+      iconColor: '#7D161A',
       showConfirmButton: false
     });
 
