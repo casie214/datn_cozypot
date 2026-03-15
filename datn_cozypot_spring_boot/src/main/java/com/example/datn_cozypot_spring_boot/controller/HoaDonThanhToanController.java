@@ -276,6 +276,7 @@ public class HoaDonThanhToanController {
         res.setThoiGianDat(phieu.getThoiGianDat());
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
+        res.setThoiGianNhanBan(phieu.getThoiGianNhanBan());
 
 
         if (phieu.getIdKhachHang() != null) {
