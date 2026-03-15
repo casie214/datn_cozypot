@@ -1,30 +1,24 @@
 <script setup>
 import "@vuepic/vue-datepicker/dist/main.css";
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import dayjs from "dayjs";
-// import utc from "dayjs/plugin/utc";
-// import timezone from "dayjs/plugin/timezone";
 import {
   createPhieuDatBanFullService,
   fetchAllBanAn,
   fetchAllCustomers,
   fetchTableStatusByDate,
-  searchCustomerByPhone,
   searchDatBanService,
 } from "@/services/tableManageService";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
 import Swal from "sweetalert2";
 
-// dayjs.extend(utc);
-// dayjs.extend(timezone);
-
 //---- --- Khai báo State ---
 const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
-const currentPage = ref(1); // Vue hiển thị từ trang 1
+const currentPage = ref(1);
 const pageSize = ref(6);
-const refreshKey = ref(0); // Thêm biến này để ép component con tải lại
+const refreshKey = ref(0);
 const isSubmitting = ref(false);
 
 const searchForm = ref({
@@ -32,9 +26,10 @@ const searchForm = ref({
   trangThai: "",
   ngayDat: "",
 });
-// Form tạo mới
+
+// 🚨 ĐÃ SỬA: Thêm danhSachBanChon vào form để lưu mảng bàn
 const createForm = ref({
-  idBanAn: "",
+  danhSachBanChon: [], // Chứa mảng object các bàn được chọn
   idKhachHang: "",
   tenKhachHang: "",
   soDienThoai: "",
@@ -45,14 +40,16 @@ const createForm = ref({
   soLuongKhach: 1,
   hinhThucDat: 2,
 });
+
 const formErrors = ref({
   tenKhachHang: "",
   soDienThoai: "",
   email: "",
   thoiGianDat: "",
   soLuongKhach: "",
-  idBanAn: "",
+  idBanAn: "", // Dùng chung key lỗi cho Bàn
 });
+
 const showCreateModal = ref(false);
 const listBanAn = ref([]);
 const customerOptions = ref([]);
@@ -60,31 +57,7 @@ const selectedCustomer = ref(null);
 const isOldCustomer = ref(false);
 
 const allTables = ref([]);
-const tableOptions = ref([]);
-const selectedTable = ref(null);
-
-const showCreateTableModal = ref(false);
-
-const createFormBan = ref({
-  idBanAn: null,
-  soLuongKhach: 2,
-});
-
-const newTableForm = ref({
-  tenBan: "",
-  soNguoiToiDa: 4,
-  tang: "",
-  khuVuc: "",
-});
-
-const createBanAnService = async (data) => {
-  return {
-    ...data,
-    idBanAn: Date.now(),
-  };
-};
-
-const tableStatusMap = ref({}); // map: id → trạng thái theo ngày
+const tableStatusMap = ref({});
 
 const normalizeBookingDateTime = (value) => {
   if (!value) return "";
@@ -97,15 +70,9 @@ const checkTablesByDate = async (thoiGian) => {
     tableStatusMap.value = {};
     return;
   }
-
   try {
     const data = await fetchTableStatusByDate(thoiGian);
-    console.log("Data trả về:", data); // ← xem cấu trúc data
-    console.log("allTables:", allTables.value); // ← xem value của từng bàn
-
     tableStatusMap.value = Object.fromEntries(data.map((b) => [b.banId, b]));
-
-    console.log("tableStatusMap:", tableStatusMap.value); // ← xem map sau khi build
   } catch (err) {
     console.error("Lỗi check bàn theo ngày:", err);
   }
@@ -114,92 +81,14 @@ const checkTablesByDate = async (thoiGian) => {
 // ===== LOAD DATA =====
 const loadTables = async () => {
   const data = await fetchAllBanAn();
-
   allTables.value = data.map((b) => ({
-    value: b.id, // idBanAn → id
+    value: b.id,
     label: `${b.maBan} - ${b.tenKhuVuc} (Tầng ${b.soTang})`,
     raw: b,
   }));
-
-  tableOptions.value = allTables.value;
 };
 
 loadTables();
-
-// ===== SEARCH =====
-const searchTable = (query) => {
-  if (!query) {
-    tableOptions.value = allTables.value;
-    return;
-  }
-
-  const q = query.toLowerCase();
-  const filtered = allTables.value.filter(
-    (t) =>
-      t.raw.maBan?.toLowerCase().includes(q) ||
-      t.raw.tenKhuVuc?.toLowerCase().includes(q) ||
-      String(t.raw.soTang).includes(q),
-  );
-
-  if (filtered.length === 0) {
-    tableOptions.value = [
-      {
-        value: "create-new",
-        label: `+ Thêm bàn mới: ${query}`,
-        isNew: true,
-        name: query,
-      },
-    ];
-  } else {
-    tableOptions.value = filtered;
-  }
-};
-
-// ===== SELECT =====
-const handleSelectTable = (value) => {
-  const option =
-    allTables.value.find((o) => o.value === value) ||
-    tableOptions.value.find((o) => o.value === value);
-
-  if (!option) return;
-
-  if (option.isNew) {
-    newTableForm.value = {
-      tenBan: option.name,
-      soNguoiToiDa: createForm.value.soLuongKhach || 4,
-      tang: "",
-      khuVuc: "",
-    };
-    showCreateTableModal.value = true;
-  } else {
-    createForm.value.idBanAn = option.value; // lưu b.id vào form
-  }
-};
-
-// ===== SAVE NEW TABLE =====
-const saveNewTable = async () => {
-  try {
-    const created = await createBanAnService(newTableForm.value);
-
-    const newOption = {
-      value: created.idBanAn,
-      label: `${created.tenBan} (Tầng ${created.tang} - KV ${created.khuVuc})`,
-      raw: created,
-    };
-
-    allTables.value.push(newOption);
-    tableOptions.value = allTables.value;
-
-    selectedTable.value = created.idBanAn;
-    createForm.value.idBanAn = created.idBanAn;
-
-    showCreateTableModal.value = false;
-  } catch (err) {
-    Swal.fire('Lỗi', 'Không thể thêm bàn', 'error');
-  }
-};
-
-// --- Các hàm xử lý Logic ---
 
 // ================= SEARCH =================
 const buildSearchPayload = () => {
@@ -216,7 +105,6 @@ const buildSearchPayload = () => {
     const localDate = new Date(d.getTime() - offset * 60 * 1000);
     payload.ngayDat = localDate.toISOString().split("T")[0];
   }
-
   return payload;
 };
 
@@ -227,7 +115,6 @@ const searchDatBan = async () => {
       page: currentPage.value - 1,
       size: pageSize.value,
     });
-
     listPhieuDatBan.value = data.content;
     totalPages.value = data.totalPages;
   } catch (error) {
@@ -236,14 +123,14 @@ const searchDatBan = async () => {
 };
 
 // ================= OPEN MODAL =================
+// ================= OPEN MODAL =================
 const openCreateModal = async () => {
   selectedCustomer.value = null;
-  selectedTable.value = null;
   customerOptions.value = [];
   isOldCustomer.value = false;
 
   createForm.value = {
-    idBanAn: "",
+    danhSachBanChon: [],
     idKhachHang: "",
     tenKhachHang: "",
     soDienThoai: "",
@@ -258,18 +145,26 @@ const openCreateModal = async () => {
 
   showCreateModal.value = true;
 
-  // Load song song cho nhanh
-  const [ban, _] = await Promise.all([fetchAllBanAn(), loadAllCustomers()]);
-  listBanAn.value = ban;
+  // Load dữ liệu bàn và khách song song
+  const [banRaw, _] = await Promise.all([fetchAllBanAn(), loadAllCustomers()]);
+  
+  // 🚨 ĐÃ FIX: Map thêm tọa độ column và row để sơ đồ Grid vẽ được bàn
+  listBanAn.value = banRaw.map((ban, index) => {
+    const defaultCol = (index % 3) * 4 + 1;
+    const defaultRow = Math.floor(index / 3) * 2 + 1;
+    return {
+      ...ban,
+      column: ban.column || defaultCol,
+      row: ban.row || defaultRow,
+    };
+  });
 };
 
-// Thêm vào state
-const allCustomers = ref([]);
-
 // Thêm hàm load all
+const allCustomers = ref([]);
 const loadAllCustomers = async () => {
   try {
-    const data = await fetchAllCustomers(); // hoặc API của bạn
+    const data = await fetchAllCustomers(); 
     allCustomers.value = data.map((c) => ({
       value: c.idKhachHang,
       label: `${c.tenKhachHang} - ${c.soDienThoai}`,
@@ -310,8 +205,6 @@ const searchCustomer = async (query) => {
 };
 
 const handleSelectCustomer = (value) => {
-  // Multiselect trả về value (idKhachHang) hoặc object tùy cấu hình
-  // Tìm lại option đầy đủ từ customerOptions
   const option = customerOptions.value.find((o) => o.value === value);
   if (!option) return;
 
@@ -349,7 +242,6 @@ const clearCustomer = () => {
 };
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
 const isValidVietnamPhone = (phone) => /^(0|\+84)(3|5|7|8|9)\d{8}$/.test(phone);
 
 const resetCreateFormErrors = () => {
@@ -404,13 +296,114 @@ const validateCreateForm = () => {
   if (!Number.isInteger(soLuongKhach) || soLuongKhach < 1) {
     errors.soLuongKhach = "Số lượng khách phải lớn hơn 0";
   }
+  
+  if (!createForm.value.danhSachBanChon || createForm.value.danhSachBanChon.length === 0) {
+    errors.idBanAn = "Vui lòng chọn ít nhất 1 bàn!";
+  }
 
   formErrors.value = errors;
   return !Object.values(errors).some(Boolean);
 };
 
-// ================= SUBMIT =================
-// ================= SUBMIT =================
+// ========================================================
+// 🚨 LOGIC CHỌN BÀN TRÊN SƠ ĐỒ KHI TẠO PHIẾU MỚI
+// ========================================================
+const showSelectTableModal = ref(false);
+const tempSelectedTables = ref([]); 
+const modalActiveFloor = ref(1);
+
+const danhSachTangModal = computed(() => {
+  if (!listBanAn.value || listBanAn.value.length === 0) return [];
+  const floors = listBanAn.value.map(ban => Number(ban.soTang || ban.tang || 1));
+  return [...new Set(floors)].sort((a, b) => a - b);
+});
+
+const banTheoTangModal = computed(() => {
+  return listBanAn.value.filter(ban => Number(ban.soTang || ban.tang || 1) === modalActiveFloor.value);
+});
+
+const totalTempCapacity = computed(() => {
+  return tempSelectedTables.value.reduce((sum, ban) => sum + (Number(ban.soCho || ban.soNguoiToiDa) || 0), 0);
+});
+
+const openTableSelectionModal = async () => {
+  if (!createForm.value.thoiGianDat) {
+    return Swal.fire('Lưu ý', 'Vui lòng chọn <b>Thời gian đặt</b> trước để kiểm tra bàn trống!', 'warning');
+  }
+  if (!createForm.value.soLuongKhach || createForm.value.soLuongKhach < 1) {
+    return Swal.fire('Lưu ý', 'Vui lòng nhập <b>Số lượng khách</b> hợp lệ trước!', 'warning');
+  }
+
+  Swal.fire({ title: 'Đang tải sơ đồ...', didOpen: () => Swal.showLoading() });
+  
+  const normalizedTime = normalizeBookingDateTime(createForm.value.thoiGianDat);
+  await checkTablesByDate(normalizedTime);
+  
+  // Chọn mặc định tầng đầu tiên
+  if (danhSachTangModal.value.length > 0) {
+      modalActiveFloor.value = danhSachTangModal.value[0];
+  }
+
+  tempSelectedTables.value = [...(createForm.value.danhSachBanChon || [])];
+  
+  Swal.close();
+  showSelectTableModal.value = true;
+};
+
+const toggleTableForCreate = (ban) => {
+  const status = tableStatusMap.value[String(ban.id)]?.trangThai || 0;
+  if (status !== 0) {
+    return Swal.fire({toast: true, position: 'top-end', icon: 'error', title: 'Bàn đã có lịch lúc này!', showConfirmButton: false, timer: 1500});
+  }
+
+  const idx = tempSelectedTables.value.findIndex(b => b.id === ban.id);
+  if (idx !== -1) {
+    tempSelectedTables.value.splice(idx, 1); 
+  } else {
+    // 🚨 ĐÃ SỬA: Chặn nếu đã chọn đủ số người
+    if (totalTempCapacity.value >= createForm.value.soLuongKhach) {
+      return Swal.fire({
+        toast: true, 
+        position: 'top-end', 
+        icon: 'warning', 
+        title: 'Đã đủ chỗ, không cần chọn thêm bàn!', 
+        showConfirmButton: false, 
+        timer: 2000
+      });
+    }
+    tempSelectedTables.value.push(ban); 
+  }
+};
+
+const confirmTableSelection = () => {
+  if (totalTempCapacity.value < createForm.value.soLuongKhach) {
+    Swal.fire({
+      title: 'Chưa đủ chỗ!',
+      text: `Khách đi ${createForm.value.soLuongKhach} người nhưng các bàn chọn chỉ chứa được ${totalTempCapacity.value} người. Kê thêm ghế?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7d161a',
+      confirmButtonText: 'Vẫn tiếp tục',
+      cancelButtonText: 'Chọn thêm bàn'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        createForm.value.danhSachBanChon = [...tempSelectedTables.value];
+        showSelectTableModal.value = false;
+        formErrors.value.idBanAn = "";
+      }
+    });
+  } else {
+    createForm.value.danhSachBanChon = [...tempSelectedTables.value];
+    showSelectTableModal.value = false;
+    formErrors.value.idBanAn = "";
+  }
+};
+
+const removeSelectedTable = (index) => {
+  createForm.value.danhSachBanChon.splice(index, 1);
+};
+
+
 // ================= SUBMIT =================
 const submitCreate = async () => {
   if (!validateCreateForm()) return;
@@ -420,47 +413,30 @@ const submitCreate = async () => {
   try {
     const thoiGianDat = normalizeBookingDateTime(createForm.value.thoiGianDat);
 
-    // 🚨 GÁN CỨNG idBanAn LÀ 1 VÀO PAYLOAD GỬI LÊN
     const payload = { 
       ...createForm.value, 
       thoiGianDat: thoiGianDat,
-      idBanAn: 1
+      danhSachIdBanAn: createForm.value.danhSachBanChon.map(b => b.id)
     };
 
-    const res = await createPhieuDatBanFullService(payload);
+    await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
     refreshKey.value += 1;
 
-    if (res.daGuiMail) {
-      showToast(
-        "success",
-        "✅ Tạo phiếu thành công!",
-        `Mail xác nhận đã gửi tới: ${res.emailGuiToi}`,
-      );
-    } else {
-      showToast(
-        "warning",
-        "✅ Tạo phiếu thành công!",
-        "Khách không có email nên không gửi được xác nhận.",
-      );
-    }
+    // 🚨 ĐÃ SỬA: Chỉ hiện thông báo tạo thành công, không nhắc đến Email nữa
+    showToast("success", "✅ Thành công!", "Đã tạo phiếu đặt bàn mới.");
+
   } catch (error) {
-    showToast(
-      "error",
-      "❌ Tạo phiếu thất bại",
-      error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.",
-    );
+    showToast("error", "❌ Tạo phiếu thất bại", error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.");
   } finally {
     isSubmitting.value = false; 
   }
 };
 
-
 const closeCreateModal = () => {
   showCreateModal.value = false;
   selectedCustomer.value = null;
-  selectedTable.value = null;
   customerOptions.value = [];
   resetCreateFormErrors();
 };
@@ -468,7 +444,7 @@ const closeCreateModal = () => {
 // ===== TOAST =====
 const toast = ref({
   show: false,
-  type: "success", // "success" | "warning" | "error"
+  type: "success",
   title: "",
   message: "",
 });
@@ -480,100 +456,6 @@ const showToast = (type, title, message, duration = 4000) => {
   }, duration);
 };
 
-// watch(
-//   () => createForm.value.thoiGianDat,
-//   (val) => {
-//     const normalized = normalizeBookingDateTime(val);
-//     checkTablesByDate(normalized);
-//     if (!formErrors.value.thoiGianDat) return;
-//     if (!normalized) {
-//       formErrors.value.thoiGianDat = "Vui long chon thoi gian dat";
-//       return;
-//     }
-//     if (dayjs(normalized).isSame(dayjs()) || dayjs(normalized).isBefore(dayjs())) {
-//       formErrors.value.thoiGianDat =
-//         "Thoi gian dat phai lon hon thoi diem hien tai";
-//       return;
-//     }
-//     formErrors.value.thoiGianDat = "";
-//   },
-// );
-
-// watch(
-//   () => createForm.value.tenKhachHang,
-//   (val) => {
-//     if (!formErrors.value.tenKhachHang) return;
-//     const value = (val || "").trim();
-//     if (!value) {
-//       formErrors.value.tenKhachHang = "Vui long nhap ten khach hang";
-//       return;
-//     }
-//     if (value.length < 2) {
-//       formErrors.value.tenKhachHang = "Ten khach hang phai co it nhat 2 ky tu";
-//       return;
-//     }
-//     formErrors.value.tenKhachHang = "";
-//   },
-// );
-
-// watch(
-//   () => createForm.value.soDienThoai,
-//   (val) => {
-//     if (!formErrors.value.soDienThoai) return;
-//     const value = (val || "").trim();
-//     if (!value) {
-//       formErrors.value.soDienThoai = "Vui long nhap so dien thoai";
-//       return;
-//     }
-//     if (!isValidVietnamPhone(value)) {
-//       formErrors.value.soDienThoai =
-//         "So dien thoai khong dung dinh dang Viet Nam";
-//       return;
-//     }
-//     formErrors.value.soDienThoai = "";
-//   },
-// );
-
-// watch(
-//   () => createForm.value.email,
-//   (val) => {
-//     if (!formErrors.value.email) return;
-//     const value = (val || "").trim();
-//     if (value && !isValidEmail(value)) {
-//       formErrors.value.email = "Email khong dung dinh dang";
-//       return;
-//     }
-//     formErrors.value.email = "";
-//   },
-// );
-
-// watch(
-//   () => createForm.value.soLuongKhach,
-//   (val) => {
-//     if (!formErrors.value.soLuongKhach) return;
-//     const value = Number(val);
-//     if (!Number.isInteger(value) || value < 1) {
-//       formErrors.value.soLuongKhach =
-//         "So luong khach phai la so nguyen lon hon 0";
-//       return;
-//     }
-//     formErrors.value.soLuongKhach = "";
-//   },
-// );
-
-// watch(
-//   () => createForm.value.idBanAn,
-//   (val) => {
-//     if (!formErrors.value.idBanAn) return;
-//     if (!val) {
-//       formErrors.value.idBanAn = "Vui long chon ban";
-//       return;
-//     }
-//     formErrors.value.idBanAn = "";
-//   },
-// );
-
-// --- Lifecycle ---
 onMounted(() => {
   searchDatBan();
 });
@@ -594,24 +476,14 @@ onMounted(() => {
           </button>
         </div>
       </div>
-      <!-- TAB -->
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <router-link
-            class="nav-link"
-            exact-active-class="active"
-            to="/admin/tables"
-          >
-            <i class="fa-solid fa-list"></i>
-            Danh sách phiếu
+          <router-link class="nav-link" exact-active-class="active" to="/admin/tables">
+            <i class="fa-solid fa-list"></i> Danh sách phiếu
           </router-link>
         </li>
         <li class="nav-item">
-          <router-link
-            class="nav-link"
-            active-class="active"
-            to="/admin/tables/calendar"
-          >
+          <router-link class="nav-link" active-class="active" to="/admin/tables/calendar">
             <i class="fa-regular fa-calendar"></i> Lịch đặt bàn
           </router-link>
         </li>
@@ -622,86 +494,50 @@ onMounted(() => {
       </div>
     </div>
   </div>
-  <!-- MODAL -->
+
   <div v-if="showCreateModal" class="modal-overlay">
     <div class="modal-box">
       <h4>Thêm phiếu đặt bàn</h4>
 
-      <!-- Multiselect tìm khách -->
       <label>Tìm khách theo SĐT</label>
-      <Multiselect
-        v-model="selectedCustomer"
-        :options="customerOptions"
-        :searchable="true"
-        :filter-results="false"
-        value-prop="value"
-        label="label"
-        track-by="value"
-        placeholder="Tìm theo tên hoặc SĐT..."
-        no-options-text="Không có khách hàng"
-        no-results-text="Không tìm thấy"
-        class="custom-filter-multiselect"
-        @open="
-          () => {
-            customerOptions = allCustomers;
-          }
-        "
-        @search-change="searchCustomer"
-        @select="handleSelectCustomer"
-        @clear="clearCustomer"
-      >
+      <Multiselect v-model="selectedCustomer" :options="customerOptions" :searchable="true" :filter-results="false"
+        value-prop="value" label="label" track-by="value" placeholder="Tìm theo tên hoặc SĐT..."
+        no-options-text="Không có khách hàng" no-results-text="Không tìm thấy" class="custom-filter-multiselect mb-3"
+        @open="() => { customerOptions = allCustomers; }" @search-change="searchCustomer" @select="handleSelectCustomer"
+        @clear="clearCustomer">
         <template #option="{ option }">
           <div v-if="option.isNew" style="color: #7d161a; font-weight: bold">
             {{ option.label }}
           </div>
           <div v-else>
             <span style="font-weight: 600">{{ option.raw.tenKhachHang }}</span>
-            <span style="color: #888; margin-left: 8px">{{
-              option.raw.soDienThoai
-            }}</span>
+            <span style="color: #888; margin-left: 8px">{{ option.raw.soDienThoai }}</span>
           </div>
         </template>
       </Multiselect>
+
       <div class="info-grid">
         <div>
           <label>Tên khách <span class="required-star">*</span></label>
-          <input
-            v-model="createForm.tenKhachHang"
-            :disabled="isOldCustomer"
-            placeholder="Tên khách"
-            :class="{ 'input-error': formErrors.tenKhachHang }"
-          />
-          <small v-if="formErrors.tenKhachHang" class="error-text">{{
-            formErrors.tenKhachHang
-          }}</small>
+          <input v-model="createForm.tenKhachHang" :disabled="isOldCustomer" placeholder="Tên khách"
+            :class="{ 'input-error': formErrors.tenKhachHang }" />
+          <small v-if="formErrors.tenKhachHang" class="error-text">{{ formErrors.tenKhachHang }}</small>
         </div>
 
         <div>
           <label>Số điện thoại <span class="required-star">*</span></label>
-          <input
-            v-model="createForm.soDienThoai"
-            :disabled="isOldCustomer"
-            placeholder="SĐT"
-            :class="{ 'input-error': formErrors.soDienThoai }"
-          />
-          <small v-if="formErrors.soDienThoai" class="error-text">{{
-            formErrors.soDienThoai
-          }}</small>
+          <input v-model="createForm.soDienThoai" :disabled="isOldCustomer" placeholder="SĐT"
+            :class="{ 'input-error': formErrors.soDienThoai }" />
+          <small v-if="formErrors.soDienThoai" class="error-text">{{ formErrors.soDienThoai }}</small>
         </div>
 
         <div>
           <label>Email</label>
-          <input
-            v-model="createForm.email"
-            :disabled="isOldCustomer"
-            placeholder="Email"
-            :class="{ 'input-error': formErrors.email }"
-          />
-          <small v-if="formErrors.email" class="error-text">{{
-            formErrors.email
-          }}</small>
+          <input v-model="createForm.email" :disabled="isOldCustomer" placeholder="Email"
+            :class="{ 'input-error': formErrors.email }" />
+          <small v-if="formErrors.email" class="error-text">{{ formErrors.email }}</small>
         </div>
-        
+
         <div>
           <label>Giới tính</label>
           <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
@@ -712,115 +548,52 @@ onMounted(() => {
 
         <div>
           <label>Ngày sinh</label>
-          <input
-            type="date"
-            v-model="createForm.ngaySinh"
-            :disabled="isOldCustomer"
-          />
+          <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" />
         </div>
-
-        
 
         <div>
           <label>Thời gian đặt <span class="required-star">*</span></label>
-          <VueDatePicker
-            v-model="createForm.thoiGianDat"
-            :enable-time-picker="true"
-            :is-24="true"
-            :hide-input-icon="true"
-            :clearable="false"
-            auto-apply
-            format="dd/MM/yyyy HH:mm"
-            placeholder="Chọn ngày giờ"
-            class="custom-datetime-picker"
-            :class="{ 'input-error': formErrors.thoiGianDat }"
-          />
-          <small v-if="formErrors.thoiGianDat" class="error-text">{{
-            formErrors.thoiGianDat
-          }}</small>
+          <VueDatePicker v-model="createForm.thoiGianDat" :enable-time-picker="true" :is-24="true"
+            :hide-input-icon="true" :clearable="false" auto-apply format="dd/MM/yyyy HH:mm" placeholder="Chọn ngày giờ"
+            class="custom-datetime-picker" :class="{ 'input-error': formErrors.thoiGianDat }" />
+          <small v-if="formErrors.thoiGianDat" class="error-text">{{ formErrors.thoiGianDat }}</small>
         </div>
-
-        <!-- <div>
-          <label>Chọn bàn</label>
-          <Multiselect
-            v-model="selectedTable"
-            :options="tableOptions"
-            :searchable="true"
-            :filter-results="false"
-            value-prop="value"
-            label="label"
-            track-by="value"
-            placeholder="Tìm hoặc thêm bàn..."
-            no-options-text="Không có bàn"
-            no-results-text="Không tìm thấy"
-            @open="
-              () => {
-                tableOptions = allTables;
-              }
-            "
-            @search-change="searchTable"
-            @select="handleSelectTable"
-            :class="{ 'input-error': formErrors.idBanAn }"
-          >
-            <template #option="{ option }">
-              <div
-                v-if="option.isNew"
-                style="color: #7d161a; font-weight: bold"
-              >
-                {{ option.label }}
-              </div>
-              <div v-else-if="option.raw">
-                <div style="font-weight: 600">{{ option.raw.maBan }}</div>
-                <div style="font-size: 12px; color: #777">
-                  {{ option.raw.tenKhuVuc }} · Tầng {{ option.raw.soTang }} ·
-                  {{ option.raw.soCho }} chỗ
-                  <span
-                    :style="{
-                      color: tableStatusMap[String(option.value)]
-                        ? tableStatusMap[String(option.value)].trangThai === 2
-                          ? '#e74c3c'
-                          : '#27ae60'
-                        : '#aaa',
-                      marginLeft: '6px',
-                    }"
-                  >
-                    ●
-                    {{
-                      tableStatusMap[String(option.value)]
-                        ? tableStatusMap[String(option.value)].trangThai === 2
-                          ? "Đã đặt"
-                          : "Còn trống"
-                        : "Còn trống"
-                    }}
-                  </span>
-                </div>
-              </div>
-            </template>
-          </Multiselect>
-          <small v-if="formErrors.idBanAn" class="error-text">{{
-            formErrors.idBanAn
-          }}</small>
-        </div> -->
 
         <div>
           <label>Số lượng khách <span class="required-star">*</span></label>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            v-model.number="createForm.soLuongKhach"
-            :class="{ 'input-error': formErrors.soLuongKhach }"
-          />
-          <small v-if="formErrors.soLuongKhach" class="error-text">{{
-            formErrors.soLuongKhach
-          }}</small>
+          <input type="number" min="1" step="1" v-model.number="createForm.soLuongKhach"
+            :class="{ 'input-error': formErrors.soLuongKhach }" />
+          <small v-if="formErrors.soLuongKhach" class="error-text">{{ formErrors.soLuongKhach }}</small>
+        </div>
+
+        <div style="grid-column: span 2;">
+          <label>Bàn phục vụ <span class="required-star">*</span></label>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <button class="btn btn-sm btn-custom-outline px-3 py-2 fw-bold" @click="openTableSelectionModal"
+              style="border-radius: 6px;">
+              <i class="fa-solid fa-map-location-dot me-1"></i> Chọn bàn trên sơ đồ
+            </button>
+            <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-success">
+              Đã chọn {{ createForm.danhSachBanChon.length }} bàn
+            </span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light" style="min-height: 50px;">
+            <div v-for="(ban, index) in createForm.danhSachBanChon" :key="ban.id"
+              class="badge bg-danger d-flex align-items-center py-2 px-3" style="font-size: 13px;">
+              <span>Bàn {{ ban.maBan }} ({{ ban.soCho || ban.soNguoiToiDa }} chỗ)</span>
+              <i class="fa-solid fa-xmark ms-2" style="cursor: pointer" @click="removeSelectedTable(index)"
+                title="Xóa bàn này"></i>
+            </div>
+            <div v-if="!createForm.danhSachBanChon?.length" class="text-muted small fst-italic w-100 text-center mt-1">
+              Chưa có bàn nào được chọn
+            </div>
+          </div>
+          <small v-if="formErrors.idBanAn" class="error-text">{{ formErrors.idBanAn }}</small>
         </div>
       </div>
 
       <div style="text-align: right; margin-top: 20px">
-        <button class="btn btn-custom-outline" @click="closeCreateModal" :disabled="isSubmitting">
-          Hủy
-        </button>
+        <button class="btn btn-custom-outline" @click="closeCreateModal" :disabled="isSubmitting">Hủy</button>
         <button class="btn ms-2" style="min-width: 80px;" @click="submitCreate" :disabled="isSubmitting">
           <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
           {{ isSubmitting ? 'Đang lưu...' : 'Lưu' }}
@@ -828,39 +601,117 @@ onMounted(() => {
       </div>
     </div>
   </div>
-  <!-- POPUP THÊM BÀN -->
-  <div v-if="showCreateTableModal" class="modal-overlay">
-    <div class="modal-box" style="width: 500px">
-      <h4>Thêm bàn mới</h4>
 
-      <div class="info-grid">
-        <input v-model="newTableForm.tenBan" placeholder="Tên bàn" />
-        <input
-          type="number"
-          v-model.number="newTableForm.soNguoiToiDa"
-          placeholder="Sức chứa"
-        />
-        <input v-model="newTableForm.tang" placeholder="Tầng" />
-        <input v-model="newTableForm.khuVuc" placeholder="Khu vực" />
+  <div v-if="showSelectTableModal" class="modal-overlay" style="z-index: 10005;">
+    <div class="modal-box-2 modal-fullscreen d-flex flex-column bg-light">
+      <div class="modal-header-custom bg-white shadow-sm z-1">
+        <h4 class="modal-title-custom text-danger m-0">
+          <i class="fa-solid fa-chair me-2"></i> Chọn bàn cho khách ({{ createForm.soLuongKhach }} người)
+        </h4>
+        <button class="close-btn" @click="showSelectTableModal = false">✕</button>
       </div>
 
-      <div style="text-align: right; margin-top: 20px">
-        <button
-          class="btn btn-custom-outline"
-          @click="
-            () => {
-              showCreateTableModal = false;
-              selectedTable = null;
-            }
-          "
-        >
-          Hủy
-        </button>
-        <button class="btn ms-2" @click="saveNewTable">Lưu</button>
+      <div class="modal-body-custom p-3 d-flex flex-column h-100 overflow-hidden">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
+            <div class="alert alert-info mb-0 border-0 shadow-sm flex-grow-1 me-4 d-flex align-items-center justify-content-between">
+                <div>
+                  <i class="fa-solid fa-clock me-2 text-primary fs-5"></i>
+                  <span>Kiểm tra bàn trống lúc: <b>{{ dayjs(createForm.thoiGianDat).format('HH:mm - DD/MM/YYYY') }}</b></span>
+                </div>
+                <div class="fw-bold fs-5" :class="totalTempCapacity >= createForm.soLuongKhach ? 'text-success' : 'text-danger'">
+                  Đã đáp ứng: {{ totalTempCapacity }} / {{ createForm.soLuongKhach }} chỗ
+                </div>
+            </div>
+            
+            <div class="d-flex bg-white p-1 rounded shadow-sm border">
+                <button v-for="tang in danhSachTangModal" :key="'select-tang-' + tang" 
+                        class="btn px-4 py-2 fw-bold" 
+                        :class="modalActiveFloor === tang ? 'btn-active' : 'text-muted'" 
+                        @click="modalActiveFloor = tang" 
+                        style="border-radius: 6px; border: none;">
+                    Tầng {{ tang }}
+                </button>
+            </div>
+        </div>
+
+        <div class="floor-plan-layout flex-grow-1 overflow-hidden d-flex gap-3">
+            <div class="floor-plan-section flex-grow-1 bg-white shadow-sm border rounded">
+              <div class="grid-container h-100 overflow-auto">
+                  <div class="grid-canvas">
+                    <div v-for="ban in banTheoTangModal" :key="'grid-'+ban.id" class="table-card" 
+                        :class="{
+                          'is-dimmed': (tableStatusMap[String(ban.id)]?.trangThai !== 0 && tableStatusMap[String(ban.id)]?.trangThai !== undefined) && !tempSelectedTables.some(b => b.id === ban.id), 
+                          'is-selected-merge': tempSelectedTables.some(b => b.id === ban.id) 
+                        }" 
+                        :style="{gridColumnStart: ban.column, gridRowStart: ban.row, gridColumnEnd: 'span 3', gridRowEnd: 'span 2', cursor: (tableStatusMap[String(ban.id)]?.trangThai === 0 || tableStatusMap[String(ban.id)]?.trangThai === undefined) ? 'pointer' : 'not-allowed'}" 
+                        @click="toggleTableForCreate(ban)">
+                        
+                        <div v-if="tempSelectedTables.some(b => b.id === ban.id)" class="checked-icon-overlay">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+
+                        <div class="table-content text-center pt-2">
+                            <strong class="fs-5">{{ ban.maBan }}</strong>
+                            <div class="text-muted small mb-2"><i class="fa-solid fa-users text-secondary"></i> {{ ban.soCho || ban.soNguoiToiDa }} chỗ</div>
+                            
+                            <div v-if="tempSelectedTables.some(b => b.id === ban.id)" class="status-tag bg-success text-white w-100 rounded-pill"><i class="fa-solid fa-check-double"></i> Đã chọn</div>
+                            <div v-else-if="tableStatusMap[String(ban.id)]?.trangThai !== 0 && tableStatusMap[String(ban.id)]?.trangThai !== undefined" class="status-tag bg-secondary text-white w-100 rounded-pill"><i class="fa-solid fa-ban"></i> Đã có lịch</div>
+                            <div v-else class="status-tag status-empty w-100 rounded-pill"><i class="fa-solid fa-check"></i> Còn trống</div>
+                        </div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+
+            <div class="bg-white shadow-sm border rounded p-3 d-flex flex-column" style="width: 350px;">
+                <h6 class="fw-bold mb-3 pb-2 border-bottom text-success flex-shrink-0">
+                  <i class="fa-solid fa-list-check me-2"></i> Bàn trống có thể chọn
+                </h6>
+                <div class="overflow-auto flex-grow-1 pe-2" style="max-height: calc(100vh - 250px);">
+                   <div v-if="banTheoTangModal.filter(b => tableStatusMap[String(b.id)]?.trangThai === 0 || tableStatusMap[String(b.id)]?.trangThai === undefined).length === 0" class="text-center text-muted mt-5">
+                       <i class="fa-solid fa-box-open fa-3x mb-3 text-light"></i>
+                       <p>Không có bàn nào trống tại tầng này!</p>
+                   </div>
+                   
+                   <div v-else class="row g-2">
+                      <div v-for="ban in banTheoTangModal.filter(b => tableStatusMap[String(b.id)]?.trangThai === 0 || tableStatusMap[String(b.id)]?.trangThai === undefined)" :key="'list-'+ban.id" class="col-6">
+                         
+                         <div class="mini-table-card border rounded p-3 text-center transition-all" 
+                              :class="{ 'is-selected-list': tempSelectedTables.some(b => b.id === ban.id) }" 
+                              @click="toggleTableForCreate(ban)">
+                              
+                            <div v-if="tempSelectedTables.some(b => b.id === ban.id)" class="checked-icon-overlay-mini">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+
+                            <div class="fw-bold fs-5" :class="tempSelectedTables.some(b => b.id === ban.id) ? 'text-white' : 'text-success'">{{ ban.maBan }}</div>
+                            <div class="small mb-1" :class="tempSelectedTables.some(b => b.id === ban.id) ? 'text-white' : 'text-muted'">
+                                <i class="fa-solid fa-users"></i> {{ ban.soCho || ban.soNguoiToiDa }} chỗ
+                            </div>
+                            <div class="badge border" :class="tempSelectedTables.some(b => b.id === ban.id) ? 'bg-white text-success border-white' : 'bg-light text-dark'">
+                                Tầng {{ ban.soTang || ban.tang }}
+                            </div>
+                         </div>
+
+                      </div>
+                   </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 pt-3 border-top bg-white px-3 py-2 rounded shadow-sm d-flex justify-content-between flex-shrink-0">
+            <button class="btn btn-outline-secondary px-4 fw-bold" @click="showSelectTableModal = false"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại</button>
+            <button class="btn btn-update-status px-5 fw-bold" style="width: auto; background-color: #28a745;" 
+                    :disabled="tempSelectedTables.length === 0" 
+                    @click="confirmTableSelection">
+                Xác nhận chọn {{ tempSelectedTables.length }} bàn <i class="fa-solid fa-check-double ms-2"></i>
+            </button>
+        </div>
       </div>
     </div>
   </div>
-  <!-- ===== TOAST NOTIFICATION ===== -->
+
   <Transition name="toast">
     <div v-if="toast.show" :class="['toast-noti', `toast-${toast.type}`]">
       <div class="toast-icon">
@@ -886,6 +737,25 @@ onMounted(() => {
 
 .navbar-search {
   width: 100%;
+}
+
+.grid-canvas {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  
+  /* 🚨 ĐÃ FIX: Chuyển 1fr thành 100px. Bắt buộc fix cứng chiều cao mỗi hàng 
+     thì Grid mới biết đường trải rộng các bàn ra thành 2D */
+  grid-template-rows: repeat(15, 100px); 
+  
+  gap: 15px;
+  padding: 20px;
+  width: 100%;
+  min-width: 800px;
+  box-sizing: border-box;
+  background-image:
+    linear-gradient(to right, #eee 1px, transparent 1px),
+    linear-gradient(to bottom, #eee 1px, transparent 1px);
+  background-size: calc(100% / 12) 100px;
 }
 
 .header-manager {
@@ -917,6 +787,14 @@ hr {
   animation: fadeIn 0.2s ease-in-out;
 }
 
+.modal-box-2 {
+  width: 70%;
+  background: #fff;
+  border-radius: 15px;
+  padding: 25px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -928,21 +806,20 @@ hr {
   background: none;
   font-size: 22px;
   cursor: pointer;
+  color: #888;
+}
+
+.close-btn:hover {
+  color: #333;
 }
 
 .custom-filter-multiselect {
   --ms-border-color: #ddd;
   --ms-radius: 8px;
-
-  /* Vòng sáng khi click vào */
   --ms-ring-color: rgba(125, 22, 26, 0.15);
   --ms-border-color-active: #7d161a;
-
-  /* Màu sắc Option khi trỏ chuột (hover) */
   --ms-option-bg-pointed: #fcf4f4;
   --ms-option-color-pointed: #7d161a;
-
-  /* Màu sắc Option khi đã chọn */
   --ms-option-bg-selected: #7d161a;
   --ms-option-color-selected: #ffffff;
   --ms-option-bg-selected-pointed: #5f0f12;
@@ -953,59 +830,12 @@ hr {
   color: white !important;
 }
 
-.custom-filter-multiselect :deep(.multiselect-option.is-selected.is-pointed) {
-  background-color: #5c0a16 !important; /* Đỏ sẫm hơn một chút khi hover vào mục đã chọn */
-}
-
-.custom-filter-multiselect :deep(.multiselect-option.is-selected::after) {
-  color: white !important; 
-}
-
-:global(.multiselect-option.is-selected) {
-  background-color: #7d161a !important;
-  color: white !important;
-}
-
-:global(.multiselect-option.is-selected.is-pointed) {
-  background-color: #5c0a16 !important;
-}
-
-:global(.multiselect-option.is-selected::after) {
-  background-color: transparent !important;
-  color: white !important;
-}
-
-:global(.multiselect-single-label-text) {
-  color: #7d161a !important;
-  font-weight: 600;
-}
-
-:global(.multiselect-option) {
-  color: #333 !important;
-}
-
-:global(.multiselect-option.is-pointed) {
-  color: #7d161a !important; 
-}
-
-:global(.multiselect-option.is-selected) {
-  background-color: #7d161a !important;
-  color: #ffffff !important; 
-}
-
-:global(.multiselect-placeholder) {
-  color: #999 !important;
-}
-
-.custom-filter-multiselect :deep(.multiselect-option span) {
-  color: inherit; 
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -1031,20 +861,8 @@ hr {
   border-color: #dee2e6 #dee2e6 #fff;
 }
 
-/* ================= FORM & TABLE ================= */
-.search-form {
-  border: 1px solid #cacaca;
-  border-radius: 15px;
-  padding: 2%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-
-.table-container {
-  border: 1px solid #dee2e6;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: var(--bs-box-shadow-sm) !important;
+.contain-frame {
+  margin-top: 15px;
 }
 
 /* ================= BUTTON ================= */
@@ -1052,15 +870,32 @@ hr {
   background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
   color: white !important;
   transition: 0.2s;
+  border: none;
 }
 
 .btn:hover {
-  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
-  color: white !important;
   transform: scale(1.04);
 }
 
-/* Outline Button */
+.btn-outline {
+  background: white !important;
+  color: #333 !important;
+  border: 1px solid #ccc !important;
+}
+
+.btn-outline:hover {
+  border-color: #7d161a !important;
+  color: #7d161a !important;
+  background-color: #fff5f5 !important;
+}
+
+.btn-active {
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+  color: white !important;
+  border: 1px solid #7d161a !important;
+  cursor: default;
+}
+
 .btn-custom-outline {
   background: transparent !important;
   color: #7d161a !important;
@@ -1071,27 +906,6 @@ hr {
 .btn-custom-outline:hover {
   background: #7d161a !important;
   color: #fff !important;
-}
-
-/* ================= PAGINATION ================= */
-.pagination .page-link {
-  color: #7d161a;
-  transition: 0.2s;
-}
-
-.pagination .page-link:hover {
-  background: #f8ecec;
-  color: #5a1013;
-}
-
-.pagination .page-item.active .page-link {
-  background: #7d161a !important;
-  border-color: #7d161a !important;
-  color: #fff !important;
-}
-
-.pagination .page-link:focus {
-  box-shadow: 0 0 0 0.2rem rgba(125, 22, 26, 0.25);
 }
 
 /* ================= GRID FORM ================= */
@@ -1132,24 +946,19 @@ hr {
 
 .custom-datetime-picker :deep(.dp__input) {
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 10px 8px 35px !important; /* 🚨 ĐÃ FIX: Thụt lề trái 35px để chừa chỗ cho Icon */
   border-radius: 8px;
   border: 1px solid #ddd;
-  transition: 0.2s;
-}
-
-.custom-datetime-picker :deep(.dp__input:focus) {
-  border-color: #7d161a;
-  box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
-  outline: none;
-}
-
-.custom-datetime-picker :deep(.dp__input_icon) {
-  display: none !important;
 }
 
 .custom-datetime-picker.input-error :deep(.dp__input) {
   border-color: #dc3545 !important;
+}
+
+/* Xóa luôn class ẩn icon nếu có để icon hiện đẹp tự nhiên */
+.custom-datetime-picker :deep(.dp__input_icon) {
+  /* display: none !important; Xóa dòng này đi */
+  color: #7d161a; /* Đổi màu icon cho đẹp */
 }
 
 .input-error {
@@ -1163,97 +972,46 @@ hr {
   color: #dc3545;
 }
 
-/* ================= MULTISELECT FIX ================= */
-.info-grid .multiselect {
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
-
-.info-grid .multiselect.is-active {
-  border-color: #7d161a;
-  box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
-}
-
-.info-grid .multiselect-wrapper {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.info-grid .multiselect-input {
-  border: none !important;
-  box-shadow: none !important;
-}
-
 /* ================= BÀN CARD ================= */
 .ban-grid {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin: 20px 0;
 }
 
 .ban-card {
-  width: 150px;
-  height: 90px;
+  width: 130px;
+  height: 100px;
   border: 2px solid #ccc;
   border-radius: 10px;
   text-align: center;
-  padding-top: 18px;
+  padding-top: 15px;
   cursor: pointer;
-  transition: 0.25s;
+  transition: 0.2s;
+  background: white;
 }
 
-.ban-card:hover {
+.ban-card:hover:not(.disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: #7d161a;
 }
 
 .ban-card.selected {
-  border-color: #7d161a;
-  background: #f4eaea;
+  border-color: #28a745;
+  background: #f0fdf4;
 }
 
 .ban-card.disabled {
-  opacity: 0.4;
-  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8f9fa;
 }
 
 .ban-name {
   font-weight: bold;
-  font-size: 17px;
-}
-
-.ban-size {
-  margin-top: 4px;
-}
-
-.suggest {
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  color: #7d161a;
-}
-
-/* ================= CHECKBOX TOGGLE ================= */
-.checkbox-wrapper-5 .check {
-  --size: 24px;
-  position: relative;
-  font-size: var(--size);
-}
-
-.checkbox-wrapper-5 input[type="checkbox"] {
-  appearance: none;
-  width: calc(2.2 * var(--size));
-  height: var(--size);
-  background: #d7d7d7;
-  border-radius: var(--size);
-  position: relative;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.checkbox-wrapper-5 input[type="checkbox"]:checked {
-  background: linear-gradient(90deg, #7d161a, #dc2f0b);
+  font-size: 18px;
+  color: #333;
 }
 
 /* ================= TOAST ================= */
@@ -1261,7 +1019,7 @@ hr {
   position: fixed;
   bottom: 28px;
   right: 28px;
-  z-index: 9999;
+  z-index: 99999;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -1277,9 +1035,11 @@ hr {
 .toast-success {
   border-left-color: #27ae60;
 }
+
 .toast-warning {
   border-left-color: #f39c12;
 }
+
 .toast-error {
   border-left-color: #e74c3c;
 }
@@ -1313,13 +1073,8 @@ hr {
   font-size: 20px;
   color: #aaa;
   cursor: pointer;
-  line-height: 1;
   padding: 0;
   margin-top: -2px;
-}
-
-.toast-close:hover {
-  color: #555;
 }
 
 .toast-enter-active,
@@ -1337,19 +1092,106 @@ hr {
   transform: translateX(40px);
 }
 
-:global(.multiselect-option) {
-  color: #444 !important;
+.is-dimmed {
+  opacity: 0.4 !important;
+  filter: grayscale(100%) !important;
 }
 
-:global(.multiselect-option.is-selected *) {
-  color: #ffffff !important;
+.is-selected-merge {
+  border: 3px solid #28a745 !important;
+  background-color: #f0fdf4 !important;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.4) !important;
+  opacity: 1 !important;
+  filter: grayscale(0%) !important;
+  z-index: 10;
+  position: relative;
 }
 
-:global(.multiselect-option span) {
-  font-weight: 500;
+.checked-icon-overlay {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #28a745;
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  z-index: 20;
 }
 
-:global(.multiselect-option.is-selected span[style*="color"]) {
-  color: #ffffff !important;
+.checked-icon-overlay-mini {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: white;
+  color: #28a745;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 20;
+}
+
+/* Mini Table Card cho phần Danh sách (List) bên phải */
+.mini-table-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  position: relative;
+}
+
+.mini-table-card:hover {
+  border-color: #28a745;
+  background-color: #f8fff9;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.15);
+}
+
+.mini-table-card.is-selected-list {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3) !important;
+  transform: scale(1.05);
+  z-index: 5;
+}
+
+.floor-plan-layout {
+  display: flex;
+  gap: 15px;
+  height: 100%;
+  width: 100%;
+}
+
+.floor-plan-section {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-container {
+  flex-grow: 1;
+  position: relative;
+}
+
+/* Kế thừa giao diện button Active của hệ thống */
+.btn-active {
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+  color: white !important;
+  border: 1px solid #7d161a !important;
+  cursor: default;
 }
 </style>

@@ -5,10 +5,11 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CreatePhieuDatBanFullRequest {
-    private Integer idBanAn;
+    private List<Integer> danhSachIdBanAn;
 
     // Nếu chọn khách cũ
     private Integer idKhachHang;

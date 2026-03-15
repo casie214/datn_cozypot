@@ -1227,11 +1227,13 @@ const onLeaveCustomerCard = () => {
 const handleDirectCheckIn = async () => {
   if (!selectedBan.value) return;
   const bId = selectedBan.value.id;
+  const soKhachThucTe = selectedPhieu.value?.soNguoi || selectedBan.value.soCho || 1;
   const payload = {
     idBanAn: bId, 
     trangThai: 1, 
     id: selectedPhieu.value?.id || null, 
-    trangThaiPhieu: selectedPhieu.value?.id ? 3 : null 
+    trangThaiPhieu: selectedPhieu.value?.id ? 3 : null,
+    soNguoi: soKhachThucTe
   };
   try {
     await updateTrangThaiBan(payload);
@@ -1644,7 +1646,7 @@ const handleSwitchTable = async (banMoi) => {
   if (soKhach > sucChuaBanMoi) {
     const swalResult = await Swal.fire({
       title: 'Bàn mới không đủ chỗ!',
-      html: `Đoàn có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br>Chọn hướng xử lý:`,
+      html: `Bàn hiện tại đang có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br><br>Chọn hướng xử lý:`,
       icon: 'warning',
       iconColor: '#7D161A',
       showDenyButton: true,
@@ -1660,7 +1662,7 @@ const handleSwitchTable = async (banMoi) => {
        // Kê ghế
     } else if (swalResult.isDenied) {
       try {
-        await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0 });
+        await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0, soNguoi: sucChuaBanMoi});
         isSelectingSecondTable.value = true;
         const soKhachConLai = soKhach - sucChuaBanMoi;
 
@@ -2389,24 +2391,23 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewQR'"><i class="fa-solid fa-qrcode me-1"></i> QR đặt món</button>
                     <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'"><i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng</button>
                     <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn</button>
-                    <div v-if="selectedPhieu?.isBanPhu" class="alert alert-warning py-2 px-3 text-center mb-0 mt-2 shadow-sm" style="font-size: 13px; border-radius: 8px; border: 1px dashed #ffc107;">
-                        <i class="fa-solid fa-lock me-1"></i> Bàn phụ không thể thao tác cấu trúc.<br>
-                        <button class="btn btn-sm mt-2 fw-bold w-100" style="background-color: #ffc107; color: #7d161a; border-radius: 6px;" @click="switchToMainTable">
-                            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sang Bàn Chủ ({{ selectedPhieu.tenBanChinh }}) để xử lý
-                        </button>
-                    </div>
-                    <div v-else class="d-flex gap-2 mt-2">
+                    <div class="d-flex gap-2 mt-2">
                         <button 
-                            :disabled="!isServing || (selectedPhieu?.danhSachBan && selectedPhieu.danhSachBan.length > 1)" 
+                            :disabled="!isServing" 
                             class="btn-action flex-grow-1" 
                             @click="openChangeTableView"
-                            :title="(selectedPhieu?.danhSachBan && selectedPhieu.danhSachBan.length > 1) ? 'Đoàn đang ngồi nhiều bàn, không thể đổi!' : ''"
                         >
-                            <i class="fa-solid fa-right-left me-1"></i> Đổi bàn
+                            <i class="fa-solid fa-right-left me-1"></i> Đổi / Tách bàn
                         </button>
                         
                         <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openMergeTableView">
                             <i class="fa-solid fa-link me-1"></i> Gộp bàn
+                        </button>
+                    </div>
+
+                    <div v-if="selectedPhieu?.isBanPhu" class="mt-2">
+                        <button class="btn btn-sm fw-bold w-100 shadow-sm" style="background-color: #fffbe6; border: 1px dashed #ffc107; color: #7d161a; border-radius: 6px;" @click="switchToMainTable">
+                            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Đi tới Bàn Chủ ({{ selectedPhieu.tenBanChinh }})
                         </button>
                     </div>
                   </div>

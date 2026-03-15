@@ -195,13 +195,67 @@ const handlePriceInput = (variant, event) => {
     event.target.value = formatDisplayPrice(variant.giaBan);
 };
 
-const handleGenerateVariants = () => {
-    if (!formData.value.baseName.trim()) {
-        errors.value.baseName = 'Vui lòng nhập tên sản phẩm gốc!';
-        return;
+const formErrors = ref({
+    baseName: '',
+    idDanhMuc: '',
+    hinhAnh: ''
+});
+
+// 1. Hàm Validate các thông tin cơ bản (Bước 1 & Bước 2)
+const validateStep1And2 = () => {
+    let isValid = true;
+    formErrors.value = { baseName: '', idDanhMuc: '', hinhAnh: '' };
+
+    const name = (formData.value.baseName || '').trim();
+
+    if (!name) {
+        formErrors.value.baseName = "Tên sản phẩm gốc không được để trống";
+        isValid = false;
+    } else if (name.length < 5) {
+        formErrors.value.baseName = "Tên sản phẩm phải có ít nhất 5 ký tự";
+        isValid = false;
+    } else if (name.length > 100) {
+        formErrors.value.baseName = "Tên sản phẩm phải có ít hơn 100 ký tự";
+        isValid = false;
     }
+
+    if (!formData.value.idDanhMuc) {
+        formErrors.value.idDanhMuc = "Vui lòng chọn danh mục cho món ăn";
+        isValid = false;
+    }
+
+    if (!formData.value.hinhAnh) {
+        formErrors.value.hinhAnh = "Vui lòng tải ảnh đại diện cho món";
+        isValid = false;
+    }
+
+    if (formData.value.moTa.length > 255) {
+        formErrors.value.hinhAnh = "Mô tả phải có ít hơn 255 ký tự";
+        isValid = false;
+    }
+
+    if (!isValid) {
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'error',
+            title: 'Thiếu thông tin',
+            text: 'Vui lòng hoàn thiện các trường báo đỏ trước',
+            showConfirmButton: false, timer: 3000
+        });
+    }
+    return isValid;
+};
+
+// 2. Sửa lại hàm Tạo biến thể
+const handleGenerateVariants = () => {
+    if (!validateStep1And2()) return;
+
     if (selectedDinhLuongIds.value.length === 0) {
-        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Vui lòng chọn ít nhất 1 định lượng!', confirmButtonColor: '#8B0000' });
+        return Swal.fire({
+            toast: true, position: 'top-end', icon: 'warning',
+            title: 'Chưa chọn định lượng',
+            text: 'Vui lòng tích chọn ít nhất 1 định lượng ở Bước 2',
+            showConfirmButton: false, timer: 3000
+        });
     }
 
     const newVariants = [];
@@ -235,10 +289,10 @@ const handleGenerateVariants = () => {
 
     if (duplicateCount > 0) {
         Swal.fire({
-            icon: 'info',
+            toast: true, position: 'top-end', icon: 'info',
             title: 'Lọc trùng lặp',
-            text: `Đã bỏ qua ${duplicateCount} định lượng vì đã tồn tại trong hệ thống.`,
-            confirmButtonColor: '#8B0000'
+            text: `Bỏ qua ${duplicateCount} định lượng đã tồn tại.`,
+            showConfirmButton: false, timer: 3000
         });
     }
     generatedVariants.value = newVariants;
@@ -251,45 +305,43 @@ const openUnitModal = () => { isUnitModalOpen.value = true; };
 // 4. LƯU DỮ LIỆU HÀNG LOẠT
 // ==========================================
 const handleSave = async () => {
-    if (!formData.value.idDanhMuc || !formData.value.baseName || !formData.value.hinhAnh) {
-        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Vui lòng nhập đủ Tên món, Danh mục và Ảnh!' });
-    }
+    // Check lại thông tin cơ bản
+    if (!validateStep1And2()) return;
+
     if (generatedVariants.value.length === 0) {
-        return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Vui lòng chọn định lượng và nhấn "Tạo biến thể"!' });
+        return Swal.fire({
+            toast: true, position: 'top-end', icon: 'warning',
+            title: 'Trống danh sách',
+            text: 'Nhấn nút "Tạo biến thể" để lên danh sách món cần lưu',
+            showConfirmButton: false, timer: 3000
+        });
     }
 
-    console.log("Danh sách trước khi lưu:", generatedVariants.value); // In ra để xem
+    // Check giá bán từng món trong bảng
+    const hasInvalidPrice = generatedVariants.value.some(v => !v.giaBan || Number(v.giaBan) <= 0);
 
-    const invalidPrice = generatedVariants.value.some(v => {
-        const gia = Number(v.giaBan);
-        console.log(`Đang check giá: ${gia}`); // Soi từng giá một
-        return isNaN(gia) || gia <= 0;
-    });
-
-    // NẾU CÓ GIÁ <= 0, BẮT BUỘC DỪNG LẠI
-    if (invalidPrice) {
-        console.log("Phát hiện lỗi giá! Đang chặn lại...");
+    if (hasInvalidPrice) {
         return Swal.fire({
-            icon: 'error',
+            toast: true, position: 'top-end', icon: 'error',
             title: 'Lỗi giá bán',
-            text: 'Vui lòng nhập giá bán lớn hơn 0 cho TẤT CẢ các món!',
-            customClass: { container: 'swal2-container' } // Đảm bảo không bị đè
+            text: 'Tất cả các biến thể phải có giá bán lớn hơn 0',
+            showConfirmButton: false, timer: 3000
         });
     }
 
     const result = await Swal.fire({
         title: 'Xác nhận lưu?',
-        text: `Tạo ${generatedVariants.value.length} món ăn mới.`,
+        text: `Hệ thống sẽ tạo ${generatedVariants.value.length} món ăn mới vào danh mục.`,
         icon: 'question',
         iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#8B0000',
-        confirmButtonText: 'Lưu thay đổi',
-        cancelButtonText: 'Hủy',
+        confirmButtonText: 'Đồng ý lưu',
+        cancelButtonText: 'Kiểm tra lại',
     });
 
     if (result.isConfirmed) {
-        Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Đang lưu dữ liệu...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         try {
             const savePromises = generatedVariants.value.map(v => {
                 return foodApi.createFood({
@@ -302,15 +354,15 @@ const handleSave = async () => {
                 });
             });
             await Promise.all(savePromises);
-            await Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+            await Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã thêm các món ăn mới', timer: 1500, showConfirmButton: false });
 
             if (props.isModal) {
-                emit('saved'); // Báo cho trang Set lẩu biết đã lưu xong để nó tự đóng Modal và tải lại dữ liệu
+                emit('saved');
             } else {
                 router.push({ name: 'foodManager', query: { tab: 'thucdon' } });
             }
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi lưu dữ liệu.' });
+            Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể lưu danh sách món ăn lúc này.' });
         }
     }
 };
@@ -386,12 +438,14 @@ const goBack = () => {
                                         </div>
                                     </template>
                                 </Multiselect>
+                                <small v-if="formErrors.idDanhMuc" class="error-text">{{ formErrors.idDanhMuc }}</small>
                             </div>
                             <div class="form-group" style="margin-top: 5.5px;">
                                 <label>Tên sản phẩm gốc <span class="required">*</span></label>
                                 <input v-model="formData.baseName" type="text" placeholder="VD: Nước ngọt Coca, Bò Mỹ..."
                                     :class="{ 'invalid-border': errors.baseName }">
                                 <span class="error-message" v-if="errors.baseName">{{ errors.baseName }}</span>
+                                <small v-if="formErrors.baseName" class="error-text">{{ formErrors.baseName }}</small>
                             </div>
                         </div>
                     </div>
@@ -471,10 +525,15 @@ const goBack = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="input-group input-group-sm" style="flex-direction: row !important;">
-                                                <input :value="formatDisplayPrice(v.giaBan)" @input="handlePriceInput(v, $event)" type="text" class="form-control"
-                                                    style="width: 80% !important;" placeholder="0">
-                                                <span class="input-group-text">đ</span>
+                                            <div class="input-group input-group-sm d-flex flex-nowrap" style="max-width: 150px;">
+                                                <input 
+                                                    :value="formatDisplayPrice(v.giaBan)" 
+                                                    @input="handlePriceInput(v, $event)" 
+                                                    type="text" 
+                                                    class="form-control text-end" 
+                                                    placeholder="0"
+                                                >
+                                                <span class="input-group-text" style="background-color: #f8f9fa;">đ</span>
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -521,6 +580,7 @@ const goBack = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    <small v-if="formErrors.hinhAnh" class="error-text text-center d-block">{{ formErrors.hinhAnh }}</small>
                                 </div>
                             </div>
                         </div>
@@ -706,5 +766,54 @@ const goBack = () => {
 
 .card h3 {
     margin-bottom: 0;
+}
+
+.input-error {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+.multiselect-error-border :deep(.multiselect) {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+.error-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #dc3545;
+    font-style: italic;
+}
+
+/* Đảm bảo ảnh preview không bị đỏ nền khi có lỗi */
+.preview-mode img {
+    background-color: white;
+}
+
+/* Đảm bảo bảng không bị co hàng quá mức */
+.variants-table td {
+    border: 1px solid #eee;
+    padding: 10px;
+    vertical-align: middle;
+    white-space: nowrap; /* Giữ nội dung trên 1 dòng */
+}
+
+/* Ép input group luôn nằm trên 1 hàng kể cả khi màn hình nhỏ */
+.input-group {
+    flex-wrap: nowrap !important;
+    display: flex !important;
+}
+
+/* Tùy chỉnh riêng cho ô input trong bảng để chữ canh phải cho giống kiểu nhập tiền */
+.variants-table .form-control {
+    text-align: right;
+    padding-right: 8px;
+}
+
+/* CSS cho viền đỏ lỗi giá (nếu có) */
+.input-group.invalid-price {
+    border: 1px solid #dc3545;
+    border-radius: 5px;
 }
 </style>
