@@ -215,7 +215,6 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
-import select2 from 'select2';
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
@@ -242,172 +241,6 @@ const formData = reactive({
   danhSachDiaChi: [] // Nên bắt đầu bằng mảng rỗng để dễ quản lý
 });
 
-// Hàm khởi tạo Select2 cho từng dòng cụ thể
-const initSelect2ForIndex = (index) => {
-  const $ = window.$;
-
-  if (typeof $.fn.select2 !== 'function') {
-    if (typeof select2 === 'function') select2();
-  }
-
-  setTimeout(() => {
-
-    /* =======================
-       1. TỈNH / THÀNH
-    ========================*/
-    const $tinh = $(`.select-tinh[data-index="${index}"]`);
-
-    if ($tinh.length) {
-
-      $tinh.select2({
-        placeholder: "Chọn Tỉnh/Thành",
-        width: '100%'
-      })
-        .val(formData.danhSachDiaChi[index].idTinhThanh)
-        .trigger('change.select2');
-
-      // lấy text ban đầu
-      const dataTinh = $tinh.select2('data');
-      if (dataTinh.length) {
-        formData.danhSachDiaChi[index].tenTinhThanh = dataTinh[0].text;
-      }
-
-      $tinh.off('change').on('change', async function () {
-        const val = $(this).val();
-        const data = $(this).select2('data');
-        const text = data.length ? data[0].text : '';
-
-        // 🚨 ÉP GÁN GIÁ TRỊ VÀO VUE REACTIVE STATE
-        formData.danhSachDiaChi[index].id_tinh_thanh = val;
-        formData.danhSachDiaChi[index].tenTinhThanh = text;
-
-        // reset huyện xã
-        formData.danhSachDiaChi[index].id_quan_huyen = '';
-        formData.danhSachDiaChi[index].tenQuanHuyen = '';
-        formData.danhSachDiaChi[index].id_phuong_xa = '';
-        formData.danhSachDiaChi[index].tenPhuongXa = '';
-
-        // Cập nhật giao diện lỗi (xóa báo đỏ nếu có)
-        if (formData.danhSachDiaChi[index].errors) {
-          formData.danhSachDiaChi[index].errors.id_tinh_thanh = '';
-        }
-
-        // Gọi hàm load Huyện
-        await onProvinceChange(val, index);
-
-        // Khởi tạo lại Select2 cho Huyện sau khi có option mới
-        nextTick(() => {
-          $(`.select-huyen[data-index="${index}"]`).select2({
-            placeholder: "Chọn Quận/Huyện",
-            width: '100%'
-          });
-        });
-      });
-    }
-
-
-    /* =======================
-       2. QUẬN / HUYỆN
-    ========================*/
-    const $huyen = $(`.select-huyen[data-index="${index}"]`);
-
-    if ($huyen.length) {
-
-      $huyen.select2({
-        placeholder: "Chọn Quận/Huyện",
-        width: '100%'
-      })
-        .val(formData.danhSachDiaChi[index].idQuanHuyen)
-        .trigger('change.select2');
-
-      const dataHuyen = $huyen.select2('data');
-      if (dataHuyen.length) {
-        formData.danhSachDiaChi[index].tenQuanHuyen = dataHuyen[0].text;
-      }
-
-      $huyen.off('change').on('change', async function () {
-
-        const val = $(this).val();
-        const data = $(this).select2('data');
-        const text = data.length ? data[0].text : '';
-
-        formData.danhSachDiaChi[index].idQuanHuyen = val;
-        formData.danhSachDiaChi[index].tenQuanHuyen = text;
-
-        // reset xã
-        formData.danhSachDiaChi[index].idPhuongXa = '';
-        formData.danhSachDiaChi[index].tenPhuongXa = '';
-
-        await onDistrictChange(val, index);
-
-        nextTick(() => {
-          $(`.select-xa[data-index="${index}"]`).select2({
-            placeholder: "Chọn Phường/Xã",
-            width: '100%'
-          });
-        });
-
-      });
-    }
-
-
-    /* =======================
-       3. PHƯỜNG / XÃ
-    ========================*/
-    const $xa = $(`.select-xa[data-index="${index}"]`);
-
-    if ($xa.length) {
-
-      $xa.select2({
-        placeholder: "Chọn Phường/Xã",
-        width: '100%'
-      })
-        .val(formData.danhSachDiaChi[index].idPhuongXa)
-        .trigger('change.select2');
-
-      const dataXa = $xa.select2('data');
-      if (dataXa.length) {
-        formData.danhSachDiaChi[index].tenPhuongXa = dataXa[0].text;
-      }
-
-      $xa.off('change').on('change', function () {
-
-        const val = $(this).val();
-        const data = $(this).select2('data');
-        const text = data.length ? data[0].text : '';
-
-        formData.danhSachDiaChi[index].idPhuongXa = val;
-        formData.danhSachDiaChi[index].tenPhuongXa = text;
-
-      });
-    }
-
-  }, 300);
-};
-
-// Chỉ chạy lại khi dữ liệu options (Huyện/Xã) thực sự thay đổi từ API
-watch(
-  () => formData.danhSachDiaChi.map(item => ({ h: item.listHuyen, x: item.listXa })),
-  () => {
-    nextTick(() => {
-      if (typeof $.fn.select2 === 'function') {
-        formData.danhSachDiaChi.forEach((_, index) => {
-          // Chỉ re-init nếu nó đã là select2 rồi để tránh lỗi khởi tạo đè
-          const $huyen = $(`.select-huyen[data-index="${index}"]`);
-          const $xa = $(`.select-xa[data-index="${index}"]`);
-
-          if ($huyen.hasClass("select2-hidden-accessible")) {
-            $huyen.select2({ width: '100%' });
-          }
-          if ($xa.hasClass("select2-hidden-accessible")) {
-            $xa.select2({ width: '100%' });
-          }
-        });
-      }
-    });
-  },
-  { deep: true }
-);
 
 // Sửa lại hàm addAddress của bạn một chút để kích hoạt Select2 cho card mới
 const addAddress = () => {
@@ -445,38 +278,56 @@ const loadTinhThanh = async () => {
 
 const onProvinceChange = async (provinceId, index, isInitial = false) => {
   const item = formData.danhSachDiaChi[index];
+  if (!item) return;
 
   if (!isInitial) {
     item.id_quan_huyen = '';
     item.id_phuong_xa = '';
+    item.tenQuanHuyen = '';
+    item.tenPhuongXa = '';
     item.listHuyen = [];
     item.listXa = [];
 
-    // Lưu tên Tỉnh để gửi lên Backend
-    const tinhObj = listTinhThanh.value.find(t => t.value === provinceId);
-    if (tinhObj) item.tenTinhThanh = tinhObj.label;
+    // Tìm và lưu tên Tỉnh (label)
+    if (provinceId) {
+      const tinhObj = listTinhThanh.value.find(t => t.value === String(provinceId));
+      if (tinhObj) item.tenTinhThanh = tinhObj.label;
+    } else {
+      item.tenTinhThanh = '';
+    }
 
-    if (item.errors) item.errors.id_tinh_thanh = ''; // Xóa lỗi
+    if (item.errors) item.errors.id_tinh_thanh = ''; 
   }
 
+  // Chỉ gọi API nếu có ID tỉnh
   if (provinceId) {
     try {
       const res = await axios.get(`https://provinces.open-api.vn/api/p/${provinceId}?depth=2`);
-      item.listHuyen = res.data.districts.map(d => ({ value: String(d.code), label: d.name }));
-    } catch (e) { console.error("Lỗi load huyện:", e); }
+      item.listHuyen = res.data.districts.map(d => ({ 
+        value: String(d.code), 
+        label: d.name 
+      }));
+    } catch (e) { 
+      console.error("Lỗi load huyện:", e); 
+    }
   }
 };
 
 const onDistrictChange = async (districtId, index, isInitial = false) => {
   const item = formData.danhSachDiaChi[index];
+  if (!item) return;
 
   if (!isInitial) {
     item.id_phuong_xa = '';
+    item.tenPhuongXa = '';
     item.listXa = [];
 
-    // Lưu tên Huyện
-    const huyenObj = item.listHuyen.find(h => h.value === districtId);
-    if (huyenObj) item.tenQuanHuyen = huyenObj.label;
+    if (districtId) {
+      const huyenObj = item.listHuyen.find(h => h.value === String(districtId));
+      if (huyenObj) item.tenQuanHuyen = huyenObj.label;
+    } else {
+      item.tenQuanHuyen = '';
+    }
 
     if (item.errors) item.errors.id_quan_huyen = '';
   }
@@ -484,15 +335,26 @@ const onDistrictChange = async (districtId, index, isInitial = false) => {
   if (districtId) {
     try {
       const res = await axios.get(`https://provinces.open-api.vn/api/d/${districtId}?depth=2`);
-      item.listXa = res.data.wards.map(w => ({ value: String(w.code), label: w.name }));
-    } catch (e) { console.error("Lỗi load xã:", e); }
+      item.listXa = res.data.wards.map(w => ({ 
+        value: String(w.code), 
+        label: w.name 
+      }));
+    } catch (e) { 
+      console.error("Lỗi load xã:", e); 
+    }
   }
 };
 
 const onWardChange = (wardId, index) => {
   const item = formData.danhSachDiaChi[index];
-  const xaObj = item.listXa.find(x => x.value === wardId);
-  if (xaObj) item.tenPhuongXa = xaObj.label;
+  if (!item) return;
+
+  if (wardId) {
+    const xaObj = item.listXa.find(x => x.value === String(wardId));
+    if (xaObj) item.tenPhuongXa = xaObj.label;
+  } else {
+    item.tenPhuongXa = '';
+  }
 
   if (item.errors) item.errors.id_phuong_xa = '';
 };
@@ -523,77 +385,58 @@ const defaultIndex = ref(0);   // Lưu vị trí mặc định (mặc định l�
 const preparePayload = () => {
   const data = new FormData();
 
-  // 1. Xử lý thông tin chung của khách hàng
+  // 1. Đóng gói thông tin khách hàng (Giữ nguyên logic cũ của bạn)
   Object.keys(formData).forEach(key => {
     if (key === 'danhSachDiaChi' || key === 'diaChi') return;
-
     let val = formData[key];
-
-    // Ép kiểu boolean thành 1/0 nếu Backend của bạn yêu cầu
-    if (key === 'gioiTinh') {
-      val = val ? 1 : 0;
-    }
-
+    if (key === 'gioiTinh') val = val ? 1 : 0;
     if (val !== null && val !== undefined && val !== '') {
       data.append(key, val);
     }
   });
 
-  // 2. Xử lý Ảnh đại diện (File)
-  if (selectedFile.value) {
-    data.append('hinhAnhFile', selectedFile.value);
-  } else if (clientId.value && formData.anhDaiDien) {
-    data.append('anhDaiDien', formData.anhDaiDien);
-  }
-
-  // 3. Xử lý Mảng Danh sách địa chỉ
+  // 2. Xử lý danh sách địa chỉ
   if (formData.danhSachDiaChi && formData.danhSachDiaChi.length > 0) {
+    // Lọc địa chỉ hợp lệ
+    const validAddresses = formData.danhSachDiaChi.filter(addr => 
+      addr.id_tinh_thanh && addr.id_tinh_thanh !== ''
+    );
 
-    // Nếu chỉ có 1 địa chỉ, ép buộc nó là mặc định
-    if (formData.danhSachDiaChi.length === 1) {
-      defaultIndex.value = 0;
-    }
+    validAddresses.forEach((addr, index) => {
+      // 🚩 QUAN TRỌNG: Gửi ID để Backend biết là Update hay Insert
+      if (addr.id_dia_chi) {
+        data.append(`danhSachDiaChi[${index}].id`, addr.id_dia_chi);
+      }
 
-    formData.danhSachDiaChi.forEach((addr, index) => {
-      // Thông tin người nhận (Lấy từ địa chỉ, nếu rỗng thì mượn từ thông tin khách)
-      data.append(`danhSachDiaChi[${index}].hoTenNhan`, addr.ho_ten_nhan || formData.tenKhachHang || '');
-      data.append(`danhSachDiaChi[${index}].soDienThoaiNhan`, addr.so_dien_thoai_nhan || formData.soDienThoai || '');
-
-      // Các ID Tỉnh/Huyện/Xã
-      data.append(`danhSachDiaChi[${index}].idTinhThanh`, addr.id_tinh_thanh || '');
-      data.append(`danhSachDiaChi[${index}].idQuanHuyen`, addr.id_quan_huyen || '');
-      data.append(`danhSachDiaChi[${index}].idPhuongXa`, addr.id_phuong_xa || '');
-
-      // 🚨 Text Tỉnh/Huyện/Xã: Lấy trực tiếp từ Object đã được lưu ở hàm onChange (KHÔNG DÙNG querySelector nữa)
+      // Xử lý địa chỉ chi tiết (Fix lỗi dính ID nếu có)
+      let cleanAddr = (addr.dia_chi_chi_tiet || '').split(',')[0].trim(); 
+      data.append(`danhSachDiaChi[${index}].diaChiChiTiet`, cleanAddr);
+      
+      data.append(`danhSachDiaChi[${index}].idTinhThanh`, addr.id_tinh_thanh);
+      data.append(`danhSachDiaChi[${index}].idQuanHuyen`, addr.id_quan_huyen);
+      data.append(`danhSachDiaChi[${index}].idPhuongXa`, addr.id_phuong_xa);
       data.append(`danhSachDiaChi[${index}].tenTinhThanh`, addr.tenTinhThanh || '');
       data.append(`danhSachDiaChi[${index}].tenQuanHuyen`, addr.tenQuanHuyen || '');
       data.append(`danhSachDiaChi[${index}].tenPhuongXa`, addr.tenPhuongXa || '');
+      
+      // Lấy tên/sdt trực tiếp từ địa chỉ hoặc fallback về thông tin chung
+      data.append(`danhSachDiaChi[${index}].hoTenNhan`, addr.ho_ten_nhan || formData.tenKhachHang);
+      data.append(`danhSachDiaChi[${index}].soDienThoaiNhan`, addr.so_dien_thoai_nhan || formData.soDienThoai);
 
-      // Địa chỉ cụ thể & Trạng thái mặc định
-      data.append(`danhSachDiaChi[${index}].diaChiChiTiet`, addr.dia_chi_chi_tiet || '');
-      data.append(`danhSachDiaChi[${index}].laMacDinh`, index === defaultIndex.value);
+      // 🚩 SỬA LỖI INDEX: Dùng trực tiếp giá trị la_mac_dinh trong object
+      data.append(`danhSachDiaChi[${index}].laMacDinh`, addr.la_mac_dinh);
     });
   }
-
-  tempAddressText.value = '';
-
-  // Log ra để bạn dễ debug xem payload đã ghép chuẩn chưa
-  console.log("Dữ liệu địa chỉ chuẩn bị gửi:", JSON.stringify(formData.danhSachDiaChi, null, 2));
 
   return data;
 };
 
-
 // Chọn địa chỉ mặc định
 const setDefault = (index) => {
-  // 1. Cập nhật vị trí index mặc định để đổi màu ngôi sao trên giao diện
   defaultIndex.value = index;
-  // 2. Quan trọng: Cập nhật biến la_mac_dinh trong mảng để preparePayload gửi đi đúng
   formData.danhSachDiaChi.forEach((addr, i) => {
-    addr.la_mac_dinh = (i === index);
+    addr.la_mac_dinh = (i === index); // Chỉ index được chọn mới là true
   });
-  // (Tùy chọn) Hiện thông báo nhỏ cho người dùng biết
-  // toast.info("Đã đổi địa chỉ mặc định");
 };
 
 // Xóa địa chỉ
@@ -813,23 +656,19 @@ const submitClient = async (payload) => {
 };
 
 const handleSave = async () => {
-  // 1. Kiểm tra tính hợp lệ (Validate FE)
   const isValid = await validateForm();
   if (!isValid) {
-    await nextTick();
-    // Hiện thông báo cảnh báo nếu có lỗi đỏ
     Swal.fire({
       ...swalConfig,
       title: 'Thông tin chưa hợp lệ',
       text: 'Vui lòng kiểm tra lại các trường bị báo đỏ!',
       icon: 'warning',
-      iconColor: '#7D161A',
       confirmButtonText: 'Đã hiểu'
     });
     return;
   }
 
-  // 2. Gán giá trị ngầm (Chỉ cho thêm mới)
+  // Tự động gán tài khoản nếu là thêm mới
   if (!clientId.value) {
     formData.tenDangNhap = formData.soDienThoai;
     if (!formData.matKhauDangNhap) {
@@ -837,15 +676,13 @@ const handleSave = async () => {
     }
   }
 
-  // 3. Hộp thoại xác nhận hành động
   const result = await Swal.fire({
     ...swalConfig,
     title: clientId.value ? 'Cập nhật khách hàng?' : 'Xác nhận thêm mới?',
-    text: clientId.value
-      ? 'Bạn có chắc chắn muốn lưu các thay đổi này?'
-      : 'Hệ thống sẽ tạo tài khoản khách hàng mới vào cơ sở dữ liệu.', // Cập nhật dòng này
+    text: clientId.value 
+      ? 'Lưu các thay đổi cho khách hàng này?' 
+      : 'Hệ thống sẽ tạo tài khoản khách hàng mới.',
     icon: 'question',
-    iconColor: '#7D161A',
     showCancelButton: true,
     confirmButtonText: 'Đồng ý',
     cancelButtonText: 'Hủy bỏ'
@@ -855,30 +692,30 @@ const handleSave = async () => {
 
   try {
     loading.value = true;
+    
+    // Đảm bảo cập nhật lại lần cuối tên Text của địa chỉ từ ID trước khi đóng gói
     const payload = preparePayload();
 
     await submitClient(payload);
 
-    // 4. Thông báo thành công (Hiện giữa màn hình và tự đóng sau 2s)
     await Swal.fire({
       ...swalConfig,
       title: 'Thành công!',
-      text: clientId.value ? 'Thông tin khách hàng đã được cập nhật.' : 'Đã thêm khách hàng mới thành công.',
-      icon: 'success', iconColor: '#7D161A',
-      timer: 2000,
+      text: clientId.value ? 'Đã cập nhật thông tin.' : 'Đã thêm khách hàng mới.',
+      icon: 'success',
+      timer: 1500,
+      iconColor: '#7D161A',
       showConfirmButton: false
     });
     router.push('/admin/client');
   } catch (e) {
-    console.error("Chi tiết lỗi:", e.response?.data);
-    // 5. Thông báo lỗi hệ thống (Nếu trùng lặp hoặc lỗi server)
-    const errorMsg = e.response?.data?.message || "Đã có lỗi xảy ra trong quá trình xử lý dữ liệu.";
+    console.error("Lỗi Save:", e.response?.data);
+    const errorMsg = e.response?.data?.message || "Lỗi hệ thống, vui lòng thử lại.";
     Swal.fire({
       ...swalConfig,
       title: 'Thao tác thất bại',
       text: errorMsg,
-      icon: 'error',
-      confirmButtonText: 'Quay lại'
+      icon: 'error'
     });
   } finally {
     loading.value = false;
@@ -894,22 +731,31 @@ onMounted(async () => {
       const res = await clientService.getDetail(clientId.value);
       const data = res.data;
 
-      // Map basic info
+      // 1. Map thông tin cơ bản
       const { danhSachDiaChi, ...rest } = data;
       Object.assign(formData, rest);
-      if (formData.anhDaiDien) {
-        previewUrl.value =
-          `http://localhost:8080/uploads/images/${formData.anhDaiDien}`;
+      
+      // Fix format ngày sinh nếu cần (YYYY-MM-DD)
+      if (formData.ngaySinh) {
+        formData.ngaySinh = dayjs(formData.ngaySinh).format("YYYY-MM-DD");
       }
+
+      if (formData.anhDaiDien) {
+        previewUrl.value = `http://localhost:8080/uploads/images/${formData.anhDaiDien}`;
+      }
+
+      // 2. Map danh sách địa chỉ
       if (danhSachDiaChi && danhSachDiaChi.length > 0) {
         const mappedAddresses = [];
 
+        // Dùng for...of để có thể sử dụng await bên trong
         for (const d of danhSachDiaChi) {
           const addr = {
-            id: d.id,
+            id_dia_chi: d.id, // Đảm bảo đúng key id_dia_chi như template
             ho_ten_nhan: d.hoTenNhan || '',
             so_dien_thoai_nhan: d.soDienThoaiNhan || '',
 
+            // Ép kiểu String để Multiselect nhận diện đúng value
             id_tinh_thanh: d.idTinhThanh ? String(d.idTinhThanh) : '',
             id_quan_huyen: d.idQuanHuyen ? String(d.idQuanHuyen) : '',
             id_phuong_xa: d.idPhuongXa ? String(d.idPhuongXa) : '',
@@ -922,17 +768,24 @@ onMounted(async () => {
             la_mac_dinh: d.laMacDinh === true,
 
             listHuyen: [],
-            listXa: []
+            listXa: [],
+            errors: {} // Khởi tạo object errors để tránh lỗi undefined khi validate
           };
 
-          // Nạp dữ liệu mồi để thẻ select có option hiển thị
+          // 3. Nạp dữ liệu mồi (options) dựa trên ID có sẵn
+          // QUAN TRỌNG: Map đúng value/label cho Multiselect
           if (addr.id_tinh_thanh) {
-            const resH = await axios.get(`https://provinces.open-api.vn/api/p/${addr.id_tinh_thanh}?depth=2`);
-            addr.listHuyen = resH.data.districts.map(i => ({ id: String(i.code), text: i.name }));
+            try {
+              const resH = await axios.get(`https://provinces.open-api.vn/api/p/${addr.id_tinh_thanh}?depth=2`);
+              addr.listHuyen = resH.data.districts.map(i => ({ value: String(i.code), label: i.name }));
+            } catch (err) { console.error("Lỗi fetch huyện cũ:", err); }
           }
+          
           if (addr.id_quan_huyen) {
-            const resX = await axios.get(`https://provinces.open-api.vn/api/d/${addr.id_quan_huyen}?depth=2`);
-            addr.listXa = resX.data.wards.map(i => ({ id: String(i.code), text: i.name }));
+            try {
+              const resX = await axios.get(`https://provinces.open-api.vn/api/d/${addr.id_quan_huyen}?depth=2`);
+              addr.listXa = resX.data.wards.map(i => ({ value: String(i.code), label: i.name }));
+            } catch (err) { console.error("Lỗi fetch xã cũ:", err); }
           }
 
           mappedAddresses.push(addr);
@@ -940,23 +793,32 @@ onMounted(async () => {
 
         formData.danhSachDiaChi = mappedAddresses;
 
+        // Cập nhật vị trí mặc định
         const idx = formData.danhSachDiaChi.findIndex(d => d.la_mac_dinh === true);
         defaultIndex.value = idx !== -1 ? idx : 0;
 
+        // Nếu bạn vẫn dùng Select2 (mặc dù Multiselect đã đủ tốt)
         nextTick(() => {
           setTimeout(() => {
             formData.danhSachDiaChi.forEach((_, index) => {
-              initSelect2ForIndex(index);
+              if (typeof initSelect2ForIndex === 'function') {
+                initSelect2ForIndex(index);
+              }
             });
           }, 300);
         });
       }
     } catch (e) {
-      console.error(e);
+      console.error("Lỗi khi lấy chi tiết khách hàng:", e);
+      toast.error("Không thể tải thông tin khách hàng");
     } finally {
       loading.value = false;
     }
+  }else {
+    formData.danhSachDiaChi = []; 
+    addAddress(); 
   }
+
 });
 
 

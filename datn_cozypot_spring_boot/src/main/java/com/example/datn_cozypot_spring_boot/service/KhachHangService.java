@@ -110,9 +110,7 @@ public class KhachHangService {
             kh.setAnhDaiDien(saveFile(file));
         }
         KhachHang savedKh = repo.save(kh);
-        if (req.getDanhSachDiaChi() != null && !req.getDanhSachDiaChi().isEmpty()) {
-            saveDanhSachDiaChi(req.getDanhSachDiaChi(), savedKh);
-        }
+
         try {
             req.setTenDangNhap(req.getEmail());
             req.setMatKhauDangNhap(rawPassword);
@@ -254,57 +252,65 @@ public class KhachHangService {
             kh.setMatKhauDangNhap(req.getMatKhauDangNhap());
         }
 
-        // 2. Đảm bảo danh sách địa chỉ không null
+        // 2. Đảm bảo danh sách địa chỉ không null để tránh lỗi NullPointerException
         if (kh.getDanhSachDiaChi() == null) {
             kh.setDanhSachDiaChi(new ArrayList<>());
         }
 
-        // Nếu request không gửi danh sách địa chỉ, ta giữ nguyên dữ liệu cũ hoặc xóa sạch?
-        // Thường là giữ nguyên nếu null, xóa sạch nếu gửi list rỗng [].
+        // Nếu request không gửi danh sách địa chỉ (null), giữ nguyên data cũ.
+        // Nếu gửi list rỗng [], logic bên dưới sẽ xóa sạch địa chỉ trong DB (đúng chuẩn Update).
         if (req.getDanhSachDiaChi() == null) return;
 
-        // Bước A: Lấy danh sách ID để xóa những địa chỉ không còn trong request
+        // --- BƯỚC A: XÓA ĐỊA CHỈ KHÔNG CÒN TRONG REQUEST ---
+        // Thu thập toàn bộ ID địa chỉ gửi từ Frontend lên
         Set<Integer> requestIds = req.getDanhSachDiaChi().stream()
                 .map(DiaChiRequest::getId)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        if (!requestIds.isEmpty()) {
-            kh.getDanhSachDiaChi().removeIf(entity ->
-                    entity.getId() != null && !requestIds.contains(entity.getId())
-            );
-        }
+        // Nếu địa chỉ nào có trong DB nhưng không có trong Request -> Người dùng đã bấm Xóa trên UI
+        kh.getDanhSachDiaChi().removeIf(entity ->
+                entity.getId() != null && !requestIds.contains(entity.getId())
+        );
 
-
-        // Bước B: Cập nhật hoặc Thêm mới
+        // --- BƯỚC B: CẬP NHẬT CÁI CŨ HOẶC THÊM CÁI MỚI ---
         for (DiaChiRequest dto : req.getDanhSachDiaChi()) {
             DiaChiKhachHang entity;
 
             if (dto.getId() != null) {
-                // Tìm địa chỉ cũ trong list của khách hàng này
+                // Trường hợp UPDATE: Tìm địa chỉ đã tồn tại trong list của khách hàng
                 entity = kh.getDanhSachDiaChi().stream()
                         .filter(dc -> dc.getId().equals(dto.getId()))
                         .findFirst()
                         .orElse(null);
 
-                if (entity == null) continue; // Bỏ qua nếu ID không thuộc về khách hàng này
+                if (entity == null) continue; // Phòng hờ ID gửi lên không hợp lệ
             } else {
-                // Thêm mới hoàn toàn
+                // Trường hợp INSERT: Thêm mới hoàn toàn
                 entity = new DiaChiKhachHang();
-                entity.setKhachHang(kh); // Quan trọng: Gắn cha cho con ngay lập tức
-                kh.getDanhSachDiaChi().add(entity);
+                entity.setKhachHang(kh); // Quan trọng: Thiết lập khóa ngoại
+                kh.getDanhSachDiaChi().add(entity); // Add vào list để Cascade lo phần lưu
             }
 
-            // Cập nhật thông tin địa chỉ
+            // --- CẬP NHẬT ĐẦY ĐỦ CÁC TRƯỜNG DỮ LIỆU ---
+            entity.setIdTinhThanh(dto.getIdTinhThanh());
+            entity.setIdQuanHuyen(dto.getIdQuanHuyen());
+            entity.setIdPhuongXa(dto.getIdPhuongXa());
+
+            entity.setTenTinhThanh(dto.getTenTinhThanh());
+            entity.setTenQuanHuyen(dto.getTenQuanHuyen());
+            entity.setTenPhuongXa(dto.getTenPhuongXa());
+
             entity.setDiaChiChiTiet(dto.getDiaChiChiTiet());
             entity.setLaMacDinh(Boolean.TRUE.equals(dto.getLaMacDinh()));
 
-            // SỬA TẠI ĐÂY: Ưu tiên lấy từ DTO, nếu DTO trống mới lấy theo khách hàng
-            entity.setHoTenNhan(dto.getHoTenNhan() != null ? dto.getHoTenNhan() : kh.getTenKhachHang());
-            entity.setSoDienThoaiNhan(dto.getSoDienThoaiNhan() != null ? dto.getSoDienThoaiNhan() : kh.getSoDienThoai());
+            // Ưu tiên lấy tên/sđt người nhận từ địa chỉ, nếu trống thì fallback về thông tin chung của khách
+            entity.setHoTenNhan(dto.getHoTenNhan() != null && !dto.getHoTenNhan().isBlank()
+                    ? dto.getHoTenNhan() : kh.getTenKhachHang());
+            entity.setSoDienThoaiNhan(dto.getSoDienThoaiNhan() != null && !dto.getSoDienThoaiNhan().isBlank()
+                    ? dto.getSoDienThoaiNhan() : kh.getSoDienThoai());
         }
     }
-
     public ResponseEntity<Resource> exportExcel(String keyword, Integer trangThai,Boolean gioiTinh, LocalDate tuNgay, List<Integer> listId) throws IOException {
         List<KhachHang> list;
         try {
