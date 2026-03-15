@@ -1,16 +1,13 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { useHotpotCategoryAddModal, foodApi } from '../../../../../services/foodFunction';
+// 🚨 ĐÃ SỬA IMPORT: Gọi đúng Hook dùng cho Update
+import { useCategoryHotpotPutModal, foodApi } from '../../../../../services/foodFunction';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
   isOpen: Boolean,
-  formData: Object,
-  initialName: {
-    type: String,
-    default: ''
-  }
+  itemList: Object // 🚨 Dùng itemList để nhận dữ liệu từ bảng truyền vào
 });
 const emit = defineEmits(['close', 'save', 'refresh']);
 
@@ -21,28 +18,22 @@ const {
     dialogConfig,
     handleDialogConfirm,
     handleDialogClose
-} = useHotpotCategoryAddModal(props, emit);
+} = useCategoryHotpotPutModal(props, emit); // 🚨 Sử dụng đúng Hook Put
 
 // ==========================================
-// 🚨 LOGIC VALIDATE (LOẠI SET LẨU)
+// 🚨 LOGIC VALIDATE TẠI CHỖ CHO CẬP NHẬT
 // ==========================================
 const existingHotpotTypes = ref([]);
-
 const formErrors = ref({
   tenLoaiSet: '',
   moTa: ''
 });
 
-watch(() => props.isOpen, async (newVal) => {
-  if (newVal) {
-    if (props.initialName && formData.value) {
-      formData.value.tenLoaiSet = props.initialName;
-    }
-    
-    // Reset lỗi mỗi khi mở form
-    formErrors.value = { tenLoaiSet: '', moTa: '' };
+// Chạy lại mỗi khi nhận được dữ liệu món cần sửa (itemList)
+watch(() => props.itemList, async (newVal) => {
+  formErrors.value = { tenLoaiSet: '', moTa: '' }; // Reset lỗi
 
-    // Fetch danh sách loại set lẩu cũ để check trùng tên
+  if (newVal) {
     try {
       const res = await foodApi.getHotpotTypes();
       existingHotpotTypes.value = res.data || [];
@@ -50,7 +41,7 @@ watch(() => props.isOpen, async (newVal) => {
       console.error(e);
     }
   }
-});
+}, { immediate: true });
 
 const validateForm = () => {
   let isValid = true;
@@ -70,9 +61,10 @@ const validateForm = () => {
     formErrors.value.tenLoaiSet = "Tên loại set không được vượt quá 100 ký tự";
     isValid = false;
   } else {
-    // Check trùng tên Loại Set
+    // Check trùng tên Loại Set (🚨 Phải loại trừ chính ID đang sửa ra)
+    const currentId = formData.value.id;
     const isDuplicate = existingHotpotTypes.value.some(
-      c => c.tenLoaiSet.toLowerCase() === tenLoai.toLowerCase()
+      c => c.tenLoaiSet.toLowerCase() === tenLoai.toLowerCase() && c.id !== currentId
     );
     if (isDuplicate) {
       formErrors.value.tenLoaiSet = "Loại set đã tồn tại trong hệ thống";
@@ -128,7 +120,7 @@ const submitForm = () => {
       />
 
       <div class="modal-header">
-        <h2>Thêm Loại Set Lẩu Mới</h2>
+        <h2>Cập Nhật Loại Set Lẩu</h2>
         <button class="btn-close" @click="$emit('close')">✕</button>
       </div>
 
@@ -136,6 +128,16 @@ const submitForm = () => {
         <div class="form-container">
             
             <div class="form-group full-width">
+                <label>Mã loại set</label>
+                <input 
+                  :value="formData.maLoaiSet" 
+                  type="text" 
+                  disabled
+                  style="background-color: #f0f0f0; color: #666;"
+                >
+            </div>
+
+            <div class="form-group full-width" style="margin-top: 10px;">
                 <label>Tên loại set <span class="required">*</span></label>
                 <input 
                   v-model="formData.tenLoaiSet" 
@@ -162,7 +164,7 @@ const submitForm = () => {
 
       <div class="modal-footer">
         <button class="btn-cancel" @click="$emit('close')">Hủy</button>
-        <button class="btn-confirm" @click="submitForm">Thêm mới</button>
+        <button class="btn-confirm" @click="submitForm">Lưu thay đổi</button>
       </div>
     </div>
   </div>
