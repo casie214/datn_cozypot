@@ -119,7 +119,7 @@ const fetchData = async () => {
             ? baseName
             : `${baseName} (${variantName})`,
         image: m.hinhAnh,
-        phanTramVat: m.phanTramVat || 0
+        phanTramVat: m.phanTramVat || 0,
       });
     });
 
@@ -153,7 +153,7 @@ const fetchData = async () => {
           groupId: item.idLoaiSet || item.loaiSet?.id,
           isRange: false,
           hasVariants: false,
-          phanTramVat: item.phanTramVat || 0
+          phanTramVat: item.phanTramVat || 0,
         })),
       });
     }
@@ -215,6 +215,24 @@ const fetchData = async () => {
 // ==========================================
 // B. LOGIC CHỌN MÓN & MODAL SẢN PHẨM
 // ==========================================
+
+const handleCardClick = (item) => {
+  if (item.type === "SET") {
+    // Nếu là SET Lẩu, tạo một biến thể giả để Modal có thể đọc được dữ liệu
+    openProductModal(item, [{ 
+      id: item.id, 
+      name: "Tiêu chuẩn", 
+      price: item.price, 
+      fullName: item.name,
+      phanTramVat: item.phanTramVat || 0
+    }]);
+    return;
+  }
+
+  const variants = variantsMap.value[item.id] || [];
+  openProductModal(item, variants);
+};
+
 const handleItemClick = (item) => {
   if (item.type === "SET") {
     pushToCart({
@@ -224,7 +242,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "SET",
       quantity: 1,
-      phanTramVat: item.phanTramVat || 0
+      phanTramVat: item.phanTramVat || 0,
     });
     return;
   }
@@ -244,7 +262,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "MON",
       quantity: 1,
-      phanTramVat: variant.phanTramVat || 0
+      phanTramVat: variant.phanTramVat || 0,
     });
   } else {
     // Có nhiều lựa chọn -> Bật Modal
@@ -277,9 +295,9 @@ const confirmAddToCart = () => {
     name: variant.fullName, // Chỗ này sẽ hiện "Coca (3L)" rất đẹp
     price: variant.price,
     image: variant.image ? getImg(variant.image) : selectedProduct.value.image,
-    type: "MON",
+    type: selectedProduct.value.type || "MON",
     quantity: modalQuantity.value,
-    phanTramVat: variant.phanTramVat || 0
+    phanTramVat: variant.phanTramVat || 0,
   });
   closeDetailModal();
 };
@@ -311,13 +329,19 @@ const pushToCart = (newItem) => {
   const currentTotal = totalPrice.value;
   const itemTotal = newItem.price * newItem.quantity;
   if (currentTotal + itemTotal > MAX_TOTAL_PRICE) {
-    return showWarning("Vượt hạn mức", `Tổng hóa đơn đặt trước không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}. Vui lòng liên hệ Hotline nếu bạn muốn đặt tiệc lớn!`);
+    return showWarning(
+      "Vượt hạn mức",
+      `Tổng hóa đơn đặt trước không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}. Vui lòng liên hệ Hotline nếu bạn muốn đặt tiệc lớn!`,
+    );
   }
 
   // 2. Check giới hạn TỔNG SỐ LƯỢNG MÓN
   const currentTotalItems = totalCount.value;
   if (currentTotalItems + newItem.quantity > MAX_TOTAL_ITEMS) {
-    return showWarning("Giỏ hàng đầy", `Hệ thống chỉ nhận tối đa ${MAX_TOTAL_ITEMS} món trên một đơn đặt online. Bạn có thể gọi thêm khi đến quán!`);
+    return showWarning(
+      "Giỏ hàng đầy",
+      `Hệ thống chỉ nhận tối đa ${MAX_TOTAL_ITEMS} món trên một đơn đặt online. Bạn có thể gọi thêm khi đến quán!`,
+    );
   }
 
   // 3. Check giới hạn TỪNG MÓN (Như cũ)
@@ -329,14 +353,20 @@ const pushToCart = (newItem) => {
   if (existingIndex !== -1) {
     const newTotal = cart.value[existingIndex].quantity + newItem.quantity;
     if (newTotal > MAX_QTY) {
-      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      showWarning(
+        "Giới hạn món",
+        `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`,
+      );
       cart.value[existingIndex].quantity = MAX_QTY;
     } else {
       cart.value[existingIndex].quantity = newTotal;
     }
   } else {
     if (newItem.quantity > MAX_QTY) {
-      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      showWarning(
+        "Giới hạn món",
+        `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`,
+      );
       newItem.quantity = MAX_QTY;
     }
     cart.value.push(newItem);
@@ -354,17 +384,26 @@ const increaseQty = (index) => {
 
   // Check 3 lớp bảo vệ khi bấm dấu + trong giỏ hàng
   if (totalPrice.value + item.price > MAX_TOTAL_PRICE) {
-    return showWarning("Vượt hạn mức", `Tổng hóa đơn không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}.`);
+    return showWarning(
+      "Vượt hạn mức",
+      `Tổng hóa đơn không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}.`,
+    );
   }
-  
+
   if (totalCount.value + 1 > MAX_TOTAL_ITEMS) {
-    return showWarning("Giỏ hàng đầy", `Bạn đã đạt giới hạn ${MAX_TOTAL_ITEMS} món trong giỏ hàng.`);
+    return showWarning(
+      "Giỏ hàng đầy",
+      `Bạn đã đạt giới hạn ${MAX_TOTAL_ITEMS} món trong giỏ hàng.`,
+    );
   }
 
   if (item.quantity < MAX_QTY) {
     item.quantity++;
   } else {
-    showWarning("Giới hạn món", `Nhà hàng chỉ nhận đặt trước tối đa ${MAX_QTY} phần cho món này.`);
+    showWarning(
+      "Giới hạn món",
+      `Nhà hàng chỉ nhận đặt trước tối đa ${MAX_QTY} phần cho món này.`,
+    );
   }
 };
 
@@ -696,7 +735,7 @@ onUnmounted(() => {
                       : 'col-md-4 col-lg-3 col-6'
                   "
                 >
-                  <div class="food-card" @click="handleItemClick(item)">
+                  <div class="food-card" @click="handleCardClick(item)">
                     <div
                       class="card-img-wrapper"
                       :class="{
@@ -754,7 +793,7 @@ onUnmounted(() => {
                         >
                           {{
                             item.isRange
-                              ? `${formatPrice(item.price.min)} +`
+                              ? `${formatPrice(item.price.min)} - ${formatPrice(item.price.max)}`
                               : formatPrice(item.price)
                           }}
                         </span>
@@ -904,31 +943,58 @@ onUnmounted(() => {
           <button class="btn-close-product" @click="closeDetailModal">
             <i class="fas fa-times"></i>
           </button>
-          <div class="product-header">
-            <div class="product-img">
-              <img
-                v-if="selectedProduct?.image"
-                :src="selectedProduct?.image"
-                :alt="selectedProduct?.name"
-                @error="handleImageError"
-              />
-              <div
-                class="fallback-icon"
-                :style="{ display: selectedProduct?.image ? 'none' : 'flex' }"
-              >
-                <i class="fas fa-image fa-4x"></i>
-              </div>
-            </div>
-            <div class="product-info-basic">
-              <h4>{{ selectedProduct?.name }}</h4>
-              <p class="text-muted small mb-0">
-                {{ selectedProduct?.desc || "Món ngon mỗi ngày" }}
-              </p>
+
+          <div class="product-img">
+            <img
+              v-if="selectedProduct?.image"
+              :src="selectedProduct?.image"
+              :alt="selectedProduct?.name"
+              @error="handleImageError"
+            />
+            <div
+              class="fallback-icon"
+              :style="{ display: selectedProduct?.image ? 'none' : 'flex' }"
+            >
+              <i class="fas fa-image fa-4x"></i>
             </div>
           </div>
+
+          <div class="product-info-header">
+            <div class="title-price-group">
+              <h4 class="product-title-modal">{{ selectedProduct?.name }}</h4>
+              <div class="product-price-modal">
+                {{
+                  formatPrice(
+                    currentVariants.find((v) => v.id === selectedVariantId)
+                      ?.price || selectedProduct?.price,
+                  )
+                }}
+              </div>
+            </div>
+
+            <div class="qty-selector-wrapper">
+              <button
+                @click="modalQuantity > 1 ? modalQuantity-- : null"
+                :disabled="modalQuantity <= 1"
+              >
+                -
+              </button>
+              <span>{{ modalQuantity }}</span>
+              <button
+                @click="
+                  modalQuantity < getMaxQty(selectedProduct?.type)
+                    ? modalQuantity++
+                    : null
+                "
+                :disabled="modalQuantity >= getMaxQty(selectedProduct?.type)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           <div class="product-body custom-scrollbar">
-            <div class="option-group">
-              <label class="option-title">Chọn phân loại:</label>
+            <div class="option-group" v-if="currentVariants.length > 1">
               <div class="option-list">
                 <label
                   v-for="variant in currentVariants"
@@ -949,33 +1015,63 @@ onUnmounted(() => {
                 </label>
               </div>
             </div>
-          </div>
-          <div class="product-footer">
-            <div class="qty-selector">
-              <button
-                @click="modalQuantity > 1 ? modalQuantity-- : null"
-                :disabled="modalQuantity <= 1"
-              >
-                -
-              </button>
-              <span>{{ modalQuantity }}</span>
-              <button
-                @click="
-                  modalQuantity < getMaxQty(selectedProduct?.type)
-                    ? modalQuantity++
-                    : null
-                "
-                :disabled="modalQuantity >= getMaxQty(selectedProduct?.type)"
-              >
-                +
-              </button>
+
+            <div
+              class="desc-section"
+              :class="{ 'mt-4': currentVariants.length > 1 }"
+            >
+              <h6 class="desc-title">Mô tả món ăn</h6>
+              <div class="desc-content">
+                <p><strong>Tên món:</strong> {{ selectedProduct?.name }}</p>
+
+                <p
+                  v-if="
+                    currentVariants.find((v) => v.id === selectedVariantId)
+                      ?.name !== 'Tiêu chuẩn'
+                  "
+                >
+                  <strong>Định lượng:</strong>
+                  {{
+                    currentVariants.find((v) => v.id === selectedVariantId)
+                      ?.name
+                  }}
+                </p>
+
+                <p>
+                  <strong>Mô tả:</strong>
+                  {{
+                    selectedProduct?.desc ||
+                    "Món ăn được chuẩn bị từ những đầu bếp chuyên nghiệp nhất của CozyPot."
+                  }}
+                </p>
+
+                <p class="mt-3 fst-italic text-muted" style="font-size: 13px">
+                  Trong quá trình dùng món, nếu quý khách có bất cứ vấn đề gì có
+                  thể liên hệ trực tiếp bộ phận CSKH để được hỗ trợ & xử lý
+                  nhanh nhất.
+                </p>
+
+                <p
+                  class="mt-2 fw-semibold"
+                  style="font-size: 13px; color: #7d161a"
+                  v-if="currentVariants[0]?.phanTramVat > 0"
+                >
+                  Giá chưa gồm VAT ({{ currentVariants[0]?.phanTramVat }}%)
+                </p>
+              </div>
             </div>
-            <button class="btn-confirm-add" @click="confirmAddToCart">
-              Thêm -
+          </div>
+
+          <div class="product-footer d-flex justify-content-end">
+            <button
+              class="btn-confirm-add pill-style"
+              @click="confirmAddToCart"
+            >
+              <i class="fas fa-plus-circle me-1"></i> ĐẶT MÓN -
               {{
                 formatPrice(
-                  currentVariants.find((v) => v.id === selectedVariantId)
-                    ?.price * modalQuantity,
+                  (currentVariants.find((v) => v.id === selectedVariantId)
+                    ?.price || selectedProduct?.price) * modalQuantity,
                 )
               }}
             </button>
@@ -1718,7 +1814,7 @@ onUnmounted(() => {
 
 .product-img {
   width: 100%;
-  height: 200px;
+  height: 280px;
   overflow: hidden;
   position: relative;
 }
@@ -1729,31 +1825,11 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-.product-info-basic {
-  padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.product-info-basic h4 {
-  margin: 0;
-  font-weight: 800;
-  color: #333;
-  font-size: 1.2rem;
-}
-
 .product-body {
   padding: 20px;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 150px;
-}
-
-.option-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #555;
-  margin-bottom: 10px;
-  display: block;
 }
 
 .option-list {
@@ -1766,7 +1842,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
+  padding: 8px 15px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   cursor: pointer;
@@ -1792,64 +1868,6 @@ onUnmounted(() => {
 .opt-price {
   font-weight: 700;
   font-size: 14px;
-}
-
-.product-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  background: white;
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.qty-selector {
-  display: flex;
-  align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  height: 44px;
-}
-
-.qty-selector button {
-  width: 36px;
-  height: 100%;
-  background: none;
-  border: none;
-  font-weight: bold;
-  font-size: 18px;
-  color: #333;
-  cursor: pointer;
-}
-
-.qty-selector button:disabled {
-  color: #ccc;
-  cursor: not-allowed;
-}
-
-.qty-selector span {
-  width: 30px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.btn-confirm-add {
-  flex: 1;
-  background: #7d161a;
-  color: white;
-  border: none;
-  height: 44px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  transition: 0.2s;
-  box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
-}
-
-.btn-confirm-add:hover {
-  background: #5e1013;
-  transform: translateY(-2px);
 }
 
 /* TRANSITIONS */
@@ -1919,10 +1937,6 @@ onUnmounted(() => {
 .item-img .fallback-icon {
   position: relative; /* Ghi đè cho thẻ nhỏ */
 }
-.product-header,
-.product-footer {
-  flex-shrink: 0;
-}
 .search-filter-bar {
   background: white;
   padding: 12px;
@@ -1942,5 +1956,132 @@ onUnmounted(() => {
 /* Ẩn thanh cuộn trên Chrome/Safari */
 .nav-scroll-container::-webkit-scrollbar {
   display: none;
+}
+
+.product-info-basic {
+  padding: 20px 25px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.product-title-modal {
+  margin: 0 0 8px 0;
+  font-weight: 800;
+  color: #7d161a; /* Trùng màu thương hiệu */
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+.product-desc-modal {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Giới hạn tối đa 3 dòng cho gọn */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-body {
+  padding: 25px;
+}
+
+.product-info-header {
+  padding: 15px 20px 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px dashed #ccc; /* Kẻ đứt giống Quán Nhậu Tự Do */
+}
+
+.title-price-group {
+  flex: 1;
+  padding-right: 15px;
+}
+
+.product-title-modal {
+  margin: 0 0 4px 0;
+  font-weight: 700;
+  color: #333;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.product-price-modal {
+  color: #7d161a;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.qty-selector-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  height: 36px;
+  background: #fff;
+}
+
+.qty-selector-wrapper button {
+  width: 32px;
+  height: 100%;
+  background: none;
+  border: none;
+  font-weight: bold;
+  font-size: 16px;
+  color: #555;
+  cursor: pointer;
+}
+
+.qty-selector-wrapper button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.qty-selector-wrapper span {
+  width: 35px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.desc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.desc-content p {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.product-footer {
+  padding: 15px 20px;
+  background: #fff;
+  /* Bỏ viền trên đi để giống mẫu */
+}
+
+.btn-confirm-add.pill-style {
+  background: #7d161a; /* Giữ màu đỏ thương hiệu của bạn */
+  color: white;
+  border: none;
+  border-radius: 30px; /* Bo tròn pill-style */
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
+}
+
+.btn-confirm-add.pill-style:hover {
+  background: #5e1013;
+  transform: translateY(-2px);
 }
 </style>
