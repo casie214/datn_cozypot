@@ -606,6 +606,7 @@ const handleSplitTableLogic = async (khach, banGoc) => {
     Swal.fire({ title: 'Lỗi', text: 'Không thể check-in bàn gốc lúc này', icon: 'error', confirmButtonText: 'Đóng' });
   }
 };
+const filterTableId = ref(null);
 
 const danhSachLoc = computed(() => {
   let filteredList = danhSachCho.value.filter((khach) => {
@@ -617,7 +618,6 @@ const danhSachLoc = computed(() => {
     const phutConLai = thoiGianDat.diff(hienTai, "minute");
 
     const window = Number(selectedTimeWindow.value);
-    // 🚨 Thay -30 bằng -THOI_GIAN_GIU_BAN
     const matchTime = phutConLai <= window && phutConLai >= -(sysParams.value.THOI_GIAN_GIU_BAN); 
     
     const searchValue = searchQuery.value.trim().toLowerCase();
@@ -631,10 +631,17 @@ const danhSachLoc = computed(() => {
       matchDate = thoiGianDat.format("YYYY-MM-DD") === filterDate.value;
     }
 
-    return matchSearch && matchTime && matchDate;
+    // 🔥 THÊM ĐIỀU KIỆN LỌC THEO BÀN
+    let matchTable = true;
+    if (filterTableId.value) {
+      matchTable = (khach.idBanAn === filterTableId.value);
+    }
+
+    return matchSearch && matchTime && matchDate && matchTable;
   });
 
   filteredList.sort((a, b) => {
+    // ... (Giữ nguyên logic sort của bạn)
     const timeA = dayjs(a.thoiGianDat).valueOf();
     const timeB = dayjs(b.thoiGianDat).valueOf();
 
@@ -917,6 +924,50 @@ const openManageModal = async (ban, forceStatus = null, targetKhach = null) => {
   }
 
   isShowModal.value = true;
+};
+
+const isShowAllTicketsModal = ref(false);
+const activeTicketTab = ref('WAITING'); // 'WAITING' hoặc 'SERVING'
+
+const openAllTicketsModal = () => {
+  isShowAllTicketsModal.value = true;
+};
+
+// Computed lấy danh sách BÀN ĐANG ĂN (Bao gồm cả đặt trước và vãng lai)
+const danhSachBanDangAn = computed(() => {
+  let activeTables = danhSachBan.value.filter(ban => getTrangThaiTheoNgay(ban.id) === 1);
+  
+  // 🔥 THÊM ĐIỀU KIỆN LỌC THEO BÀN
+  if (filterTableId.value) {
+    activeTables = activeTables.filter(ban => ban.id === filterTableId.value);
+  }
+
+  const searchValue = searchQuery.value.trim().toLowerCase();
+  if (searchValue) {
+    activeTables = activeTables.filter(ban => 
+       ban.maBan.toLowerCase().includes(searchValue) || 
+       (ban.tenKhuVuc && ban.tenKhuVuc.toLowerCase().includes(searchValue))
+    );
+  }
+  
+  if (sortOption.value === 'floor_asc') {
+    activeTables.sort((a, b) => Number(a.soTang || a.tang) - Number(b.soTang || b.tang));
+  } else if (sortOption.value === 'floor_desc') {
+    activeTables.sort((a, b) => Number(b.soTang || b.tang) - Number(a.soTang || a.tang));
+  }
+
+  return activeTables;
+});
+
+// Hàm bọc để đóng modal trước khi mở Bàn/Check-in
+const modalHandleCheckInGuest = (khach) => {
+  isShowAllTicketsModal.value = false;
+  handleCheckInGuest(khach);
+};
+
+const modalHandleTableClick = (ban) => {
+  isShowAllTicketsModal.value = false;
+  handleTableClick(ban);
 };
 
 const mapAndGroupItems = (rawList) => {
@@ -2102,7 +2153,12 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
               <div class="list-section">
                 <div class="list-card">
                   <div class="checkin-container">
-                    <h5 style="font-weight: bold; font-size: 16px">Khách chờ check-in</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 style="font-weight: bold; font-size: 16px; margin: 0;">Khách chờ check-in</h5>
+                      <button class="btn btn-sm btn-outline-danger fw-bold" style="border-radius: 6px;" @click="openAllTicketsModal">
+                        <i class="fa-solid fa-list me-1"></i> Xem tất cả
+                      </button>
+                    </div>
                     <div class="filter-section">
                       <div class="filter-group">
                         <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</label>
@@ -2110,6 +2166,24 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                           <input type="text" v-model="searchQuery" placeholder="Tìm theo mã phiếu đặt bàn hoặc số điện thoại khách hàng" />
                         </div>
                       </div>
+
+                      <div class="filter-group flex-grow-1">
+                        <label class="filter-label"><i class="fa-solid fa-table"></i> Lọc theo bàn</label>
+                        <div class="filter-input-wrapper">
+                          <Multiselect
+                            v-model="filterTableId"
+                            :options="danhSachBan"
+                            valueProp="id"
+                            label="maBan"
+                            placeholder="-- Tất cả bàn --"
+                            :searchable="true"
+                            :canClear="true"
+                            no-results-text="Không có bàn nào"
+                            class="custom-filter-multiselect red-sort-multiselect w-100"
+                          />
+                        </div>
+                      </div>
+
                       <div class="filter-time-group">
                         <label class="filter-label-v2">
                           <i class="fa-solid fa-clock-rotate-left me-1"></i> Hiển thị phiếu đặt trong:
@@ -2786,6 +2860,148 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
           </div>
         </div>
   </div>
+
+  <div v-if="isShowAllTicketsModal" class="modal-overlay" style="z-index: 10000;">
+      <div class="modal-box" style="max-width: 850px; height: 85vh;">
+        <div class="modal-header-custom bg-light">
+          <h5 class="modal-title-custom m-0 text-danger"><i class="fa-solid fa-clipboard-list me-2"></i>Quản lý danh sách</h5>
+          <button class="close-btn" @click="isShowAllTicketsModal = false">✕</button>
+        </div>
+
+        <div class="modal-body-custom p-0 bg-light d-flex flex-column h-100">
+          <div class="d-flex border-bottom bg-white px-3 pt-2 flex-shrink-0">
+              <button class="btn btn-link text-decoration-none fw-bold px-4 py-2 border-bottom border-3"
+                      :class="activeTicketTab === 'WAITING' ? 'border-danger text-danger' : 'border-transparent text-muted'"
+                      @click="activeTicketTab = 'WAITING'">
+                  <i class="fa-solid fa-hourglass-half me-1"></i> Phiếu đang chờ ({{ danhSachLoc.length }})
+              </button>
+              <button class="btn btn-link text-decoration-none fw-bold px-4 py-2 border-bottom border-3"
+                      :class="activeTicketTab === 'SERVING' ? 'border-danger text-danger' : 'border-transparent text-muted'"
+                      @click="activeTicketTab = 'SERVING'">
+                  <i class="fa-solid fa-utensils me-1"></i> Bàn đang ăn ({{ danhSachBanDangAn.length }})
+              </button>
+          </div>
+
+          <div class="d-flex flex-grow-1 overflow-hidden">
+            <div class="p-3 border-end bg-white overflow-auto" style="width: 300px; flex-shrink: 0;">
+                <h6 class="fw-bold text-danger mb-3"><i class="fa-solid fa-filter me-1"></i> Bộ lọc</h6>
+
+                <div class="filter-group mb-3">
+                  <label class="filter-label"><i class="fa-solid fa-table"></i> Lọc theo bàn</label>
+                  <div class="filter-input-wrapper">
+                    <Multiselect
+                      v-model="filterTableId"
+                      :options="danhSachBan"
+                      valueProp="id"
+                      label="maBan"
+                      placeholder="-- Tất cả bàn --"
+                      :searchable="true"
+                      :canClear="true"
+                      no-results-text="Không có bàn nào"
+                      class="custom-filter-multiselect red-sort-multiselect w-100"
+                    />
+                  </div>
+                </div>
+                
+                <div class="filter-group mb-3">
+                  <label class="filter-label"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</label>
+                  <div class="filter-input-wrapper">
+                    <input type="text" v-model="searchQuery" placeholder="Mã phiếu, SĐT, Mã bàn..." />
+                  </div>
+                </div>
+
+                <div class="filter-group mb-3">
+                  <label class="filter-label"><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp xếp</label>
+                  <div class="filter-input-wrapper">
+                    <Multiselect v-model="sortOption" :options="sortOptionsList" :searchable="false" :canClear="false" class="custom-filter-multiselect red-sort-multiselect w-100"/>
+                  </div>
+                </div>
+
+                <div v-show="activeTicketTab === 'WAITING'">
+                  <div class="filter-time-group mb-3">
+                    <label class="filter-label-v2"><i class="fa-solid fa-clock-rotate-left me-1"></i> Khung giờ đến:</label>
+                    <div class="btn-group-custom flex-wrap gap-1">
+                      <button v-for="opt in timeWindowOptions" :key="'modal-'+opt.value" class="time-btn py-1 px-2" :class="{ 'active': selectedTimeWindow === opt.value }" @click="setTimeWindow(opt.value)">
+                        {{ opt.label }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="filter-group mb-3">
+                    <label class="filter-label"><i class="fa-solid fa-calendar-days"></i> Ngày đến</label>
+                    <div class="filter-input-wrapper">
+                      <input type="date" v-model="filterDate" class="date-input w-100" />
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn btn-outline-secondary w-100 mt-2" style="border-radius: 6px;" @click="searchQuery=''; filterDate=null; sortOption='time_asc'">Xóa bộ lọc</button>
+            </div>
+
+            <div class="p-3 flex-grow-1 overflow-auto bg-light">
+              
+              <div v-show="activeTicketTab === 'WAITING'">
+                <div v-if="danhSachLoc.length === 0" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-calendar-xmark fa-3x mb-3 opacity-50"></i>
+                    <p>Không có phiếu đặt bàn nào đang chờ.</p>
+                </div>
+                
+                <div class="row g-3">
+                  <div v-for="khach in danhSachLoc" :key="'modal-khach-' + khach.id" class="col-md-6">
+                    <div class="customer-card h-100 m-0 shadow-sm" style="border-left: 4px solid #f1c40f;">
+                      <div class="card-header pb-2 border-bottom mb-2">
+                        <span class="customer-name text-truncate" style="max-width: 150px;" :title="khach.tenKhachHang">{{ khach.tenKhachHang }}</span>
+                        <span class="badge bg-warning text-dark">{{ khach.maBan }}</span>
+                      </div>
+                      <div class="card-body p-0">
+                        <p class="time-info mb-2 small text-muted"><i class="fa-regular fa-calendar me-2"></i>{{ formatDate(khach.thoiGianDat) }}</p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                          <span class="fw-bold small" :class="getCountdown(khach.thoiGianDat).startsWith('-') ? 'text-danger' : 'text-primary'">
+                            {{ getCountdown(khach.thoiGianDat).startsWith('-') ? 'Đã trễ:' : 'Còn:' }} {{ getCountdown(khach.thoiGianDat).replace('-', '') }}
+                          </span>
+                          <span class="small fw-bold text-muted"><i class="fa-solid fa-users"></i> {{ khach.soNguoi || khach.soLuongKhach || 1 }}</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                          <button class="btn btn-checkable flex-grow-1 py-1" :disabled="checkTimeStatus(khach.thoiGianDat).isEarly" :style="checkTimeStatus(khach.thoiGianDat).isEarly ? 'background-color: #6c757d !important; opacity: 0.7; color: white !important;' : ''" @click="modalHandleCheckInGuest(khach)">
+                            <i class="fa-solid" :class="checkTimeStatus(khach.thoiGianDat).isEarly ? 'fa-clock' : 'fa-check'"></i> {{ checkTimeStatus(khach.thoiGianDat).isEarly ? 'Chưa tới' : 'Check-in' }}
+                          </button>
+                          <button class="btn btn-outline-danger px-2 py-1 rounded" @click="handleCancelWaitingTicket(khach)" title="Hủy phiếu">
+                            <i class="fa-solid fa-trash-can"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-show="activeTicketTab === 'SERVING'">
+                <div v-if="danhSachBanDangAn.length === 0" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-utensils fa-3x mb-3 opacity-50"></i>
+                    <p>Chưa có bàn nào đang được phục vụ.</p>
+                </div>
+
+                <div class="row g-3">
+                  <div v-for="ban in danhSachBanDangAn" :key="'modal-ban-' + ban.id" class="col-md-4">
+                    <div class="mini-table-card border-0 shadow-sm text-center p-3 h-100 d-flex flex-column justify-content-between" style="border-top: 4px solid #28a745 !important;" @click="modalHandleTableClick(ban)">
+                      <div>
+                        <div class="fw-bold fs-4 text-success mb-1">{{ ban.maBan }}</div>
+                        <div class="badge bg-light text-dark border mb-2">Tầng {{ ban.soTang || ban.tang }}</div>
+                        <div class="text-muted small"><i class="fa-solid fa-users"></i> Sức chứa: {{ ban.soCho }}</div>
+                      </div>
+                      <div class="mt-3 pt-2 border-top">
+                         <span class="badge bg-success w-100 rounded-pill py-2"><i class="fa-solid fa-fire-burner me-1"></i> Đang ăn</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 </template>
 
 <style scoped>
