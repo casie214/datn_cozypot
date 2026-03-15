@@ -645,11 +645,6 @@ public class DatBanService {
 
     public List<BanAn> timDanhSachBanTrong(DatBanRequest request) {
 
-        List<BanAn> danhSachBanPhuHop = banAnRepository.findBanPhuHopChoDatBan(request.getSoNguoi());
-        if (danhSachBanPhuHop.isEmpty()) {
-            return Collections.emptyList();
-        }
-
         LocalDateTime thoiGianKhachDen = LocalDateTime.of(request.getNgayDat(), request.getGioDat());
 
         LocalDateTime start = thoiGianKhachDen.minusHours(2);
@@ -660,22 +655,35 @@ public class DatBanService {
         int tongSucChua = banAnRepository.getTongSucChua();
 
         int soKhachDaDat = phieuCungGio.stream()
-                .mapToInt(PhieuDatBan::getSoLuongKhach)
+                .mapToInt(p -> p.getSoLuongKhach() == null ? 0 : p.getSoLuongKhach())
                 .sum();
 
-        long tongSoBan = banAnRepository.count();
-        if (phieuCungGio.size() >= tongSoBan) {
-            return Collections.emptyList();
-        }
-
-        // Check 90% capacity
         int maxCapacity = (int) (tongSucChua * 0.9);
 
         if ((soKhachDaDat + request.getSoNguoi()) > maxCapacity) {
             return Collections.emptyList();
         }
 
-        return danhSachBanPhuHop;
+        Set<Integer> banDaDatIds = phieuCungGio.stream()
+                .flatMap(p -> p.getBanAns().stream())
+                .map(BanAn::getId)
+                .collect(Collectors.toSet());
+
+        List<BanAn> tatCaBan = banAnRepository.findAll();
+
+        List<BanAn> banTrong = tatCaBan.stream()
+                .filter(b -> !banDaDatIds.contains(b.getId()))
+                .collect(Collectors.toList());
+
+        int tongChoNgoiBanTrong = banTrong.stream()
+                .mapToInt(BanAn::getSoNguoiToiDa)
+                .sum();
+
+        if (tongChoNgoiBanTrong < request.getSoNguoi()) {
+            return Collections.emptyList();
+        }
+
+        return banTrong;
     }
 
     public List<BanAnResponse> checkBanTrong(DatBanRequest request) {
