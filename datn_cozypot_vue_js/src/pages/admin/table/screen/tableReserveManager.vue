@@ -8,6 +8,7 @@ import {
   fetchAllCustomers,
   fetchTableStatusByDate,
   searchDatBanService,
+  checkBanTrongService,
 } from "@/services/tableManageService";
 import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
@@ -122,12 +123,15 @@ const searchDatBan = async () => {
   }
 };
 
+const currentStep = ref(1);
+
 // ================= OPEN MODAL =================
 // ================= OPEN MODAL =================
 const openCreateModal = async () => {
   selectedCustomer.value = null;
   customerOptions.value = [];
   isOldCustomer.value = false;
+  currentStep.value = 1; // 🚨 Reset về bước 1
 
   createForm.value = {
     danhSachBanChon: [],
@@ -142,13 +146,9 @@ const openCreateModal = async () => {
     hinhThucDat: 2,
   };
   resetCreateFormErrors();
-
   showCreateModal.value = true;
 
-  // Load dữ liệu bàn và khách song song
   const [banRaw, _] = await Promise.all([fetchAllBanAn(), loadAllCustomers()]);
-  
-  // 🚨 ĐÃ FIX: Map thêm tọa độ column và row để sơ đồ Grid vẽ được bàn
   listBanAn.value = banRaw.map((ban, index) => {
     const defaultCol = (index % 3) * 4 + 1;
     const defaultRow = Math.floor(index / 3) * 2 + 1;
@@ -159,6 +159,18 @@ const openCreateModal = async () => {
     };
   });
 };
+
+watch(() => createForm.value.thoiGianDat, (newVal) => {
+  if (newVal) {
+    // So sánh thời gian vừa chọn với thời gian hiện tại (tính tới phút)
+    if (dayjs(newVal).isBefore(dayjs(), 'minute')) {
+      formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
+    } else {
+      formErrors.value.thoiGianDat = ""; // Xóa lỗi nếu chọn đúng
+    }
+  }
+});
+
 
 // Thêm hàm load all
 const allCustomers = ref([]);
@@ -328,26 +340,93 @@ const totalTempCapacity = computed(() => {
 
 const openTableSelectionModal = async () => {
   if (!createForm.value.thoiGianDat) {
-    return Swal.fire('Lưu ý', 'Vui lòng chọn <b>Thời gian đặt</b> trước để kiểm tra bàn trống!', 'warning');
+    return Swal.fire('Lưu ý', 'Vui lòng chọn <b>Thời gian đặt</b> trước!', 'warning');
   }
   if (!createForm.value.soLuongKhach || createForm.value.soLuongKhach < 1) {
     return Swal.fire('Lưu ý', 'Vui lòng nhập <b>Số lượng khách</b> hợp lệ trước!', 'warning');
   }
 
-  Swal.fire({ title: 'Đang tải sơ đồ...', didOpen: () => Swal.showLoading() });
-  
-  const normalizedTime = normalizeBookingDateTime(createForm.value.thoiGianDat);
-  await checkTablesByDate(normalizedTime);
-  
-  // Chọn mặc định tầng đầu tiên
-  if (danhSachTangModal.value.length > 0) {
-      modalActiveFloor.value = danhSachTangModal.value[0];
+  if (dayjs(createForm.value.thoiGianDat).isBefore(dayjs(), 'minute')) {
+    formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
+    return Swal.fire('Lưu ý', 'Thời gian đặt không được ở trong quá khứ!', 'error');
   }
 
-  tempSelectedTables.value = [...(createForm.value.danhSachBanChon || [])];
-  
-  Swal.close();
-  showSelectTableModal.value = true;
+  Swal.fire({ title: 'Đang kiểm tra sức chứa...', didOpen: () => Swal.showLoading() });
+
+  try {
+    // 1. Định dạng lại dữ liệu khớp 100% với class DatBanRequest trong Java
+    const dateObj = dayjs(createForm.value.thoiGianDat);
+    const payload = {
+        ngayDat: dateObj.format('YYYY-MM-DD'), // Trả ra dạng: 2026-03-15
+        gioDat: dateObj.format('HH:mm:ss'),    // Trả ra dạng: 18:30:00
+        soNguoi: createForm.value.soLuongKhach // Chú ý: Backend đang gọi request.getSoNguoi() nên key phải là soNguoi
+    };
+
+    // 2. Gọi API kèm payload
+    const availableTables = await checkBanTrongService(payload);
+
+    // 3. Xử lý logic chặn nếu danh sách bàn trả về rỗng
+    if (!availableTables || availableTables.length === 0) {
+        Swal.close();
+        createForm.value.danhSachBanChon = []; 
+        return Swal.fire({
+            icon: 'error',
+            title: 'Từ chối đặt bàn!',
+            text: 'Nhà hàng đã hết bàn hoặc vượt quá 90% sức chứa tại thời điểm này. Vui lòng chọn giờ khác!'
+        });
+    }
+
+    // 4. Nếu BE trả về bàn trống -> Cập nhật trạng thái lưới và mở Sơ đồ
+    const tempMap = {};
+    // Khóa (Màu xám/Trạng thái 2) tất cả các bàn trước
+    listBanAn.value.forEach(ban => { tempMap[ban.id] = { trangThai: 2 }; });
+    // Bàn nào rỗng thì mở sáng lên (Trạng thái 0)
+    availableTables.forEach(ban => { tempMap[ban.id] = { trangThai: 0 }; });
+
+    tableStatusMap.value = tempMap;
+
+    if (danhSachTangModal.value.length > 0) {
+        modalActiveFloor.value = danhSachTangModal.value[0];
+    }
+    
+    tempSelectedTables.value = [...(createForm.value.danhSachBanChon || [])];
+    
+    Swal.close();
+    showSelectTableModal.value = true;
+
+  } catch (error) {
+    Swal.close();
+    console.error("Lỗi khi gọi API checkBanTrong:", error);
+    Swal.fire('Lỗi', 'Hệ thống gián đoạn hoặc sai định dạng dữ liệu gửi lên', 'error');
+  }
+};
+
+const nextStep = () => {
+    let isValid = true;
+    resetCreateFormErrors();
+
+    if (!createForm.value.thoiGianDat) {
+        formErrors.value.thoiGianDat = "Vui lòng chọn thời gian đặt";
+        isValid = false;
+    } 
+    else if (dayjs(createForm.value.thoiGianDat).isBefore(dayjs(), 'minute')) {
+        formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
+        isValid = false;
+    }
+
+    if (!createForm.value.soLuongKhach || createForm.value.soLuongKhach < 1) {
+        formErrors.value.soLuongKhach = "Số lượng khách phải lớn hơn 0";
+        isValid = false;
+    }
+    
+    if (createForm.value.danhSachBanChon.length === 0) {
+        formErrors.value.idBanAn = "Vui lòng chọn ít nhất 1 bàn phục vụ";
+        isValid = false;
+    }
+
+    if (isValid) {
+        currentStep.value = 2; // Chuyển sang bước nhập thông tin khách
+    }
 };
 
 const toggleTableForCreate = (ban) => {
@@ -497,108 +576,129 @@ onMounted(() => {
 
   <div v-if="showCreateModal" class="modal-overlay">
     <div class="modal-box">
-      <h4>Thêm phiếu đặt bàn</h4>
+      
+      <div class="modal-header border-bottom pb-3 mb-3">
+        <h4 class="m-0 text-danger fw-bold">
+          <i class="fa-solid fa-clipboard-user me-2"></i>Thêm phiếu đặt bàn
+          <span class="fs-6 text-muted fw-normal ms-2">
+            {{ currentStep === 1 ? '(1/2: Chọn bàn)' : '(2/2: Khách hàng)' }}
+          </span>
+        </h4>
+        <button class="close-btn" @click="closeCreateModal">✕</button>
+      </div>
 
-      <label>Tìm khách theo SĐT</label>
-      <Multiselect v-model="selectedCustomer" :options="customerOptions" :searchable="true" :filter-results="false"
-        value-prop="value" label="label" track-by="value" placeholder="Tìm theo tên hoặc SĐT..."
-        no-options-text="Không có khách hàng" no-results-text="Không tìm thấy" class="custom-filter-multiselect mb-3"
-        @open="() => { customerOptions = allCustomers; }" @search-change="searchCustomer" @select="handleSelectCustomer"
-        @clear="clearCustomer">
-        <template #option="{ option }">
-          <div v-if="option.isNew" style="color: #7d161a; font-weight: bold">
-            {{ option.label }}
-          </div>
-          <div v-else>
-            <span style="font-weight: 600">{{ option.raw.tenKhachHang }}</span>
-            <span style="color: #888; margin-left: 8px">{{ option.raw.soDienThoai }}</span>
-          </div>
-        </template>
-      </Multiselect>
-
-      <div class="info-grid">
-        <div>
-          <label>Tên khách <span class="required-star">*</span></label>
-          <input v-model="createForm.tenKhachHang" :disabled="isOldCustomer" placeholder="Tên khách"
-            :class="{ 'input-error': formErrors.tenKhachHang }" />
-          <small v-if="formErrors.tenKhachHang" class="error-text">{{ formErrors.tenKhachHang }}</small>
-        </div>
-
-        <div>
-          <label>Số điện thoại <span class="required-star">*</span></label>
-          <input v-model="createForm.soDienThoai" :disabled="isOldCustomer" placeholder="SĐT"
-            :class="{ 'input-error': formErrors.soDienThoai }" />
-          <small v-if="formErrors.soDienThoai" class="error-text">{{ formErrors.soDienThoai }}</small>
-        </div>
-
-        <div>
-          <label>Email</label>
-          <input v-model="createForm.email" :disabled="isOldCustomer" placeholder="Email"
-            :class="{ 'input-error': formErrors.email }" />
-          <small v-if="formErrors.email" class="error-text">{{ formErrors.email }}</small>
-        </div>
-
-        <div>
-          <label>Giới tính</label>
-          <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
-            <option :value="true">Nam</option>
-            <option :value="false">Nữ</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Ngày sinh</label>
-          <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" />
-        </div>
-
-        <div>
-          <label>Thời gian đặt <span class="required-star">*</span></label>
-          <VueDatePicker v-model="createForm.thoiGianDat" :enable-time-picker="true" :is-24="true"
-            :hide-input-icon="true" :clearable="false" auto-apply format="dd/MM/yyyy HH:mm" placeholder="Chọn ngày giờ"
-            class="custom-datetime-picker" :class="{ 'input-error': formErrors.thoiGianDat }" />
-          <small v-if="formErrors.thoiGianDat" class="error-text">{{ formErrors.thoiGianDat }}</small>
-        </div>
-
-        <div>
-          <label>Số lượng khách <span class="required-star">*</span></label>
-          <input type="number" min="1" step="1" v-model.number="createForm.soLuongKhach"
-            :class="{ 'input-error': formErrors.soLuongKhach }" />
-          <small v-if="formErrors.soLuongKhach" class="error-text">{{ formErrors.soLuongKhach }}</small>
-        </div>
-
-        <div style="grid-column: span 2;">
-          <label>Bàn phục vụ <span class="required-star">*</span></label>
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <button class="btn btn-sm btn-custom-outline px-3 py-2 fw-bold" @click="openTableSelectionModal"
-              style="border-radius: 6px;">
-              <i class="fa-solid fa-map-location-dot me-1"></i> Chọn bàn trên sơ đồ
-            </button>
-            <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-success">
-              Đã chọn {{ createForm.danhSachBanChon.length }} bàn
-            </span>
-          </div>
-          <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light" style="min-height: 50px;">
-            <div v-for="(ban, index) in createForm.danhSachBanChon" :key="ban.id"
-              class="badge bg-danger d-flex align-items-center py-2 px-3" style="font-size: 13px;">
-              <span>Bàn {{ ban.maBan }} ({{ ban.soCho || ban.soNguoiToiDa }} chỗ)</span>
-              <i class="fa-solid fa-xmark ms-2" style="cursor: pointer" @click="removeSelectedTable(index)"
-                title="Xóa bàn này"></i>
+      <div v-if="currentStep === 1" class="step-1-animation">
+        <div class="info-grid">
+            <div>
+              <label>Thời gian đặt <span class="required-star">*</span></label>
+              <VueDatePicker v-model="createForm.thoiGianDat" :enable-time-picker="true" :is-24="true"
+                :min-date="new Date()" :hide-input-icon="true" :clearable="false" auto-apply format="dd/MM/yyyy HH:mm" placeholder="Chọn ngày giờ"
+                class="custom-datetime-picker" :class="{ 'input-error': formErrors.thoiGianDat }" />
+              <small v-if="formErrors.thoiGianDat" class="error-text">{{ formErrors.thoiGianDat }}</small>
             </div>
-            <div v-if="!createForm.danhSachBanChon?.length" class="text-muted small fst-italic w-100 text-center mt-1">
-              Chưa có bàn nào được chọn
+
+            <div>
+              <label>Số lượng khách <span class="required-star">*</span></label>
+              <input type="number" min="1" step="1" v-model.number="createForm.soLuongKhach"
+                :class="{ 'input-error': formErrors.soLuongKhach }" />
+              <small v-if="formErrors.soLuongKhach" class="error-text">{{ formErrors.soLuongKhach }}</small>
             </div>
-          </div>
-          <small v-if="formErrors.idBanAn" class="error-text">{{ formErrors.idBanAn }}</small>
+
+            <div style="grid-column: span 2;">
+              <label>Bàn phục vụ <span class="required-star">*</span></label>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <button class="btn btn-sm btn-custom-outline px-3 py-2 fw-bold" @click="openTableSelectionModal"
+                  style="border-radius: 6px;">
+                  <i class="fa-solid fa-map-location-dot me-1"></i> Chọn bàn trên sơ đồ
+                </button>
+                <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-success">
+                  Đã chọn {{ createForm.danhSachBanChon.length }} bàn
+                </span>
+              </div>
+              <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light" style="min-height: 50px;">
+                <div v-for="(ban, index) in createForm.danhSachBanChon" :key="ban.id"
+                  class="badge bg-danger d-flex align-items-center py-2 px-3" style="font-size: 13px;">
+                  <span>Bàn {{ ban.maBan }} ({{ ban.soCho || ban.soNguoiToiDa }} chỗ)</span>
+                  <i class="fa-solid fa-xmark ms-2" style="cursor: pointer" @click="removeSelectedTable(index)" title="Xóa bàn này"></i>
+                </div>
+                <div v-if="!createForm.danhSachBanChon?.length" class="text-muted small fst-italic w-100 text-center mt-1">
+                  Vui lòng chọn thời gian, số lượng và bấm chọn bàn trên sơ đồ.
+                </div>
+              </div>
+              <small v-if="formErrors.idBanAn" class="error-text">{{ formErrors.idBanAn }}</small>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+          <button class="btn btn-custom-outline me-2" @click="closeCreateModal">Hủy</button>
+          <button class="btn px-4" @click="nextStep">Tiếp tục <i class="fa-solid fa-arrow-right ms-2"></i></button>
         </div>
       </div>
 
-      <div style="text-align: right; margin-top: 20px">
-        <button class="btn btn-custom-outline" @click="closeCreateModal" :disabled="isSubmitting">Hủy</button>
-        <button class="btn ms-2" style="min-width: 80px;" @click="submitCreate" :disabled="isSubmitting">
-          <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
-          {{ isSubmitting ? 'Đang lưu...' : 'Lưu' }}
-        </button>
+      <div v-if="currentStep === 2" class="step-2-animation">
+        
+        <label>Tìm khách hàng cũ (Theo SĐT)</label>
+        <Multiselect v-model="selectedCustomer" :options="customerOptions" :searchable="true" :filter-results="false"
+          value-prop="value" label="label" track-by="value" placeholder="Tìm theo tên hoặc SĐT..."
+          no-options-text="Không có khách hàng" no-results-text="Không tìm thấy" class="custom-filter-multiselect mb-3"
+          @open="() => { customerOptions = allCustomers; }" @search-change="searchCustomer" @select="handleSelectCustomer"
+          @clear="clearCustomer">
+          <template #option="{ option }">
+            <div v-if="option.isNew" style="color: #7d161a; font-weight: bold">
+              {{ option.label }}
+            </div>
+            <div v-else>
+              <span style="font-weight: 600">{{ option.raw.tenKhachHang }}</span>
+              <span style="color: #888; margin-left: 8px">{{ option.raw.soDienThoai }}</span>
+            </div>
+          </template>
+        </Multiselect>
+
+        <div class="info-grid">
+          <div>
+            <label>Tên khách <span class="required-star">*</span></label>
+            <input v-model="createForm.tenKhachHang" :disabled="isOldCustomer" placeholder="Tên khách"
+              :class="{ 'input-error': formErrors.tenKhachHang }" />
+            <small v-if="formErrors.tenKhachHang" class="error-text">{{ formErrors.tenKhachHang }}</small>
+          </div>
+
+          <div>
+            <label>Số điện thoại <span class="required-star">*</span></label>
+            <input v-model="createForm.soDienThoai" :disabled="isOldCustomer" placeholder="SĐT"
+              :class="{ 'input-error': formErrors.soDienThoai }" />
+            <small v-if="formErrors.soDienThoai" class="error-text">{{ formErrors.soDienThoai }}</small>
+          </div>
+
+          <div>
+            <label>Email</label>
+            <input v-model="createForm.email" :disabled="isOldCustomer" placeholder="Email"
+              :class="{ 'input-error': formErrors.email }" />
+            <small v-if="formErrors.email" class="error-text">{{ formErrors.email }}</small>
+          </div>
+
+          <div>
+            <label>Giới tính</label>
+            <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
+              <option :value="true">Nam</option>
+              <option :value="false">Nữ</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Ngày sinh</label>
+            <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+          <button class="btn btn-custom-outline" @click="currentStep = 1"><i class="fa-solid fa-arrow-left me-2"></i> Quay lại</button>
+          <button class="btn px-4" @click="submitCreate" :disabled="isSubmitting">
+            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
+            {{ isSubmitting ? 'Đang lưu...' : 'Hoàn tất tạo phiếu' }}
+          </button>
+        </div>
       </div>
+
     </div>
   </div>
 
