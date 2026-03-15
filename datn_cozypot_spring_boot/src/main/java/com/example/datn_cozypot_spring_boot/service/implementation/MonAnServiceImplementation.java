@@ -457,6 +457,7 @@ public class MonAnServiceImplementation implements MonAnService {
         mon.setGiaVon(request.getGiaVon());
         mon.setHinhAnh(request.getHinhAnh());
         mon.setTrangThai(1);
+        mon.setMoTa(request.getMoTa());
         mon.setNgayTao(LocalDateTime.now());
 
         // 2. Sinh mã tự động (Có check trùng trong DB)
@@ -653,6 +654,7 @@ public class MonAnServiceImplementation implements MonAnService {
         LoaiSetLau loai = new LoaiSetLau();
         loai.setTenLoaiSet(request.getTenLoaiSet());
         loai.setTrangThai(1);
+        loai.setMoTa(request.getMoTa());
         loai.setMaLoaiSet(generateNextCode(request.getTenLoaiSet(), "LOAI_SET"));
         loaiSetLauRepository.save(loai);
         return new LoaiLauResponse();
