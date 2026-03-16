@@ -602,7 +602,9 @@ const tempAddressText = ref('');
 const defaultIndex = ref(0);   // Lưu vị trí mặc định (mặc định là cái đầu tiên)
 const preparePayload = () => {
     const data = new FormData();
-
+    if (clientId.value) {
+        data.append('id', clientId.value);
+    }
     // 1. Xử lý thông tin chung của khách hàng
     Object.keys(formData).forEach(key => {
         if (key === 'danhSachDiaChi' || key === 'diaChi') return;
@@ -906,21 +908,31 @@ const handleSave = async () => {
 
     if (!result.isConfirmed) return;
 
-    // --- BƯỚC 4: GỬI API ---
     try {
-        loading.value = true;
-        const payload = preparePayload();
-        await clientService.create(payload); // Ví dụ hàm gọi service
+    loading.value = true;
+    const payload = preparePayload();
 
-        await Swal.fire({
-            ...swalConfig,
-            title: 'Thành công!',
-            text: clientId.value ? 'Cập nhật thành công.' : 'Thêm mới thành công.',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-        });
-        location.reload();
+    // Kiểm tra: Nếu có clientId thì gọi UPDATE, ngược lại gọi CREATE
+    if (clientId.value) {
+        // Giả sử hàm update của bạn nhận vào (id, data) hoặc chỉ data tùy Service
+        await clientService.update(clientId.value, payload); 
+    } else {
+        await clientService.create(payload);
+    }
+
+    await Swal.fire({
+        ...swalConfig,
+        title: 'Thành công!',
+        text: clientId.value ? 'Cập nhật thành công.' : 'Thêm mới thành công.',
+        icon: 'success',
+        timer: 1500,
+        iconColor: '#7D161A',
+        showConfirmButton: false
+    });
+    
+    // Tùy chọn: Thay vì reload, bạn có thể chỉ cập nhật lại state nếu cần
+    location.reload(); 
+
     } catch (e) {
         // --- BƯỚC 5: XỬ LÝ LỖI VALIDATION TỪ SERVER (NẾU CÓ) ---
         const errorData = e.response?.data;

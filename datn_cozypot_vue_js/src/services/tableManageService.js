@@ -110,6 +110,11 @@ export const searchDatBanService = async ({ payload, page, size }) => {
   }
 };
 
+export const checkBanTrongService = async (payload) => {
+  const response = await axiosClient.post(`/dat-ban/check-ban-trong`, payload);
+  return response.data; 
+};
+
 export const updatePhieuDatBanService = async (payload) => {
     try {
         await axiosClient.put(`${PREFIX}/update`, payload);

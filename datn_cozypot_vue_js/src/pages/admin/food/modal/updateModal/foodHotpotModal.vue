@@ -37,6 +37,96 @@ const handleFoodEnter = (event) => {
     }
 };
 
+const validateForm = () => {
+    errors.value = {}; 
+    let isValid = true;
+
+    const name = (formData.value.tenSetLau || '').trim();
+    const norm = (formData.value.moTaChiTiet || '').trim(); // Định mức / Ghi chú
+    const desc = (formData.value.moTa || '').trim();       // Mô tả chung
+
+    // 1. Validate Tên Set Lẩu (5 - 100 ký tự)
+    if (!name) {
+        errors.value.tenSetLau = 'Tên set lẩu không được để trống';
+        isValid = false;
+    } else if (name.length < 5) {
+        errors.value.tenSetLau = 'Tên set lẩu phải chứa ít nhất 5 kí tự';
+        isValid = false;
+    } else if (name.length > 100) {
+        errors.value.tenSetLau = 'Tên set lẩu không được vượt quá 100 ký tự';
+        isValid = false;
+    }
+
+    // 2. Validate Loại Set
+    if (!formData.value.idLoaiSet) {
+        errors.value.idLoaiSet = 'Vui lòng chọn loại set lẩu';
+        isValid = false;
+    }
+
+    // 3. Validate Giá bán (> 0)
+    if (!formData.value.giaBan || formData.value.giaBan <= 0) {
+        errors.value.giaBan = 'Giá bán phải lớn hơn 0';
+        isValid = false;
+    }
+
+    // 4. Validate Định mức / Ghi chú (5 - 100 ký tự)
+    if (!norm) {
+        errors.value.moTaChiTiet = 'Vui lòng nhập định mức (VD: Phù hợp cho 4-5 người)';
+        isValid = false;
+    } else if (norm.length < 5) {
+        errors.value.moTaChiTiet = 'Định mức phải chứa ít nhất 5 kí tự';
+        isValid = false;
+    } else if (norm.length > 100) {
+        errors.value.moTaChiTiet = 'Định mức không được vượt quá 100 ký tự';
+        isValid = false;
+    }
+
+    // 5. Validate Mô tả chung (Tối đa 255 ký tự)
+    if (desc.length > 255) {
+        errors.value.moTa = 'Mô tả không được vượt quá 255 ký tự';
+        isValid = false;
+    }
+
+    // 6. Validate Hình ảnh
+    if (!formData.value.hinhAnh) {
+        errors.value.hinhAnh = 'Vui lòng chọn ảnh đại diện cho set lẩu';
+        isValid = false;
+    }
+
+    // 7. Validate Thành phần (Phải có ít nhất 1 món)
+    if (selectedIngredients.value.length === 0) {
+        errors.value.ingredients = 'Vui lòng chọn ít nhất 1 món ăn vào set lẩu';
+        isValid = false;
+    }
+
+    // 🔥 HIỂN THỊ TOAST NẾU CÓ LỖI (Giống màn Check-in)
+    if (!isValid) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: 'Dữ liệu không hợp lệ',
+            text: 'Vui lòng kiểm tra các trường báo đỏ',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    } else {
+        // Gán lại dữ liệu đã trim trước khi gửi đi
+        formData.value.tenSetLau = name;
+        formData.value.moTaChiTiet = norm;
+        formData.value.moTa = desc;
+    }
+
+    return isValid;
+};
+
+// Hàm này sẽ được gọi khi bấm nút "Cập nhật"
+const onSubmitUpdate = async () => {
+    if (validateForm()) {
+        await handleUpdate(); // Gọi hàm gốc từ Hook
+    }
+};
+
 const openFoodModalNormal = () => {
     if (isViewMode.value) return;
     prefilledFoodName.value = '';
@@ -310,7 +400,7 @@ const hideTooltip = () => {
                         </div>
 
                         <div class="form-group mt-3">
-                            <label>Hình ảnh đại diện</label>
+                            <label>Hình ảnh đại diện <span class="required" v-if="!isViewMode">*</span></label>
                             <div class="upload-container text-center p-3" v-if="!isViewMode"
                                 style="border: 2px dashed #ddd; border-radius: 8px;"
                                 :class="{ 'invalid-border': errors.hinhAnh }">
@@ -343,7 +433,8 @@ const hideTooltip = () => {
                         <div class="form-group">
                             <label>Mô tả chung</label>
                             <textarea :disabled="isViewMode" v-model.trim="formData.moTa" rows="3"
-                                class="form-control"></textarea>
+                                class="form-control" :class="{ 'invalid-border': errors.moTa }"></textarea>
+                            <small class="error-message" v-if="errors.moTa">{{ errors.moTa }}</small>
                         </div>
                     </div>
                 </div>
@@ -451,7 +542,7 @@ const hideTooltip = () => {
 
         <div class="page-footer" style="display: flex; gap: 15px;" v-if="!isViewMode">
             <button class="btn-large btn-cancel" @click="goBack" style="flex: 1;">Hủy bỏ</button>
-            <button class="btn-large btn-save bg-danger text-white border-0" @click="handleUpdate" style="flex: 3;">
+            <button class="btn-large btn-save bg-danger text-white border-0" @click="onSubmitUpdate" style="flex: 3;">
                 <i class="fas fa-save me-1"></i> Cập nhật Set Lẩu
             </button>
         </div>

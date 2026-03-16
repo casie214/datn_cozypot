@@ -44,6 +44,9 @@ const weightOptions = ref([]);  // Option cho combobox Khối lượng
 // ==========================================
 // 3. LẤY DỮ LIỆU BAN ĐẦU
 // ==========================================
+
+const existingFoods = ref([]);
+
 onMounted(async () => {
     const id = route.params.id;
     if (!id) return goBack();
@@ -52,12 +55,14 @@ onMounted(async () => {
         isLoading.value = true;
 
         // Gọi API lấy Chi tiết món và Danh sách Danh mục
-        const [resFood, resCat] = await Promise.all([
+        const [resFood, resCat, resFoods] = await Promise.all([
             foodApi.getFoodById(id),
-            foodApi.getCategories()
+            foodApi.getCategories(),
+            foodApi.getFoods()
         ]);
 
         listCategories.value = resCat.data || [];
+        existingFoods.value = resFoods.data?.content || resFoods.data || []; // Gán data vào biến
         const data = resFood.data;
         originalInfo.value = { ...data };
 
@@ -208,25 +213,72 @@ const validateForm = () => {
     errors.value = {};
     let isValid = true;
 
-    if (!formData.value.tenMon || formData.value.tenMon.trim() === '') {
-        errors.value.tenMon = 'Vui lòng nhập tên món ăn'; isValid = false;
+    const name = (formData.value.tenMon || '').trim();
+    const desc = (formData.value.moTa || '').trim();
+
+    // 1. Validate Tên món ăn (5 - 100 ký tự)
+    if (!name) {
+        errors.value.tenMon = 'Vui lòng nhập tên món ăn'; 
+        isValid = false;
+    } else if (name.length < 5) {
+        errors.value.tenMon = 'Tên món ăn phải chứa ít nhất 5 kí tự';
+        isValid = false;
+    } else if (name.length > 100) {
+        errors.value.tenMon = 'Tên món ăn không được vượt quá 100 ký tự';
+        isValid = false;
+    } else {
+        // Check trùng tên (loại trừ chính ID đang sửa)
+        const isDuplicate = existingFoods.value.some(
+            food => food.tenMon.toLowerCase() === name.toLowerCase() && food.id !== formData.value.id
+        );
+        if (isDuplicate) {
+            errors.value.tenMon = 'Tên món ăn này đã tồn tại trong hệ thống!'; 
+            isValid = false;
+        }
     }
+
+    // 2. Validate Danh mục
     if (!formData.value.idDanhMuc) {
-        errors.value.idDanhMuc = 'Vui lòng chọn danh mục'; isValid = false;
+        errors.value.idDanhMuc = 'Vui lòng chọn danh mục cho món ăn'; 
+        isValid = false;
     }
-    if (formData.value.giaBan <= 0) {
-        errors.value.giaBan = 'Giá bán phải lớn hơn 0'; isValid = false;
+
+    // 3. Validate Giá bán (> 0)
+    if (!formData.value.giaBan || formData.value.giaBan <= 0) {
+        errors.value.giaBan = 'Giá bán phải lớn hơn 0'; 
+        isValid = false;
+    }
+
+    // 4. Validate Mô tả (Max 255)
+    if (desc.length > 255) {
+        errors.value.moTa = 'Mô tả không được vượt quá 255 ký tự';
+        isValid = false;
+    }
+
+    // 🔥 BẮN TOAST NẾU CÓ LỖI (Giống màn Check-in)
+    if (!isValid) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: 'Dữ liệu không hợp lệ',
+            text: 'Vui lòng kiểm tra lại các trường báo đỏ',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    } else {
+        // Gán lại dữ liệu đã trim
+        formData.value.tenMon = name;
+        formData.value.moTa = desc;
     }
 
     return isValid;
 };
 
 const handleUpdate = async () => {
-    if (!validateForm()) {
-        return Swal.fire({ icon: 'error', text: 'Vui lòng kiểm tra lại các ô báo đỏ!', toast: true, position: 'top-end', timer: 2000 });
-    }
+    if (!validateForm()) return;
 
-    // TÌM idDinhLuong TỪ 2 COMBOBOX
+    // Tìm idDinhLuong từ 2 combobox
     const u = selectedUnit.value || '';
     const w = selectedWeight.value || '';
 
@@ -239,43 +291,39 @@ const handleUpdate = async () => {
         return Swal.fire({
             icon: 'error',
             title: 'Lỗi Kích cỡ / Đơn vị',
-            text: 'Tổ hợp Đơn vị và Kích cỡ này chưa tồn tại trong danh mục đã chọn. Vui lòng chọn tổ hợp khác hoặc tạo mới trong bảng Định Lượng.'
+            text: 'Tổ hợp Đơn vị và Kích cỡ này chưa tồn tại trong danh mục. Vui lòng kiểm tra lại cấu hình định lượng.'
         });
     }
 
-    // TẠO PAYLOAD MAP ĐÚNG VỚI MonAnRequest
     const payload = {
-        tenMon: formData.value.tenMon,
-        maMon: formData.value.maMon, // Có thể null để backend sinh
-        giaBan: formData.value.giaBan,
-        giaVon: formData.value.giaVon,
-        moTa: formData.value.moTa,
-        hinhAnh: formData.value.hinhAnh,
-        trangThai: formData.value.trangThai,
-        idDanhMuc: formData.value.idDanhMuc,
-        idDinhLuong: matchedDB.id // RẤT QUAN TRỌNG: ID lấy từ DB
+        ...formData.value,
+        idDinhLuong: matchedDB.id
     };
 
-    Swal.fire({
-        title: 'Xác nhận cập nhật?',
+    const result = await Swal.fire({
+        title: 'Xác nhận lưu?',
+        text: 'Mọi thay đổi sẽ được cập nhật vào hệ thống.',
         icon: 'question',
         iconColor: '#7D161A',
         showCancelButton: true,
         confirmButtonColor: '#7D161A',
         confirmButtonText: 'Lưu thay đổi',
         cancelButtonText: 'Hủy',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                await foodApi.updateFood(formData.value.id, payload);
-                Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', showConfirmButton: false, timer: 1500 });
-                setTimeout(() => goBack(), 1500);
-            } catch (error) {
-                console.error("Lỗi cập nhật:", error);
-                Swal.fire('Lỗi', 'Không thể cập nhật món ăn, vui lòng thử lại!', 'error');
-            }
-        }
     });
+
+    if (result.isConfirmed) {
+        try {
+            await foodApi.updateFood(formData.value.id, payload);
+            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', showConfirmButton: false, timer: 1500 });
+            setTimeout(() => goBack(), 1500);
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Thất bại',
+                text: error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.'
+            });
+        }
+    }
 };
 
 const goBack = () => router.back();
@@ -341,27 +389,12 @@ const goBack = () => router.back();
                                 <div class="form-group">
                                     <label>Tên món ăn <span class="required" v-if="!isViewMode">*</span></label>
                                     <input v-model="formData.tenMon" type="text" :disabled="isViewMode"
-                                        :class="{ 'invalid-border': errors.tenMon }" @input="errors.tenMon = ''"
+                                        :class="{ 'input-error': errors.tenMon }" 
                                         placeholder="VD: Ba chỉ bò Mỹ...">
-                                    <span class="error-message" v-if="errors.tenMon">{{ errors.tenMon }}</span>
+                                    <small class="error-text" v-if="errors.tenMon">{{ errors.tenMon }}</small>
                                 </div>
 
                                 <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label>Giá vốn (VNĐ)</label>
-                                        <div class="input-group input-group-sm flex-nowrap">
-                                            <input 
-                                                :value="formatDisplayPrice(formData.giaVon)" 
-                                                @input="handlePriceInput('giaVon', $event)" 
-                                                type="text" 
-                                                class="form-control text-end fw-bold" 
-                                                :disabled="isViewMode"
-                                                placeholder="0"
-                                                style="padding-right: 12px;" 
-                                            >
-                                            <span class="input-group-text bg-light text-secondary fw-bold border-start-0">đ</span>
-                                        </div>
-                                    </div>
                                     <div class="form-group">
                                         <label>Giá bán (VNĐ) <span class="required" v-if="!isViewMode">*</span></label>
                                         <div class="input-group input-group-sm flex-nowrap">
@@ -384,7 +417,9 @@ const goBack = () => router.back();
                                 <div class="form-group">
                                     <label>Mô tả chi tiết</label>
                                     <textarea v-model="formData.moTa" rows="4" :disabled="isViewMode"
+                                        :class="{ 'input-error': errors.moTa }"
                                         placeholder="Thành phần, hương vị..."></textarea>
+                                    <small class="error-text" v-if="errors.moTa">{{ errors.moTa }}</small>
                                 </div>
                             </div>
                         </div>
@@ -397,13 +432,14 @@ const goBack = () => router.back();
 
                                 <div class="form-group">
                                     <label>Thuộc danh mục <span class="required" v-if="!isViewMode">*</span></label>
-                                    <Multiselect v-model="formData.idDanhMuc" :options="listCategories" mode="single"
-                                        valueProp="id" label="tenDanhMuc" :disabled="isViewMode" :searchable="true"
-                                        :class="{ 'invalid-border': errors.idDanhMuc }" class="custom-multiselect-theme"
-                                        @change="(val) => loadDataByCategory(val, true)"
-                                        placeholder="-- Chọn danh mục --" noResultsText="Không tìm thấy danh mục nào"
-                                        noOptionsText="Không có dữ liệu" />
-                                    <span class="error-message" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</span>
+                                    <div :class="{ 'multiselect-error-border': errors.idDanhMuc }">
+                                        <Multiselect v-model="formData.idDanhMuc" :options="listCategories" 
+                                            valueProp="id" label="tenDanhMuc" :disabled="isViewMode" :searchable="true"
+                                            class="custom-multiselect-theme"
+                                            @change="(val) => loadDataByCategory(val, true)"
+                                            placeholder="-- Chọn danh mục --" />
+                                    </div>
+                                    <small class="error-text" v-if="errors.idDanhMuc">{{ errors.idDanhMuc }}</small>
                                 </div>
 
                                 <div class="form-row-2 mt-3">
@@ -578,5 +614,35 @@ textarea:disabled {
 /* Hiệu ứng khi di chuột vào option đang được chọn */
 :deep(.multiselect-option.is-selected.is-pointed) {
     background: #a00000 !important;
+}
+
+.input-error {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+/* Bôi đỏ viền cho Multiselect */
+.multiselect-error-border :deep(.multiselect) {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+/* Định dạng text lỗi */
+.error-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #dc3545;
+    font-style: italic;
+}
+
+/* Đảm bảo input group giá không bị vỡ dòng (chữ đ nằm cùng hàng) */
+.input-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+}
+
+.input-group .form-control {
+    flex: 1;
 }
 </style>

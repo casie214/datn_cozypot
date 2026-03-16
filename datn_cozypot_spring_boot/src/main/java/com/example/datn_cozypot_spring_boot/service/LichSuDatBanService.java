@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.request.EmailHuyDatBanDTO;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.ChiTietHoaDonService;
@@ -10,12 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +30,7 @@ public class LichSuDatBanService {
     private final LichSuThanhToanRepository lichSuThanhToanRepository;
     private final ThamSoHeThongRepository thamSoHeThongRepository;
 
+    private final EmailDatBanService emailDatBanService;
     private final ChiTietHoaDonService chiTietHoaDonService;
     private final LichSuHoaDonService lichSuHoaDonService;
     private final LichSuThanhToanService lichSuThanhToanService;
@@ -82,6 +82,7 @@ public class LichSuDatBanService {
         map.put("idPhieu", hd.getIdPhieuDatBan().getId());
         map.put("maPhieu", hd.getIdPhieuDatBan().getMaDatBan());
         map.put("trangThaiHoaDon", hd.getTrangThaiHoaDon());
+        map.put("thoiGianDat", hd.getIdPhieuDatBan().getThoiGianDat());
         map.put("tongTienChuaGiam", hd.getTongTienChuaGiam());
         map.put("tienCoc", hd.getTienCoc() != null ? hd.getTienCoc() : BigDecimal.ZERO);
         map.put("tongTienThanhToan", hd.getTongTienThanhToan());
@@ -114,7 +115,7 @@ public class LichSuDatBanService {
         BigDecimal tienCoc = hd.getTienCoc() != null ? hd.getTienCoc() : BigDecimal.ZERO;
         int trangThaiHDCu = hd.getTrangThaiHoaDon();
         int trangThaiMoi = 8;
-        String ghiChuHoanTien = "[Khách tự hủy] Hủy đơn hàng";
+        String ghiChuHoanTien = "[Khách tự hủy] Hủy phiếu đặt bàn";
 
         if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0 && hd.getIdPhieuDatBan() != null) {
             LocalDateTime thoiGianDat = hd.getIdPhieuDatBan().getThoiGianDat();
@@ -160,13 +161,40 @@ public class LichSuDatBanService {
         for (ChiTietHoaDon mon : listMon) mon.setTrangThaiMon(0);
         chiTietHoaDonRepository.saveAll(listMon);
 
+        String lyDoChoMail = ghiChuHoanTien + " - Lý do: " + lyDoKhachNhap;
+
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong("Khách hàng hủy đơn");
-        log.setLyDoThucHien(ghiChuHoanTien + " - Lý do: " + lyDoKhachNhap);
+        log.setHanhDong("Khách hàng tự hủy đơn");
+        log.setLyDoThucHien(lyDoChoMail);
         log.setThoiGianThucHien(Instant.now());
         log.setTrangThaiTruocDo(trangThaiHDCu);
         log.setTrangThaiMoi(trangThaiMoi);
         lichSuHoaDonRepository.save(log);
+
+        // GỬI EMAIL THÔNG BÁO HỦY CHO KHÁCH
+        var khachHang = hd.getIdKhachHang();
+        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
+
+            // Nếu được hoàn trả (Trạng thái 9), format số tiền để gửi vào mail
+            String tienHoanTraMail = null;
+            if (trangThaiMoi == 9 && hd.getTienHoanTra() != null) {
+                NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+                tienHoanTraMail = currencyFormat.format(hd.getTienHoanTra());
+            }
+
+            String maGiaoDichMail = (phieu != null && phieu.getMaDatBan() != null) ? phieu.getMaDatBan() : hd.getMaHoaDon();
+
+            EmailHuyDatBanDTO mailData = EmailHuyDatBanDTO.builder()
+                    .email(khachHang.getEmail())
+                    .tenKhachHang(khachHang.getTenKhachHang())
+                    .maPhieuDatBan(maGiaoDichMail)
+                    .nguoiHuy("Khách hàng (Tự hủy qua Website)")
+                    .lyDoHuy(lyDoChoMail)
+                    .tienHoanTra(tienHoanTraMail)
+                    .build();
+
+            emailDatBanService.sendEmailHuyDatBan(mailData);
+        }
     }
 }

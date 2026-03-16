@@ -18,29 +18,28 @@ import java.util.Optional;
 @Repository
 public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan, Integer> {
 
-    // 1. Lấy tất cả hóa đơn (15 tham số Constructor)
-    // 1. ĐÃ SỬA: Thêm LEFT JOIN pgg và gọi 17 tham số
+    // 1. Lấy tất cả hóa đơn
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung, " +
-            "pgg.id, pgg.codeGiamGia) " + // 🔥 2 tham số mới ở đây
+            "pgg.id, pgg.codeGiamGia, pdb.thoiGianNhanBan) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
-            "LEFT JOIN hd.idPhieuGiamGia pgg") // 🔥 Thêm JOIN ở đây
+            "LEFT JOIN hd.idPhieuGiamGia pgg")
     Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable);
 
-    // 2. ĐÃ SỬA: Thêm LEFT JOIN pgg và gọi 17 tham số
+    // 2. Tìm kiếm hóa đơn
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung, " +
-            "pgg.id, pgg.codeGiamGia) " + // 🔥 2 tham số mới ở đây
+            "pgg.id, pgg.codeGiamGia, pdb.thoiGianNhanBan) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
-            "LEFT JOIN hd.idPhieuGiamGia pgg " + // 🔥 Thêm JOIN ở đây
+            "LEFT JOIN hd.idPhieuGiamGia pgg " +
             "WHERE (:trangThai IS NULL OR hd.trangThaiHoaDon = :trangThai) " +
             "AND (CAST(:tuNgayTao AS timestamp) IS NULL OR hd.thoiGianTao >= :tuNgayTao) " +
             "AND (CAST(:denNgayTao AS timestamp) IS NULL OR hd.thoiGianTao <= :denNgayTao) " +
@@ -61,16 +60,16 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
             Pageable pageable
     );
 
-    // 3. Lấy 1 hóa đơn theo ID (15 tham số Constructor)
+    // 3. Lấy 1 hóa đơn theo ID
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse(" +
             "hd.id, hd.maHoaDon, kh.tenKhachHang, kh.soDienThoai, " +
             "hd.tongTienChuaGiam, hd.soTienDaGiam, hd.tongTienThanhToan, hd.tienCoc, hd.tienHoanTra, " +
             "hd.trangThaiHoaDon, hd.thoiGianTao, pdb.hinhThucDat, pdb.thoiGianDat, pdb.soLuongKhach, hd.vatApDung, " +
-            "pgg.id, pgg.codeGiamGia) " + // 🔥 THÊM 2 TRƯỜNG NÀY VÀO LỆNH SELECT
+            "pgg.id, pgg.codeGiamGia, pdb.thoiGianNhanBan) " +
             "FROM HoaDonThanhToan hd " +
             "LEFT JOIN hd.idKhachHang kh " +
             "LEFT JOIN hd.idPhieuDatBan pdb " +
-            "LEFT JOIN hd.idPhieuGiamGia pgg " + // 🔥 THÊM LEFT JOIN ĐẾN PHIẾU GIẢM GIÁ
+            "LEFT JOIN hd.idPhieuGiamGia pgg " +
             "WHERE hd.id = :id")
     HoaDonThanhToanResponse getHoaDonById(@Param("id") Integer id);
 
