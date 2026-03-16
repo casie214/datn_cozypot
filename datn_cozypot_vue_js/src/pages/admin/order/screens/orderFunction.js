@@ -25,6 +25,7 @@ const pageSize = ref(5);
 const filters = ref({
   search: "",
   status: "Tất cả",
+  dateType: "booking",
   fromDate: today,
   toDate: "",
 });
@@ -170,6 +171,7 @@ export function useOrderManager() {
         khachHang: item.tenKhachHang,
         sdt: item.sdtKhachHang,
         ban: item.tenBan,
+        danhSachTenBan: item.danhSachTenBan || (item.tenBan ? [item.tenBan] : []),
         loai: mapOrderType(item.hinhThucDat),
         soLuongKhach: item.soLuongKhach,
         tongTien: formatCurrency(item.tongTienChuaGiam),
@@ -182,8 +184,12 @@ export function useOrderManager() {
         trangThai: mapStatus(item.trangThaiHoaDon),
         trangThaiCode: item.trangThaiHoaDon,
         ngayTao: formatDate(item.thoiGianTao),
+        ngayTaoRaw: item.thoiGianTao,
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
+        // 🔥 THÊM 2 DÒNG NÀY:
+        idPhieuGiamGia: item.idPhieuGiamGia,
+        maPhieuGiamGia: item.maPhieuGiamGia,
       };
     });
   };
@@ -241,31 +247,28 @@ export function useOrderManager() {
           ? statusMap[filters.value.status]
           : null;
 
-      if (
-        filters.value.fromDate &&
-        filters.value.toDate &&
-        dayjs(filters.value.fromDate).isAfter(dayjs(filters.value.toDate))
-      ) {
-        Toast.fire({
-          icon: "warning",
-          title: "Khoảng ngày không hợp lệ",
-          text: "Từ ngày không được lớn hơn Đến ngày",
-        });
-        return;
-      }
+      let tuNgayTao = null;
+      let denNgayTao = null;
+      let tuNgayDat = null;
+      let denNgayDat = null;
 
-      const tuNgayISO = filters.value.fromDate
-        ? dayjs(filters.value.fromDate).startOf("day").toISOString()
-        : null;
-      const denNgayISO = filters.value.toDate
-        ? dayjs(filters.value.toDate).endOf("day").toISOString()
-        : null;
+      if (filters.value.dateType === "created") {
+        // Nếu lọc theo ngày tạo hóa đơn (Kiểu Instant -> Có đuôi Z)
+        tuNgayTao = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00Z` : null;
+        denNgayTao = filters.value.toDate ? `${filters.value.toDate}T23:59:59Z` : null;
+      } else {
+        // Nếu lọc theo ngày khách đến (Kiểu LocalDateTime -> KHÔNG có đuôi Z)
+        tuNgayDat = filters.value.fromDate ? `${filters.value.fromDate}T00:00:00` : null;
+        denNgayDat = filters.value.toDate ? `${filters.value.toDate}T23:59:59` : null;
+      }
 
       const response = await BeSearchHoaDon(
         filters.value.search,
         trangThaiInt,
-        tuNgayISO,
-        denNgayISO,
+        tuNgayTao,    
+        denNgayTao,
+        tuNgayDat,  
+        denNgayDat,
         currentPage.value,
         pageSize.value,
       );
@@ -305,6 +308,7 @@ export function useOrderManager() {
     filters.value = {
       search: "",
       status: "Tất cả",
+      dateType: "booking",
       fromDate: today,
       toDate: "",
     };
@@ -353,7 +357,8 @@ export function useOrderManager() {
       const details = await BeGetChiTietHoaDon(dbId);
       orderDetails.value = details;
       const invoiceInfo = await BeGetHoaDonById(dbId);
-      console.log(invoiceInfo);
+      console.log("Chi tiết hóa đơn từ BE:", invoiceInfo); // Log ra để kiểm tra có maPhieuGiamGia không
+      
       if (invoiceInfo) {
         selectedOrder.value = {
           id: invoiceInfo.maHoaDon,
@@ -361,6 +366,7 @@ export function useOrderManager() {
           khachHang: invoiceInfo.tenKhachHang || "Khách vãng lai",
           sdt: invoiceInfo.sdtKhachHang || "---",
           ban: invoiceInfo.tenBan,
+          danhSachTenBan: invoiceInfo.danhSachTenBan || (invoiceInfo.tenBan ? [invoiceInfo.tenBan] : []),
           loai: mapOrderType(invoiceInfo.hinhThucDat),
           soLuongKhach: invoiceInfo.soLuongKhach,
           tongTien: formatCurrency(invoiceInfo.tongTienThanhToan),
@@ -375,6 +381,9 @@ export function useOrderManager() {
           ngayTao: formatDate(invoiceInfo.thoiGianTao),
           vatApDung: invoiceInfo.vatApDung,
           thoiGianDat: invoiceInfo.thoiGianDat || invoiceInfo.thoiGianTao,
+          // 🔥 THÊM 2 DÒNG NÀY ĐỂ UI HIỂN THỊ ĐƯỢC MÃ GIẢM GIÁ:
+          idPhieuGiamGia: invoiceInfo.idPhieuGiamGia,
+          maPhieuGiamGia: invoiceInfo.maPhieuGiamGia,
         };
 
         await Promise.all([
@@ -407,92 +416,32 @@ export function useOrderManager() {
     isHistoryModalOpen.value = true;
   };
 
-  //2 cái này để chuyển trạng thái món đã lên(tích vô ô là đã lên)
-  // const handleUpdateMonDaLen = async (idChiTietHD) => {
-  //   try {
-  //     await BeUpdateMonDaLen(idChiTietHD);
-  //     if (selectedOrder.value) {
-  //       orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-  //     }
-  //   } catch (error) {
-  //     alert("Lỗi cập nhật món!");
-  //   }
-  // };
-
-  // const handleUpdateTatCaDaLen = async () => {
-  //   if (!selectedOrder.value) return;
-  //   try {
-  //     await BeUpdateTatCaDaLen(selectedOrder.value.dbId);
-  //     orderDetails.value = await BeGetChiTietHoaDon(selectedOrder.value.dbId);
-  //     alert("Đã xác nhận tất cả món!");
-  //   } catch (error) {
-  //     alert("Cập nhật thất bại!");
-  //   }
-  // };
-
   //Hủy hóa đơn
   const openCancelModal = async (order) => {
     if (!order) return;
 
-    if (!order.tienCocRaw || order.tienCocRaw === 0) {
-      // Hiện Popup hỏi xác nhận
-      Swal.fire({
-        title: "Xác nhận hủy đơn?",
-        text: `Bạn có chắc chắn muốn hủy hóa đơn ${order.id}?`,
-        icon: "warning",
-        showCancelButton: true,
-        iconColor: '#7D161A',
-        confirmButtonColor: "#8b0000",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Đồng ý hủy",
-        cancelButtonText: "Thoát",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const payload = {
-            idHoaDon: order.dbId,
-            idNhanVien: 1, // Lấy ID nhân viên sau
-            hanhDong: "Hủy hóa đơn",
-            lyDoThucHien: "Hủy hóa đơn thường (Không có cọc)",
-            isLoiDoQuan: false,
-            trangThaiLichSuTruocDo: 1,
-            thoiGianThucHien: new Date().toISOString(),
-          };
+    // 1. Kiểm tra xem hóa đơn đã có cọc hay chưa?
+    // - Trạng thái 0 (Vừa tạo), 1 (Chờ cọc) -> Coi như chưa cọc
+    // - Hoặc tiền cọc bằng 0
+    const khongCoCoc = order.trangThaiCode === 0 || order.trangThaiCode === 1 || !order.tienCocRaw || order.tienCocRaw === 0;
 
-          try {
-            await BeHuyHoaDon(payload);
-
-            // Hiện thông báo thành công (Góc phải)
-            Toast.fire({
-              icon: "success",
-              title: "Thành công",
-              text: "Hủy hóa đơn thành công!",
-            });
-
-            if (filters.value.search || filters.value.status !== "Tất cả") {
-              performSearch(false);
-            } else {
-              fetchOrders();
-            }
-            if (
-              selectedOrder.value &&
-              selectedOrder.value.dbId === order.dbId
-            ) {
-              await handleViewDetail(order.dbId);
-            }
-          } catch (error) {
-            console.error(error);
-            // Hiện thông báo lỗi (Góc phải)
-            Toast.fire({
-              icon: "error",
-              title: "Lỗi",
-              text: error.response?.data?.message || error.message,
-            });
-          }
-        }
-      });
+    if (khongCoCoc) {
+      // THAY ĐỔI Ở ĐÂY: Dùng chung Modal với đơn có cọc để bắt buộc nhập lý do
+      cancelModalState.value = {
+        isOpen: true,
+        orderData: order,
+        isDeposit: false,
+        isWarning: false,
+        warningMessage: "",
+        reason: "",
+        isSafe: true, // Không có cọc nên mặc định là safe
+      };
       return;
     }
 
+    // ========================================================
+    // 2. LUỒNG BÊN DƯỚI DÀNH CHO HÓA ĐƠN ĐÃ CÓ CỌC (Trạng thái >= 2 và tienCoc > 0)
+    // ========================================================
     const hasDeposit = true;
     const bookingTime = dayjs(order.thoiGianDat);
     const now = dayjs();
@@ -561,6 +510,7 @@ export function useOrderManager() {
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: cancelModalState.value.reason,
       isLoiDoQuan: isLoiDoQuan,
+      trangThaiLichSuTruocDo: cancelModalState.value.orderData.trangThaiCode, // Lưu trạng thái cũ vào log
       thoiGianThucHien: new Date().toISOString(),
     };
 
@@ -570,13 +520,16 @@ export function useOrderManager() {
       // Đóng Modal Vue
       closeCancelModal();
 
-      // Hiện Toast thông báo thành công
+      // Hiện Toast thông báo thành công (Dựa vào việc có cọc hay không)
+      let toastText = "Đã hủy hóa đơn thành công!";
+      if (cancelModalState.value.isDeposit) {
+        toastText = isLoiDoQuan ? "Đã hủy & Hoàn tiền cọc!" : "Đã hủy & Giữ tiền cọc!";
+      }
+
       Toast.fire({
         icon: "success",
         title: "Thành công",
-        text: isLoiDoQuan
-          ? "Đã hủy & Hoàn tiền cọc!"
-          : "Đã hủy & Giữ tiền cọc!",
+        text: toastText,
       });
 
       if (filters.value.search || filters.value.status !== "Tất cả") {
@@ -704,6 +657,7 @@ export function useOrderManager() {
     confirmCancelOrder,
     closeCancelModal,
     handleHoanTatHoaDon,
+    formatDateTime
   };
 }
 

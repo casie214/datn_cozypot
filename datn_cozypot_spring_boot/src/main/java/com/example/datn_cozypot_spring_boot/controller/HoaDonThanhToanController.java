@@ -4,6 +4,7 @@ import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonRe
 import com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietSetLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.GopBanRequest;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanRequest;
+import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.ThemBanPhuRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonResponse;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
@@ -18,6 +19,8 @@ import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuHoaDonSe
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.LichSuThanhToanService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/hoa-don-thanh-toan")
 @CrossOrigin(origins = "http://localhost:5173")
 public class HoaDonThanhToanController {
+    private static final Logger log = LoggerFactory.getLogger(HoaDonThanhToanController.class);
     private final HoaDonThanhToanService hoaDonThanhToanService;
 
     private final ChiTietHoaDonService chiTietHoaDonService;
@@ -66,19 +71,27 @@ public class HoaDonThanhToanController {
     public Page<HoaDonThanhToanResponse> search(
             @RequestParam(required = false) String key,
             @RequestParam(required = false) Integer trangThai,
-            @RequestParam(required = false) String tuNgay,
-            @RequestParam(required = false) String denNgay,
+            @RequestParam(required = false) String tuNgayTao,
+            @RequestParam(required = false) String denNgayTao,
+            @RequestParam(required = false) String tuNgayDat,
+            @RequestParam(required = false) String denNgayDat,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "size", defaultValue = "5") Integer size) {
-        Instant start = (tuNgay != null && !tuNgay.isEmpty()) ? Instant.parse(tuNgay) : null;
-        Instant end = (denNgay != null && !denNgay.isEmpty()) ? Instant.parse(denNgay) : null;
+
+        Instant startTao = (tuNgayTao != null && !tuNgayTao.trim().isEmpty()) ? Instant.parse(tuNgayTao) : null;
+        Instant endTao = (denNgayTao != null && !denNgayTao.trim().isEmpty()) ? Instant.parse(denNgayTao) : null;
+
+        LocalDateTime startDat = (tuNgayDat != null && !tuNgayDat.trim().isEmpty()) ? LocalDateTime.parse(tuNgayDat) : null;
+        LocalDateTime endDat = (denNgayDat != null && !denNgayDat.trim().isEmpty()) ? LocalDateTime.parse(denNgayDat) : null;
 
         if (key != null) {
             key = key.trim();
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return hoaDonThanhToanService.searchHoaDon(key,trangThai, start, end, pageable);
+
+        return hoaDonThanhToanService.searchHoaDon(key, trangThai, startTao, endTao, startDat, endDat, pageable
+        );
     }
 
     @GetMapping("/get-by-id/{id}")
@@ -251,7 +264,7 @@ public class HoaDonThanhToanController {
         if (danhSachPhieu == null || danhSachPhieu.isEmpty()) {
             return ResponseEntity.noContent().build(); // Bàn trống
         }
-
+        Integer soNguoiBanNay = 0;
         PhieuDatBan phieu = (idPhieu != null)
                 ? danhSachPhieu.stream().filter(p -> p.getId().equals(idPhieu)).findFirst().orElse(danhSachPhieu.get(0))
                 : danhSachPhieu.get(0);
@@ -263,6 +276,7 @@ public class HoaDonThanhToanController {
         res.setThoiGianDat(phieu.getThoiGianDat());
         res.setSoNguoi(phieu.getSoLuongKhach());
         res.setTrangThai(phieu.getTrangThai());
+
 
         if (phieu.getIdKhachHang() != null) {
             res.setIdKhachHang(phieu.getIdKhachHang().getId());
@@ -283,22 +297,34 @@ public class HoaDonThanhToanController {
         // ===============================================================
         // 🚨 4. FIX LỖI Ở ĐÂY: XỬ LÝ N-N, DANH SÁCH BÀN VÀ BÀN CHÍNH/PHỤ
         // ===============================================================
-        Set<BanAn> cacBanTrongPhieu = phieu.getBanAns();
+        Set<PhieuDatBanBanAn> dsLienKetBanAn = phieu.getDsBanAn(); // 🚨 Lấy bảng trung gian
 
         // Tạo List các bàn để gửi lên VueJS
         List<PhieuDatBanResponse.BanAnInfo> listBanInfo = new ArrayList<>();
 
-        // Quy ước: Bàn đầu tiên được thêm vào Set (hoặc có ID nhỏ nhất) sẽ là Bàn Chính
         BanAn banChinh = null;
 
-        if (cacBanTrongPhieu != null && !cacBanTrongPhieu.isEmpty()) {
-            // Tìm Bàn chính (Ví dụ lấy bàn có ID nhỏ nhất để luôn cố định 1 bàn làm gốc)
-            banChinh = cacBanTrongPhieu.stream()
-                    .min(Comparator.comparing(BanAn::getId))
+        if (dsLienKetBanAn != null && !dsLienKetBanAn.isEmpty()) {
+
+            // A. Tìm Bàn chính (Quy ước: bàn có ID nhỏ nhất là bàn gốc)
+            PhieuDatBanBanAn lienKetBanChinh = dsLienKetBanAn.stream()
+                    .min(Comparator.comparing(link -> link.getBanAn().getId()))
                     .orElse(null);
 
-            // Map toàn bộ bàn vào listBanInfo
-            for (BanAn b : cacBanTrongPhieu) {
+            if (lienKetBanChinh != null) {
+                banChinh = lienKetBanChinh.getBanAn();
+            }
+
+            // B. Map toàn bộ bàn vào listBanInfo & ĐỒNG THỜI tìm số người của Bàn đang Click
+            for (PhieuDatBanBanAn link : dsLienKetBanAn) {
+                BanAn b = link.getBanAn();
+
+                // 🚨 TÌM THẤY BÀN ĐANG CLICK -> LẤY SỐ NGƯỜI
+                if (b.getId().equals(idBanAn)) {
+                    // Nếu lấy được từ bảng trung gian thì dùng, không thì lấy mặc định 0
+                    soNguoiBanNay = link.getSoNguoiNgoi() != null ? link.getSoNguoiNgoi() : 0;
+                }
+
                 PhieuDatBanResponse.BanAnInfo info = new PhieuDatBanResponse.BanAnInfo();
                 info.setId(b.getId());
                 info.setMaBan(b.getMaBan());
@@ -311,6 +337,9 @@ public class HoaDonThanhToanController {
         }
 
         res.setDanhSachBan(listBanInfo);
+
+        // 🚨 GÁN SỐ NGƯỜI RIÊNG CỦA BÀN VÀO DTO TRẢ VỀ CHO VUEJS
+        res.setSoNguoiBanNay(soNguoiBanNay);
 
         // Xét xem bàn đang click có phải là bàn chính không
         if (banChinh != null) {
@@ -338,7 +367,11 @@ public class HoaDonThanhToanController {
             res.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
             res.setTienCoc(hoaDon.getTienCoc());
             res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-            res.setVatApDung(hoaDon.getVatApDung() != null ? Double.valueOf(hoaDon.getVatApDung()) : 10.0);
+            res.setVatApDung(hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.valueOf(0));
+            if (hoaDon.getIdPhieuGiamGia() != null) {
+                res.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
+                res.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getCodeGiamGia()); // Lưu ý: Tên trường trong Entity PhieuGiamGia thường là codeGiamGia
+            }
 
             List<ChiTietHoaDon> chiTietHD = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
             if (chiTietHD != null) {
@@ -360,10 +393,24 @@ public class HoaDonThanhToanController {
                                 dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
                                 dto.setId(item.getIdChiTietMonAn().getId());
                                 dto.setType("FOOD");
+
+                                Integer vatType = 1;
+                                try {
+                                    if (item.getIdChiTietMonAn().getDanhMuc() != null &&
+                                            item.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung() != null) {
+
+                                        vatType = item.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung();
+                                    }
+                                } catch (Exception e) {
+                                    log.error(e.getMessage());
+                                }
+                                dto.setApDungLoaiVat(vatType);
+
                             } else if (item.getIdSetLau() != null) {
                                 dto.setTenMon(item.getIdSetLau().getTenSetLau());
                                 dto.setId(item.getIdSetLau().getId());
                                 dto.setType("SET");
+                                dto.setApDungLoaiVat(1);
                             }
                             return dto;
                         }).collect(Collectors.toList());
@@ -430,9 +477,18 @@ public class HoaDonThanhToanController {
     }
 
     @PostMapping("/{idHoaDonGoc}/them-ban-phu")
-    public ResponseEntity<?> themBanPhu(@PathVariable Integer idHoaDonGoc, @RequestBody Map<String, Integer> payload) {
+    public ResponseEntity<?> themBanPhu(@PathVariable Integer idHoaDonGoc, @RequestBody ThemBanPhuRequest payload) {
         try {
-            hoaDonThanhToanService.themBanVaoHoaDon(idHoaDonGoc, payload.get("idBanMoi"));
+            // 🚨 In ra console để kiểm tra xem Backend có nhận được số người không
+            System.out.println("=== API THÊM BÀN PHỤ ===");
+            System.out.println("ID Hóa đơn gốc: " + idHoaDonGoc);
+            System.out.println("ID Bàn mới: " + payload.getIdBanMoi());
+            System.out.println("Số người FE gửi lên: " + payload.getSoNguoi());
+            System.out.println("========================");
+
+            // Truyền thẳng số người xuống Service
+            hoaDonThanhToanService.themBanVaoHoaDon(idHoaDonGoc, payload.getIdBanMoi(), payload.getSoNguoi());
+
             return ResponseEntity.ok(Map.of("message", "Đã thêm bàn phụ thành công!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

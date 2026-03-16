@@ -17,9 +17,13 @@ public class PhieuDatBanResponse {
     private String tenKhachHang;
     private String sdtKhachHang;
     private LocalDateTime thoiGianDat;
+    private Integer soNguoiBanNay;
     private Integer soNguoi;
     private Integer trangThai;
     private String ghiChu;
+
+    private Integer idPhieuGiamGia;
+    private String maPhieuGiamGia;
 
     // 1. THÔNG TIN BÀN HIỆN TẠI (Bàn mà nhân viên đang click vào sơ đồ)
     private Integer idBanAn;
@@ -43,7 +47,7 @@ public class PhieuDatBanResponse {
     private BigDecimal soTienDaGiam;
     private BigDecimal tienCoc;
     private BigDecimal tongTienThanhToan;
-    private Double vatApDung;
+    private BigDecimal vatApDung;
 
     // 4. DANH SÁCH MÓN ĂN
     private List<ChiTietMonResponse> chiTiet;
@@ -77,6 +81,7 @@ public class PhieuDatBanResponse {
         private String type; // "FOOD" hoặc "SET"
         private Integer idChiTietMonAn;
         private Integer idSetLau;
+        private Integer apDungLoaiVat;
 
         // Dùng để Frontend nhóm món ăn hiển thị (Ví dụ: [Bàn S02] Ít cay)
         private String ghiChu;

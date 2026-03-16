@@ -76,7 +76,7 @@ public class HoaDonThanhToan {
     private BigDecimal tongTienThanhToan;
 
     @Column(name = "vat_ap_dung", precision = 18)
-    private Float vatApDung;
+    private BigDecimal vatApDung;
 
     @Column(name = "diem_su_dung")
     private Integer diemSuDung;
@@ -86,6 +86,10 @@ public class HoaDonThanhToan {
 
     @Column(name = "trang_thai_hoa_don")
     private Integer trangThaiHoaDon;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_phieu_giam_gia")
+    private PhieuGiamGia idPhieuGiamGia;
 
     @Nationalized
     @Lob

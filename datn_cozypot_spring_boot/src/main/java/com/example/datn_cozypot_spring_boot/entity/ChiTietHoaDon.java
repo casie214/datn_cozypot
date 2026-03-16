@@ -40,6 +40,9 @@ public class ChiTietHoaDon {
     @Column(name = "so_luong")
     private Integer soLuong;
 
+    @Column(name = "tien_vat")
+    private BigDecimal tienVat;
+
     @Column(name = "don_gia_tai_thoi_diem_ban", precision = 18)
     private BigDecimal donGiaTaiThoiDiemBan;
 

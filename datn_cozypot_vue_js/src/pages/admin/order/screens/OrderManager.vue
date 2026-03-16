@@ -19,6 +19,7 @@ const {
   handlePageChange,
   pageSize,
   totalElements,
+  formatDateTime,
 } = useOrderManager();
 
 const statusOptions = [
@@ -58,7 +59,7 @@ const onPaginationChange = () => {
       >
         <div class="card-body">
           <div class="row g-2 align-items-end filter-bar">
-            <div class="col-md-3">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Tìm kiếm</label
               >
@@ -71,7 +72,7 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Trạng thái hóa đơn</label
               >
@@ -91,7 +92,21 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
+              <label class="form-label text-muted small fw-bold"
+                >Loại thời gian</label
+              >
+              <select
+                v-model="filters.dateType"
+                @change="handleSearch"
+                class="form-select"
+              >
+                <option value="booking">Ngày khách đến</option>
+                <option value="created">Ngày tạo hóa đơn</option>
+              </select>
+            </div>
+
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold">Từ ngày</label>
               <input
                 type="date"
@@ -101,7 +116,7 @@ const onPaginationChange = () => {
               />
             </div>
 
-            <div class="col-md-2">
+            <div class="col-md">
               <label class="form-label text-muted small fw-bold"
                 >Đến ngày</label
               >
@@ -145,7 +160,7 @@ const onPaginationChange = () => {
                   <th class="py-3">BÀN</th>
                   <!-- <th class="py-3">SL KHÁCH</th> -->
                   <th class="py-3">LOẠI</th>
-                  <th class="py-3">NGÀY TẠO</th>
+                  <th class="py-3">THỜI GIAN</th>
                   <th class="py-3">TỔNG TIỀN</th>
                   <th class="py-3">TIỀN CỌC</th>
                   <th class="py-3">TRẠNG THÁI</th>
@@ -163,11 +178,47 @@ const onPaginationChange = () => {
                     {{ index + 1 + currentPage * pageSize }}
                   </td>
                   <td>{{ order.id }}</td>
-                  <td>{{ order.khachHang || 'Khách vãng lai' }}</td>
-                  <td>{{ order.sdt || '---' }}</td>
-                  <td>{{ order.ban }}</td>
+                  <td>{{ order.khachHang || "Khách vãng lai" }}</td>
+                  <td>{{ order.sdt || "---" }}</td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-1 align-items-center" style="max-width: 150px;">
+                      <span 
+                        v-for="(tenBan, bIdx) in (order.danhSachTenBan || []).slice(0, 3)" 
+                        :key="bIdx"
+                        class="badge table-badge-item"
+                      >
+                        {{ tenBan }}
+                      </span>
+
+                      <span 
+                        v-if="order.danhSachTenBan && order.danhSachTenBan.length > 3"
+                        class="badge table-badge-more"
+                        :title="order.danhSachTenBan.slice(3).join(', ')"
+                      >
+                        +{{ order.danhSachTenBan.length - 3 }}
+                      </span>
+
+                      <span v-if="(!order.danhSachTenBan || order.danhSachTenBan.length === 0) && order.ban" class="badge table-badge-item">
+                        {{ order.ban }}
+                      </span>
+                    </div>
+                  </td>
                   <td>{{ order.loai }}</td>
-                  <td>{{ order.ngayTao }}</td>
+                  <td>
+                    <div class="d-flex flex-column gap-1">
+                      <span
+                        class="fw-bold"
+                        style="color: #8b0000; font-size: 0.9rem"
+                      >
+                        <i class="far fa-clock"></i> Đến:
+                        {{ formatDateTime(order.thoiGianDat) }}
+                      </span>
+                      <span class="text-muted" style="font-size: 0.8rem">
+                        <i class="fas fa-file-invoice"></i> Tạo:
+                        {{ formatDateTime(order.ngayTaoRaw) }}
+                      </span>
+                    </div>
+                  </td>
                   <td class="fw-bold">{{ order.tongTien }}</td>
                   <td class="fw-bold">{{ order.tienCoc }}</td>
                   <td>{{ order.trangThai }}</td>
@@ -248,7 +299,7 @@ const onPaginationChange = () => {
   color: white;
 }
 .btn-outline-custom {
-  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
   color: white !important;
   border: none;
   transition: all 0.2s ease;
@@ -264,10 +315,9 @@ const onPaginationChange = () => {
   padding: 0 14px;
 }
 
-.table-header-red{
-  background-color: #8B0000 !important;
+.table-header-red {
+  background-color: #8b0000 !important;
 }
-
 
 .table-header-red th {
   background-color: transparent !important;
@@ -371,10 +421,31 @@ const onPaginationChange = () => {
   visibility: visible;
   transform: translateX(-50%) translateY(-4px);
 }
+
+.table-badge-item {
+  background-color: #fff5f5;
+  color: #8b0000;
+  border: 1px solid #ffcccc;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Badge cho phần cộng thêm (+1, +2...) */
+.table-badge-more {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  font-weight: bold;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: help; /* Để người dùng biết có thể hover xem thêm */
+}
+
+/* Đảm bảo cột thời gian không bị quá hẹp */
+.table td {
+  white-space: nowrap;
+}
 </style>
-
-
-
-
-
-

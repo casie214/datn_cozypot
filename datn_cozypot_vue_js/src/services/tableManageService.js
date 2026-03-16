@@ -49,6 +49,15 @@ export const fetchAllCheckIn = async () => {
     }
 }
 
+export const fetchAllPreCheckIn = async () => {
+    try {
+        const response = await axiosClient.get(`${PREFIX}/danh-sach-dat-truoc`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+
 export const addBanAn = async (banAn) => {
     try {
         // Axios tự động stringify body
@@ -99,6 +108,11 @@ export const searchDatBanService = async ({ payload, page, size }) => {
     // Ném lỗi gốc ra để Vue bắt được (error.response.data thường chứa message từ Java)
     throw error; 
   }
+};
+
+export const checkBanTrongService = async (payload) => {
+  const response = await axiosClient.post(`/dat-ban/check-ban-trong`, payload);
+  return response.data; 
 };
 
 export const updatePhieuDatBanService = async (payload) => {

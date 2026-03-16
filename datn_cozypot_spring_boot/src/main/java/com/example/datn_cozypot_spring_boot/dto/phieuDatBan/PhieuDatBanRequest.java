@@ -31,5 +31,8 @@ public class PhieuDatBanRequest {
         private Integer idSetLau;
         private Integer soLuong;
         private BigDecimal donGia;
+
+        private Double phanTramVat;
+        private BigDecimal tienVat;
     }
 }

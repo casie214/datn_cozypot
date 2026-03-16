@@ -161,7 +161,7 @@ const openFoodModalNormal = () => {
                                 <label>Tên Set Lẩu <span class="required">*</span></label>
                                 <input v-model.trim="formData.tenSetLau" type="text" placeholder="VD: Combo Lẩu Thái"
                                     :class="{ 'invalid-border': errors.tenSetLau }" @input="errors.tenSetLau = ''">
-                                <span class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</span>
+                                <small class="error-message" v-if="errors.tenSetLau">{{ errors.tenSetLau }}</small>
                             </div>
 
                             <div class="form-group">
@@ -187,7 +187,7 @@ const openFoodModalNormal = () => {
                                         </div>
                                     </template>
                                 </Multiselect>
-                                <span class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</span>
+                                <small class="error-message" v-if="errors.idLoaiSet">{{ errors.idLoaiSet }}</small>
                             </div>
 
                             <div class="form-row-2">
@@ -208,7 +208,7 @@ const openFoodModalNormal = () => {
                                             đ
                                         </span>
                                     </div>
-                                    <span class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</span>
+                                    <small class="error-message" v-if="errors.giaBan">{{ errors.giaBan }}</small>
                                 </div>
 
                                 <div class="form-group"
@@ -254,8 +254,9 @@ const openFoodModalNormal = () => {
 
                             <div class="form-group">
                                 <label>Mô tả chung</label>
-                                <textarea v-model.trim="formData.moTa" rows="3" class="form-control"
-                                    placeholder="Mô tả hương vị, thành phần..."></textarea>
+                                <textarea v-model="formData.moTa" rows="3" 
+                                    :class="{ 'invalid-border': errors.moTa }" @input="errors.moTa = ''"></textarea>
+                                <small class="error-message" v-if="errors.moTa">{{ errors.moTa }}</small>
                             </div>
                         </div>
                     </div>
@@ -529,5 +530,31 @@ div.swal2-container {
 /* Hiệu ứng khi di chuột vào option đang được chọn */
 :deep(.multiselect-option.is-selected.is-pointed) {
     background: #a00000 !important;
+}
+
+.invalid-border {
+    border: 1px solid #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+/* Viền đỏ cho thư viện Multiselect */
+.multiselect-error-border :deep(.multiselect) {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+}
+
+/* Dòng chữ báo lỗi */
+.error-message {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #dc3545;
+    font-style: italic;
+}
+
+/* Giữ chữ đ và input giá trên cùng 1 hàng */
+.input-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
 }
 </style>

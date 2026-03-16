@@ -22,6 +22,8 @@ public class DanhMucResponse {
     private Instant ngaySua;
     private String nguoiTao;
     private String nguoiSua;
+    private Integer apDungLoaiVat;
+    private Integer phanLoaiMayIn;
 
     private Integer trangThai;
     private Integer soLuongMon;

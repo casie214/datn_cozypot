@@ -144,30 +144,22 @@ const goToHotpotList = (item) => {
               {{ item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh' }}
             </td>
 
-            <td class="actions">
-  <div class="action-group">
-    <i 
-      style="cursor:pointer" 
-      class="fas fa-pen edit-icon me-2" 
-      title="Xem chi tiết"
-      @click="handleActionWithAuth(() => openModal(item), 'ADMIN')"
-    ></i>
+            <td>
+              <div class="action-group">
+                <i class="fas fa-pen edit-icon" title="Sửa danh mục"
+                  @click="handleActionWithAuth(() => openModal(item), 'ADMIN')">
+                </i>
 
-    <i 
-      v-if="item.trangThai === 1" 
-      class="fas fa-unlock-alt unlock-icon" 
-      title="Khóa tài khoản"
-      @click="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')"
-    ></i>
-
-    <i 
-      v-else 
-      class="fas fa-lock lock-icon" 
-      title="Mở khóa tài khoản" 
-      @click="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')"
-    ></i>
-  </div>
-</td>
+                <label class="custom-toggle" :title="item.trangThai === 1 ? 'Ngưng kinh doanh' : 'Kích hoạt kinh doanh'">
+                  <input 
+                    type="checkbox" 
+                    :checked="item.trangThai === 1"
+                    @click.prevent="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')"
+                  >
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -249,5 +241,60 @@ const goToHotpotList = (item) => {
   border: 1px solid #eee !important;
   color: var(--primary-red);
   transition: all 0.2s ease;
+}
+
+.custom-toggle {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  margin: 0;
+}
+
+.custom-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333333; /* MÀU ĐEN: Trạng thái Ngưng kinh doanh */
+  transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 34px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* KHI ĐƯỢC CHECK (TRẠNG THÁI 1) -> CHUYỂN SANG MÀU ĐỎ */
+.custom-toggle input:checked + .toggle-slider {
+  background-color: #7D161A; /* MÀU ĐỎ: Đang kinh doanh */
+}
+
+/* HIỆU ỨNG TRƯỢT SANG PHẢI */
+.custom-toggle input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+/* Hiệu ứng khi hover vào toggle */
+.custom-toggle:hover .toggle-slider {
+  filter: brightness(1.2);
 }
 </style>

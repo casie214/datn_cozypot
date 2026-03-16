@@ -97,7 +97,6 @@ export function useCategoryManager() {
     const filteredData = computed(() => {
         let result = [...categoryData.value];
         
-        // 1. Lọc theo tìm kiếm
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase().trim();
             result = result.filter(item => 
@@ -106,10 +105,8 @@ export function useCategoryManager() {
             );
         }
         
-        // 2. Sắp xếp kết hợp (Bao gồm chuẩn hóa trạng thái chống lỗi undefined)
         return result.sort((a, b) => {
             if (statusSort.value !== 'default') {
-                // Chuẩn hóa: khác 1 (như null, undefined, 0) đều quy về 0
                 const statusA = Number(a.trangThai) === 1 ? 1 : 0;
                 const statusB = Number(b.trangThai) === 1 ? 1 : 0;
                 
@@ -163,11 +160,8 @@ export function useCategoryManager() {
     const isModalOpen = ref(false), isModalUpdateOpen = ref(false), selectedItem = ref(null);
     const openModal = (item = null) => { selectedItem.value = item; isModalUpdateOpen.value = true; };
 
-    // TỐI ƯU HÀM TOGGLE STATUS
     const handleToggleStatus = async (item) => {
         const newStatus = Number(item.trangThai) === 1 ? 0 : 1;
-        
-        // Tạo Payload chuẩn khớp với CategoryRequest Backend
         const payload = {
             maDanhMuc: item.maDanhMuc,
             tenDanhMuc: item.tenDanhMuc,
@@ -188,35 +182,24 @@ export function useCategoryManager() {
     onMounted(() => getAllCategories());
 
     const exportToExcel = () => {
-        // 1. Kiểm tra xem có dữ liệu để xuất không
         if (filteredData.value.length === 0) {
             Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Trống', text: 'Không có dữ liệu nào phù hợp để xuất Excel!' });
             return;
         }
 
-        // 2. Map dữ liệu từ filteredData (Dữ liệu đã lọc & sort, CHƯA phân trang)
         const dataToExport = filteredData.value.map((item, index) => ({
             'STT': index + 1,
             'Mã Danh Mục': item.maDanhMuc || '',
             'Tên Danh Mục': item.tenDanhMuc || '',
             'Mô Tả': item.moTa || '',
-            'Số Lượng Món': item.soLuongMon || 0, // Lấy cột số lượng bạn vừa làm
+            'Số Lượng Món': item.soLuongMon || 0,
             'Trạng Thái': Number(item.trangThai) === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh'
         }));
 
-        // 3. Tạo Sheet và định dạng độ rộng cột cho đẹp
         const ws = XLSX.utils.json_to_sheet(dataToExport);
-        const wscols = [
-            { wch: 5 },  // STT
-            { wch: 15 }, // Mã
-            { wch: 30 }, // Tên
-            { wch: 40 }, // Mô tả
-            { wch: 15 }, // Số lượng
-            { wch: 20 }  // Trạng thái
-        ];
+        const wscols = [ { wch: 5 }, { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 20 } ];
         ws['!cols'] = wscols;
 
-        // 4. Tạo Book và Lưu file
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "DanhSachDanhMuc");
         XLSX.writeFile(wb, "Danh_Sach_Danh_Muc.xlsx");
@@ -228,24 +211,105 @@ export function useCategoryManager() {
     };
 }
 
-export function useCategoryAddModal(props, emit) {
-    const formData = ref({ tenDanhMuc: '', moTa: '', trangThai: 1 });
 
-    watch(() => props.isOpen, (val) => {
-        if (val) formData.value = { tenDanhMuc: '', moTa: '', trangThai: 1 };
+// ============================================================================
+// HỖ TRỢ HIỂN THỊ LỖI (TOAST & ERROR FIELD) CHO THÊM MỚI DANH MỤC
+// ============================================================================
+export function useCategoryAddModal(props, emit) {
+    const formData = ref({ 
+        tenDanhMuc: '', 
+        moTa: '', 
+        trangThai: 1,
+        phanLoaiMayIn: 1, 
+        apDungLoaiVat: 1,
+        listIdDonVi: []
     });
 
-    const handleSave = () => {
-        formData.value.tenDanhMuc = (formData.value.tenDanhMuc || '').trim();
-        formData.value.moTa = (formData.value.moTa || '').trim();
+    // State lưu lỗi của từng trường để bôi đỏ Input
+    const formErrors = ref({
+        tenDanhMuc: '',
+        listIdDonVi: '',
+        moTa: ''
+    });
 
-        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
-            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Thiếu thông tin', text: 'Tên danh mục phải chứa ít nhất 5 kí tự' });
+    // Danh sách lưu Category cũ để check trùng lặp tên
+    const existingCategories = ref([]);
+
+    watch(() => props.isOpen, async (val) => {
+        if (val) {
+            formData.value = { tenDanhMuc: '', moTa: '', trangThai: 1, phanLoaiMayIn: 1, apDungLoaiVat: 1, listIdDonVi: [] };
+            formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '' };
+            
+            // Lấy danh sách cũ để check trùng khi Modal mở lên
+            try {
+                const res = await foodApi.getCategories();
+                existingCategories.value = res.data || [];
+            } catch (e) { console.error(e); }
         }
+    });
+
+    // Hàm Validate Local theo Test Report
+    const validateForm = () => {
+        let isValid = true;
+        formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '' };
+
+        const tenDM = (formData.value.tenDanhMuc || '').trim();
+        const moTa = (formData.value.moTa || '').trim();
+        const lstDonVi = formData.value.listIdDonVi || [];
+
+        // 1. Validate Tên danh mục (Trống, Độ dài 5 - 100)
+        if (!tenDM) {
+            formErrors.value.tenDanhMuc = "Tên danh mục không được để trống";
+            isValid = false;
+        } else if (tenDM.length < 5) {
+            formErrors.value.tenDanhMuc = "Tên danh mục phải chứa ít nhất 5 kí tự";
+            isValid = false;
+        } else if (tenDM.length > 100) {
+            formErrors.value.tenDanhMuc = "Tên danh mục không được vượt quá 100 ký tự";
+            isValid = false;
+        } else {
+            // Check trùng tên (Bỏ qua hoa thường)
+            const isDuplicate = existingCategories.value.some(c => c.tenDanhMuc.toLowerCase() === tenDM.toLowerCase());
+            if (isDuplicate) {
+                formErrors.value.tenDanhMuc = "Danh mục đã tồn tại trong hệ thống";
+                isValid = false;
+            }
+        }
+
+        // 2. Validate Định lượng (Phải chọn ít nhất 1)
+        if (lstDonVi.length === 0) {
+            formErrors.value.listIdDonVi = "Vui lòng chọn ít nhất 1 Định lượng áp dụng";
+            isValid = false;
+        }
+
+        // 3. Validate Mô tả (0 - 255 ký tự)
+        if (moTa.length > 255) {
+            formErrors.value.moTa = "Mô tả không được vượt quá 255 ký tự";
+            isValid = false;
+        }
+
+        if (!isValid) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'error',
+                title: 'Dữ liệu không hợp lệ',
+                text: 'Vui lòng kiểm tra lại các trường báo đỏ',
+                showConfirmButton: false, timer: 3000
+            });
+        } else {
+            formData.value.tenDanhMuc = tenDM;
+            formData.value.moTa = moTa;
+        }
+
+        return isValid;
+    };
+
+    const handleSave = () => {
+        if (!validateForm()) return;
+
         Swal.fire({
             title: 'Xác nhận', text: 'Bạn có chắc chắn muốn thêm danh mục mới?', icon: 'question', iconColor: '#7D161A',
             showCancelButton: true, confirmButtonColor: '#7D161A', cancelButtonColor: '#d33', confirmButtonText: 'Lưu thay đổi',
-    cancelButtonText: 'Hủy',
+            cancelButtonText: 'Hủy',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
@@ -254,107 +318,146 @@ export function useCategoryAddModal(props, emit) {
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
                 } catch (error) { 
-                    console.error("Lỗi thêm DM:", error.response?.data);
                     Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Đã xảy ra lỗi khi thêm mới!' }); 
                 }
             }
         });
     };
 
-    return { formData, handleSave, closeModal: () => emit('close') };
+    return { formData, formErrors, handleSave, closeModal: () => emit('close') };
 }
 
+// ============================================================================
+// HỖ TRỢ HIỂN THỊ LỖI (TOAST & ERROR FIELD) CHO CẬP NHẬT DANH MỤC
+// ============================================================================
 export function useCategoryPutModal(props, emit) {
-    // 1. Thêm listIdDonVi: [] vào form mặc định
     const formData = ref({ 
-        id: null, 
-        maDanhMuc: '', 
-        tenDanhMuc: '', 
-        moTa: '', 
-        trangThai: 1,
-        listIdDonVi: [] 
+        id: null, maDanhMuc: '', tenDanhMuc: '', moTa: '', trangThai: 1,
+        phanLoaiMayIn: 1, apDungLoaiVat: 1, listIdDonVi: [] 
     });
 
-    // 2. Xử lý map dữ liệu khi nhận item từ prop
+    const formErrors = ref({ tenDanhMuc: '', listIdDonVi: '', moTa: '' });
+    const existingCategories = ref([]);
+
     watch(() => props.itemList, async (newItem) => {
+        formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '' };
+        
         if (newItem && newItem.id) {
-            // 1. Gán các thông tin cơ bản có sẵn từ bảng vào form
-            formData.value = { ...newItem, listIdDonVi: [] };
+            formData.value = { 
+                ...newItem, 
+                phanLoaiMayIn: newItem.phanLoaiMayIn || 1, 
+                apDungLoaiVat: newItem.apDungLoaiVat || 1,
+                listIdDonVi: [] 
+            };
 
             try {
-                // 2. GỌI API CHUYÊN DỤNG LẤY ĐỊNH LƯỢNG CỦA DANH MỤC NÀY
-                // (Giống hệt cách bạn đã làm ở màn hình Thêm Món Ăn)
-                const resUnits = await foodApi.getUnitTypesByCategory(newItem.id); 
+                const [resUnits, resCats] = await Promise.all([
+                    foodApi.getUnitTypesByCategory(newItem.id),
+                    foodApi.getCategories()
+                ]);
                 
                 const arrDonVi = resUnits.data || [];
-
-                // 3. MAP LẤY ID ĐỂ NHÉT VÀO MULTISELECT
-                // Tùy thuộc vào việc arrDonVi trả về array id hay array object
                 if (arrDonVi.length > 0) {
-                    // Kiểm tra xem phần tử đầu tiên là Object hay là Số
-                    if (typeof arrDonVi[0] === 'object') {
-                        formData.value.listIdDonVi = arrDonVi.map(item => item.id);
-                    } else {
-                        // Nếu nó trả sẵn mảng [1, 2, 3] thì gán thẳng luôn
-                        formData.value.listIdDonVi = [...arrDonVi];
-                    }
+                    if (typeof arrDonVi[0] === 'object') formData.value.listIdDonVi = arrDonVi.map(item => item.id);
+                    else formData.value.listIdDonVi = [...arrDonVi];
                 }
 
-                console.log("👉 ĐÃ TẢI THÀNH CÔNG ĐỊNH LƯỢNG CŨ:", formData.value.listIdDonVi);
-
+                existingCategories.value = resCats.data || [];
             } catch (e) {
-                console.error("Lỗi lấy danh sách định lượng của danh mục:", e);
+                console.error("Lỗi khởi tạo modal Cập nhật:", e);
             }
         }
     }, { immediate: true });
 
-    const handleSave = () => {
-        formData.value.tenDanhMuc = (formData.value.tenDanhMuc || '').trim();
-        formData.value.moTa = (formData.value.moTa || '').trim();
+    const validateForm = () => {
+        let isValid = true;
+        formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '' };
 
-        if (!formData.value.tenDanhMuc || formData.value.tenDanhMuc.trim().length < 5) {
-            return Swal.fire({ icon: 'warning', iconColor: '#7D161A', title: 'Dữ liệu không hợp lệ', text: 'Tên phải trên 5 kí tự' });
+        const tenDM = (formData.value.tenDanhMuc || '').trim();
+        const moTa = (formData.value.moTa || '').trim();
+        const lstDonVi = formData.value.listIdDonVi || [];
+
+        // 1. Validate Tên danh mục (Trống, Độ dài 5 - 100)
+        if (!tenDM) {
+            formErrors.value.tenDanhMuc = "Tên danh mục không được để trống";
+            isValid = false;
+        } else if (tenDM.length < 5) {
+            formErrors.value.tenDanhMuc = "Tên danh mục phải chứa ít nhất 5 kí tự";
+            isValid = false;
+        } else if (tenDM.length > 100) {
+            formErrors.value.tenDanhMuc = "Tên danh mục không được vượt quá 100 ký tự";
+            isValid = false;
+        } else {
+            // Check trùng tên (Loại trừ ID của chính nó đang cập nhật)
+            const currentId = formData.value.id;
+            const isDuplicate = existingCategories.value.some(
+                c => c.tenDanhMuc.toLowerCase() === tenDM.toLowerCase() && c.id !== currentId
+            );
+            if (isDuplicate) {
+                formErrors.value.tenDanhMuc = "Đã tồn tại danh mục này";
+                isValid = false;
+            }
         }
+
+        // 2. Validate Định lượng (Phải chọn ít nhất 1)
+        if (lstDonVi.length === 0) {
+            formErrors.value.listIdDonVi = "Vui lòng chọn ít nhất 1 Định lượng áp dụng";
+            isValid = false;
+        }
+
+        // 3. Validate Mô tả (0 - 255 ký tự)
+        if (moTa.length > 255) {
+            formErrors.value.moTa = "Mô tả không được vượt quá 255 ký tự";
+            isValid = false;
+        }
+
+        if (!isValid) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'error',
+                title: 'Dữ liệu không hợp lệ',
+                text: 'Vui lòng kiểm tra lại các trường báo đỏ',
+                showConfirmButton: false, timer: 3000
+            });
+        } else {
+            formData.value.tenDanhMuc = tenDM;
+            formData.value.moTa = moTa;
+        }
+
+        return isValid;
+    };
+
+    const handleSave = () => {
+        if (!validateForm()) return;
         
         Swal.fire({
-            title: 'Cập nhật', 
-            text: 'Lưu các thay đổi này?', 
-            icon: 'question',
-            iconColor: '#7D161A',
-            showCancelButton: true, 
-            confirmButtonColor: '#8B0000', 
-            confirmButtonText: 'Lưu thay đổi',
-            cancelButtonText: 'Hủy',
+            title: 'Cập nhật', text: 'Lưu các thay đổi này?', icon: 'question', iconColor: '#7D161A',
+            showCancelButton: true, confirmButtonColor: '#8B0000', confirmButtonText: 'Lưu thay đổi', cancelButtonText: 'Hủy',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    // 3. THÊM listIdDonVi VÀO PAYLOAD GỬI XUỐNG BACKEND
                     const payload = {
                         maDanhMuc: formData.value.maDanhMuc,
                         tenDanhMuc: formData.value.tenDanhMuc,
                         moTa: formData.value.moTa || '',
                         trangThai: formData.value.trangThai,
-                        listIdDonVi: formData.value.listIdDonVi || [] // << Thêm dòng này
+                        phanLoaiMayIn: formData.value.phanLoaiMayIn, 
+                        apDungLoaiVat: formData.value.apDungLoaiVat, 
+                        listIdDonVi: formData.value.listIdDonVi || []
                     };
 
                     await foodApi.updateCategory(formData.value.id, payload);
-                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Cập nhật thành công', timer: 1500, showConfirmButton: false });
                     
                     emit('refresh');
                     setTimeout(() => emit('close'), 1000);
                 } catch (error) { 
-                    console.error("Lỗi cập nhật DM:", error.response?.data);
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Đã xảy ra lỗi khi cập nhật!' }); 
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Cập nhật danh mục mới không thành công' }); 
                 }
             }
         });
     };
 
-    return { 
-        formData, 
-        handleSave, 
-        closeModal: () => emit('close') 
-    };
+    return { formData, formErrors, handleSave, closeModal: () => emit('close') };
 }
 
 // ============================================================================
@@ -472,17 +575,19 @@ export function useHotpotCategoryAddModal(props, emit) {
     watch(() => props.isOpen, (val) => { if (val) formData.value = { tenLoaiSet: '', moTa: '', trangThai: 1 }; });
 
     const handleSave = () => {
-        if (!formData.value.tenLoaiSet || formData.value.tenLoaiSet.length < 5) return Swal.fire({ icon: 'warning', iconColor: '#7D161A', text: 'Tên phải trên 5 kí tự' });
+        // 🚨 ĐÃ BỎ QUA CHECK Ở ĐÂY VÌ ĐÃ CÓ HÀM validateForm LÀM VIỆC NÀY
         Swal.fire({
             title: 'Thêm mới?', icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
-    cancelButtonText: 'Hủy'
+            cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await foodApi.createHotpotType(formData.value);
                     Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1500, showConfirmButton: false });
                     emit('refresh'); setTimeout(() => emit('close'), 1000);
-                } catch (e) { Swal.fire({ icon: 'error', title: 'Lỗi thêm mới!' }); }
+                } catch (e) { 
+                    Swal.fire({ icon: 'error', title: 'Lỗi thêm mới!', text: e.response?.data?.message }); 
+                }
             }
         });
     };
@@ -1065,31 +1170,103 @@ export function useHotpotForm(isEditMode = false) {
     };
 
     const validateForm = () => {
-        errors.value = {}; let isValid = true;
-        
-        // 3. ÉP GỌT KHOẢNG TRẮNG ĐẦU ĐUÔI
-        formData.value.tenSetLau = (formData.value.tenSetLau || '').trim();
-        formData.value.moTaChiTiet = (formData.value.moTaChiTiet || '').trim();
-        formData.value.moTa = (formData.value.moTa || '').trim();
+        errors.value = {}; 
+        let isValid = true;
 
-        if (!formData.value.tenSetLau || formData.value.tenSetLau.length < 5) { errors.value.tenSetLau = 'Tên phải chứa ít nhất 5 kí tự'; isValid = false; }
-        if (!formData.value.idLoaiSet) { errors.value.idLoaiSet = 'Chọn loại lẩu'; isValid = false; }
-        if (!formData.value.moTaChiTiet) { errors.value.moTaChiTiet = 'Nhập mô tả/định lượng set'; isValid = false; }
-        if (formData.value.giaBan <= 0) { errors.value.giaBan = 'Giá không hợp lệ'; isValid = false; }
-        if (!formData.value.hinhAnh) { errors.value.hinhAnh = 'Chọn ảnh đại diện'; isValid = false; }
-        if (selectedIngredients.value.length === 0) { errors.value.ingredients = 'Chọn ít nhất 1 món'; isValid = false; }
+        const name = (formData.value.tenSetLau || '').trim();
+        const norm = (formData.value.moTaChiTiet || '').trim(); // Định mức
+        const desc = (formData.value.moTa || '').trim();       // Mô tả chung
+
+        // 1. Validate Tên Set Lẩu (5 - 100 ký tự)
+        if (!name) {
+            errors.value.tenSetLau = 'Tên set lẩu không được để trống';
+            isValid = false;
+        } else if (name.length < 5) {
+            errors.value.tenSetLau = 'Tên set lẩu phải chứa ít nhất 5 kí tự';
+            isValid = false;
+        } else if (name.length > 100) {
+            errors.value.tenSetLau = 'Tên set lẩu không được vượt quá 100 ký tự';
+            isValid = false;
+        }
+
+        // 2. Validate Loại Set (Combobox)
+        if (!formData.value.idLoaiSet) {
+            errors.value.idLoaiSet = 'Vui lòng chọn loại set lẩu';
+            isValid = false;
+        }
+
+        // 3. Validate Giá bán (> 0)
+        if (!formData.value.giaBan || formData.value.giaBan <= 0) {
+            errors.value.giaBan = 'Giá bán phải lớn hơn 0';
+            isValid = false;
+        }
+
+        // 4. Validate Định mức / Ghi chú (5 - 100 ký tự)
+        if (!norm) {
+            errors.value.moTaChiTiet = 'Vui lòng nhập định mức (VD: Cho 4-5 người)';
+            isValid = false;
+        } else if (norm.length < 5) {
+            errors.value.moTaChiTiet = 'Định mức phải chứa ít nhất 5 kí tự';
+            isValid = false;
+        } else if (norm.length > 100) {
+            errors.value.moTaChiTiet = 'Định mức không được vượt quá 100 ký tự';
+            isValid = false;
+        }
+
+        // 5. Validate Mô tả chung (Tối đa 255 ký tự)
+        if (desc.length > 255) {
+            errors.value.moTa = 'Mô tả không được vượt quá 255 ký tự';
+            isValid = false;
+        }
+
+        // 6. Validate Hình ảnh
+        if (!formData.value.hinhAnh) {
+            errors.value.hinhAnh = 'Vui lòng tải ảnh đại diện cho set lẩu';
+            isValid = false;
+        }
+
+        // 7. Validate Thành phần (Ít nhất 1 món)
+        if (selectedIngredients.value.length === 0) {
+            errors.value.ingredients = 'Vui lòng chọn ít nhất 1 món ăn vào set lẩu';
+            isValid = false;
+        }
+
+        // 🔥 HIỂN THỊ TOAST NẾU CÓ LỖI (Giống màn Check-in)
+        if (!isValid) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Dữ liệu không hợp lệ',
+                text: 'Vui lòng kiểm tra lại các trường báo đỏ',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        } else {
+            // Gán lại dữ liệu đã trim để gửi API sạch đẹp
+            formData.value.tenSetLau = name;
+            formData.value.moTaChiTiet = norm;
+            formData.value.moTa = desc;
+        }
+
         return isValid;
     };
 
     const handleSave = async () => {
-        if (!validateForm()) return Swal.fire({ icon: 'error', title: 'Lỗi form', text: 'Kiểm tra lại các ô báo đỏ', toast: true, position: 'top-end', timer: 2000 });
-        
+        if (!validateForm()) return;
+
         Swal.fire({
-            title: 'Xác nhận', text: isEditMode ? 'Lưu thay đổi Set lẩu?' : 'Thêm Set lẩu mới?', icon: 'question', iconColor: '#7D161A',
-            showCancelButton: true, confirmButtonColor: '#7D161A', confirmButtonText: 'Lưu thay đổi',
-    cancelButtonText: 'Hủy'
+            title: 'Xác nhận lưu?',
+            text: isEditMode ? 'Lưu các thay đổi cho set lẩu này?' : 'Thêm set lẩu mới vào hệ thống?',
+            icon: 'question',
+            iconColor: '#7D161A',
+            showCancelButton: true,
+            confirmButtonColor: '#7D161A',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
         }).then(async (result) => {
             if (result.isConfirmed) {
+                Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
                 try {
                     const payload = { 
                         ...formData.value, 
@@ -1101,8 +1278,7 @@ export function useHotpotForm(isEditMode = false) {
                     Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1500, showConfirmButton: false });
                     setTimeout(() => router.back(), 1500);
                 } catch (error) { 
-                    console.error("Lỗi lưu DB:", error.response?.data);
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Lỗi lưu dữ liệu' }); 
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Không thể lưu dữ liệu' }); 
                 }
             }
         });

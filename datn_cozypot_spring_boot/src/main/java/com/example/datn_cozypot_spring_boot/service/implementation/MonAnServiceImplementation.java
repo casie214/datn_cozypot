@@ -17,6 +17,7 @@ import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 
 import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepository;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.DonViRepository;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
 import jakarta.transaction.Transactional;
@@ -47,6 +48,7 @@ public class MonAnServiceImplementation implements MonAnService {
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.ChiTietSetLauRepository chiTietSetLauRepository;
     private final DonViRepository donViRepository; // Repository mới cho bảng Cha
     private final ModelMapper modelMapper;
+    private final ThamSoHeThongRepository thamSoHeThongRepository;
 
     // --- UTILS ---
     private String generatePrefixFromData(String name) {
@@ -99,6 +101,8 @@ public class MonAnServiceImplementation implements MonAnService {
             res.setSoLuongMon(e.getSoLuongMon() != null ? e.getSoLuongMon() : 0);
             res.setMoTa(e.getMoTa());
             res.setTrangThai(e.getTrangThai());
+            res.setApDungLoaiVat(e.getLoaiVatApDung());
+            res.setPhanLoaiMayIn(e.getPhanLoaiMayIn());
             return res;
         }).collect(Collectors.toList());
     }
@@ -106,13 +110,15 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional // Bắt buộc có để đảm bảo tính toàn vẹn dữ liệu khi lưu nhiều bảng
     public DanhMucResponse createDanhMuc(DanhMucRequest request) {
-        // 1. Tạo và map dữ liệu cơ bản cho Danh Mục
         DanhMuc d = new DanhMuc();
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setMoTa(request.getMoTa());
         d.setTrangThai(1);
         d.setMaDanhMuc(generateNextCode(request.getTenDanhMuc(), "DANH_MUC"));
         d.setNgayTao(Instant.now());
+        d.setLoaiVatApDung(request.getLoaiVatApDung());
+        System.out.println("asdsadsa: " + request.getLoaiVatApDung());
+        d.setPhanLoaiMayIn(request.getPhanLoaiMayIn());
 
         // Lưu Danh Mục xuống DB trước để Hibernate cấp phát ID (ID này cần để tạo liên kết)
         DanhMuc savedDanhMuc = danhMucRepository.save(d);
@@ -150,6 +156,8 @@ public class MonAnServiceImplementation implements MonAnService {
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setTrangThai(request.getTrangThai());
         d.setMoTa(request.getMoTa());
+        d.setLoaiVatApDung(request.getLoaiVatApDung());
+        d.setPhanLoaiMayIn(request.getPhanLoaiMayIn());
 
         // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU (THAO TÁC TỪ PHÍA ĐƠN VỊ)
 
@@ -449,6 +457,7 @@ public class MonAnServiceImplementation implements MonAnService {
         mon.setGiaVon(request.getGiaVon());
         mon.setHinhAnh(request.getHinhAnh());
         mon.setTrangThai(1);
+        mon.setMoTa(request.getMoTa());
         mon.setNgayTao(LocalDateTime.now());
 
         // 2. Sinh mã tự động (Có check trùng trong DB)
@@ -570,8 +579,25 @@ public class MonAnServiceImplementation implements MonAnService {
 
     @Override
     public List<MonAnResponse> findMonAnActive() {
+        // 1. Query VAT 1 lần duy nhất từ DB để tối ưu hiệu năng
+        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+        Double vatDongGoi = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT_DONG_GOI").get().getGiaTri());
+
         return danhMucChiTietRepository.findByTrangThai(1).stream()
-                .map(this::mapToMonAnResponse)
+                .map(mon -> {
+                    // 2. Vẫn dùng nguyên hàm map của bạn kia
+                    MonAnResponse res = mapToMonAnResponse(mon);
+
+                    // 3. Bơm thêm % VAT chỉ cho API của mình
+                    if (mon.getDanhMuc() != null && mon.getDanhMuc().getLoaiVatApDung() != null) {
+                        int loaiVat = mon.getDanhMuc().getLoaiVatApDung();
+                        res.setPhanTramVat(loaiVat == 2 ? vatDongGoi : vatChung);
+                    } else {
+                        res.setPhanTramVat(vatChung);
+                    }
+
+                    return res;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -628,6 +654,7 @@ public class MonAnServiceImplementation implements MonAnService {
         LoaiSetLau loai = new LoaiSetLau();
         loai.setTenLoaiSet(request.getTenLoaiSet());
         loai.setTrangThai(1);
+        loai.setMoTa(request.getMoTa());
         loai.setMaLoaiSet(generateNextCode(request.getTenLoaiSet(), "LOAI_SET"));
         loaiSetLauRepository.save(loai);
         return new LoaiLauResponse();
@@ -669,8 +696,19 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional
     public List<SetLauResponse> findSetLauActive() {
+        // 1. Query VAT chung
+        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+
         return setLauRepository.findByTrangThai(1).stream()
-                .map(this::mapToSetLauResponse)
+                .map(set -> {
+                    // 2. Vẫn dùng nguyên hàm map của bạn kia
+                    SetLauResponse res = mapToSetLauResponse(set);
+
+                    // 3. Bơm thêm VAT cho Set Lẩu (mặc định loại 1)
+                    res.setPhanTramVat(vatChung);
+
+                    return res;
+                })
                 .collect(Collectors.toList());
     }
 

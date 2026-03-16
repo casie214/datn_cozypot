@@ -40,8 +40,8 @@ const errors = reactive({
 
 //Gia trị mặc định
 const systemParams = reactive({
-  vat: 10, 
-  phanTramCoc: 40
+  vat: 10,
+  phanTramCoc: 40,
 });
 
 const fetchSystemParams = async () => {
@@ -50,7 +50,8 @@ const fetchSystemParams = async () => {
     const data = response.data;
     if (data) {
       if (data.VAT) systemParams.vat = parseFloat(data.VAT);
-      if (data.PHAN_TRAM_COC) systemParams.phanTramCoc = parseFloat(data.PHAN_TRAM_COC);
+      if (data.PHAN_TRAM_COC)
+        systemParams.phanTramCoc = parseFloat(data.PHAN_TRAM_COC);
     }
   } catch (error) {
     console.error("Lỗi khi tải tham số hệ thống:", error);
@@ -139,7 +140,8 @@ onMounted(async () => {
         userObj.phone ||
         "";
       customerInfo.email = userObj.email || "";
-      isNameLocked.value = !!customerInfo.fullName && customerInfo.fullName !== 'Người dùng';
+      isNameLocked.value =
+        !!customerInfo.fullName && customerInfo.fullName !== "Người dùng";
       isPhoneLocked.value = !!customerInfo.phone;
     } catch (e) {
       console.error("Lỗi parse thông tin user:", e);
@@ -192,9 +194,18 @@ const subTotal = computed(() =>
   cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
 );
 
-const taxAmount = computed(() => subTotal.value * (systemParams.vat / 100));
+const taxAmount = computed(() => {
+  return cart.value.reduce((sum, item) => {
+    const vatRate = item.phanTramVat || 0;
+    const tienVatCuaMon = item.price * item.quantity * (vatRate / 100);
+    return sum + tienVatCuaMon;
+  }, 0);
+});
+
 const totalAmount = computed(() => subTotal.value + taxAmount.value);
-const depositAmount = computed(() => totalAmount.value * (systemParams.phanTramCoc / 100));
+const depositAmount = computed(
+  () => totalAmount.value * (systemParams.phanTramCoc / 100),
+);
 
 // --- 4. LOGIC BƯỚC 1: KIỂM TRA BÀN ---
 const checkAvailability = async () => {
@@ -396,13 +407,18 @@ const submitFinalBooking = async () => {
       ghiChu: customerInfo.note,
       tongTien: totalAmount.value,
       tienCoc: depositAmount.value,
+      chiTiet: cart.value.map((item) => {
+        const vatRate = item.phanTramVat || 0;
 
-      chiTiet: cart.value.map((item) => ({
-        idChiTietMonAn: item.type === "MON" ? item.id : null,
-        idSetLau: item.type === "SET" ? item.id : null,
-        soLuong: item.quantity,
-        donGia: item.price,
-      })),
+        return {
+          idChiTietMonAn: item.type === "MON" ? item.id : null,
+          idSetLau: item.type === "SET" ? item.id : null,
+          soLuong: item.quantity,
+          donGia: item.price,
+          phanTramVat: vatRate,
+          tienVat: item.price * item.quantity * (vatRate / 100),
+        };
+      }),
     };
 
     // 1. GỌI API ĐẶT BÀN LÊN BACKEND
@@ -936,46 +952,55 @@ const minDate = computed(() => {
                 </div>
 
                 <div class="summary-box mt-auto px-2">
-                  <div class="d-flex justify-content-between mb-2">
-                    <span class="text-dark fw-bold small">Tạm tính:</span>
-                    <span class="text-dark fw-bold small">{{
-                      formatPrice(subTotal)
-                    }}</span>
-                  </div>
-                  <div class="d-flex justify-content-between mb-3">
-                    <span class="text-dark fw-bold small">Thuế ({{ systemParams.vat }}%):</span>
-                    <span class="text-dark fw-bold small">{{
-                      formatPrice(taxAmount)
-                    }}</span>
-                  </div>
+                  <template v-if="cart.length > 0">
+                    <div class="d-flex justify-content-between mb-2">
+                      <span class="text-dark fw-bold small">Tạm tính:</span>
+                      <span class="text-dark fw-bold small">{{
+                        formatPrice(subTotal)
+                      }}</span>
+                    </div>
 
-                  <hr class="border-secondary opacity-25" />
+                    <div class="d-flex justify-content-between mb-3">
+                      <span class="text-dark fw-bold small"
+                        >Tổng thuế VAT:</span
+                      >
+                      <span class="text-dark fw-bold small">{{
+                        formatPrice(taxAmount)
+                      }}</span>
+                    </div>
 
-                  <div class="d-flex justify-content-between mb-2">
-                    <span class="text-dark fw-bold small"
-                      >Tổng cộng dự tính:</span
+                    <hr class="border-secondary opacity-25" />
+
+                    <div class="d-flex justify-content-between mb-2">
+                      <span class="text-dark fw-bold small"
+                        >Tổng cộng dự tính:</span
+                      >
+                      <span class="text-dark fw-bold small">{{
+                        formatPrice(totalAmount)
+                      }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                      <span class="text-dark fw-bold small"
+                        >Tiền cọc ({{ systemParams.phanTramCoc }}%):</span
+                      >
+                      <span class="text-dark fw-bold small">{{
+                        formatPrice(depositAmount)
+                      }}</span>
+                    </div>
+
+                    <hr class="border-secondary opacity-25" />
+
+                    <div
+                      class="d-flex justify-content-between align-items-center mb-4 mt-3"
                     >
-                    <span class="text-dark fw-bold small">{{
-                      formatPrice(totalAmount)
-                    }}</span>
-                  </div>
-                  <div class="d-flex justify-content-between mb-3">
-                    <span class="text-dark fw-bold small">Tiền cọc ({{ systemParams.phanTramCoc }}%):</span>
-                    <span class="text-dark fw-bold small">{{
-                      formatPrice(depositAmount)
-                    }}</span>
-                  </div>
-
-                  <hr class="border-secondary opacity-25" />
-
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-4 mt-3"
-                  >
-                    <span class="text-dark fw-bold fs-6">Cần thanh toán:</span>
-                    <span class="fw-bold fs-5" style="color: #e53935">{{
-                      formatPrice(depositAmount)
-                    }}</span>
-                  </div>
+                      <span class="text-dark fw-bold fs-6"
+                        >Cần thanh toán:</span
+                      >
+                      <span class="fw-bold fs-5" style="color: #e53935">{{
+                        formatPrice(depositAmount)
+                      }}</span>
+                    </div>
+                  </template>
 
                   <div class="text-end">
                     <button

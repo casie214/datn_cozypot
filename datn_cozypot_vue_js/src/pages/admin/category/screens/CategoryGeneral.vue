@@ -141,13 +141,14 @@ const goToFoodList = (category) => {
                   @click="handleActionWithAuth(() => openModal(item), 'ADMIN')">
                 </i>
 
-                <i v-if="item.trangThai === 1" class="fas fa-unlock-alt unlock-icon" title="Ngưng kinh doanh"
-                  @click="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')">
-                </i>
-
-                <i v-else class="fas fa-lock lock-icon" title="Kích hoạt kinh doanh"
-                  @click="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')">
-                </i>
+                <label class="custom-toggle" :title="item.trangThai === 1 ? 'Ngưng kinh doanh' : 'Kích hoạt kinh doanh'">
+                  <input 
+                    type="checkbox" 
+                    :checked="item.trangThai === 1"
+                    @click.prevent="handleActionWithAuth(() => handleToggleStatus(item), 'ADMIN')"
+                  >
+                  <span class="toggle-slider"></span>
+                </label>
               </div>
             </td>
           </tr>
@@ -266,5 +267,60 @@ const goToFoodList = (category) => {
 
 :deep(.custom-filter-multiselect .multiselect-single-label) {
   padding-left: 0.75rem;
+}
+
+.custom-toggle {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  margin: 0;
+}
+
+.custom-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333333; /* MÀU ĐEN: Trạng thái Ngưng kinh doanh */
+  transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 34px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* KHI ĐƯỢC CHECK (TRẠNG THÁI 1) -> CHUYỂN SANG MÀU ĐỎ */
+.custom-toggle input:checked + .toggle-slider {
+  background-color: #7D161A; /* MÀU ĐỎ: Đang kinh doanh */
+}
+
+/* HIỆU ỨNG TRƯỢT SANG PHẢI */
+.custom-toggle input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+/* Hiệu ứng khi hover vào toggle */
+.custom-toggle:hover .toggle-slider {
+  filter: brightness(1.2);
 }
 </style>

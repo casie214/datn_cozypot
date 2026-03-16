@@ -21,6 +21,8 @@ public class MonAnResponse {
     private Integer idDinhLuong;
     private Integer trangThai;
 
+    private Double phanTramVat;
+
     public String getTenHienThi() {
         return tenMon + " (" + (giaTriDinhLuong != null ? giaTriDinhLuong : tenDinhLuong) + ")";
     }

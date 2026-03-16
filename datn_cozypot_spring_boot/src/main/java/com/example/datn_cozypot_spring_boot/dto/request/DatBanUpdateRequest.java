@@ -29,5 +29,7 @@ public class DatBanUpdateRequest {
 
         private Integer trangThaiPhieu;
 
-        private Double vatApDung;
+        private BigDecimal vatApDung;
+
+        private Integer soNguoi;
 }

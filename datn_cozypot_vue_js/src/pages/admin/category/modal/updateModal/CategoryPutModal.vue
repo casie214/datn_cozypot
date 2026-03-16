@@ -1,12 +1,11 @@
 <script setup>
 import { useCategoryPutModal, foodApi } from '../../../../../services/foodFunction';
-import { defineProps, defineEmits, ref, watch } from 'vue';
+import { defineProps, defineEmits, ref, watch, onMounted } from 'vue';
 import GlobalDialogue from '../../../../../components/globalDialogue.vue';
-
-// IMPORT THÊM 2 THƯ VIỆN NÀY
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
 import UnitAddScreen from '@/pages/admin/unit/screens/UnitAddScreen.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -24,15 +23,23 @@ const {
     handleDialogClose
 } = useCategoryPutModal(props, emit);
 
-// ==========================================
-// THÊM LOGIC QUẢN LÝ ĐỊNH LƯỢNG VÀ THÊM NHANH (ENTER)
-// ==========================================
+const printerOptions = [
+  { value: 1, label: 'Máy in Bếp (Đồ ăn)' },
+  { value: 2, label: 'Máy in Quầy Bar (Nước)' },
+  { value: 3, label: 'Không in phiếu' }
+];
+
+const vatOptions = [
+  { value: 1, label: 'Áp dụng VAT Nhà Hàng' },
+  { value: 2, label: 'Áp dụng VAT Đóng Gói' }
+];
+
 const listUnits = ref([]);
 const isUnitModalOpen = ref(false);
 
-const multiselectRef = ref(null); // Ref cho component Multiselect
-const currentSearchText = ref(''); // Biến lưu text tìm kiếm
-const prefilledUnitName = ref(''); // Text gởi qua modal thêm nhanh
+const multiselectRef = ref(null); 
+const currentSearchText = ref(''); 
+const prefilledUnitName = ref(''); 
 
 const fetchAllUnits = async () => {
   try {
@@ -43,41 +50,25 @@ const fetchAllUnits = async () => {
   }
 };
 
-// Theo dõi khi Modal mở lên thì load danh sách Unit
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    fetchAllUnits();
-    // Đảm bảo listIdDonVi luôn là mảng để multiselect không bị lỗi
-    if (formData.value && !formData.value.listIdDonVi) {
-      formData.value.listIdDonVi = [];
-    }
-  }
-});
-
-// Sự kiện lưu text người dùng đang tìm kiếm
 const handleSearchChange = (query) => {
   currentSearchText.value = query;
 };
 
-// Sự kiện bắt phím Enter
 const handleKeydown = (event) => {
   if (event.key === 'Enter' && currentSearchText.value.trim() !== '') {
     const text = currentSearchText.value.trim();
 
-    // Kiểm tra xem đơn vị này đã tồn tại trong danh sách thả xuống chưa
     const exists = listUnits.value.some(
       (unit) => unit.tenDonVi.toLowerCase() === text.toLowerCase()
     );
 
-    // Nếu chưa tồn tại -> Mở Modal tạo mới
     if (!exists) {
-      event.preventDefault(); // Chặn hành vi nổi bọt hoặc submit mặc định
+      event.preventDefault(); 
       event.stopPropagation();
       
       prefilledUnitName.value = text;
       isUnitModalOpen.value = true;
 
-      // Đóng danh sách xổ xuống và xóa text hiện tại
       if (multiselectRef.value) {
         multiselectRef.value.close();
         multiselectRef.value.clearSearch();
@@ -86,22 +77,17 @@ const handleKeydown = (event) => {
   }
 };
 
-// Sự kiện khi người dùng tự bấm nút "Tạo định lượng mới" bằng chuột
 const openUnitModalNormal = () => {
   prefilledUnitName.value = '';
   isUnitModalOpen.value = true;
 };
 
-// Xử lý khi thêm nhanh 1 đơn vị mới thành công (Từ Modal con trả về)
 const handleUnitAdded = async (newUnitData) => {
   isUnitModalOpen.value = false;
-
   await fetchAllUnits();
 
-  // newUnitData có thể trả về object (nếu code cũ bạn setup) hoặc string ID
   const idToSelect = typeof newUnitData === 'object' ? newUnitData?.id : newUnitData;
 
-  // Nếu tạo thành công, tự động thêm ID đó vào list đã chọn của Update Form
   if (idToSelect) {
     if (!formData.value.listIdDonVi) {
       formData.value.listIdDonVi = [];
@@ -111,7 +97,117 @@ const handleUnitAdded = async (newUnitData) => {
     }
   }
 };
+
 // ==========================================
+// 🚨 LOGIC VALIDATE MỚI 
+// ==========================================
+const existingCategories = ref([]);
+
+watch(() => props.isOpen, async (val) => {
+  if (val) {
+    fetchAllUnits();
+    // Đảm bảo listIdDonVi luôn là mảng
+    if (formData.value && !formData.value.listIdDonVi) {
+      formData.value.listIdDonVi = [];
+    }
+    
+    // Reset lỗi
+    formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '', phanLoaiMayIn: '', apDungLoaiVat: '' };
+
+    try {
+      const res = await foodApi.getCategories();
+      existingCategories.value = res.data || [];
+    } catch (e) {
+      console.error(e);
+    }
+  }
+});
+
+const formErrors = ref({
+  tenDanhMuc: '',
+  listIdDonVi: '',
+  moTa: '',
+  phanLoaiMayIn: '',
+  apDungLoaiVat: ''
+});
+
+const validateForm = () => {
+  let isValid = true;
+  formErrors.value = { tenDanhMuc: '', listIdDonVi: '', moTa: '', phanLoaiMayIn: '', apDungLoaiVat: '' };
+
+  const tenDM = (formData.value.tenDanhMuc || '').trim();
+  const moTa = (formData.value.moTa || '').trim();
+  const lstDonVi = formData.value.listIdDonVi || [];
+
+  // 1. Validate Tên danh mục (Độ dài từ 5 - 100)
+  if (!tenDM) {
+    formErrors.value.tenDanhMuc = "Tên danh mục không được để trống";
+    isValid = false;
+  } else if (tenDM.length < 5) {
+    formErrors.value.tenDanhMuc = "Tên danh mục phải chứa ít nhất 5 kí tự";
+    isValid = false;
+  } else if (tenDM.length > 100) {
+    formErrors.value.tenDanhMuc = "Tên danh mục không được vượt quá 100 ký tự";
+    isValid = false;
+  } else {
+    // Check trùng tên (Loại trừ ID của chính mình đang sửa)
+    const currentId = formData.value.id || null;
+    const isDuplicate = existingCategories.value.some(
+      c => c.tenDanhMuc.toLowerCase() === tenDM.toLowerCase() && c.id !== currentId
+    );
+    if (isDuplicate) {
+      formErrors.value.tenDanhMuc = "Danh mục đã tồn tại trong hệ thống";
+      isValid = false;
+    }
+  }
+
+  // 2. Validate Máy In
+  if (!formData.value.phanLoaiMayIn) {
+    formErrors.value.phanLoaiMayIn = "Vui lòng chọn Khu vực máy in";
+    isValid = false;
+  }
+
+  // 3. Validate Loại VAT
+  if (!formData.value.apDungLoaiVat) {
+    formErrors.value.apDungLoaiVat = "Vui lòng chọn Loại VAT áp dụng";
+    isValid = false;
+  }
+
+  // 4. Validate Định lượng (Phải chọn ít nhất 1)
+  if (lstDonVi.length === 0) {
+    formErrors.value.listIdDonVi = "Vui lòng chọn ít nhất 1 Định lượng";
+    isValid = false;
+  }
+
+  // 5. Validate Mô tả (0 - 255 ký tự)
+  if (moTa.length > 255) {
+    formErrors.value.moTa = "Mô tả không được vượt quá 255 ký tự";
+    isValid = false;
+  }
+
+  if (!isValid) {
+    Swal.fire({ 
+        toast: true, 
+        position: 'top-end', 
+        icon: 'error', 
+        title: 'Dữ liệu không hợp lệ', 
+        text: 'Vui lòng kiểm tra lại các trường báo đỏ',
+        showConfirmButton: false, 
+        timer: 3000 
+    });
+  } else {
+    formData.value.tenDanhMuc = tenDM;
+    formData.value.moTa = moTa;
+  }
+
+  return isValid;
+};
+
+const submitForm = () => {
+  if (validateForm()) {
+    handleSave(); 
+  }
+};
 </script>
 
 <template>
@@ -144,64 +240,103 @@ const handleUnitAdded = async (newUnitData) => {
 
                     <div class="form-group full-width">
                         <label>Tên danh mục <span class="required">*</span></label>
-                        <input v-model="formData.tenDanhMuc" type="text">
+                        <input 
+                            v-model="formData.tenDanhMuc" 
+                            type="text" 
+                            placeholder="Nhập tên danh mục..."
+                            :class="{ 'input-error': formErrors.tenDanhMuc }"
+                        >
+                        <small v-if="formErrors.tenDanhMuc" class="error-text">{{ formErrors.tenDanhMuc }}</small>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-3 mb-1">
+                        <div class="form-group w-50 m-0">
+                            <label>Máy in liên đơn <span class="required">*</span></label>
+                            <div :class="{ 'multiselect-error-border': formErrors.phanLoaiMayIn }">
+                                <Multiselect
+                                    v-model="formData.phanLoaiMayIn"
+                                    :options="printerOptions"
+                                    valueProp="value"
+                                    label="label"
+                                    placeholder="-- Chọn khu vực in --"
+                                    :searchable="false"
+                                    :canClear="false"
+                                    class="custom-multiselect-theme"
+                                />
+                            </div>
+                            <small v-if="formErrors.phanLoaiMayIn" class="error-text">{{ formErrors.phanLoaiMayIn }}</small>
+                        </div>
+                        
+                        <div class="form-group w-50 m-0">
+                            <label>Loại VAT <span class="required">*</span></label>
+                            <div :class="{ 'multiselect-error-border': formErrors.apDungLoaiVat }">
+                                <Multiselect
+                                    v-model="formData.apDungLoaiVat"
+                                    :options="vatOptions"
+                                    valueProp="value"
+                                    label="label"
+                                    placeholder="-- Chọn loại VAT --"
+                                    :searchable="false"
+                                    :canClear="false"
+                                    class="custom-multiselect-theme"
+                                />
+                            </div>
+                            <small v-if="formErrors.apDungLoaiVat" class="error-text">{{ formErrors.apDungLoaiVat }}</small>
+                        </div>
                     </div>
 
                     <div class="form-group full-width" style="margin-top: 5px;">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="m-0">Định lượng / Kích cỡ áp dụng</label>
+                            <label class="m-0">Định lượng / Kích cỡ áp dụng <span class="required">*</span></label>
                             <button type="button" class="btn-quick-add" @click="openUnitModalNormal">
                                 <i class="fas fa-plus-circle"></i> Tạo định lượng mới
                             </button>
                         </div>
                         
-                        <Multiselect 
-                            ref="multiselectRef"
-                            v-model="formData.listIdDonVi" 
-                            :options="listUnits" 
-                            mode="tags" 
-                            valueProp="id" 
-                            label="tenDonVi"
-                            placeholder="-- Chọn các định lượng có sẵn --" 
-                            :searchable="true" 
-                            class="custom-multiselect-theme"
-                            @search-change="handleSearchChange"
-                            @keydown="handleKeydown"
-                        >
-                            <template v-slot:noresults>
-                                <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
-                                    Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentSearchText }}</b>"
-                                </div>
-                            </template>
-                        </Multiselect>
+                        <div :class="{ 'multiselect-error-border': formErrors.listIdDonVi }">
+                            <Multiselect 
+                                ref="multiselectRef"
+                                v-model="formData.listIdDonVi" 
+                                :options="listUnits" 
+                                mode="tags" 
+                                valueProp="id" 
+                                label="tenDonVi"
+                                placeholder="-- Chọn các định lượng có sẵn --" 
+                                :searchable="true" 
+                                class="custom-multiselect-theme"
+                                @search-change="handleSearchChange"
+                                @keydown="handleKeydown"
+                            >
+                                <template v-slot:noresults>
+                                    <div style="padding: 5px 10px; color: #8B0000; font-size: 0.9rem;">
+                                        Không có sẵn. Nhấn <kbd style="background: #eee; padding: 2px 5px; border-radius: 4px;">Enter ↵</kbd> để tạo nhanh "<b>{{ currentSearchText }}</b>"
+                                    </div>
+                                </template>
+                            </Multiselect>
+                        </div>
 
-                        <small class="text-muted" style="font-size: 0.8rem; margin-top: 4px; display: block;">
+                        <small v-if="formErrors.listIdDonVi" class="error-text">{{ formErrors.listIdDonVi }}</small>
+                        <small v-else class="text-muted" style="font-size: 0.8rem; margin-top: 4px; display: block;">
                             * Có thể chọn nhiều định lượng cùng lúc (VD: ml, gram, ly...)
                         </small>
                     </div>
 
                     <div class="form-group full-width" style="margin-top: 10px;">
                         <label>Mô tả</label>
-                        <textarea v-model="formData.moTa" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Trạng thái</label>
-                        <div class="toggle-wrapper" @click="formData.trangThai = formData.trangThai === 1 ? 0 : 1">
-                            <div class="toggle-switch" :class="{ 'on': formData.trangThai === 1 }">
-                                <div class="toggle-knob"></div>
-                            </div>
-                            <span :class="{ 'text-active': formData.trangThai === 1 }">
-                                {{ formData.trangThai === 1 ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
-                            </span>
-                        </div>
+                        <textarea 
+                            v-model="formData.moTa" 
+                            rows="3"
+                            placeholder="Nhập mô tả..."
+                            :class="{ 'input-error': formErrors.moTa }"
+                        ></textarea>
+                        <small v-if="formErrors.moTa" class="error-text">{{ formErrors.moTa }}</small>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer">
                 <button class="btn-cancel" @click="closeModal">Hủy</button>
-                <button class="btn-confirm" @click="handleSave">Lưu thay đổi</button>
+                <button class="btn-confirm" @click="submitForm">Lưu thay đổi</button>
             </div>
         </div>
 
@@ -233,6 +368,26 @@ const handleUnitAdded = async (newUnitData) => {
   gap: 5px;
   padding: 2px 5px;
   border-radius: 4px;
+}
+
+.input-error {
+  border-color: #dc3545 !important;
+  background-color: #fff8f8;
+}
+
+/* Bôi đỏ viền của thư viện Multiselect */
+.multiselect-error-border {
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+}
+
+/* Hiển thị dòng chữ lỗi nhỏ màu đỏ bên dưới */
+.error-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #dc3545;
+  font-style: italic;
 }
 
 .btn-quick-add:hover {
@@ -276,6 +431,18 @@ const handleUnitAdded = async (newUnitData) => {
 }
 
 :deep(.multiselect.is-active) {
+  border-color: #8B0000 !important;
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
+  outline: none !important;
+}
+
+/* Đè màu đỏ cho cả input của multiselect nếu nó có viền đỏ */
+.multiselect-error-border :deep(.multiselect) {
+  border-color: #dc3545 !important;
+  background-color: #fff8f8 !important;
+}
+
+.custom-multiselect-theme.is-active {
   border-color: #8B0000 !important;
   box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.2) !important;
   outline: none !important;

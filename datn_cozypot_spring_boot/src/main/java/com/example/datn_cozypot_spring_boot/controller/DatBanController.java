@@ -68,6 +68,11 @@ public class DatBanController {
         return datBanService.getAllByTrangThai();
     }
 
+    @GetMapping("/danh-sach-dat-truoc")
+    public List<DatBanListResponse> danhSachPreCheckedIn(){
+        return datBanService.getAllByTrangThaiPreCheckedIn();
+    }
+
     @GetMapping("/danh-sach-ban-an")
     public List<BanAnResponse> danhSachBanAn(){
         return datBanService.getAllBanAn();
@@ -244,8 +249,6 @@ public Page<DatBanListResponse> searchDatBan(
     public ResponseEntity<?> taoPhieuDatBanOnline(@RequestBody DatBanOnlineRequest request) {
         try {
             Map<String, Object> responseData = datBanService.taoPhieuDatBanOnline(request);
-
-            // Trả Object JSON này về cho Frontend (VueJS sẽ đọc response.data.idHoaDon, v.v..)
             return ResponseEntity.ok(responseData);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

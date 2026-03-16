@@ -15,13 +15,18 @@ import java.util.Optional;
 @Repository
 public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Integer> {
 
-    @Query("SELECT p FROM PhieuGiamGia p WHERE " +
-            "(:keyword IS NULL OR p.codeGiamGia LIKE %:keyword% OR p.tenPhieuGiamGia LIKE %:keyword%) " +
-            "AND (:doiTuong IS NULL OR p.doiTuong = :doiTuong) " +
-            "AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia) " +
-            "AND (:trangThai IS NULL OR p.trangThai = :trangThai) " +
-            "AND (:ngayBatDau IS NULL OR p.ngayBatDau >= :ngayBatDau) " +
-            "AND (:ngayKetThuc IS NULL OR p.ngayKetThuc <= :ngayKetThuc)")
+    @Query("""
+SELECT p FROM PhieuGiamGia p
+WHERE (:keyword IS NULL OR 
+       LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(p.maPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')))
+AND (:doiTuong IS NULL OR p.doiTuong = :doiTuong)
+AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia)
+AND (:trangThai IS NULL OR p.trangThai = :trangThai)
+AND (:ngayBatDau IS NULL OR p.ngayBatDau >= :ngayBatDau)
+AND (:ngayKetThuc IS NULL OR p.ngayKetThuc <= :ngayKetThuc)
+""")
     Page<PhieuGiamGia> searchVouchers(
             @Param("keyword") String keyword,
             @Param("doiTuong") Integer doiTuong,
@@ -31,7 +36,6 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
             @Param("ngayKetThuc") LocalDateTime ngayKetThuc,
             Pageable pageable
     );
-
     @Query("SELECT p FROM PhieuGiamGia p LEFT JOIN FETCH p.danhSachCaNhan WHERE p.id = :id")
     Optional<PhieuGiamGia> findDetailById(@Param("id") Integer id);
     boolean existsByCodeGiamGia(String codeGiamGia);

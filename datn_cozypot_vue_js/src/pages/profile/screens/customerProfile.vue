@@ -46,7 +46,7 @@
                             </div>
 
                             <h5 class="fw-bold mb-1">{{ formData.tenKhachHang || 'Chưa cập nhật tên' }}</h5>
-                            <p class="text-muted small mb-3">@{{ formData.tenDangNhap }}</p>
+
 
                             <hr class="dashed">
 
@@ -256,8 +256,7 @@
                                 </div>
 
                                 <div class="d-flex justify-content-between align-items-center pt-4 border-top">
-                                    <p class="text-muted small mb-0">Cập nhật lần cuối: {{ formData.ngayCapNhat || '---'
-                                    }}</p>
+
                                     <div class="d-flex gap-3">
                                         <button type="button" class="btn btn-light rounded-pill px-4"
                                             @click="handleBack">Hủy</button>
@@ -603,7 +602,9 @@ const tempAddressText = ref('');
 const defaultIndex = ref(0);   // Lưu vị trí mặc định (mặc định là cái đầu tiên)
 const preparePayload = () => {
     const data = new FormData();
-
+    if (clientId.value) {
+        data.append('id', clientId.value);
+    }
     // 1. Xử lý thông tin chung của khách hàng
     Object.keys(formData).forEach(key => {
         if (key === 'danhSachDiaChi' || key === 'diaChi') return;
@@ -759,12 +760,10 @@ const validateForm = async () => {
     let ok = true;
     const today = dayjs();
 
-    // 1. Reset toàn bộ thông báo lỗi cũ
     Object.keys(errors).forEach(k => errors[k] = '');
 
-    // 2. Kiểm tra các trường không được để trống (Thêm tenDangNhap vào đây)
     const requiredFields = [
-        { key: 'tenDangNhap', msg: 'Vui lòng nhập tên đăng nhập' }, // Mới thêm
+        { key: 'tenDangNhap', msg: 'Vui lòng nhập tên đăng nhập' },
         { key: 'tenKhachHang', msg: 'Vui lòng nhập họ và tên khách hàng' },
         { key: 'soDienThoai', msg: 'Vui lòng nhập số điện thoại liên lạc' },
         { key: 'email', msg: 'Vui lòng nhập địa chỉ email' },
@@ -777,6 +776,13 @@ const validateForm = async () => {
             ok = false;
         }
     });
+    if (formData.tenDangNhap) {
+        const len = formData.tenDangNhap.length;
+        if (len < 5 || len > 50) {
+            errors.tenDangNhap = 'Tên đăng nhập phải từ 5 đến 50 ký tự';
+            ok = false;
+        }
+    }
 
     // --- VALIDATE DANH SÁCH ĐỊA CHỈ ---
     if (!formData.danhSachDiaChi || formData.danhSachDiaChi.length === 0) {
@@ -860,10 +866,21 @@ const submitClient = async (payload) => {
 };
 
 const handleSave = async () => {
-    // 1. Kiểm tra tính hợp lệ (Validate FE)
+    // --- BƯỚC 1: GÁN GIÁ TRỊ MẶC ĐỊNH TRƯỚC ---
+    // Phải gán TRƯỚC khi validate để hàm validate kiểm tra được dữ liệu mới nhất
+    if (!clientId.value) {
+        // Nếu người dùng không nhập tên đăng nhập, lấy số điện thoại làm tên đăng nhập
+        if (!formData.tenDangNhap) {
+            formData.tenDangNhap = formData.soDienThoai;
+        }
+        if (!formData.matKhauDangNhap) {
+            formData.matKhauDangNhap = generateRandomPassword(10);
+        }
+    }
+
+    // --- BƯỚC 2: KIỂM TRA TÍNH HỢP LỆ (FE) ---
     const isValid = await validateForm();
     if (!isValid) {
-        // Hiện thông báo cảnh báo nếu có lỗi đỏ
         Swal.fire({
             ...swalConfig,
             title: 'Thông tin chưa hợp lệ',
@@ -875,21 +892,13 @@ const handleSave = async () => {
         return;
     }
 
-    // 2. Gán giá trị ngầm (Chỉ cho thêm mới)
-    if (!clientId.value) {
-        formData.tenDangNhap = formData.soDienThoai;
-        if (!formData.matKhauDangNhap) {
-            formData.matKhauDangNhap = generateRandomPassword(10);
-        }
-    }
-
-    // 3. Hộp thoại xác nhận hành động
+    // --- BƯỚC 3: XÁC NHẬN ---
     const result = await Swal.fire({
         ...swalConfig,
         title: clientId.value ? 'Cập nhật khách hàng?' : 'Xác nhận thêm mới?',
         text: clientId.value
             ? 'Bạn có chắc chắn muốn lưu các thay đổi này?'
-            : 'Hệ thống sẽ tạo tài khoản khách hàng mới vào cơ sở dữ liệu.', // Cập nhật dòng này
+            : 'Hệ thống sẽ tạo tài khoản khách hàng mới vào cơ sở dữ liệu.',
         icon: 'question',
         iconColor: '#7D161A',
         showCancelButton: true,
@@ -900,37 +909,48 @@ const handleSave = async () => {
     if (!result.isConfirmed) return;
 
     try {
-        loading.value = true;
-        const payload = preparePayload();
+    loading.value = true;
+    const payload = preparePayload();
 
-        await submitClient(payload);
+    // Kiểm tra: Nếu có clientId thì gọi UPDATE, ngược lại gọi CREATE
+    if (clientId.value) {
+        // Giả sử hàm update của bạn nhận vào (id, data) hoặc chỉ data tùy Service
+        await clientService.update(clientId.value, payload); 
+    } else {
+        await clientService.create(payload);
+    }
 
-        // 4. Thông báo thành công (Hiện giữa màn hình và tự đóng sau 2s)
-        await Swal.fire({
-            ...swalConfig,
-            title: 'Thành công!',
-            text: clientId.value ? 'Thông tin khách hàng đã được cập nhật.' : 'Đã thêm khách hàng mới thành công.',
-            icon: 'success', iconColor: '#7D161A',
-            timer: 2000,
-            showConfirmButton: false
-        });
-        location.reload();
+    await Swal.fire({
+        ...swalConfig,
+        title: 'Thành công!',
+        text: clientId.value ? 'Cập nhật thành công.' : 'Thêm mới thành công.',
+        icon: 'success',
+        timer: 1500,
+        iconColor: '#7D161A',
+        showConfirmButton: false
+    });
+    
+    // Tùy chọn: Thay vì reload, bạn có thể chỉ cập nhật lại state nếu cần
+    location.reload(); 
+
     } catch (e) {
-        console.error("Chi tiết lỗi:", e.response?.data);
-        // 5. Thông báo lỗi hệ thống (Nếu trùng lặp hoặc lỗi server)
-        const errorMsg = e.response?.data?.message || "Đã có lỗi xảy ra trong quá trình xử lý dữ liệu.";
-        Swal.fire({
-            ...swalConfig,
-            title: 'Thao tác thất bại',
-            text: errorMsg,
-            icon: 'error',
-            confirmButtonText: 'Quay lại'
-        });
+        // --- BƯỚC 5: XỬ LÝ LỖI VALIDATION TỪ SERVER (NẾU CÓ) ---
+        const errorData = e.response?.data;
+        if (errorData?.code === "VALIDATION_ERORR" && errorData.errors) {
+            // Đổ lỗi từ Server vào object errors để hiện báo đỏ ngay lập tức
+            Object.assign(errors, errorData.errors);
+        } else {
+            Swal.fire({
+                ...swalConfig,
+                title: 'Thao tác thất bại',
+                text: errorData?.message || "Đã có lỗi xảy ra.",
+                icon: 'error'
+            });
+        }
     } finally {
         loading.value = false;
     }
 };
-
 onMounted(async () => {
     // 1. Load danh mục Tỉnh/Thành trước
     await loadTinhThanh();

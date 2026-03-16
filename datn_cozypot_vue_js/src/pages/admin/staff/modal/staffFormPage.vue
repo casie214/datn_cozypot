@@ -662,6 +662,7 @@ const handleSave = async () => {
       title: 'Thành công',
       text: message,
       timer: 2000,
+      iconColor: '#7D161A',
       showConfirmButton: false
     });
 
@@ -1044,4 +1045,14 @@ hr.dashed {
 .avatar-upload:hover .avatar-edit-overlay {
   opacity: 1;
 }
+.custom-radio .form-check-input {
+  cursor: pointer;
+}
+
+.custom-radio .form-check-input:checked {
+  background-color: #800000;
+  border-color: #800000;
+}
+
+
 </style>

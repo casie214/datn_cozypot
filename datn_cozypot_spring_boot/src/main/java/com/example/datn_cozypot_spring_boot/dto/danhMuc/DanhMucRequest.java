@@ -1,4 +1,5 @@
 package com.example.datn_cozypot_spring_boot.dto.danhMuc;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,9 @@ public class DanhMucRequest {
     private Integer trangThai;
 
     private List<Integer> listIdDonVi;
+
+    @JsonProperty("apDungLoaiVat")
+    private Integer loaiVatApDung;
+
+    private Integer phanLoaiMayIn;
 }

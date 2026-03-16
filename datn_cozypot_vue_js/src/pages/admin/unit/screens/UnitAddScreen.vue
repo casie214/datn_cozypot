@@ -400,6 +400,14 @@ const handleSave = async () => {
     cursor: pointer;
 }
 
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
 :deep(.multiselect-tag) {
     background: #8B0000 !important;
 }

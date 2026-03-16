@@ -1,15 +1,7 @@
 /* 1. KHAI BÁO BIẾN & THIẾT LẬP CHUNG */
 :root {
-  --primary-red: #7B121C;
-  --dark-red: #7d161a;
-  --bg-white: #ffffff;
-  --text-main: #2c3e50;
-  --text-muted: #666;
-  --border-color: #eee;
-  --shadow-sm: 0 3px 6px rgba(131, 131, 131, 0.2);
-  --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
   --font-main: 14px !important;
-  
+
 }
 
 .custom-table thead th {
@@ -20,14 +12,14 @@
 /* 2. CẤU TRÚC BAO NGOÀI */
 .staff-manager-wrapper {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
-  background: var(--bg-white); 
+  background:  #ffffff;
   min-height: 100vh; 
 }
 
 .table-wrapper, .filter-card-premium, .table-container-premium {
-  background: var(--bg-white);
+  background:  #ffffff;
   border-radius: 14px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   margin-bottom: 30px;
   overflow: hidden;
 }
@@ -35,7 +27,7 @@
 /* 3. HỆ THỐNG BẢNG (TABLE) */
 .custom-table { margin: 0; border: none !important; }
 
-.custom-table thead tr { background: #7d161a !important; }
+.custom-table thead tr { background: #800000 !important; }
 
 .custom-table thead th {
   color: white !important;
@@ -68,7 +60,7 @@
 
 /* 4. FORM & BỘ LỌC (FILTER) */
 .filter-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #888;
     margin-bottom: 5px;
     display: block;
@@ -77,8 +69,8 @@
 .custom-input {
   width: 100%;
   height: 42px !important;
-  border: 1.5px solid var(--border-color) !important;
-  border-radius: 10px !important;
+  border: 1.5px solid #eee !important;
+  /* border-radius: 10px !important; */
   padding: 10px 15px;
   font-size: var(--font-15);
   transition: all 0.2s;
@@ -86,7 +78,7 @@
 }
 
 .custom-input:focus {
-  border-color: var(--primary-red) !important;
+  border-color: #7B121C !important;
   box-shadow: 0 0 0 4px rgba(123, 18, 28, 0.08) !important;
   outline: none;
 }
@@ -95,8 +87,8 @@
 .gender-filter-group { display: flex; align-items: center; height: 38px; padding-left: 5px; }
 
 .cz-switch:checked, .form-check-input:checked {
-  background-color: var(--dark-red) !important;
-  border-color: var(--dark-red) !important;
+  background-color: #800000 !important;
+  border-color: #800000 !important;
 }
 
 .cz-switch { background-color: #dee2e6; border-color: #adb5bd; }
@@ -124,18 +116,21 @@
 }
 
 .action-icons i:hover, .action-edit-v2:hover i {
-  color: var(--primary-red) !important;
+  color: #7B121C !important;
   transform: scale(1.2);
 }
 
 /* 6. TRẠNG THÁI KHÁC */
 .is-locked, .row-locked td, .row-locked .text-wine { color: #bdc3c7 !important; cursor: not-allowed; }
 .text-status-active { color: #27ae60 !important; font-weight: 600; }
-.text-wine { color: var(--primary-red) !important; }
+.text-wine { color: #7B121C !important; }
 .title-page-cozy{
-  color:var(--primary-red);
+  color:#7B121C;
   font-weight:bold;
   font-size:1.5rem;
+}
+.staff-page .title-page-cozy{
+  color:#7B121C;
 }
 /* Khối wrapper chính */
 .table-pagination-wrapper {
@@ -155,7 +150,7 @@
   text-align: left; /* 🚨 CĂN TRÁI CHO TOÀN BỘ BẢNG */
 }
 
-.custom-table thead tr { background: #7d161a !important; }
+.custom-table thead tr { background: #800000 !important; }
 
 .custom-table thead th {
   color: white !important;
@@ -204,7 +199,7 @@
 
 /* Đảm bảo header bảng luôn có màu đỏ đô */
 .custom-table thead tr {
-    background-color: #7d161a !important;
+    background-color: #800000 !important;
 }
 
 
@@ -254,4 +249,109 @@
     width: 40px;
     height: 40px;
     padding: 0 !important;
+}
+.filter-card-premium{
+  overflow: visible !important;
+}
+/* ================= MULTISELECT THEME - COZYPOT ================= */
+
+.custom-multiselect-theme{
+  font-size:14px;
+
+  /* hover option */
+  --ms-option-bg-pointed:#fbe9ea;
+  --ms-option-color-pointed:#7B121C;
+
+  /* selected option */
+  --ms-option-bg-selected:#f2d6d8;
+  --ms-option-color-selected:#7B121C;
+
+  /* tag (multiple mode) */
+  --ms-tag-bg:#7B121C;
+  --ms-tag-color:#ffffff;
+
+  /* focus ring */
+  --ms-ring-color:rgba(123,18,28,0.2);
+  --ms-border-color-active:#7B121C;
+}
+
+/* ================= INPUT ================= */
+
+.custom-multiselect-theme .multiselect-wrapper{
+  min-height:42px;
+  border-radius:15px;
+  border:1.5px solid #e5e5e5;
+  padding:6px 10px;
+  transition:all .2s ease;
+  background:#fff;
+}
+
+.custom-multiselect-theme .multiselect-wrapper.is-active{
+  border-color:#7B121C;
+  box-shadow:0 0 0 4px rgba(123,18,28,0.08);
+}
+
+/* ================= PLACEHOLDER ================= */
+
+.custom-multiselect-theme .multiselect-placeholder{
+  font-size:13px;
+  color:#888;
+}
+
+/* ================= SELECTED LABEL ================= */
+
+.custom-multiselect-theme .multiselect-single-label{
+  font-size:13px;
+  color:#333;
+}
+
+/* ================= DROPDOWN ================= */
+
+.custom-multiselect-theme .multiselect-dropdown{
+  border-radius:10px;
+  border:1px solid #eee;
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+  padding:4px 0;
+}
+
+/* ================= OPTIONS ================= */
+
+.custom-multiselect-theme .multiselect-option{
+  font-size:13px;
+  padding:10px 12px;
+  transition:all .15s ease;
+}
+
+/* hover option */
+
+.custom-multiselect-theme .multiselect-option.is-pointed{
+  background:#fbe9ea !important;
+  color:#7B121C !important;
+}
+
+/* selected option */
+
+.custom-multiselect-theme .multiselect-option.is-selected{
+  background:#f2d6d8 !important;
+  color:#7B121C !important;
+  font-weight:500;
+}
+
+/* selected + hover */
+
+.custom-multiselect-theme .multiselect-option.is-selected.is-pointed{
+  background:#ebc4c7 !important;
+  color:#7B121C !important;
+}
+
+/* ================= ẨN ASSIST TEXT ================= */
+
+.custom-multiselect-theme .multiselect-assist{
+  display:none !important;
+}
+
+/* Ẩn "Press enter to select" */
+
+.custom-multiselect-theme .multiselect-option-label span:last-child{
+  display:none !important;
 }
