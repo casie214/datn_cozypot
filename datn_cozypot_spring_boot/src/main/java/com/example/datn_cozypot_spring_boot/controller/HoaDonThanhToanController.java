@@ -48,6 +48,8 @@ public class HoaDonThanhToanController {
     private final ChiTietHoaDonService chiTietHoaDonService;
 
     private final LichSuHoaDonService lichSuHoaDonService;
+    private final phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
+
 
     private final LichSuThanhToanService lichSuThanhToanService;
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
@@ -274,7 +276,8 @@ public class HoaDonThanhToanController {
         res.setId(phieu.getId());
         res.setMaPhieu(phieu.getMaDatBan());
         res.setThoiGianDat(phieu.getThoiGianDat());
-        res.setSoNguoi(phieu.getSoLuongKhach());
+        Integer tongNguoiTaiBan = phieuDatBanBanAnRepository.getTongSoNguoiDangNgoiTaiBan(idBanAn);
+        res.setSoNguoi(tongNguoiTaiBan);
         res.setTrangThai(phieu.getTrangThai());
         res.setThoiGianNhanBan(phieu.getThoiGianNhanBan());
 
@@ -425,6 +428,27 @@ public class HoaDonThanhToanController {
         }
 
         return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/danh-sach-phieu-tai-ban/{idBanAn}")
+    public ResponseEntity<List<Map<String, Object>>> getDanhSachPhieuTaiBan(@PathVariable Integer idBanAn) {
+        List<PhieuDatBanBanAn> links = phieuDatBanBanAnRepository.findActiveLinksByBanId(idBanAn);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for(PhieuDatBanBanAn link : links) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("idPhieu", link.getPhieuDatBan().getId());
+
+            // Trích xuất tên khách hàng (nếu có)
+            String tenKhach = link.getPhieuDatBan().getIdKhachHang() != null
+                    ? link.getPhieuDatBan().getIdKhachHang().getTenKhachHang()
+                    : "Khách vãng lai";
+
+            map.put("tenKhachHang", tenKhach);
+            map.put("soNguoi", link.getSoNguoiNgoi());
+            result.add(map);
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/huy-phieu-cho")
