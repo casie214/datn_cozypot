@@ -93,16 +93,11 @@
 }
 
 .btn-page {
-    border: 1px solid #8b0000;
-    background: white;
-    color: #8b0000;
-    border-radius: 8px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.2s;
+    background: transparent;
+    border: none;
+    color: #333;
+    padding: 5px 10px;
+    cursor: pointer;
 }
 
 .btn-page:hover:not(:disabled) {
@@ -117,11 +112,15 @@
 
 .page-number {
     cursor: pointer;
-    padding: 6px 12px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;    border-radius: 6px;
     margin: 0 2px;
     color: #8b0000;
     font-weight: 500;
+    display: flex;
+    align-items: center;     /* căn giữa dọc */
+    justify-content: center; /* căn giữa ngang */
+    padding: 0;   
 }
 
 .page-number:hover {
@@ -561,14 +560,14 @@ box-shadow: 0 3px 6px rgba(131, 131, 131, 0.2);
 /* Phân trang tròn */
 .pagination-custom .page-link {
   border: 1px solid #eee;
-  color: #333;
-  margin: 0 5px;
-  border-radius: 50% !important;
-  width: 35px;
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    color: #333;
+    margin: 0 5px;
+    border-radius: 50% !important;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .pagination-custom .active .page-link {
