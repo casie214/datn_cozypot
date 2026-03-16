@@ -468,6 +468,11 @@ public class DatBanService {
             PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
             phieu.setTrangThai(request.getTrangThaiPhieu());
+
+            if (request.getTrangThaiPhieu() == 3 && phieu.getThoiGianNhanBan() == null) {
+                phieu.setThoiGianNhanBan(LocalDateTime.now());
+            }
+
             phieuDatBanRepository.save(phieu);
         }
 

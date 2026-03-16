@@ -891,6 +891,7 @@ const openManageModal = async (ban, forceStatus = null, targetKhach = null) => {
           tenKhachHang: targetKhach ? targetKhach.tenKhachHang : (data.tenKhachHang || 'Khách tại quán'),
           idKhachHang: targetKhach ? targetKhach.idKhachHang : data.idKhachHang, 
           thoiGianDat: targetKhach ? targetKhach.thoiGianDat : data.thoiGianDat,
+          thoiGianNhanBan: data.thoiGianNhanBan || null,
           soNguoi: (data.soNguoiBanNay && data.soNguoiBanNay > 0) 
                    ? data.soNguoiBanNay 
                    : (targetKhach ? (targetKhach.soNguoi || targetKhach.soLuongKhach) : data.soNguoi),
@@ -1698,6 +1699,26 @@ const handleSwitchTable = async (banMoi) => {
   }
 };
 
+const tableTimerString = computed(() => {
+  if (!selectedPhieu.value) return "00:00:00";
+  
+  // Ưu tiên lấy thoiGianNhanBan (nếu có), không thì lấy thoiGianDat
+  const startTime = selectedPhieu.value.thoiGianNhanBan || selectedPhieu.value.thoiGianDat;
+  if (!startTime) return "00:00:00";
+  
+  const start = dayjs(startTime);
+  const now = dayjs(currentTime.value);
+  const diff = now.diff(start); // Lấy chênh lệch mili-giây
+
+  if (diff < 0) return "Chưa tới giờ";
+
+  const hours = Math.floor(diff / 3600000).toString().padStart(2, "0");
+  const minutes = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
+  const seconds = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+  
+  return `${hours}:${minutes}:${seconds}`;
+});
+
 
 const isTableInCurrentGroup = (banId) => {
   if (!selectedPhieu.value || !selectedPhieu.value.danhSachBan) return false;
@@ -2312,6 +2333,15 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <i class="fa-solid fa-info-circle me-1"></i> Khi thanh toán, tất cả các bàn trên sẽ được dọn trống.
                     </div>
                 </div>
+                <div v-if="getTrangThaiTheoNgay(selectedBan?.id) === 1" class="mt-2 text-danger d-flex align-items-center">
+                            <i class="fa-solid fa-stopwatch me-2 fa-spin-pulse" style="font-size: 1.2rem;"></i>
+                            <strong>Thời gian đã ngồi: </strong> 
+                            <span class="fs-5 fw-bold bg-white px-2 py-1 ms-2 rounded border border-danger shadow-sm" style="letter-spacing: 1px;">
+                                {{ tableTimerString }}
+                            </span>
+                </div>
+                
+                <br>
                 
                 <div v-if="selectedPhieu" class="alert alert-danger p-3 mb-3 border-0 shadow-sm" style="background-color: #fff5f5; border-left: 5px solid #7d161a !important;">
                     <div class="d-flex justify-content-between align-items-center">
