@@ -14,6 +14,7 @@ const isLoggedIn = computed(
   () => !!authStore.token && authStore.role === "USER",
 );
 const searchCode = ref("");
+const searchSdt = ref("");
 const isLoadingSearch = ref(false);
 const userHistoryList = ref([]);
 const isLoadingHistory = ref(false);
@@ -24,12 +25,14 @@ const configCancelLimit = ref(2);
 const fetchConfig = async () => {
   try {
     // Gọi đúng endpoint lấy tham số hệ thống (giống bên admin)
-    const response = await axiosClient.get("/tham-so-he-thong"); 
+    const response = await axiosClient.get("/tham-so-he-thong");
     const params = response.data;
-    
+
     // Tìm và gán giá trị động từ DB
-    const holdTime = params.find(p => p.maThamSo === 'MAX_HOLD_TIME');
-    const cancelLimit = params.find(p => p.maThamSo === 'THOI_GIAN_HUY_HOAN_COC');
+    const holdTime = params.find((p) => p.maThamSo === "MAX_HOLD_TIME");
+    const cancelLimit = params.find(
+      (p) => p.maThamSo === "THOI_GIAN_HUY_HOAN_COC",
+    );
 
     if (holdTime) configHoldTime.value = Number(holdTime.giaTri);
     if (cancelLimit) configCancelLimit.value = Number(cancelLimit.giaTri) / 60; // Đổi phút sang giờ
@@ -124,18 +127,23 @@ const fetchUserHistory = async () => {
 const handleSearch = async () => {
   if (!searchCode.value || searchCode.value.trim() === "")
     return Swal.fire("Lỗi", "Vui lòng nhập Mã phiếu đặt bàn!", "warning");
+
+  if (!searchSdt.value || searchSdt.value.trim() === "")
+    return Swal.fire("Lỗi", "Vui lòng nhập Số điện thoại đặt bàn!", "warning");
+
   isLoadingSearch.value = true;
   displayOrderData.value = null;
+
   try {
     const response = await axiosClient.get(`/lich-su-dat-ban/tra-cuu`, {
-      params: { maPhieu: searchCode.value.trim() },
+      params: { maPhieu: searchCode.value.trim(), sdt: searchSdt.value.trim() },
     });
     if (response.data) displayOrderData.value = response.data;
   } catch (error) {
     Swal.fire(
       "Không tìm thấy",
-      error.response?.data?.message || "Kiểm tra lại mã phiếu",
-      "info",
+      error.response?.data?.message || "Kiểm tra lại mã phiếu và số điện thoại",
+      "error",
     );
   } finally {
     isLoadingSearch.value = false;
@@ -149,9 +157,12 @@ const viewHistoryDetail = async (maPhieu) => {
     didOpen: () => Swal.showLoading(),
   });
   try {
-    const response = await axiosClient.get(`/lich-su-dat-ban/tra-cuu`, {
-      params: { maPhieu: maPhieu },
-    });
+    const response = await axiosClient.get(
+      `/lich-su-dat-ban/chi-tiet/${maPhieu}`,
+      {
+        params: { maPhieu: maPhieu },
+      },
+    );
     displayOrderData.value = response.data;
     Swal.close();
   } catch (error) {
@@ -196,13 +207,13 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
 
   // 2. NẾU CÓ CỌC -> TÍNH TOÁN DỰA TRÊN THAM SỐ ĐỘNG VÀ GIỜ ĐẶT (thoiGianDat)
   // Lưu ý: thoiGianDat lấy từ displayOrderData (cục chi tiết m vừa mở ra xem)
-  const bookingTime = dayjs(displayOrderData.value.thoiGianDat); 
+  const bookingTime = dayjs(displayOrderData.value.thoiGianDat);
   const now = dayjs();
-  
-  const diffMinutes = bookingTime.diff(now, "minute"); 
+
+  const diffMinutes = bookingTime.diff(now, "minute");
   const diffHours = bookingTime.diff(now, "hour", true);
 
-  const holdTime = configHoldTime.value;   // Mặc định 15p
+  const holdTime = configHoldTime.value; // Mặc định 15p
   const cancelLimit = configCancelLimit.value; // Mặc định 2h
 
   let isWarning = false;
@@ -216,10 +227,11 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   } else if (diffHours < cancelLimit) {
     // Hủy sát giờ (Dưới 2 tiếng)
     isWarning = true;
-    let timeRemaining = diffMinutes < 60 
-        ? `<b>${diffMinutes} phút</b>` 
+    let timeRemaining =
+      diffMinutes < 60
+        ? `<b>${diffMinutes} phút</b>`
         : `<b>${Math.floor(diffMinutes / 60)} giờ ${diffMinutes % 60} phút</b>`;
-    
+
     message = `Chỉ còn ${timeRemaining} nữa là đến giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Quy định hủy trước ${cancelLimit}h, nên bạn sẽ <b>MẤT CỌC</b>.`;
   } else {
     // Hủy an toàn (Trên 2 tiếng)
@@ -240,8 +252,8 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
         </div>
       </div>
       
-      <div class="alert ${isWarning ? 'alert-warning border-warning' : 'alert-success border-success'} d-flex align-items-start mb-3 text-start small">
-        <i class="fas ${isWarning ? 'fa-exclamation-triangle text-warning' : 'fa-check-circle text-success'} mt-1 me-2"></i>
+      <div class="alert ${isWarning ? "alert-warning border-warning" : "alert-success border-success"} d-flex align-items-start mb-3 text-start small">
+        <i class="fas ${isWarning ? "fa-exclamation-triangle text-warning" : "fa-check-circle text-success"} mt-1 me-2"></i>
         <div><strong>Cảnh báo:</strong><br />${message}</div>
       </div>
       
@@ -257,7 +269,9 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: isSafe ? "#198754" : "#d33",
-    confirmButtonText: isSafe ? "Xác nhận Hủy & Hoàn cọc" : "Chấp nhận Mất cọc & Hủy",
+    confirmButtonText: isSafe
+      ? "Xác nhận Hủy & Hoàn cọc"
+      : "Chấp nhận Mất cọc & Hủy",
     cancelButtonText: "Thoát",
     customClass: { popup: "rounded-4" },
     preConfirm: () => {
@@ -284,11 +298,19 @@ const executeCancel = async (idPhieu, reason) => {
     await axiosClient.put(`/lich-su-dat-ban/huy-don/${idPhieu}`, {
       lyDo: reason,
     });
-    Swal.fire("Đã hủy!", "Lịch đặt bàn của bạn đã được hủy thành công.", "success");
+    Swal.fire(
+      "Đã hủy!",
+      "Lịch đặt bàn của bạn đã được hủy thành công.",
+      "success",
+    );
     displayOrderData.value = null;
     if (isLoggedIn.value) await fetchUserHistory();
   } catch (error) {
-    Swal.fire("Lỗi", error.response?.data?.message || "Lỗi khi hủy đơn", "error");
+    Swal.fire(
+      "Lỗi",
+      error.response?.data?.message || "Lỗi khi hủy đơn",
+      "error",
+    );
   }
 };
 
@@ -438,6 +460,15 @@ const finalBalance = computed(() => {
                 type="text"
                 class="form-control form-control-lg text-center fw-bold"
                 placeholder="VD: PDB0001"
+                @keyup.enter="handleSearch"
+              />
+            </div>
+            <div class="col-md-12">
+              <input
+                v-model="searchSdt"
+                type="text"
+                class="form-control form-control-lg text-center fw-bold"
+                placeholder="Số điện thoại đặt bàn"
                 @keyup.enter="handleSearch"
               />
             </div>
@@ -814,7 +845,7 @@ const finalBalance = computed(() => {
                     toán tiền cọc ngay
                   </button>
                   <button
-                    v-if="canCancel && isLoggedIn"
+                    v-if="canCancel && (isLoggedIn || searchSdt)"
                     @click="
                       handleCancelOrder(
                         displayOrderData.idPhieu,
@@ -826,32 +857,6 @@ const finalBalance = computed(() => {
                   >
                     <i class="fa-solid fa-ban me-2"></i> Yêu cầu hủy đơn này
                   </button>
-
-                  <div
-                    v-else-if="canCancel && !isLoggedIn"
-                    class="alert alert-warning text-center small mb-0 rounded-3 border-warning"
-                  >
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
-                    <span
-                      >Bạn đang tra cứu tư cách khách. Vui lòng
-                      <strong>Đăng nhập</strong> hoặc gọi Hotline nếu muốn hủy
-                      đơn đơn.</span
-                    >
-                  </div>
-
-                  <div
-                    v-else
-                    class="alert alert-secondary text-center small mb-0 rounded-3"
-                  >
-                    <i class="fa-solid fa-circle-info me-1"></i>
-                    <span v-if="isCancelledOrRefunded"
-                      >Đơn hàng này đã bị hủy.</span
-                    >
-                    <span v-else
-                      >Đơn hàng đang phục vụ hoặc hoàn tất, không thể tự hủy.
-                      Liên hệ Hotline nếu cần hỗ trợ.</span
-                    >
-                  </div>
                 </div>
               </div>
             </div>

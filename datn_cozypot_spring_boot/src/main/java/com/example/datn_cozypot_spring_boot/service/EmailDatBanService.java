@@ -207,6 +207,23 @@ public class EmailDatBanService {
     }
 
     private String buildHtmlCamOnContent(EmailDatBanDTO dto) {
+        String thongBaoTaiKhoan = "";
+        if (Boolean.TRUE.equals(dto.getIsTaiKhoanMoi())) {
+            thongBaoTaiKhoan = """
+                <div style="background: #e8f4fd; border-left: 4px solid #1890ff; padding: 14px 16px; border-radius: 6px; margin-top: 22px;">
+                    <p style="margin: 0 0 6px; color: #0050b3; font-weight: bold; font-size: 14px;">
+                        🎁 Tặng bạn: Tài khoản Thành viên
+                    </p>
+                    <p style="margin: 0; color: #434343; font-size: 13px; line-height: 1.6;">
+                        Để quản lý đơn dễ dàng hơn, CozyPot đã tạo tự động cho bạn một tài khoản:<br>
+                        • Email đăng nhập: <b>%s</b><br>
+                        • Mật khẩu: <b>%s</b><br>
+                        <i>(Bạn có thể đăng nhập để đổi mật khẩu, hoặc tiếp tục tra cứu nhanh bằng SĐT và Mã phiếu trên website).</i>
+                    </p>
+                </div>
+                """.formatted(dto.getEmail(), dto.getMatKhauMoi());
+        }
+
         return """
                 <!DOCTYPE html>
                 <html lang="vi">
@@ -258,6 +275,8 @@ public class EmailDatBanService {
                         <td style="padding: 11px 14px; border: 1px solid #eee; color: #222;">%s</td>
                       </tr>
                     </table>
+                    
+                    %s
 
                     <div style="background: #fff8f8; border-left: 4px solid #7d161a;
                                 padding: 14px 16px; border-radius: 6px; margin-top: 22px;">
@@ -287,7 +306,8 @@ public class EmailDatBanService {
                 dto.getMaPhieuDatBan(),
                 dto.getThoiGianDat(),
                 dto.getSoLuongKhach(),
-                dto.getSoDienThoai()
+                dto.getSoDienThoai(),
+                thongBaoTaiKhoan
         );
     }
 

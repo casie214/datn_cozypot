@@ -65,9 +65,24 @@ public class LichSuDatBanService {
     }
 
     // 2. DÀNH CHO KHÁCH VÃNG LAI
-    public Map<String, Object> traCuuKhachVangLai(String maPhieu) {
+    public Map<String, Object> traCuuKhachVangLai(String maPhieu, String soDienThoai) {
         if (maPhieu == null || maPhieu.trim().isEmpty()) {
             throw new RuntimeException("Vui lòng nhập Mã phiếu đặt bàn!");
+        }
+        if (soDienThoai == null || soDienThoai.trim().isEmpty()) {
+            throw new RuntimeException("Vui lòng nhập Số điện thoại đặt bàn!");
+        }
+
+        HoaDonThanhToan hd = hoaDonThanhToanRepository.findByMaPhieuVaSdtKhachHang(maPhieu.trim(), soDienThoai.trim())
+                .orElseThrow(() -> new RuntimeException("Sai thông tin! Vui lòng kiểm tra lại Mã phiếu hoặc Số điện thoại."));
+
+        return mapHoaDonChiTietSangFrontend(hd);
+    }
+
+    // 2. DÀNH CHO KHÁCH ĐÃ ĐĂNG NHẬP
+    public Map<String, Object> xemChiTietChoKhachDangNhap(String maPhieu) {
+        if (maPhieu == null || maPhieu.trim().isEmpty()) {
+            throw new RuntimeException("Mã phiếu không hợp lệ!");
         }
 
         HoaDonThanhToan hd = hoaDonThanhToanRepository.findByMaPhieuDatBan(maPhieu.trim())

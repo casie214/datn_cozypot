@@ -101,5 +101,8 @@ public interface HoaDonThanhToanRepository extends JpaRepository<HoaDonThanhToan
     @Query("SELECT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan p WHERE p.maDatBan = :maPhieu")
     Optional<HoaDonThanhToan> findByMaPhieuDatBan(@Param("maPhieu") String maPhieu);
 
+    @Query("SELECT h FROM HoaDonThanhToan h JOIN h.idPhieuDatBan p LEFT JOIN h.idKhachHang k WHERE p.maDatBan = :maPhieu AND k.soDienThoai = :sdt")
+    Optional<HoaDonThanhToan> findByMaPhieuVaSdtKhachHang(@Param("maPhieu") String maPhieu, @Param("sdt") String sdt);
+
     List<HoaDonThanhToan> findByIdKhachHang_IdOrderByThoiGianTaoDesc(Integer idKhachHang);
 }
