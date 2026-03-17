@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.entity;
 
 import com.example.datn_cozypot_spring_boot.config.AuthProvider;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
@@ -80,6 +81,7 @@ public class KhachHang {
     private Set<DanhGia> danhGias = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idKhachHang")
+    @JsonIgnore
     private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idKhachHang")

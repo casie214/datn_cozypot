@@ -78,6 +78,7 @@ public class NhanVien {
     private Set<GiaoCa> giaoCas = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idNhanVien")
+    @JsonIgnore
     private Set<HoaDonThanhToan> hoaDonThanhToans = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idNhanVien")

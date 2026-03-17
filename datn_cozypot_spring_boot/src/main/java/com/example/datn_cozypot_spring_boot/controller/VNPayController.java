@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +28,8 @@ import java.util.*;
 @RequestMapping("/api/vnpay")
 public class VNPayController {
 
+    private static final Logger log = LoggerFactory.getLogger(VNPayController.class);
+
     private final HoaDonThanhToanRepository hoaDonThanhToanRepository;
     private final PhieuDatBanRepository phieuDatBanRepository;
     private final BanAnRepository banAnRepository;
@@ -34,6 +38,8 @@ public class VNPayController {
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final NhanVienRepository nhanVienRepository;
     private final EmailDatBanService emailDatBanService;
+    // 🚨 KHO BẢNG TRUNG GIAN DÙNG ĐỂ KIỂM TRA BÀN CÓ KHÁCH GHÉP KHÔNG
+    private final phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
 
     private String vnp_TmnCode = "UKPOJ88W";
     private String vnp_HashSecret = "PN902AZ1XJ8BMLR5BPV1P8585EQ31RIU";
@@ -47,8 +53,8 @@ public class VNPayController {
 
     @GetMapping("/create-payment/{idHoaDon}")
     public ResponseEntity<?> createPayment(
-            @PathVariable String idHoaDon, // 🚨 ĐỔI TỪ Integer SANG String
-            @RequestParam(required = false) Long amount, // Dùng để nhận số tiền từ gộp bàn hoặc hỗn hợp
+            @PathVariable String idHoaDon,
+            @RequestParam(required = false) Long amount,
             HttpServletRequest request) throws UnsupportedEncodingException {
 
         // XỬ LÝ SỐ TIỀN THANH TOÁN
@@ -78,8 +84,7 @@ public class VNPayController {
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_BankCode", ""); // Để trống để khách tự chọn phương thức thẻ/QR
 
-        // 🚨 TẠO MÃ GIAO DỊCH: idHoaDon lúc này có thể là "3" hoặc "3_1"
-        // Khi kết hợp, vnp_TxnRef sẽ thành "3_1_1709999999999" (rất chuẩn để hàm Return xử lý)
+        // TẠO MÃ GIAO DỊCH: idHoaDon lúc này có thể là "3" hoặc "3_1"
         String vnp_TxnRef = idHoaDon + "_" + System.currentTimeMillis();
 
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
@@ -130,7 +135,7 @@ public class VNPayController {
     }
 
     @GetMapping("/vnpay-return")
-    @Transactional // Rất quan trọng để đảm bảo tất cả cập nhật DB và ghi Log đều thành công cùng lúc
+    @Transactional
     public void vnpayReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Map<String, String> fields = new HashMap<>();
         for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements();) {
@@ -172,89 +177,91 @@ public class VNPayController {
         if (signValue.equals(vnp_SecureHash)) {
             if ("00".equals(vnp_ResponseCode)) {
 
-                // Lấy trước phương thức thanh toán VNPay để dùng chung trong vòng lặp (Tối ưu hiệu năng)
                 PhuongThucThanhToan ptVnPay = phuongThucThanhToanRepository.findByMaPhuongThuc("PT01");
 
-                // 🚨 TÁCH CHUỖI ID HÓA ĐƠN VÀ CHẠY VÒNG LẶP
+                // 🚨 1. ĐỌC VÀ CHIA 100 SỐ TIỀN TỪ VNPAY TRẢ VỀ Ở ĐÂY
+                String amountStr = fields.get("vnp_Amount");
+                log.info("🟢 VNPAY THANH TOÁN THÀNH CÔNG SỐ TIỀN: " + amountStr);
+                BigDecimal tongTienVnPayTraVe = new BigDecimal(amountStr).divide(new BigDecimal(100));
+
                 String[] idArray = vnp_TxnRef.split("_");
 
-                for (String idStr : idArray) {
-                    try {
-                        // Ép kiểu ID. Nếu phần tử cuối là Timestamp (không phải số), nó sẽ nhảy vào catch và bỏ qua.
-                        Integer idHoaDon = Integer.parseInt(idStr);
+                try {
+                    // Lấy ID hóa đơn đầu tiên (Vì nếu có gộp bàn, các HĐ đã gộp chung ID)
+                    Integer idHoaDon = Integer.parseInt(idArray[0]);
 
-                        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
+                    HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
 
-                        if (hoaDon != null && hoaDon.getTrangThaiHoaDon() != 6) { // Chỉ xử lý nếu chưa thanh toán (Tránh VNPay gọi callback 2 lần)
-                            Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
+                    if (hoaDon != null && hoaDon.getTrangThaiHoaDon() != 6) { // Chỉ xử lý nếu chưa thanh toán
+                        Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
 
-                            // 1. CẬP NHẬT TRẠNG THÁI HÓA ĐƠN -> Đã thanh toán (6)
-                            hoaDon.setTrangThaiHoaDon(6);
-                            hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
+                        // CẬP NHẬT TRẠNG THÁI HÓA ĐƠN -> Đã thanh toán (6)
+                        hoaDon.setTrangThaiHoaDon(6);
+                        hoaDon.setThoiGianThanhToan(Instant.now().plus(7, ChronoUnit.HOURS));
 
-                            // 2. 🚨 N-N LOGIC: CẬP NHẬT PHIẾU VÀ GIẢI PHÓNG TOÀN BỘ BÀN
-                            if (hoaDon.getIdPhieuDatBan() != null) {
-                                PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
-                                phieu.setTrangThai(4); // Phiếu hoàn tất
+                        // Cập nhật lại chính xác số tiền VNPay trả về
+                        hoaDon.setTongTienThanhToan(tongTienVnPayTraVe);
+                        BigDecimal tienKhachDuaTrk = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : BigDecimal.ZERO;
+                        hoaDon.setTienKhachDua(tienKhachDuaTrk.add(tongTienVnPayTraVe));
 
-                                // Quét dọn tất cả bàn trong phiếu này
-                                for (BanAn banAn : phieu.getBanAns()) {
-                                    banAn.setTrangThai(0); // Trống
-                                    banAnRepository.save(banAn);
+                        // 🚨 2. CẬP NHẬT PHIẾU VÀ GIẢI PHÓNG BÀN (CHỐNG ĐUỔI KHÁCH GHÉP)
+                        if (hoaDon.getIdPhieuDatBan() != null) {
+                            PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
+                            phieu.setTrangThai(4); // Phiếu hoàn tất
+
+                            for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
+                                BanAn ban = link.getBanAn();
+
+                                // Lấy tất cả các phiếu đang hoạt động tại bàn này
+                                List<PhieuDatBanBanAn> cacPhieuCungBan = phieuDatBanBanAnRepository.findActiveLinksByBanId(ban.getId());
+
+                                // Đếm xem có phiếu nào KHÁC với phiếu đang thanh toán này không
+                                long countOtherActive = cacPhieuCungBan.stream()
+                                        .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                                        .count();
+
+                                // Chỉ dọn bàn khi KHÔNG còn ai khác ngồi chung
+                                if (countOtherActive == 0) {
+                                    ban.setTrangThai(0);
+                                    banAnRepository.save(ban);
                                 }
-                                phieuDatBanRepository.save(phieu);
                             }
-
-                            // 3. TÍNH TOÁN SỐ TIỀN THỰC TẾ CỦA RIÊNG HÓA ĐƠN NÀY (ĐỂ GHI VÀO ĐỐI SOÁT)
-                            // Bằng Tổng tiền cần thanh toán - Số tiền khách đã trả trước đó (như Cọc, Tiền mặt hỗn hợp)
-                            BigDecimal tongThanhToan = hoaDon.getTongTienThanhToan() != null ? hoaDon.getTongTienThanhToan() : BigDecimal.ZERO;
-                            BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
-                            BigDecimal tienKhachDuaTrk = hoaDon.getTienKhachDua() != null ? hoaDon.getTienKhachDua() : BigDecimal.ZERO;
-
-                            BigDecimal tienThucThuLanNay = tongThanhToan.subtract(tienCoc).subtract(tienKhachDuaTrk);
-                            if (tienThucThuLanNay.compareTo(BigDecimal.ZERO) < 0) {
-                                tienThucThuLanNay = BigDecimal.ZERO; // Đảm bảo không bị âm
-                            }
-
-                            // Cộng dồn tiền vào cột tien_khach_dua (Để biết hóa đơn này đã nhận đủ tiền)
-                            hoaDon.setTienKhachDua(tienKhachDuaTrk.add(tienThucThuLanNay));
-
-                            // 📝 4. GHI LOG VÀO TIMELINE LỊCH SỬ HÓA ĐƠN
-                            ghiLichSu(
-                                    hoaDon,
-                                    null, // ID nhân viên để null vì là hệ thống tự xác nhận
-                                    "Đã thanh toán VNPay: " + tienThucThuLanNay.setScale(0) + "đ",
-                                    "Mã giao dịch VNPay gốc: " + vnp_TxnRef,
-                                    trangThaiCu,
-                                    6
-                            );
-
-                            // 💰 5. LƯU VÀO BẢNG LỊCH SỬ THANH TOÁN (ĐỐI SOÁT THEO TỪNG BÀN)
-                            try {
-                                LichSuThanhToan lichSu = new LichSuThanhToan();
-                                lichSu.setPhuongThucThanhToan(ptVnPay);
-                                lichSu.setHoaDon(hoaDon);
-                                lichSu.setTenPhuongThuc(ptVnPay != null ? ptVnPay.getTenPhuongThuc() : "VNPay");
-                                lichSu.setMaGiaoDich(vnp_TxnRef);
-                                lichSu.setSoTienThanhToan(tienThucThuLanNay); // Lưu ĐÚNG số tiền nợ của bàn này, không phải tổng cục VNPay
-                                lichSu.setLoaiGiaoDich(1); // Giao dịch thu tiền
-                                lichSu.setNgayThanhToan(Instant.now());
-                                lichSu.setTrangThai(1); // Thành công
-                                lichSu.setGhiChu("Thanh toán điện tử qua VNPay (Gộp bàn)");
-                                lichSuThanhToanRepository.save(lichSu);
-                            } catch (Exception e) {
-                                System.out.println("❌ Lỗi lưu đối soát VNPay cho Hóa đơn " + idHoaDon + ": " + e.getMessage());
-                            }
-
-                            hoaDonThanhToanRepository.save(hoaDon);
+                            phieuDatBanRepository.save(phieu);
                         }
-                    } catch (NumberFormatException e) {
-                        // Nếu phần tử split ra không phải là ID hóa đơn (Ví dụ đoạn timestamp đuôi), thì bỏ qua
-                        System.out.println("Bỏ qua thành phần không phải ID trong TxnRef: " + idStr);
+
+                        // 📝 3. GHI LOG VÀO TIMELINE LỊCH SỬ HÓA ĐƠN
+                        ghiLichSu(
+                                hoaDon,
+                                null, // ID nhân viên để null vì là hệ thống tự xác nhận
+                                "Đã thanh toán VNPay: " + tongTienVnPayTraVe.setScale(0) + "đ",
+                                "Mã giao dịch VNPay gốc: " + vnp_TxnRef,
+                                trangThaiCu,
+                                6
+                        );
+
+                        // 💰 4. LƯU VÀO BẢNG LỊCH SỬ THANH TOÁN
+                        try {
+                            LichSuThanhToan lichSu = new LichSuThanhToan();
+                            lichSu.setPhuongThucThanhToan(ptVnPay);
+                            lichSu.setHoaDon(hoaDon);
+                            lichSu.setTenPhuongThuc(ptVnPay != null ? ptVnPay.getTenPhuongThuc() : "VNPay");
+                            lichSu.setMaGiaoDich(vnp_TxnRef);
+                            lichSu.setSoTienThanhToan(tongTienVnPayTraVe); // 🚨 Lưu số tiền đã CHIA 100
+                            lichSu.setLoaiGiaoDich(1); // Giao dịch thu tiền
+                            lichSu.setNgayThanhToan(Instant.now());
+                            lichSu.setTrangThai(1); // Thành công
+                            lichSu.setGhiChu("Thanh toán điện tử qua VNPay");
+                            lichSuThanhToanRepository.save(lichSu);
+                        } catch (Exception e) {
+                            log.error("❌ Lỗi lưu đối soát VNPay cho Hóa đơn " + idHoaDon + ": " + e.getMessage());
+                        }
+
+                        hoaDonThanhToanRepository.save(hoaDon);
                     }
+                } catch (NumberFormatException e) {
+                    log.warn("Bỏ qua thành phần không phải ID trong TxnRef");
                 }
 
-                // Chuyển hướng về trang thành công của Vue
                 response.sendRedirect("http://localhost:5173/payment-success");
             } else {
                 response.sendRedirect("http://localhost:5173/payment-failed");
@@ -397,7 +404,7 @@ public class VNPayController {
                         lichSu.setGhiChu("Thanh toán tiền cọc thành công qua cổng VNPay");
                         lichSuThanhToanRepository.save(lichSu);
                     } catch (Exception e) {
-                        System.out.println("Lỗi lưu lịch sử TT VNPay: " + e.getMessage());
+                        log.error("Lỗi lưu lịch sử TT VNPay: " + e.getMessage());
                     }
 
                     // 4. Ghi log Lịch sử Hóa đơn
@@ -410,7 +417,7 @@ public class VNPayController {
                         lsHd.setThoiGianThucHien(Instant.now());
                         lichSuHoaDonRepository.save(lsHd);
                     } catch (Exception e) {
-                        System.out.println("Lỗi lưu Log Hóa đơn: " + e.getMessage());
+                        log.error("Lỗi lưu Log Hóa đơn: " + e.getMessage());
                     }
 
                     try {
@@ -434,7 +441,7 @@ public class VNPayController {
                             emailDatBanService.sendEmailCamOnDatBan(emailDto);
                         }
                     } catch (Exception e) {
-                        System.out.println("Lỗi khi gửi mail cảm ơn sau VNPay: " + e.getMessage());
+                        log.error("Lỗi khi gửi mail cảm ơn sau VNPay: " + e.getMessage());
                     }
                 }
                 // Trả về trang báo thành công kèm type=deposit
@@ -460,7 +467,7 @@ public class VNPayController {
                             emailDatBanService.sendEmailThanhToanThatBai(emailDto);
                         }
                     } catch (Exception e) {
-                        System.out.println("Lỗi gửi mail thanh toán thất bại: " + e.getMessage());
+                        log.error("Lỗi gửi mail thanh toán thất bại: " + e.getMessage());
                     }
                 }
                 response.sendRedirect("http://localhost:5173/payment-failed?type=deposit");
@@ -472,16 +479,16 @@ public class VNPayController {
 
     // Hàm bổ trợ ghi Log Timeline
     private void ghiLichSu(HoaDonThanhToan hd, Integer idNV, String hanhDong, String lyDo, Integer cu, Integer moi) {
-        LichSuHoaDon log = new LichSuHoaDon();
-        log.setIdHoaDon(hd);
+        LichSuHoaDon logItem = new LichSuHoaDon();
+        logItem.setIdHoaDon(hd);
         if (idNV != null) {
-            nhanVienRepository.findById(idNV).ifPresent(log::setIdNhanVien);
+            nhanVienRepository.findById(idNV).ifPresent(logItem::setIdNhanVien);
         }
-        log.setHanhDong(hanhDong);
-        log.setLyDoThucHien(lyDo);
-        log.setThoiGianThucHien(Instant.now());
-        log.setTrangThaiTruocDo(cu);
-        log.setTrangThaiMoi(moi);
-        lichSuHoaDonRepository.save(log);
+        logItem.setHanhDong(hanhDong);
+        logItem.setLyDoThucHien(lyDo);
+        logItem.setThoiGianThucHien(Instant.now());
+        logItem.setTrangThaiTruocDo(cu);
+        logItem.setTrangThaiMoi(moi);
+        lichSuHoaDonRepository.save(logItem);
     }
 }

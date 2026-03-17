@@ -284,6 +284,7 @@ onUnmounted(() => {
   clearInterval(timer);
 });
 
+
 // onMounted(() => {
 //     fetchAllBan();
 //    fetchTableStatus();

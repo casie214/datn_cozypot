@@ -766,6 +766,12 @@ public class DatBanService {
 
         List<PhieuDatBan> phieuCungGio = phieuDatBanRepository.findPhieuOverlapping(start, end);
 
+        if (request.getIdPhieu() != null) {
+            phieuCungGio = phieuCungGio.stream()
+                    .filter(p -> !p.getId().equals(request.getIdPhieu()))
+                    .collect(Collectors.toList());
+        }
+
         int tongSucChua = banAnRepository.getTongSucChua();
 
         int soKhachDaDat = phieuCungGio.stream()
