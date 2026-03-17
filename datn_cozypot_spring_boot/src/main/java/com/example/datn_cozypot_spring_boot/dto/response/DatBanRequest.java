@@ -18,4 +18,6 @@ public class DatBanRequest {
 
     @NotNull(message = "Vui lòng chọn giờ đặt")
     private LocalTime gioDat;
+
+    private Integer idPhieu;
 }

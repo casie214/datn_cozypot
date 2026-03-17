@@ -708,17 +708,7 @@ const cannotPrint = computed(() => {
         </div>
 
         <div class="d-flex gap-2">
-          <button
-            v-if="
-              selectedOrder?.trangThaiCode === 0 ||
-              selectedOrder?.trangThaiCode === 2
-            "
-            class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
-            @click="handleConfirmOrder(selectedOrder?.dbId)"
-          >
-            <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi
-            mail
-          </button>
+          
 
           <button
             class="btn btn-white border px-4 py-2 fw-medium"
