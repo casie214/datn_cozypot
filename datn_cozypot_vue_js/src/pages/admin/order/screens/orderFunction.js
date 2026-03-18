@@ -47,6 +47,23 @@ export function useOrderManager() {
   const historyEvents = ref([]);
   const paymentHistory = ref([]);
 
+  const currentStaffId = ref(null);
+
+  const getLoggedInUserId = () => {
+    const userStr = localStorage.getItem("user");
+    console.log(userStr)
+    if (userStr) {
+      try {
+        const userObj = JSON.parse(userStr);
+        return userObj.id || null;
+      } catch (e) {
+        console.error("Lỗi parse thông tin user:", e);
+        return null;
+      }
+    }
+    return null;
+  };
+
   const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -196,13 +213,13 @@ export function useOrderManager() {
     });
   };
 
-  const fetchConfig = async () => {
+const fetchConfig = async () => {
     try {
       const config = await BeGetThamSoHeThong();
       if (config) {
         currentVAT.value = Number(config.VAT || 10);
-        configHoldTime.value = Number(config.MAX_HOLD_TIME || 15);
-        configCancelLimit.value = Number(config.CANCEL_LIMIT_HOURS || 2);
+        configHoldTime.value = Number(config.THOI_GIAN_GIU_BAN || 15);
+        configCancelLimit.value = Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60; 
       }
     } catch (error) {
       console.error("Lỗi lấy tham số hệ thống, dùng mặc định", error);
@@ -522,7 +539,7 @@ export function useOrderManager() {
     const isLoiDoQuan = loiDoAi === "quan";
     const payload = {
       idHoaDon: cancelModalState.value.orderData.dbId,
-      idNhanVien: 1,
+      idNhanVien: currentStaffId.value,
       hanhDong: "Hủy hóa đơn",
       lyDoThucHien: cancelModalState.value.reason,
       isLoiDoQuan: isLoiDoQuan,
@@ -590,7 +607,7 @@ export function useOrderManager() {
         try {
           const payload = {
             idHoaDon: idToComplete,
-            idNhanVien: 1, // Sau này thay bằng ID user đang đăng nhập nhé
+            idNhanVien: currentStaffId.value, 
             hanhDong: "Khách ra về - Hoàn tất hóa đơn",
             thoiGianThucHien: new Date().toISOString(),
           };
@@ -635,6 +652,7 @@ export function useOrderManager() {
   };
 
   onMounted(async () => {
+    currentStaffId.value = getLoggedInUserId();
     await fetchConfig();
     await performSearch(false);
     // await fetchOrders();

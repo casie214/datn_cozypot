@@ -5,9 +5,11 @@ import axiosClient from "@/services/axiosClient";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import { useAuthStore } from "@/pages/guest/authentication/authenticationServices/authenticationService";
+import { useRouter } from "vue-router";
 
 dayjs.locale("vi");
 const authStore = useAuthStore();
+const router = useRouter();
 
 // --- STATE QUẢN LÝ ---
 const isLoggedIn = computed(
@@ -24,20 +26,15 @@ const configCancelLimit = ref(2);
 
 const fetchConfig = async () => {
   try {
-    // Gọi đúng endpoint lấy tham số hệ thống (giống bên admin)
-    const response = await axiosClient.get("/tham-so-he-thong");
-    const params = response.data;
-
-    // Tìm và gán giá trị động từ DB
-    const holdTime = params.find((p) => p.maThamSo === "MAX_HOLD_TIME");
-    const cancelLimit = params.find(
-      (p) => p.maThamSo === "THOI_GIAN_HUY_HOAN_COC",
-    );
-
-    if (holdTime) configHoldTime.value = Number(holdTime.giaTri);
-    if (cancelLimit) configCancelLimit.value = Number(cancelLimit.giaTri) / 60; // Đổi phút sang giờ
+    const response = await axiosClient.get("/tham-so-he-thong/all-map");
+    const config = response.data;
+    configHoldTime.value = Number(config.THOI_GIAN_GIU_BAN || 15);
+    configCancelLimit.value = Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60; 
+    
   } catch (error) {
     console.error("Lỗi lấy config, dùng mặc định", error);
+    configHoldTime.value = 15;
+    configCancelLimit.value = 2;
   }
 };
 
@@ -236,7 +233,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   } else {
     // Hủy an toàn (Trên 2 tiếng)
     isSafe = true;
-    message = `Giờ đặt bàn là <b>${bookingTime.format("HH:mm")}</b>. M đang hủy trước hạn nên sẽ được <b>Hoàn 100% cọc</b>.`;
+    message = `Giờ đặt bàn là <b>${bookingTime.format("HH:mm")}</b>. Bạn đang hủy trước hạn nên sẽ được <b>Hoàn 100% cọc</b>.`;
   }
 
   // 3. HIỂN THỊ POPUP
