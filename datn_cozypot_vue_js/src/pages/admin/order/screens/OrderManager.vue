@@ -201,6 +201,14 @@ const onPaginationChange = () => {
                       <span v-if="(!order.danhSachTenBan || order.danhSachTenBan.length === 0) && order.ban" class="badge table-badge-item">
                         {{ order.ban }}
                       </span>
+
+                      <span 
+                        v-if="(!order.danhSachTenBan || order.danhSachTenBan.length === 0) && !order.ban" 
+                        class="text-muted" 
+                        style="font-style: italic; font-size: 0.85rem;"
+                      >
+                        Chưa chọn bàn
+                      </span>
                     </div>
                   </td>
                   <td>{{ order.loai }}</td>

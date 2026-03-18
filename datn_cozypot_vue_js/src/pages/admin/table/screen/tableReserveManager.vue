@@ -15,6 +15,20 @@ import "@vueform/multiselect/themes/default.css";
 import Swal from "sweetalert2";
 import axiosClient from "@/services/axiosClient";
 
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  background: '#ffffff',
+  color: '#333',
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
+
 //---- --- Khai báo State ---
 const listPhieuDatBan = ref([]);
 const totalPages = ref(0);
@@ -550,7 +564,14 @@ const validateCreateForm = () => {
   }
 
   formErrors.value = errors;
-  return !Object.values(errors).some(Boolean);
+  
+  const isValid = !Object.values(errors).some(Boolean);
+  // 🚀 BẬT TOAST NẾU LỖI
+  if (!isValid) {
+    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng kiểm tra lại các trường báo đỏ' });
+  }
+
+  return isValid;
 };
 
 // ========================================================
@@ -744,7 +765,9 @@ const nextStep = () => {
   }
 
   if (isValid) {
-    currentStep.value = 2; // Chuyển sang bước nhập thông tin khách
+    currentStep.value = 2; 
+  } else {
+    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng điền đủ thông tin Bước 1' });
   }
 };
 
@@ -782,6 +805,48 @@ const removeSelectedTable = (index) => {
 const submitCreate = async () => {
   if (!validateCreateForm()) return;
 
+  // 🚀 KIỂM TRA TRÙNG LỊCH 3 TIẾNG 🚀
+  const phoneToBook = createForm.value.soDienThoai.trim();
+  const timeToBook = dayjs(createForm.value.thoiGianDat);
+
+  const conflictingBooking = listPhieuDatBan.value.find(phieu => {
+    // Bỏ qua phiếu Đã hủy (2) hoặc Hoàn tất (4)
+    if (String(phieu.trangThai) === "2" || String(phieu.trangThai) === "4") return false;
+
+    if (phieu.soDienThoai === phoneToBook) {
+      let existingTimeObj;
+      if (Array.isArray(phieu.thoiGianDat)) {
+        const [y, m, d, h, min, s] = phieu.thoiGianDat;
+        existingTimeObj = dayjs(new Date(y, m - 1, d, h || 0, min || 0, s || 0));
+      } else {
+        existingTimeObj = dayjs(phieu.thoiGianDat);
+      }
+      
+      // Độ chênh lệch thời gian theo giờ
+      const diffHours = Math.abs(existingTimeObj.diff(timeToBook, 'hour', true));
+      return diffHours < 3; // Nằm trong khoảng dưới 3 tiếng
+    }
+    return false;
+  });
+
+  if (conflictingBooking) {
+     let existingFormattedTime = "";
+     if (Array.isArray(conflictingBooking.thoiGianDat)) {
+       const [y, m, d, h, min, s] = conflictingBooking.thoiGianDat;
+       existingFormattedTime = dayjs(new Date(y, m - 1, d, h || 0, min || 0, s || 0)).format("HH:mm DD/MM/YYYY");
+     } else {
+       existingFormattedTime = dayjs(conflictingBooking.thoiGianDat).format("HH:mm DD/MM/YYYY");
+     }
+
+     Toast.fire({
+        icon: 'warning',
+        title: 'Trùng lịch!',
+        text: `Khách đã có lịch lúc ${existingFormattedTime}. Các lịch phải cách nhau ít nhất 3 tiếng!`,
+        timer: 6000 // Hiện lâu hơn để khách đọc kịp
+     });
+     return; // Dừng lại không cho gọi API
+  }
+
   isSubmitting.value = true;
 
   try {
@@ -798,11 +863,11 @@ const submitCreate = async () => {
     showCreateModal.value = false;
     refreshKey.value += 1;
 
-    // 🚨 ĐÃ SỬA: Chỉ hiện thông báo tạo thành công, không nhắc đến Email nữa
-    showToast("success", "✅ Thành công!", "Đã tạo phiếu đặt bàn mới.");
+    Toast.fire({ icon: 'success', title: 'Thành công!', text: 'Đã tạo phiếu đặt bàn mới.' });
+    searchDatBan(); // Cập nhật lại danh sách
 
   } catch (error) {
-    showToast("error", "❌ Tạo phiếu thất bại", error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại.");
+    Toast.fire({ icon: 'error', title: 'Thất bại', text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.' });
   } finally {
     isSubmitting.value = false;
   }

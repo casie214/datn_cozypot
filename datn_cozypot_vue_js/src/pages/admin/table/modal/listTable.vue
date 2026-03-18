@@ -12,13 +12,30 @@ import '@vueform/multiselect/themes/default.css';
 
 import { usePermission } from "@/components/permissionHelper";
 import CommonPagination from "@/components/commonPagination.vue";
+import Swal from "sweetalert2";
+
+// Cấu hình Toast mặc định của SweetAlert2 
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  background: '#ffffff',
+  color: '#333',
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
+
 const { handleActionWithAuth } = usePermission();
 const danhSachBan = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const pageSizeOptions = [5, 10, 20];
 
-/* 2. CÁC HÀM TIỆN ÍCH (Sửa lỗi "is not a function") */
+/* ===== CÁC HÀM TIỆN ÍCH ===== */
 const getStatusText = (trangThai) => {
   const status = String(trangThai).trim();
   if (status === "0") return "Trống";
@@ -26,15 +43,13 @@ const getStatusText = (trangThai) => {
   return "Đã đặt";
 };
 
-/* 3. FETCH DỮ LIỆU TỪ BACKEND */
+/* ===== FETCH DỮ LIỆU TỪ BACKEND ===== */
 const fetchAllBan = async () => {
   try {
     const data = await fetchAllBanAn();
 
     danhSachBan.value = data.map((ban, index) => {
-      // ✅ Chuẩn hóa loaiDatBan về number 0 hoặc 1
       let loaiDatBanNormalized = 0;
-
       if (typeof ban.loaiDatBan === "object" && ban.loaiDatBan !== null) {
         loaiDatBanNormalized = Number(ban.loaiDatBan.value ?? 0);
       } else {
@@ -46,7 +61,7 @@ const fetchAllBan = async () => {
 
       return {
         ...ban,
-        loaiDatBan: loaiDatBanNormalized, // 👈 thêm dòng này
+        loaiDatBan: loaiDatBanNormalized,
         column: ban.column || defaultCol,
         row: ban.row || defaultRow,
       };
@@ -69,10 +84,6 @@ const handleFetchAllKhuVuc = async () => {
 const initialTang = ref(null);
 const fetchDetailBanAn = async (id) => {
   const data = await fetchBanAnById(id);
-  console.log("===== DATA TỪ API =====");
-  console.log(data);
-  console.log("JSON:", JSON.stringify(data, null, 2));
-  console.log("=======================");
   form.value = {
     id: data.id,
     maBan: data.maBan,
@@ -83,12 +94,6 @@ const fetchDetailBanAn = async (id) => {
     loaiDatBan: data.loaiDatBan,
   };
   initialTang.value = data.soTang;
-  // Debug
-  console.log("ID Khu vực:", form.value.idKhuVuc, typeof form.value.idKhuVuc);
-  console.log(
-    "List khu vực IDs:",
-    listKhuVuc.value.map((k) => ({ id: k.id, type: typeof k.id })),
-  );
 };
 
 const khuVucTheoTang = computed(() => {
@@ -96,8 +101,17 @@ const khuVucTheoTang = computed(() => {
   return listKhuVuc.value.filter((kv) => kv.tang === Number(form.value.tang));
 });
 
-const currentTime = ref("");
+/* Dữ liệu Options cho Multiselect trong Modal Update */
+const tangOptionsModal = computed(() => {
+  const tangs = [...new Set(listKhuVuc.value.map((kv) => kv.tang))];
+  return tangs.map(t => ({ value: t, label: `Tầng ${t}` }));
+});
 
+const khuVucOptionsModal = computed(() => {
+  return khuVucTheoTang.value.map(kv => ({ value: kv.id, label: kv.tenKhuVuc }));
+});
+
+const currentTime = ref("");
 let timer = null;
 
 const updateTime = () => {
@@ -110,8 +124,8 @@ const showUpdateModal = ref(false);
 const openUpdateModal = async (id) => {
   try {
     await handleFetchAllKhuVuc();
-    await fetchDetailBanAn(id); //  load chi tiết bàn
-    showUpdateModal.value = true; //  mở modal SAU khi có data
+    await fetchDetailBanAn(id);
+    showUpdateModal.value = true;
   } catch (error) {
     console.error("Lỗi lấy chi tiết bàn:", error);
   }
@@ -119,6 +133,7 @@ const openUpdateModal = async (id) => {
 
 const closeAddModal = () => {
   showUpdateModal.value = false;
+  errors.value = { maBan: false, soNguoiToiDa: false, tang: false, idKhuVuc: false };
 };
 
 const form = ref({
@@ -128,17 +143,72 @@ const form = ref({
   idKhuVuc: null,
   trangThai: 0,
   loaiDatBan: 0,
-  tang: "",
+  tang: null,
 });
 
+/* ===== TOAST & VALIDATION ===== */
+const errors = ref({
+  maBan: false,
+  soNguoiToiDa: false,
+  tang: false,
+  idKhuVuc: false
+});
+
+const validateForm = () => {
+  let isValid = true;
+  errors.value = { maBan: false, soNguoiToiDa: false, tang: false, idKhuVuc: false };
+
+  if (!form.value.maBan || String(form.value.maBan).trim() === "") {
+    errors.value.maBan = true; isValid = false;
+  }
+  if (!form.value.soNguoiToiDa || form.value.soNguoiToiDa <= 0) {
+    errors.value.soNguoiToiDa = true; isValid = false;
+  }
+  if (!form.value.tang) {
+    errors.value.tang = true; isValid = false;
+  }
+  if (!form.value.idKhuVuc) {
+    errors.value.idKhuVuc = true; isValid = false;
+  }
+
+  if (!isValid) {
+    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng kiểm tra lại các trường báo đỏ' });
+  }
+  return isValid;
+};
+
 const submitUpdateBan = async () => {
-  try {
-    await updateBanAn(form.value);
-    closeAddModal();
-    await fetchAllBan();
-    alert("Update thành công!");
-  } catch (e) {
-    console.error("Lỗi sửa bàn", e);
+  if (!validateForm()) return; 
+
+  const confirmResult = await Swal.fire({
+    title: 'Xác nhận lưu?',
+    text: "Bạn có chắc chắn muốn cập nhật thông tin bàn này không?",
+    icon: 'question', 
+    iconColor: '#7d161a', 
+    showCancelButton: true,
+    confirmButtonColor: '#7d161a', 
+    cancelButtonColor: '#6c757d', 
+    confirmButtonText: '<i class="fas fa-save me-1"></i> Đồng ý lưu',
+    cancelButtonText: 'Hủy bỏ',
+    reverseButtons: true 
+  });
+
+  if (confirmResult.isConfirmed) {
+    try {
+      await updateBanAn(form.value);
+      closeAddModal(); 
+      await fetchAllBan(); 
+      
+      Swal.fire({
+        icon: 'success', title: 'Thành công!', text: 'Cập nhật thông tin bàn thành công!',
+        iconColor: '#7d161a', confirmButtonText: 'Đóng', confirmButtonColor: '#7d161a', 
+      });
+    } catch (e) {
+      console.error("Lỗi sửa bàn", e);
+      Swal.fire({
+        icon: 'error', title: 'Thất bại!', text: 'Có lỗi xảy ra khi cập nhật!', confirmButtonColor: '#dc3545',
+      });
+    }
   }
 };
 
@@ -147,24 +217,11 @@ const formatDate = (time) => {
   return dayjs(time).format("DD/MM/YYYY HH:mm");
 };
 
-/* ===== FILTER ===== */
+/* ===== FILTER 2 LỚP & SỐ GHẾ ===== */
 const filterTang = ref([]);
-const filterLoaiDatBan = ref([]);
-
-// const danhSachBanFiltered = computed(() => {
-//   return danhSachBan.value.filter((ban) => {
-//     const matchTang =
-//       !filterTang.value || ban.soTang == filterTang.value;
-
-//     const matchLoaiDatBan =
-//       filterLoaiDatBan.value === "" ||
-//       ban.loaiDatBan === filterLoaiDatBan.value;
-// console.log(typeof ban.loaiDatBan)
-// console.log(typeof filterLoaiDatBan.value)
-
-//     return matchTang && matchLoaiDatBan;
-//   });
-// });
+const filterKhuVuc = ref([]); 
+const filterSoGhe = ref(""); // THÊM MỚI: Biến lọc theo số ghế
+const searchKeyword = ref("");
 
 const listTangOptions = computed(() => {
   return [...new Set(danhSachBan.value.map((b) => b.soTang))].map((t) => ({
@@ -172,27 +229,20 @@ const listTangOptions = computed(() => {
     value: String(t),
   }));
 });
-const listLoaiDatBanOptions = [
-  { label: "Cho phép đặt online", value: "1" },
-  { label: "Không cho phép", value: "0" },
-];
 
-const tangSearch = ref("");
-const loaiSearch = ref("");
-
-const tangFilteredOptions = computed(() => {
-  return listTang.value.filter((t) => String(t).includes(tangSearch.value));
-});
-const loaiFilteredOptions = computed(() => {
-  return listLoaiDatBan.filter((loai) =>
-    loai.label.toLowerCase().includes(loaiSearch.value.toLowerCase()),
-  );
+const listKhuVucOptions = computed(() => {
+  let filteredKV = listKhuVuc.value;
+  if (filterTang.value && filterTang.value.length > 0) {
+    filteredKV = filteredKV.filter(kv => filterTang.value.includes(String(kv.tang)));
+  }
+  return filteredKV.map(kv => ({
+    label: kv.tenKhuVuc,
+    value: String(kv.id),
+  }));
 });
 
 const danhSachBanFiltered = computed(() => {
-  // Lọc dữ liệu trước
   let filtered = danhSachBan.value.filter((ban) => {
-    /* ===== SEARCH ===== */
     const keyword = searchKeyword.value.toLowerCase().trim();
     const matchSearch =
       !keyword ||
@@ -201,22 +251,24 @@ const danhSachBanFiltered = computed(() => {
       String(ban.soCho).includes(keyword) ||
       String(ban.soTang).includes(keyword);
 
-    /* ===== FILTER TẦNG ===== */
     const matchTang =
-      !filterTang.value || 
+      !filterTang.value ||
       filterTang.value.length === 0 ||
       filterTang.value.includes(String(ban.soTang));
 
-    /* ===== FILTER LOẠI ĐẶT BÀN ===== */
-    const matchLoaiDatBan =
-      !filterLoaiDatBan.value || 
-      filterLoaiDatBan.value.length === 0 ||
-      filterLoaiDatBan.value.includes(String(ban.loaiDatBan));
+    const matchKhuVuc = 
+      !filterKhuVuc.value ||
+      filterKhuVuc.value.length === 0 ||
+      filterKhuVuc.value.includes(String(ban.idKhuVuc));
 
-    return matchSearch && matchTang && matchLoaiDatBan;
+    // THÊM MỚI: Lọc theo số ghế (Lớn hơn hoặc bằng)
+    const matchSoGhe = 
+      !filterSoGhe.value || 
+      Number(ban.soCho) >= Number(filterSoGhe.value);
+
+    return matchSearch && matchTang && matchKhuVuc && matchSoGhe;
   });
 
-  // 🚨 THÊM ĐOẠN SẮP XẾP NÀY: Sắp xếp giảm dần theo ID (ID cao nhất lên đầu)
   return filtered.sort((a, b) => b.id - a.id);
 });
 
@@ -231,29 +283,29 @@ const danhSachBanPaginated = computed(() => {
   return danhSachBanFiltered.value.slice(start, end);
 });
 
-const searchKeyword = ref("");
 const resetFilter = () => {
   filterTang.value = [];
-  filterLoaiDatBan.value = [];
+  filterKhuVuc.value = []; 
+  filterSoGhe.value = ""; // THÊM MỚI: Reset ô số ghế
   searchKeyword.value = "";
 };
 
-const changePage = (page) => {
-  if (page < 1 || page > totalPages.value) return;
-  currentPage.value = page;
-};
+// Khi chọn tầng khác -> Xóa khu vực cũ đi để không bị lệch logic
+watch(filterTang, () => {
+  filterKhuVuc.value = [];
+});
 
 watch(
   () => form.value.tang,
   (newTang) => {
-    // ❗ chỉ reset khi người dùng đổi tầng
     if (newTang !== initialTang.value) {
-      form.value.idKhuVuc = "";
+      form.value.idKhuVuc = null;
     }
   },
 );
 
-watch([searchKeyword, filterTang, filterLoaiDatBan], () => {
+// THÊM MỚI: Watch cả filterSoGhe để chuyển về page 1 khi gõ
+watch([searchKeyword, filterTang, filterKhuVuc, filterSoGhe], () => {
   currentPage.value = 1;
 }, { deep: true });
 
@@ -276,18 +328,17 @@ onMounted(() => {
   updateTime();
   timer = setInterval(updateTime, 1000);
   handleFetchAllKhuVuc();
+  fetchAllBan();
 });
 
 onUnmounted(() => {
   clearInterval(timer);
 });
-
-onMounted(() => {
-  fetchAllBan();
-});
 </script>
+
 <template>
   <div class="">
+
     <div>
       <div class="filter-box">
         <div>
@@ -296,49 +347,47 @@ onMounted(() => {
           <input type="text" v-model="searchKeyword" class="dropdown-display"
             placeholder="Tìm theo mã bàn, khu vực, tầng..." />
         </div>
-        <!-- Lọc tầng -->
-        <!-- ===== FILTER TẦNG ===== -->
         <div class="filter-item">
           <label>Lọc theo tầng</label>
           <div class="multiselect-wrapper-sm">
-            <Multiselect 
-              v-model="filterTang" 
-              :options="listTangOptions" 
-              mode="tags" 
-              :searchable="true" 
-              :canClear="true" 
-              placeholder="Chọn tầng..."
-              no-results-text="Không tìm thấy kết quả nào" 
-              class="custom-filter-multiselect" 
-            /> 
+            <Multiselect v-model="filterTang" :options="listTangOptions" mode="tags" :searchable="true" :canClear="true"
+              placeholder="Chọn tầng..." no-results-text="Không tìm thấy tầng"
+              class="custom-filter-multiselect" />
           </div>
         </div>
 
         <div class="filter-item">
-          <label>Lọc theo loại đặt bàn</label>
+          <label>Lọc theo khu vực</label>
           <div class="multiselect-wrapper-sm">
-            <Multiselect 
-              v-model="filterLoaiDatBan" 
-              :options="listLoaiDatBanOptions" 
-              mode="tags" 
-              :searchable="true" 
-              :canClear="true" 
-              placeholder="Chọn loại..."
-              no-results-text="Không tìm thấy kết quả nào" 
-              class="custom-filter-multiselect" 
-            /> 
+            <Multiselect v-model="filterKhuVuc" :options="listKhuVucOptions" mode="tags" :searchable="true" :canClear="true"
+              placeholder="Chọn khu vực..." no-results-text="Không có khu vực nào"
+              class="custom-filter-multiselect" />
           </div>
         </div>
+
+        <div class="filter-item">
+          <label>Số ghế (&ge;)</label>
+          <input 
+            type="number" 
+            v-model="filterSoGhe" 
+            class="form-input" 
+            style="width: 120px; height: 38px; margin-top: 4px;" 
+            placeholder="VD: 4" 
+            min="1" 
+          />
+        </div>
+
+        
         <div>
           <br />
-          <!-- Reset -->
           <button class="btn" @click="resetFilter">
-            <i data-v-caf8f241="" class="fas fa-undo"></i>
+            <i class="fas fa-undo"></i>
             Hủy bộ lọc
           </button>
         </div>
       </div>
     </div>
+
     <div class="list-card">
       <table class="table shadow-sm">
         <thead>
@@ -348,46 +397,25 @@ onMounted(() => {
             <th>Số ghế</th>
             <th>Tầng</th>
             <th>Khu vực</th>
-            <!-- <th>Trạng thái</th> -->
-            <!-- <th>Ngày tạo</th> -->
-            <!-- <th>Người tạo</th> -->
-            <!-- <th>Đặt online</th> -->
             <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(ban, index) in danhSachBanPaginated" :key="ban.id">
             <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-            <td>
-              <strong>{{ ban.maBan }}</strong>
-            </td>
+            <td><strong>{{ ban.maBan }}</strong></td>
             <td>{{ ban.soCho }} chỗ</td>
             <td>{{ ban.soTang }}</td>
             <td>{{ ban.tenKhuVuc }}</td>
-            <!-- <td>
-              <span
-                :class="[
-                  'badge',
-                  String(ban.trangThai) === '0'
-                    ? 'badge-empty'
-                    : String(ban.trangThai) === '1'
-                      ? 'badge-occupied'
-                      : 'badge-booked',
-                ]"
-              >
-                {{ getStatusText(ban.trangThai) }}
-              </span>
-            </td> -->
-            <!-- <td>{{ formatDate(ban.ngayTao) }}</td> -->
-            <!-- <td>{{ ban.nguoiTao }}</td> -->
-            <!-- <td>
-              {{ ban.loaiDatBan == 0 ? "Không cho phép" : "Cho phép" }}
-            </td> -->
-
             <td>
+
+              
               <button class="action-list" style="border: none; background-color: white"
                 @click="handleActionWithAuth(() => openUpdateModal(ban.id), 'ADMIN')">
-                <i class="fa-regular fa-pen-to-square action-icon"></i>
+                <div class="icon-tooltip">
+                  <i class="fas fa-pen action-icon"></i>
+                  <span class="tooltip-text">Xem chi tiết</span>
+                </div>
               </button>
             </td>
           </tr>
@@ -395,86 +423,57 @@ onMounted(() => {
       </table>
     </div>
     <div class="custom-pagination-wrapper mt-4 pt-3 border-top">
-      <CommonPagination 
-        v-model:currentPage="currentPage" 
-        v-model:pageSize="pageSize" 
-        :total-pages="totalPages"
-        :total-elements="danhSachBanFiltered.length" 
-        :current-count="danhSachBanPaginated.length" 
-        @change="() => { }"
-      />
+      <CommonPagination v-model:currentPage="currentPage" v-model:pageSize="pageSize" :total-pages="totalPages"
+        :total-elements="danhSachBanFiltered.length" :current-count="danhSachBanPaginated.length" @change="() => { }" />
     </div>
   </div>
-  <!-- POPUP SỬA BÀN -->
+
   <div v-if="showUpdateModal" class="modal-overlay">
     <div class="modal-box">
       <div class="modal-header">
-        <h4>Sửa bàn ăn</h4>
+        <h4><i class="fas fa-edit me-2" style="color: #7d161a;"></i> Sửa thông tin bàn</h4>
         <button class="close-btn" @click="closeAddModal">&times;</button>
       </div>
 
       <div class="modal-body">
         <div class="form-group">
-          <label>Mã bàn</label><br />
-          <input type="text" v-model="form.maBan" />
+          <label class="form-label">Mã bàn <span class="required-star">*</span></label>
+          <input style="opacity: 0.5;" disabled type="text" v-model="form.maBan" class="form-input" :class="{ 'is-invalid': errors.maBan }"
+            placeholder="Nhập mã bàn..." />
+          <span v-if="errors.maBan" class="error-text">Mã bàn không được để trống</span>
         </div>
 
         <div class="form-group">
-          <label>Số người tối đa</label><br />
-          <input type="number" v-model="form.soNguoiToiDa" />
-        </div>
-
-        <!-- <div class="form-group">
-          <label>Trạng thái</label><br />
-          <input type="number" v-model="form.trangThai" />
-        </div> -->
-        <br />
-        <!-- <select class="form-select" v-model.number="form.idKhuVuc">
-          <option value="null" disabled>-- Chọn khu vực --</option>
-          <option
-            v-for="khuVuc in listKhuVuc"
-            :key="khuVuc.id"
-            :value="khuVuc.id"
-          >
-            {{ khuVuc.tenKhuVuc }}
-          </option>
-        </select> -->
-
-        <div class="form-group">
-          <label>Tầng</label>
-          <select class="form-select" v-model="form.tang">
-            <option value="" disabled>-- Chọn tầng --</option>
-            <option v-for="tang in [...new Set(listKhuVuc.map((kv) => kv.tang))]" :key="tang" :value="tang">
-              Tầng {{ tang }}
-            </option>
-          </select>
+          <label class="form-label">Số người tối đa <span class="required-star">*</span></label>
+          <input type="number" v-model="form.soNguoiToiDa" class="form-input"
+            :class="{ 'is-invalid': errors.soNguoiToiDa }" placeholder="Nhập số người tối đa..." />
+          <span v-if="errors.soNguoiToiDa" class="error-text">Số người tối đa phải lớn hơn 0</span>
         </div>
 
         <div class="form-group">
-          <label>Khu vực</label>
-          <select class="form-select" v-model="form.idKhuVuc" :disabled="!form.tang">
-            <option value="" disabled>-- Chọn khu vực --</option>
-            <option v-for="khuVuc in khuVucTheoTang" :key="khuVuc.id" :value="khuVuc.id">
-              {{ khuVuc.tenKhuVuc }}
-            </option>
-          </select>
-        </div>
-
-
-        <!-- <div class="form-group">
-          <label>Ngày tạo</label><br>
-          <input type="text" v-model="form.ngayTao" />
+          <label class="form-label">Tầng <span class="required-star">*</span></label>
+          <Multiselect v-model="form.tang" :options="tangOptionsModal" :searchable="true" mode="single"
+            placeholder="-- Tìm hoặc chọn tầng --"
+            :class="['custom-modal-multiselect', { 'is-invalid-multiselect': errors.tang }]"
+            no-results-text="Không tìm thấy tầng" />
+          <span v-if="errors.tang" class="error-text">Vui lòng chọn tầng</span>
         </div>
 
         <div class="form-group">
-          <label>Người tạo</label><br>
-          <input type="text" v-model="form.nguoiTao" />
-        </div> -->
+          <label class="form-label">Khu vực <span class="required-star">*</span></label>
+          <Multiselect v-model="form.idKhuVuc" :options="khuVucOptionsModal" :searchable="true" mode="single"
+            :disabled="!form.tang" placeholder="-- Tìm hoặc chọn khu vực --"
+            :class="['custom-modal-multiselect', { 'is-invalid-multiselect': errors.idKhuVuc }]"
+            no-results-text="Không tìm thấy khu vực" />
+          <span v-if="errors.idKhuVuc" class="error-text">Vui lòng chọn khu vực</span>
+        </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-outline" @click="closeAddModal">Hủy</button>
-        <button class="btn btn-active" @click="submitUpdateBan">Lưu</button>
+        <button class="btn btn-outline" @click="closeAddModal">Hủy bỏ</button>
+        <button class="btn btn-active" @click="submitUpdateBan">
+          <i class="fas fa-save me-1"></i> Lưu thay đổi
+        </button>
       </div>
     </div>
   </div>
@@ -485,6 +484,205 @@ onMounted(() => {
 <style scoped>
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css");
 
+/* ==================================
+   TOAST NOTIFICATION (Báo lỗi ở góc)
+===================================== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-toast {
+  min-width: 280px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+.custom-toast.error {
+  background: #dc3545;
+}
+
+.custom-toast.success {
+  background: #28a745;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* ==================================
+   MODAL & FORM UPDATE (Làm đẹp UI)
+===================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.modal-box {
+  background: #fff;
+  width: 450px;
+  border-radius: 12px;
+  animation: fadeIn 0.25s ease;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #dc3545;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #444;
+}
+
+.required-star {
+  color: #dc3545;
+  margin-left: 2px;
+}
+
+.form-input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #7d161a;
+  box-shadow: 0 0 0 3px rgba(125, 22, 26, 0.1);
+}
+
+/* KHUNG ĐỎ VALIDATE */
+.is-invalid {
+  border-color: #dc3545 !important;
+  background-color: #fff8f8;
+}
+
+.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15) !important;
+}
+
+.is-invalid-multiselect {
+  --ms-border-color: #dc3545;
+  --ms-bg: #fff8f8;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* ==================================
+   CUSTOM MULTISELECT TRONG MODAL
+===================================== */
+.custom-modal-multiselect {
+  --ms-border-color: #ced4da;
+  --ms-radius: 8px;
+  --ms-py: 8px;
+  --ms-ring-color: rgba(125, 22, 26, 0.1);
+  --ms-border-color-active: #7d161a;
+  --ms-option-bg-pointed: #fcf4f4;
+  --ms-option-color-pointed: #7d161a;
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+}
+
+/* ==================================
+   CÁC STYLE CŨ (GIỮ NGUYÊN)
+===================================== */
 .dropdown-wrapper {
   position: relative;
   width: 300px;
@@ -502,45 +700,16 @@ onMounted(() => {
 .btn:focus,
 .btn:active,
 .btn:focus-visible {
-    color: white !important;
-    background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
-    box-shadow: none !important;
-    outline: none !important;
-    border-color: transparent !important; /* Xóa viền thừa */
+  color: white !important;
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: transparent !important;
 }
 
-/* Đảm bảo chữ luôn trắng kể cả khi trỏ chuột (hover) */
 .btn:hover {
   transform: scale(1.04);
-    color: white !important;
-}
-
-.dropdown-menu-custom {
-  top: 100%;
-  left: 0;
-  position: absolute;
-  width: 100%;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px;
-  z-index: 999;
-  max-height: 200px;
-  overflow-y: auto;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-
-  opacity: 0;
-  transform: translateY(-6px);
-  visibility: hidden;
-  pointer-events: none;
-  transition: all 0.18s ease;
-}
-
-.dropdown-wrapper:hover .dropdown-menu-custom {
-  opacity: 1;
-  transform: translateY(0);
-  visibility: visible;
-  pointer-events: auto;
+  color: white !important;
 }
 
 .dropdown-search {
@@ -574,37 +743,31 @@ onMounted(() => {
   margin-right: 6px;
 }
 
-/* ===== CUSTOM MULTISELECT ===== */
-
 .multiselect-wrapper {
-    width: 200px;
-    /* Điều chỉnh độ rộng cho vừa */
+  width: 200px;
 }
 
 :deep(.multiselect) {
-    min-height: 38px;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
+  min-height: 38px;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
 }
 
 :deep(.multiselect.is-active) {
-    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.25);
-    border-color: #d32f2f;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.25);
+  border-color: #d32f2f;
 }
 
 :deep(.multiselect-option.is-selected) {
-    background: #d32f2f;
+  background: #d32f2f;
 }
 
 :deep(.multiselect-option.is-selected.is-pointed) {
-    background: #b71c1c;
+  background: #b71c1c;
 }
 
-
-/* Màu chữ khi placeholder hiển thị */
-
 :deep(.multiselect-placeholder) {
-    color: #495057;
+  color: #495057;
 }
 
 .table {
@@ -612,31 +775,31 @@ onMounted(() => {
 }
 
 thead {
-    border-radius: 10px;
-    background-color: #8B0000 !important;
+  border-radius: 10px;
+  background-color: #8B0000 !important;
 }
 
-thead tr{
-    border-radius: 15px;
-    background-color: transparent !important;
+thead tr {
+  border-radius: 15px;
+  background-color: transparent !important;
 }
 
-thead tr th{
-    padding-left: 20px;
-    background-color: transparent !important;
-    color: white;
+thead tr th {
+  padding-left: 20px;
+  background-color: transparent !important;
+  color: white;
 }
 
-tr td{
+tr td {
   padding-left: 20px;
 }
 
 thead tr:hover {
-    background-color: #8B0000 !important;
+  background-color: #8B0000 !important;
 }
 
 tr:hover {
-    background-color: lightgray;
+  background-color: lightgray;
 }
 
 .list-card {
@@ -649,12 +812,11 @@ tr:hover {
 .pagination-footer-custom {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Đẩy 3 khối ra 3 vị trí */
+  justify-content: space-between;
   font-size: 14px;
   color: #666;
 }
 
-/* 1. Phần bên trái */
 .page-size-select-v2 {
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -664,7 +826,6 @@ tr:hover {
   cursor: pointer;
 }
 
-/* 2. Phần ở giữa (Căn giữa tuyệt đối) */
 .footer-center {
   flex: 1;
   display: flex;
@@ -676,23 +837,21 @@ tr:hover {
   list-style: none;
   padding: 0;
   margin: 0;
-  gap: 15px; /* Khoảng cách rộng như trong hình */
+  gap: 15px;
   align-items: center;
 }
 
 .page-item-v2 a {
   text-decoration: none;
-  color: #ccc; /* Màu icon/chữ mặc định xám nhạt */
+  color: #ccc;
   font-weight: 600;
   transition: all 0.2s;
 }
 
-/* Icon mũi tên */
 .page-item-v2 i {
   font-size: 12px;
 }
 
-/* Trang đang hoạt động: Màu đỏ rượu, bo tròn */
 .page-item-v2.active a {
   background-color: #7D161A;
   color: white !important;
@@ -704,7 +863,6 @@ tr:hover {
   border-radius: 4px;
 }
 
-/* Hiệu ứng khi hover hoặc nút có thể bấm được */
 .page-item-v2:not(.disabled):not(.active) a:hover {
   color: #7D161A;
 }
@@ -714,87 +872,8 @@ tr:hover {
   pointer-events: none;
 }
 
-/* 3. Phần bên phải */
-.footer-right {
-  font-style: normal;
-  color: #888;
-}
-
-/* Body */
 .table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.modal-box {
-  background: #fff;
-  width: 420px;
-  border-radius: 12px;
-  animation: fadeIn 0.25s ease;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header,
-.modal-footer {
-  padding: 12px 16px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-footer {
-  border-top: 1px solid #eee;
-  border-bottom: none;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-}
-
-.modal-body {
-  padding: 16px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-/* INPUT / SELECT */
-.modal-body input,
-.modal-body select {
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  padding: 8px 10px;
-  font-size: 14px;
-  transition: 0.2s;
-}
-
-.form-group input {
-  width: 100%;
-}
-
-.modal-body input:focus,
-.modal-body select:focus {
-  outline: none;
-  border-color: #7d161a;
-  box-shadow: 0 0 0 2px rgba(125, 22, 26, 0.15);
 }
 
 .filter-box {
@@ -807,7 +886,6 @@ tr:hover {
   width: 200px;
 }
 
-/* ===== CHECKBOX ===== */
 .form-check {
   display: flex;
   align-items: center;
@@ -823,49 +901,34 @@ tr:hover {
   font-size: 14px;
 }
 
-/* ===== FOOTER ===== */
-.modal-footer {
-  background: #fafafa;
-}
-
-/* BUTTONS */
 .btn {
   background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   border-radius: 8px;
   font-size: 14px;
+  padding: 8px 16px;
   color: white;
   cursor: pointer;
   transition: 0.2s;
-}
-
-.btn:hover {
-  color:white;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-outline {
   border: 1px solid #ccc;
   background: #fff;
+  color: #333;
 }
 
 .btn-outline:hover {
   background: #f1f1f1;
+  color: #333 !important;
 }
 
 .btn-active {
   background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
   color: #fff;
   border: none;
-}
-
-/* ===== ANIMATION ===== */
-@keyframes overlayFade {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
 }
 
 @keyframes fadeIn {
@@ -881,57 +944,90 @@ tr:hover {
 }
 
 .filter-item {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
 }
 
 .multiselect-wrapper-sm {
-    width: 250px;
+  width: 250px;
 }
 
-/* Định dạng tổng thể */
 .custom-filter-multiselect {
-    --ms-border-color: #ddd;
-    --ms-radius: 8px; 
-    --ms-py: 6px; 
-    
-    /* Màu khi focus */
-    --ms-ring-color: rgba(125, 22, 26, 0.15);
-    --ms-border-color-active: #7d161a;
-    
-    /* Hover vào Option */
-    --ms-option-bg-pointed: #fcf4f4;
-    --ms-option-color-pointed: #7d161a;
-    
-    /* Option đã chọn (Màu đỏ giống ảnh 5) */
-    --ms-option-bg-selected: #7d161a;
-    --ms-option-color-selected: #ffffff;
-    --ms-option-bg-selected-pointed: #5f0f12;
-    
-    /* TAG ĐÃ CHỌN (MÀU XANH LÁ GIỐNG ẢNH 6) */
-    --ms-tag-bg: #7d161a; /* Đổi từ #38c172 thành #7d161a */
-    --ms-tag-color: #ffffff;
-    --ms-tag-radius: 4px;
-    --ms-tag-font-weight: 500;
-    
-    /* Nút Xóa (Clear all) */
-    --ms-clear-color: #999;
-    --ms-clear-color-hover: #dc3545;
+  --ms-border-color: #ddd;
+  --ms-radius: 8px;
+  --ms-py: 6px;
+  --ms-ring-color: rgba(125, 22, 26, 0.15);
+  --ms-border-color-active: #7d161a;
+  --ms-option-bg-pointed: #fcf4f4;
+  --ms-option-color-pointed: #7d161a;
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #5f0f12;
+  --ms-tag-bg: #7d161a;
+  --ms-tag-color: #ffffff;
+  --ms-tag-radius: 4px;
+  --ms-tag-font-weight: 500;
+  --ms-clear-color: #999;
+  --ms-clear-color-hover: #dc3545;
 }
 
-/* Sửa text bị lệch */
 :deep(.multiselect-single-labelText),
 :deep(.multiselect-placeholder) {
-    font-size: 14px;
-    color: #495057;
+  font-size: 14px;
+  color: #495057;
 }
 
-/* Icon mũi tên thả xuống */
 :deep(.multiselect-caret) {
-    background-color: #666;
-}
-:deep(.multiselect.is-active .multiselect-caret) {
-    background-color: #7d161a;
+  background-color: #666;
 }
 
+:deep(.multiselect.is-active .multiselect-caret) {
+  background-color: #7d161a;
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tooltip text */
+.icon-tooltip .tooltip-text {
+    position: absolute;
+    bottom: 130%; /* hiện phía trên icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Mũi tên nhỏ */
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Hover hiện tooltip */
+.icon-tooltip:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+}
 </style>
