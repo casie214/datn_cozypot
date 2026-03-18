@@ -46,6 +46,8 @@ public class ThongKeService {
             dto.setDoanhThuNamNay(toBigDecimal(data.get("doanhThuNamNay")));
             dto.setTongBanDaDat(toLong(data.get("tongBanDaDat")));
             dto.setDoanhThuDuKien(toBigDecimal(data.get("doanhThuDuKien")));
+            dto.setDoanhThuTienMat(toBigDecimal(data.get("doanhThuTienMat")));
+            dto.setDoanhThuChuyenKhoan(toBigDecimal(data.get("doanhThuChuyenKhoan")));
             // Mapping số lượng đơn (Dùng để hiển thị phần mô tả nhỏ dưới con số tiền)
             dto.setSoDonHomNay(toLong(data.get("soDonHomNay")));
             dto.setSoDonTuanNay(toLong(data.get("soDonTuanNay")));

@@ -95,6 +95,32 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                                           )
                                           THEN (h.tong_tien_chua_giam - h.so_tien_da_giam)
                                           ELSE 0 END),0) AS doanhThuDuKien,
+            ISNULL(SUM(CASE
+                                          WHEN h.trang_thai_hoa_don BETWEEN 0 AND 7
+                                          AND ls.id_phuong_thuc_thanh_toan = 1
+                                          AND (
+                                              (:loai = N'Hôm nay' AND CAST(ls.ngay_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                                              (:loai = N'Tuần này' AND ls.ngay_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                                              (:loai = N'Tháng này' AND MONTH(ls.ngay_thanh_toan) = MONTH(GETDATE()) AND YEAR(ls.ngay_thanh_toan) = YEAR(GETDATE())) OR
+                                              (:loai = N'Năm nay' AND YEAR(ls.ngay_thanh_toan) = YEAR(GETDATE())) OR
+                                              (:loai = N'Tùy chỉnh' AND CAST(ls.ngay_thanh_toan AS DATE) BETWEEN :tuNgay AND :denNgay)
+                                          )
+                                          THEN ls.so_tien_thanh_toan
+                                          ELSE 0
+                                      END),0) AS doanhThuTienMat,
+            ISNULL(SUM(CASE
+                                                                                       WHEN h.trang_thai_hoa_don BETWEEN 0 AND 7
+                                                                                       AND ls.id_phuong_thuc_thanh_toan = 2
+                                                                                       AND (
+                                                                                           (:loai = N'Hôm nay' AND CAST(ls.ngay_thanh_toan AS DATE) = CAST(GETDATE() AS DATE)) OR
+                                                                                           (:loai = N'Tuần này' AND ls.ngay_thanh_toan >= DATEADD(DAY, -7, GETDATE())) OR
+                                                                                           (:loai = N'Tháng này' AND MONTH(ls.ngay_thanh_toan) = MONTH(GETDATE()) AND YEAR(ls.ngay_thanh_toan) = YEAR(GETDATE())) OR
+                                                                                           (:loai = N'Năm nay' AND YEAR(ls.ngay_thanh_toan) = YEAR(GETDATE())) OR
+                                                                                           (:loai = N'Tùy chỉnh' AND CAST(ls.ngay_thanh_toan AS DATE) BETWEEN :tuNgay AND :denNgay)
+                                                                                       )
+                                                                                       THEN ls.so_tien_thanh_toan
+                                                                                       ELSE 0
+                                                                                   END),0) AS doanhThuChuyenKhoan,
 
             -- DOANH THU THỰC NHẬN
             ISNULL(SUM(CASE WHEN trang_thai_hoa_don = 7 AND (
@@ -104,11 +130,13 @@ public interface ThongKeRepository extends JpaRepository<HoaDonThanhToan, Intege
                                                                               (:loai = N'Năm nay' AND YEAR(thoi_gian_thanh_toan) = YEAR(GETDATE())) OR
                                                                               (:loai = N'Tùy chỉnh' AND CAST(thoi_gian_thanh_toan AS DATE) BETWEEN :tuNgay AND :denNgay)
                                                                           )
-                                                                          THEN tong_tien_thanh_toan
+                                                                          THEN ls.so_tien_thanh_toan
                                                                           ELSE 0 END), 0) AS doanhThuThucNhan
             FROM hoa_don_thanh_toan h
-                         LEFT JOIN chi_tiet_hoa_don ct\s
-                             ON h.id_hoa_don = ct.id_hoa_don        """, nativeQuery = true)
+                                                            LEFT JOIN lich_su_thanh_toan ls
+                                                                                                                    ON h.id_hoa_don = ls.id_hoa_don
+                                                                                                                    AND ls.trang_thai = 1
+                                                                                                                    AND ls.loai_giao_dich IN (1,2)        """, nativeQuery = true)
     Map<String, Object> layDuLieuThongKeChiTiet(
             @Param("loai") String loai,
             @Param("tuNgay") String tuNgay,

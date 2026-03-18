@@ -78,6 +78,12 @@ public class PhieuGiamGiaService {
     public Page<PhieuGiamGiaResponseDTO> getAll(String keyword, Integer doiTuong, Integer loaiGiamGia,
                                                 Integer trangThai, String ngayBatDau, String ngayKetThuc,
                                                 int page, int size) {
+        if (keyword != null) {
+            keyword = keyword.trim();      // bỏ khoảng trắng
+            if (keyword.isEmpty()) {
+                keyword = null;            // tránh LIKE %%
+            }
+        }
         LocalDateTime start = null;
         LocalDateTime end = null;
 
