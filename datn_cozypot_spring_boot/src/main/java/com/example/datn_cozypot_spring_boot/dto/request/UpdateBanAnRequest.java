@@ -11,7 +11,7 @@ public class UpdateBanAnRequest {
     private String maBan;
     @NotNull(message = "Số chỗ không được trống")
     private Integer soNguoiToiDa;
-    
+
     private Integer loaiDatBan;
     @NotNull(message = "Khu vực không được trống")
     private Integer idKhuVuc;
