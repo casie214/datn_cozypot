@@ -379,6 +379,7 @@ public class DotKhuyenMaiService {
     public List<DotKhuyenMai> getDotDangHoatDong() {
         return dotKhuyenMaiRepo.findDotDangHoatDong();
     }
+    
 
     @Transactional
     public void toggleStatus(Integer id) {
@@ -386,15 +387,19 @@ public class DotKhuyenMaiService {
         DotKhuyenMai km = dotKhuyenMaiRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khuyến mãi"));
 
-        // Nếu hết hạn → không cho bật
-        if (km.getNgayKetThuc().isBefore(LocalDate.now())) {
+        // check null ngày kết thúc
+        if (km.getNgayKetThuc() != null && km.getNgayKetThuc().isBefore(LocalDate.now())) {
             throw new RuntimeException("Khuyến mãi đã hết hạn");
         }
 
-        // Đảo trạng thái
-        km.setTrangThai(km.getTrangThai() == 1 ? 0 : 1);
+        Integer currentStatus = km.getTrangThai() == null ? 0 : km.getTrangThai();
+
+        if (currentStatus == 1) {
+            km.setTrangThai(0);
+        } else {
+            km.setTrangThai(1);
+        }
 
         dotKhuyenMaiRepo.save(km);
     }
-
 }

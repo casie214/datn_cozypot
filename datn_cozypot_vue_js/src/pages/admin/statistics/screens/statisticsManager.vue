@@ -310,6 +310,8 @@ const thongKe = ref({
     doanhThuTuanNay: 0,
     doanhThuThangNay: 0,
     doanhThuNamNay: 0,
+    doanhThuTienMat: 0,
+    doanhThuChuyenKhoan: 0,
     tongHoaDon: 0,
     tongBanDaDat: 0,
     doanhThuDuKien: 0,
@@ -554,23 +556,34 @@ const pieKenhOptions = {
 const thongKeChiTiet = computed(() => [
     { label: 'Tổng hóa đơn hoàn tất', value: thongKe.value.tongHoaDon, isNumber: true },
     // 🔥 THÊM MỚI
-    { 
-        label: 'Số bàn đã đặt', 
-        value: thongKe.value.tongBanDaDat, 
+    {
+        label: 'Số bàn đã đặt',
+        value: thongKe.value.tongBanDaDat,
         isNumber: true,
         color: 'text-blue'
     },
 
-    { 
-        label: 'Doanh thu dự kiến', 
+    {
+        label: 'Doanh thu dự kiến',
         value: thongKe.value.doanhThuDuKien,
         color: 'text-orange'
     },
+    {
+        label: 'Doanh thu tiền mặt',
+        value: thongKe.value.doanhThuTienMat,
+        color: 'text-blue'
+    },
+    {
+        label: 'Doanh thu chuyển khoản',
+        value: thongKe.value.doanhThuChuyenKhoan,
+        color: 'text-green'
+    },
+        { label: 'Doanh thu thực nhận', value: thongKe.value.doanhThuThucNhan, color: 'text-green' }
+,
     { label: 'Giá trị trung bình / đơn', value: thongKe.value.giaTriTrungBinhDon },
     { label: 'Tiền cọc đã thu', value: thongKe.value.tongTienCoc, color: 'text-blue' },
     { label: 'Tổng giảm giá', value: thongKe.value.tongGiamGia, color: 'text-orange' },
     { label: 'Hóa đơn hủy', value: thongKe.value.tongHoaDonHuy, isNumber: true, color: 'text-red' },
-    { label: 'Doanh thu thực nhận', value: thongKe.value.doanhThuThucNhan, color: 'text-green' }
 ]);
 const chartData = computed(() => ({
     labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
@@ -628,6 +641,7 @@ const exportToExcel = () => {
                 <tr>
                     <th colspan="4" style="font-size: 16px; color: #444; border: none;">Hệ thống đặt lịch lẩu CozyPot</th>
                 </tr>
+                
                 <tr>
                     <th colspan="4" style="font-size: 18px; font-weight: bold; background-color: #F4511E; color: white; padding: 10px;">
                         BÁO CÁO CHI TIẾT DOANH THU - ${activeTab.value.toUpperCase()}
@@ -646,6 +660,15 @@ const exportToExcel = () => {
                     <td colspan="2" style="padding: 8px;">Doanh thu tháng này</td>
                     <td colspan="2" style="padding: 8px; text-align: right; font-weight: bold;">${formatVND(thongKe.value.doanhThuThangNay)}</td>
                 </tr>
+                <tr>
+<td colspan="2">Doanh thu tiền mặt</td>
+<td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuTienMat)}</td>
+</tr>
+
+<tr>
+<td colspan="2">Doanh thu chuyển khoản</td>
+<td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuChuyenKhoan)}</td>
+</tr>
                 <tr>
                     <td colspan="2" style="padding: 8px;">Tổng số hóa đơn hoàn tất</td>
                     <td colspan="2" style="padding: 8px; text-align: right;">${thongKe.value.tongHoaDon} đơn</td>
@@ -1137,7 +1160,7 @@ const getStatusClass = (status) => {
 /* Grid cho chi tiết (6 cột) */
 .detail-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     border-top: 1px solid #f1f5f9;
     padding-top: 2rem;

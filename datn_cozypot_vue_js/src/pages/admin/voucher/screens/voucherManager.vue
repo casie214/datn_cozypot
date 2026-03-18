@@ -32,24 +32,24 @@
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Đối tượng</label>
-                        <Multiselect   class="custom-multiselect-theme"
- v-model="filters.doiTuong" :options="doiTuongOptions" mode="single" label="label"
-                            valueProp="value" trackBy="value"  placeholder="Chọn tất cả đối tượng"/>
+                        <Multiselect class="custom-multiselect-theme" v-model="filters.doiTuong"
+                            :options="doiTuongOptions" mode="single" label="label" valueProp="value" trackBy="value"
+                            placeholder="Chọn tất cả đối tượng" />
 
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Loại giảm giá</label>
-                        <Multiselect class="custom-multiselect-theme"
- v-model="filters.loaiGiamGia" :options="loaiGiamGiaOptions" mode="single"
-                            label="label" valueProp="value" trackBy="value"  placeholder="Chọn tất cả loại" />
+                        <Multiselect class="custom-multiselect-theme" v-model="filters.loaiGiamGia"
+                            :options="loaiGiamGiaOptions" mode="single" label="label" valueProp="value" trackBy="value"
+                            placeholder="Chọn tất cả loại" />
                     </div>
 
                     <div class="col-md-3">
                         <label class="filter-label fw-bold">Trạng thái</label>
-                        <Multiselect   class="custom-multiselect-theme"
- v-model="filters.trangThai" :options="trangThaiOptions" mode="single" label="label"
-                            valueProp="value" trackBy="value"  placeholder="Chọn tất cả trạng thái" />
+                        <Multiselect class="custom-multiselect-theme" v-model="filters.trangThai"
+                            :options="trangThaiOptions" mode="single" label="label" valueProp="value" trackBy="value"
+                            placeholder="Chọn tất cả trạng thái" />
                     </div>
                     <div class="col-md-2 d-flex align-items-end gap-2">
                         <button class="btn-reset-filter" @click="resetFilters">
@@ -342,7 +342,7 @@
                                             inputmode="numeric" class="form-control custom-input"
                                             :class="{ 'is-invalid': errors.giaTriGiam }" :disabled="isReadOnly" />
                                         <span class="input-group-text">{{ formData.loaiGiamGia === 1 ? '%' : 'đ'
-                                        }}</span>
+                                            }}</span>
                                         <div class="invalid-feedback">{{ errors.giaTriGiam }}</div>
                                     </div>
                                 </div>
@@ -603,10 +603,10 @@
                 <div class="mt-4 d-flex justify-content-end gap-2">
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
-    class="btn btn-outline-custom px-4 fw-bold d-flex align-items-center justify-content-center"
-    style="height: 42px;" @click="closeForm">
-    HỦY BỎ
-</button>
+                            class="btn btn-outline-custom px-4 fw-bold d-flex align-items-center justify-content-center"
+                            style="height: 42px;" @click="closeForm">
+                            HỦY BỎ
+                        </button>
 
                         <button v-if="!isReadOnly" type="submit"
                             class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
@@ -876,200 +876,354 @@ const clearErrors = () => {
     Object.keys(errors).forEach(key => delete errors[key]);
 };
 
+// const validateForm = () => {
+//     let isValid = true;
+//     clearErrors();
+
+//     /* ========================
+//        1. Chuẩn hóa dữ liệu
+//     ======================== */
+//     formData.tenPhieuGiamGia = formData.tenPhieuGiamGia?.trim() || '';
+//     formData.codeGiamGia = formData.codeGiamGia?.trim().toUpperCase() || '';
+
+//     const now = new Date();
+//     now.setSeconds(0, 0);
+
+//     /* ========================
+//        2. Tên phiếu
+//     ======================== */
+//     const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/;
+
+//     if (!formData.tenPhieuGiamGia) {
+//         errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
+//         isValid = false;
+//     }
+//     else if (!nameRegex.test(formData.tenPhieuGiamGia)) {
+//         errors.tenPhieuGiamGia =
+//             "Tên không được chứa ký tự đặc biệt";
+//         isValid = false;
+//     }
+//     else if (formData.tenPhieuGiamGia.length < 5) {
+//         errors.tenPhieuGiamGia =
+//             "Tên phải ≥ 5 ký tự";
+//         isValid = false;
+//     }
+//     else if (formData.tenPhieuGiamGia.length > 200) {
+//         errors.tenPhieuGiamGia =
+//             "Tên tối đa 200 ký tự";
+//         isValid = false;
+//     }
+
+//     /* ========================
+//        3. Code
+//     ======================== */
+//     const codeRegex = /^[A-Z0-9_]{3,20}$/;
+
+//     if (!formData.codeGiamGia) {
+//         errors.codeGiamGia = "Code không được để trống";
+//         isValid = false;
+//     }
+//     else if (!codeRegex.test(formData.codeGiamGia)) {
+//         errors.codeGiamGia =
+//             "Code gồm A-Z, 0-9, _, dài 3–20 ký tự";
+//         isValid = false;
+//     }
+
+//     /* ========================
+//        4. Loại giảm & giá trị
+//     ======================== */
+//     if (formData.loaiGiamGia === 1) { // %
+//         if (
+//             !formData.giaTriGiam ||
+//             formData.giaTriGiam < 1 ||
+//             formData.giaTriGiam > 100
+//         ) {
+//             errors.giaTriGiam = "Phần trăm từ 1 → 100";
+//             isValid = false;
+//         }
+//     }
+//     else { // Tiền
+//         if (
+//             !formData.giaTriGiam ||
+//             formData.giaTriGiam < 1000
+//         ) {
+//             errors.giaTriGiam = "Tối thiểu 1.000đ";
+//             isValid = false;
+//         }
+//     }
+
+//     /* ========================
+//        5. Giảm tối đa & đơn tối thiểu
+//     ======================== */
+//     if (!formData.giaTriGiamToiDa || formData.giaTriGiamToiDa <= 0) {
+//         errors.giaTriGiamToiDa = "Giảm tối đa > 0";
+//         isValid = false;
+//     }
+
+//     if (!formData.donHangToiThieu || formData.donHangToiThieu <= 0) {
+//         errors.donHangToiThieu = "Đơn tối thiểu > 0";
+//         isValid = false;
+//     }
+
+//     // % giảm
+//     if (formData.loaiGiamGia === 1) {
+
+//         if (formData.giaTriGiamToiDa > formData.donHangToiThieu) {
+//             errors.giaTriGiamToiDa =
+//                 "Giảm tối đa ≤ đơn tối thiểu";
+//             isValid = false;
+//         }
+
+//         const minDon =
+//             (formData.giaTriGiamToiDa * 100) /
+//             formData.giaTriGiam;
+
+//         if (formData.donHangToiThieu < minDon) {
+//             errors.donHangToiThieu =
+//                 "Đơn tối thiểu không hợp lệ";
+//             isValid = false;
+//         }
+//     }
+
+//     // Giảm tiền
+//     if (formData.loaiGiamGia === 0) {
+
+//         if (formData.giaTriGiamToiDa !== formData.giaTriGiam) {
+//             errors.giaTriGiamToiDa =
+//                 "Giảm tối đa = tiền giảm";
+//             isValid = false;
+//         }
+
+//         if (formData.donHangToiThieu < formData.giaTriGiam) {
+//             errors.donHangToiThieu =
+//                 "Đơn tối thiểu ≥ tiền giảm";
+//             isValid = false;
+//         }
+//     }
+
+//     /* ========================
+//        6. Số lượng
+//     ======================== */
+//     if (!formData.soLuong || formData.soLuong < 1) {
+//         errors.soLuong = "Số lượng ≥ 1";
+//         isValid = false;
+//     }
+//     else if (formData.soLuong > 100000) {
+//         errors.soLuong = "Số lượng quá lớn";
+//         isValid = false;
+//     }
+
+//     /* ========================
+//        7. Thời gian
+//     ======================== */
+//     if (!formData.ngayBatDau) {
+//         errors.ngayBatDau = "Chọn ngày bắt đầu";
+//         isValid = false;
+//     }
+
+//     if (!formData.ngayKetThuc) {
+//         errors.ngayKetThuc = "Chọn ngày kết thúc";
+//         isValid = false;
+//     }
+
+//     if (formData.ngayBatDau && formData.ngayKetThuc) {
+
+//         const start = new Date(formData.ngayBatDau);
+//         const end = new Date(formData.ngayKetThuc);
+
+//         if (start >= end) {
+//             errors.ngayKetThuc =
+//                 "Kết thúc phải sau bắt đầu";
+//             isValid = false;
+//         }
+
+//         // Khi tạo mới → không cho quá khứ
+//         if (!selectedId.value && start < now) {
+//             errors.ngayBatDau =
+//                 "Không được chọn ngày quá khứ";
+//             isValid = false;
+//         }
+//     }
+
+//     /* ========================
+//        8. Khách hàng cá nhân
+//     ======================== */
+//     if (formData.doiTuong === 1) {
+
+//         if (!formData.listIdKhachHang?.length) {
+//             errors.khachHang =
+//                 "Chọn ít nhất 1 khách hàng";
+//             isValid = false;
+//         }
+
+//         // Số lượng = số KH
+//         if (
+//             formData.soLuong !==
+//             formData.listIdKhachHang.length
+//         ) {
+//             errors.soLuong =
+//                 "Số lượng phải = số KH";
+//             isValid = false;
+//         }
+//     }
+
+//     return isValid;
+// };
 const validateForm = () => {
-    let isValid = true;
-    clearErrors();
+    let isValid = true
+    clearErrors()
 
     /* ========================
        1. Chuẩn hóa dữ liệu
     ======================== */
-    formData.tenPhieuGiamGia = formData.tenPhieuGiamGia?.trim() || '';
-    formData.codeGiamGia = formData.codeGiamGia?.trim().toUpperCase() || '';
-
-    const now = new Date();
-    now.setSeconds(0, 0);
+    formData.tenPhieuGiamGia = formData.tenPhieuGiamGia?.trim() || ''
+    formData.codeGiamGia = formData.codeGiamGia?.trim().toUpperCase() || ''
 
     /* ========================
-       2. Tên phiếu
+       2. Tên phiếu giảm giá
+       2 – 200 ký tự
     ======================== */
-    const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/;
-
     if (!formData.tenPhieuGiamGia) {
-        errors.tenPhieuGiamGia = "Tên phiếu không được để trống";
-        isValid = false;
+        errors.tenPhieuGiamGia = "Tên phiếu giảm giá không được để trống"
+        isValid = false
     }
-    else if (!nameRegex.test(formData.tenPhieuGiamGia)) {
-        errors.tenPhieuGiamGia =
-            "Tên không được chứa ký tự đặc biệt";
-        isValid = false;
-    }
-    else if (formData.tenPhieuGiamGia.length < 5) {
-        errors.tenPhieuGiamGia =
-            "Tên phải ≥ 5 ký tự";
-        isValid = false;
-    }
-    else if (formData.tenPhieuGiamGia.length > 200) {
-        errors.tenPhieuGiamGia =
-            "Tên tối đa 200 ký tự";
-        isValid = false;
+    else if (formData.tenPhieuGiamGia.length < 2 || formData.tenPhieuGiamGia.length > 200) {
+        errors.tenPhieuGiamGia = "Tên phiếu phải từ 2–200 ký tự"
+        isValid = false
     }
 
     /* ========================
-       3. Code
+       3. Code giảm giá
+       3–20 ký tự
+       chỉ chữ và số
     ======================== */
-    const codeRegex = /^[A-Z0-9_]{3,20}$/;
+    const codeRegex = /^[A-Z0-9]{3,20}$/
 
     if (!formData.codeGiamGia) {
-        errors.codeGiamGia = "Code không được để trống";
-        isValid = false;
+        errors.codeGiamGia = "Mã CODE không được để trống"
+        isValid = false
     }
     else if (!codeRegex.test(formData.codeGiamGia)) {
-        errors.codeGiamGia =
-            "Code gồm A-Z, 0-9, _, dài 3–20 ký tự";
-        isValid = false;
+        errors.codeGiamGia = "CODE chỉ chứa chữ và số, từ 3–20 ký tự"
+        isValid = false
     }
 
     /* ========================
-       4. Loại giảm & giá trị
+       4. Loại giảm giá
     ======================== */
-    if (formData.loaiGiamGia === 1) { // %
-        if (
-            !formData.giaTriGiam ||
-            formData.giaTriGiam < 1 ||
-            formData.giaTriGiam > 100
-        ) {
-            errors.giaTriGiam = "Phần trăm từ 1 → 100";
-            isValid = false;
-        }
-    }
-    else { // Tiền
-        if (
-            !formData.giaTriGiam ||
-            formData.giaTriGiam < 1000
-        ) {
-            errors.giaTriGiam = "Tối thiểu 1.000đ";
-            isValid = false;
-        }
+    if (formData.loaiGiamGia === null || formData.loaiGiamGia === undefined) {
+        errors.loaiGiamGia = "Vui lòng chọn loại giảm giá"
+        isValid = false
     }
 
     /* ========================
-       5. Giảm tối đa & đơn tối thiểu
+       5. Giá trị giảm
     ======================== */
-    if (!formData.giaTriGiamToiDa || formData.giaTriGiamToiDa <= 0) {
-        errors.giaTriGiamToiDa = "Giảm tối đa > 0";
-        isValid = false;
+    if (!formData.giaTriGiam) {
+        errors.giaTriGiam = "Giá trị giảm không được để trống"
+        isValid = false
     }
-
-    if (!formData.donHangToiThieu || formData.donHangToiThieu <= 0) {
-        errors.donHangToiThieu = "Đơn tối thiểu > 0";
-        isValid = false;
-    }
-
-    // % giảm
-    if (formData.loaiGiamGia === 1) {
-
-        if (formData.giaTriGiamToiDa > formData.donHangToiThieu) {
-            errors.giaTriGiamToiDa =
-                "Giảm tối đa ≤ đơn tối thiểu";
-            isValid = false;
+    else {
+        if (formData.loaiGiamGia === 1) {
+            if (formData.giaTriGiam < 1 || formData.giaTriGiam > 100) {
+                errors.giaTriGiam = "Giảm % phải từ 1–100"
+                isValid = false
+            }
         }
 
-        const minDon =
-            (formData.giaTriGiamToiDa * 100) /
-            formData.giaTriGiam;
-
-        if (formData.donHangToiThieu < minDon) {
-            errors.donHangToiThieu =
-                "Đơn tối thiểu không hợp lệ";
-            isValid = false;
-        }
-    }
-
-    // Giảm tiền
-    if (formData.loaiGiamGia === 0) {
-
-        if (formData.giaTriGiamToiDa !== formData.giaTriGiam) {
-            errors.giaTriGiamToiDa =
-                "Giảm tối đa = tiền giảm";
-            isValid = false;
-        }
-
-        if (formData.donHangToiThieu < formData.giaTriGiam) {
-            errors.donHangToiThieu =
-                "Đơn tối thiểu ≥ tiền giảm";
-            isValid = false;
+        if (formData.loaiGiamGia === 0) {
+            if (formData.giaTriGiam < 1000 || formData.giaTriGiam > 10000000) {
+                errors.giaTriGiam = "Giảm tiền từ 1.000 – 10.000.000"
+                isValid = false
+            }
         }
     }
 
     /* ========================
-       6. Số lượng
+       6. Giảm tối đa
+       >= 0
     ======================== */
-    if (!formData.soLuong || formData.soLuong < 1) {
-        errors.soLuong = "Số lượng ≥ 1";
-        isValid = false;
+    if (formData.giaTriGiamToiDa === null || formData.giaTriGiamToiDa === '') {
+        errors.giaTriGiamToiDa = "Giảm tối đa không được để trống"
+        isValid = false
     }
-    else if (formData.soLuong > 100000) {
-        errors.soLuong = "Số lượng quá lớn";
-        isValid = false;
+    else if (formData.giaTriGiamToiDa < 0) {
+        errors.giaTriGiamToiDa = "Giảm tối đa phải ≥ 0"
+        isValid = false
     }
 
     /* ========================
-       7. Thời gian
+       7. Đơn tối thiểu
+       >= 0
+    ======================== */
+    if (formData.donHangToiThieu === null || formData.donHangToiThieu === '') {
+        errors.donHangToiThieu = "Đơn tối thiểu không được để trống"
+        isValid = false
+    }
+    else if (formData.donHangToiThieu < 0) {
+        errors.donHangToiThieu = "Đơn tối thiểu phải ≥ 0"
+        isValid = false
+    }
+
+    /* ========================
+       8. Số lượng
+       số nguyên > 0
+    ======================== */
+    if (!formData.soLuong) {
+        errors.soLuong = "Số lượng không được để trống"
+        isValid = false
+    }
+    else if (!Number.isInteger(formData.soLuong) || formData.soLuong <= 0) {
+        errors.soLuong = "Số lượng phải là số nguyên > 0"
+        isValid = false
+    }
+
+    /* ========================
+       9. Đối tượng áp dụng
+    ======================== */
+    if (formData.doiTuong === null || formData.doiTuong === undefined) {
+        errors.doiTuong = "Vui lòng chọn đối tượng áp dụng"
+        isValid = false
+    }
+
+    /* ========================
+       10. Cá nhân phải chọn KH
+    ======================== */
+    if (formData.doiTuong === 1) {
+        if (!formData.listIdKhachHang || formData.listIdKhachHang.length === 0) {
+            errors.khachHang = "Phải chọn ít nhất 1 khách hàng"
+            isValid = false
+        }
+    }
+
+    /* ========================
+       11. Ngày bắt đầu
     ======================== */
     if (!formData.ngayBatDau) {
-        errors.ngayBatDau = "Chọn ngày bắt đầu";
-        isValid = false;
+        errors.ngayBatDau = "Ngày bắt đầu không được để trống"
+        isValid = false
     }
 
+    /* ========================
+       12. Ngày kết thúc
+    ======================== */
     if (!formData.ngayKetThuc) {
-        errors.ngayKetThuc = "Chọn ngày kết thúc";
-        isValid = false;
+        errors.ngayKetThuc = "Ngày kết thúc không được để trống"
+        isValid = false
     }
 
     if (formData.ngayBatDau && formData.ngayKetThuc) {
+        const start = new Date(formData.ngayBatDau)
+        const end = new Date(formData.ngayKetThuc)
 
-        const start = new Date(formData.ngayBatDau);
-        const end = new Date(formData.ngayKetThuc);
-
-        if (start >= end) {
-            errors.ngayKetThuc =
-                "Kết thúc phải sau bắt đầu";
-            isValid = false;
-        }
-
-        // Khi tạo mới → không cho quá khứ
-        if (!selectedId.value && start < now) {
-            errors.ngayBatDau =
-                "Không được chọn ngày quá khứ";
-            isValid = false;
+        if (end <= start) {
+            errors.ngayKetThuc = "Ngày kết thúc phải lớn hơn ngày bắt đầu"
+            isValid = false
         }
     }
 
-    /* ========================
-       8. Khách hàng cá nhân
-    ======================== */
-    if (formData.doiTuong === 1) {
-
-        if (!formData.listIdKhachHang?.length) {
-            errors.khachHang =
-                "Chọn ít nhất 1 khách hàng";
-            isValid = false;
-        }
-
-        // Số lượng = số KH
-        if (
-            formData.soLuong !==
-            formData.listIdKhachHang.length
-        ) {
-            errors.soLuong =
-                "Số lượng phải = số KH";
-            isValid = false;
-        }
-    }
-
-    return isValid;
-};
-
+    return isValid
+}
 const filteredCustomers = computed(() => {
     if (!Array.isArray(listKhachHang.value)) return [];
 
@@ -1163,6 +1317,8 @@ const handleSearch = async () => {
         const res = await voucherService.fetchData(
             {
                 ...filters,
+                keyword: filters.keyword?.trim(), // ⭐ bỏ khoảng trắng
+
                 trangThai: backendTrangThai,
                 doiTuong,
                 loaiGiamGia
@@ -1418,6 +1574,8 @@ const goToPage = (page) => {
 };
 
 const onSearchInput = () => {
+    filters.keyword = filters.keyword?.trimStart() // bỏ khoảng trắng đầu
+
     clearTimeout(window.debounceSearch);
     window.debounceSearch = setTimeout(() => {
         pagination.currentPage = 1;

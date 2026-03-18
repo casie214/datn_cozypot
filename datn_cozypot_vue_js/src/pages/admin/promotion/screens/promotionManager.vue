@@ -1,29 +1,5 @@
 <template>
     <div class=" promotion-manager-wrapper">
-        <div class="toast-container">
-            <div v-for="t in toasts" :key="t.id" class="custom-toast" :class="t.type">
-                <i :class="t.type === 'error' ? 'fa-solid fa-circle-xmark' : 'fa-solid fa-circle-check'"></i>
-                <div class="custom-toast-content">
-                    <h4>{{ t.title }}</h4>
-                    <p>{{ t.message }}</p>
-                </div>
-                <span class="close-btn" @click="removeToast(t.id)">&times;</span>
-            </div>
-        </div>
-
-        <div v-if="confirmModal.show" class="modal-overlay" @click.self="confirmModal.show = false">
-            <div class="confirm-modal animate__animated animate__zoomIn">
-                <div class="confirm-icon">
-                    <i class="fa-solid fa-circle-question"></i>
-                </div>
-                <h4 class="mt-3">{{ confirmModal.title }}</h4>
-                <p class="text-muted">{{ confirmModal.message }}</p>
-                <div class="d-flex justify-content-center gap-2 mt-4">
-                    <button class="btn btn-light px-4" @click="confirmModal.show = false">Hủy bỏ</button>
-                    <button class="btn-red-dark px-4" @click="executeConfirm">Xác nhận</button>
-                </div>
-            </div>
-        </div>
 
         <div v-if="!isFormActive">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -40,17 +16,9 @@
                     </div>
                     <div class="col-md-4">
                         <label class="filter-label">Trạng thái</label>
-                        <Multiselect
-    v-model="filters.trangThai"
-    :options="statusOptions"
-    label="label"
-    track-by="value"
-    placeholder="Chọn trạng thái"
-    :multiple="false"
-    :close-on-select="true"
-    :clear-on-select="true"
-    @select="handleSearch"
-/>
+                        <Multiselect v-model="filters.trangThai" :options="statusOptions" label="label" track-by="value"
+                            placeholder="Chọn trạng thái" :multiple="false" :close-on-select="true"
+                            :clear-on-select="true" @select="handleSearch" />
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label">Từ ngày</label>
@@ -112,13 +80,23 @@
             </div>
 
             <div class="d-flex justify-content-end mb-3 gap-2">
-                <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="exportExcel">
-                    <i class="fas fa-file-excel"></i>
-                </button>
 
-                <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openFormAdd">
-                    <i class="fas fa-plus"></i>
-                </button>
+                <!-- Export Excel -->
+                <div class="icon-tooltip">
+                    <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="exportExcel">
+                        <i class="fas fa-file-excel"></i>
+                    </button>
+                    <span class="tooltip-text">Xuất Excel</span>
+                </div>
+
+                <!-- Thêm -->
+                <div class="icon-tooltip">
+                    <button class="btn-red-dark d-flex align-items-center justify-content-center" @click="openFormAdd">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <span class="tooltip-text">Thêm đợt giảm giá</span>
+                </div>
+
             </div>
 
             <div class="table-container shadow-sm">
@@ -799,35 +777,118 @@ const getImageUrl = (img) => {
     return `http://localhost:8080/uploads/${img}`;
 };
 
+// const validateForm = () => {
+//     let isValid = true;
+//     Object.keys(errors).forEach(k => errors[k] = '');
+//     formData.tenDotKhuyenMai = formData.tenDotKhuyenMai?.trim() || '';
+//     const start = formData.ngayBatDau ? new Date(formData.ngayBatDau) : null;
+//     const end = formData.ngayKetThuc ? new Date(formData.ngayKetThuc) : null;
 
+//     if (!formData.tenDotKhuyenMai) { errors.tenDotKhuyenMai = "Tên khuyến mãi không được bỏ trống!"; isValid = false; }
+//     if (formData.phanTramGiam <= 0 || formData.phanTramGiam > 100) { errors.phanTramGiam = "Phần trăm giảm phải từ 1 đến 100!"; isValid = false; }
+//     if (!formData.ngayBatDau) { errors.ngayBatDau = "Vui lòng chọn ngày bắt đầu!"; isValid = false; }
+//     if (!formData.ngayKetThuc) { errors.ngayKetThuc = "Vui lòng chọn ngày kết thúc!"; isValid = false; }
+//     else if (start && end < start) { errors.ngayKetThuc = "Ngày kết thúc không được nhỏ hơn ngày bắt đầu!"; isValid = false; }
 
+//     if (formData.idSetLauChiTiet.length === 0 && formData.idMonAnChiTiet.length === 0) {
+//         showError("Lỗi nhập liệu", "Bạn chưa chọn sản phẩm nào cho đợt khuyến mãi!"); isValid = false;
+//     }
+//     return isValid;
+// };
 const validateForm = () => {
     let isValid = true;
+
     Object.keys(errors).forEach(k => errors[k] = '');
+
     formData.tenDotKhuyenMai = formData.tenDotKhuyenMai?.trim() || '';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const start = formData.ngayBatDau ? new Date(formData.ngayBatDau) : null;
     const end = formData.ngayKetThuc ? new Date(formData.ngayKetThuc) : null;
 
-    if (!formData.tenDotKhuyenMai) { errors.tenDotKhuyenMai = "Tên khuyến mãi không được bỏ trống!"; isValid = false; }
-    if (formData.phanTramGiam <= 0 || formData.phanTramGiam > 100) { errors.phanTramGiam = "Phần trăm giảm phải từ 1 đến 100!"; isValid = false; }
-    if (!formData.ngayBatDau) { errors.ngayBatDau = "Vui lòng chọn ngày bắt đầu!"; isValid = false; }
-    if (!formData.ngayKetThuc) { errors.ngayKetThuc = "Vui lòng chọn ngày kết thúc!"; isValid = false; }
-    else if (start && end < start) { errors.ngayKetThuc = "Ngày kết thúc không được nhỏ hơn ngày bắt đầu!"; isValid = false; }
+    // ===== TÊN ĐỢT GIẢM GIÁ =====
+    const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/;
 
-    if (formData.idSetLauChiTiet.length === 0 && formData.idMonAnChiTiet.length === 0) {
-        showToast("Lỗi nhập liệu", "Bạn chưa chọn sản phẩm nào cho đợt khuyến mãi này.", "error");
+    if (!formData.tenDotKhuyenMai) {
+        errors.tenDotKhuyenMai = "Tên đợt giảm giá không được để trống";
         isValid = false;
     }
+    else if (formData.tenDotKhuyenMai.length < 2 || formData.tenDotKhuyenMai.length > 200) {
+        errors.tenDotKhuyenMai = "Tên đợt giảm giá phải từ 2 - 200 ký tự";
+        isValid = false;
+    }
+    else if (!nameRegex.test(formData.tenDotKhuyenMai)) {
+        errors.tenDotKhuyenMai = "Tên đợt giảm giá không được chứa ký tự đặc biệt";
+        isValid = false;
+    }
+    else {
+        const duplicate = listKhuyenMai.value.find(km =>
+            km.tenDotKhuyenMai?.toLowerCase() === formData.tenDotKhuyenMai.toLowerCase()
+            && (!selectedId.value || km.id !== selectedId.value)
+        );
+
+        if (duplicate) {
+            errors.tenDotKhuyenMai = "Tên đợt giảm giá đã tồn tại";
+            isValid = false;
+        }
+    }
+
+    // ===== PHẦN TRĂM GIẢM =====
+    if (formData.phanTramGiam === null || formData.phanTramGiam === '') {
+        errors.phanTramGiam = "Phần trăm giảm không được để trống";
+        isValid = false;
+    }
+    else if (!Number.isInteger(formData.phanTramGiam)) {
+        errors.phanTramGiam = "Phần trăm giảm phải là số nguyên";
+        isValid = false;
+    }
+    else if (formData.phanTramGiam < 1 || formData.phanTramGiam > 100) {
+        errors.phanTramGiam = "Phần trăm giảm phải từ 1 - 100";
+        isValid = false;
+    }
+
+    // ===== NGÀY BẮT ĐẦU =====
+    if (!formData.ngayBatDau) {
+        errors.ngayBatDau = "Ngày bắt đầu không được để trống";
+        isValid = false;
+    }
+    else if (start <= today) {
+        errors.ngayBatDau = "Ngày bắt đầu phải lớn hơn ngày hiện tại";
+        isValid = false;
+    }
+
+    // ===== NGÀY KẾT THÚC =====
+    if (!formData.ngayKetThuc) {
+        errors.ngayKetThuc = "Ngày kết thúc không được để trống";
+        isValid = false;
+    }
+    else if (start && end <= start) {
+        errors.ngayKetThuc = "Ngày kết thúc phải lớn hơn ngày bắt đầu";
+        isValid = false;
+    }
+
+    // ===== MÔ TẢ =====
+    if (formData.moTa && formData.moTa.length > 255) {
+        showError("Lỗi nhập liệu", "Mô tả tối đa 255 ký tự");
+        isValid = false;
+    }
+
+    // ===== SET LẨU =====
+    if (formData.idSetLauChiTiet.length === 0) {
+        showError("Lỗi nhập liệu", "Phải chọn ít nhất 1 hàng hóa / set lẩu");
+        isValid = false;
+    }
+
     return isValid;
 };
-
 const handleSearch = async () => {
     const apiFilters = {
-    keyword: filters.keyword,
-    trangThai: filters.trangThai ? filters.trangThai.value : null,
-    ngayBatDau: formatDateForApi(filters.ngayBatDau),
-    ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
-};
+        keyword: filters.keyword,
+        trangThai: filters.trangThai?.value === 2 ? null : filters.trangThai?.value, ngayBatDau: formatDateForApi(filters.ngayBatDau),
+        ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
+    };
 
     // 🔥 LẤY TOÀN BỘ DATA (KHÔNG PHÂN TRANG)
     const data = await fetchData(apiFilters, {
@@ -867,34 +928,34 @@ const handleSearch = async () => {
 
     if (filters.trangThai && filters.trangThai.value !== null) {
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    results = results.filter(km => {
+        results = results.filter(km => {
 
-        const end = new Date(km.ngayKetThuc);
-        end.setHours(0,0,0,0);
+            const end = new Date(km.ngayKetThuc);
+            end.setHours(0, 0, 0, 0);
 
-        // Đang hoạt động
-        if (filters.trangThai.value === 1) {
-            return km.trangThai === 1 && end >= today;
-        }
+            // Đang hoạt động
+            if (filters.trangThai.value === 1) {
+                return km.trangThai === 1 && end >= today;
+            }
 
-        // Ngừng
-        if (filters.trangThai.value === 0) {
-            return km.trangThai === 0;
-        }
+            // Ngừng
+            if (filters.trangThai.value === 0) {
+                return km.trangThai === 0;
+            }
 
-        // Hết hạn
-        if (filters.trangThai.value === 2) {
-            return end < today;
-        }
+            // Hết hạn
+            if (filters.trangThai.value === 2) {
+                return end < today;
+            }
 
-        return true;
-    });
+            return true;
+        });
 
 
-}
+    }
 
     // ✅ LƯU DATA ĐÃ LỌC
     filteredKhuyenMai.value = results;
@@ -959,52 +1020,55 @@ const submitForm = async () => {
         return;
     }
 
-    openConfirm(
+    const confirm = await confirmAction(
         'Xác nhận lưu?',
-        `Bạn có chắc chắn muốn ${selectedId.value ? 'cập nhật' : 'tạo mới'} đợt khuyến mãi này không?`,
-        async () => {
-            try {
-                if (selectedId.value) {
-                    await promotionService.update(selectedId.value, formData);
-                    showToast("Cập nhật thành công", "Thông tin khuyến mãi đã được cập nhật.");
-                } else {
-                    await promotionService.create(formData);
-                    showToast("Thêm mới thành công", "Đợt khuyến mãi đã được tạo.");
-                }
-                closeForm();
-                handleSearch();
-            } catch (e) {
-                const msg =
-                    e?.response?.data?.message ||
-                    e?.response?.data ||
-                    e?.message ||
-                    "Có lỗi xảy ra!";
-
-                showToast("Lỗi", msg, "error");
-            }
-
-        }
+        `Bạn có chắc muốn ${selectedId.value ? 'cập nhật' : 'tạo mới'} đợt khuyến mãi?`
     );
+
+    if (!confirm) return;
+
+    try {
+
+        if (selectedId.value) {
+            await promotionService.update(selectedId.value, formData);
+            showSuccess("Thành công", "Cập nhật khuyến mãi thành công!");
+        } else {
+            await promotionService.create(formData);
+            showSuccess("Thành công", "Tạo khuyến mãi mới thành công!");
+        }
+
+        closeForm();
+        handleSearch();
+
+    } catch (e) {
+        showError("Lỗi", getErrorMessage(e));
+    }
 };
 
 
 const handleToggleStatus = async (km) => {
     const originalStatus = km.trangThai;
 
-    openConfirm(
+    const confirm = await confirmAction(
         'Thay đổi trạng thái?',
-        `Xác nhận ${originalStatus === 1 ? 'ngừng' : 'kích hoạt'} đợt khuyến mãi này?`,
-        async () => {
-            try {
-                await promotionService.toggleStatus(km.id);
-                showToast("Thành công", "Trạng thái đã được cập nhật.");
-                handleSearch();
-            } catch (e) {
-                showToast("Lỗi", "Không thể thay đổi trạng thái!", "error");
-                handleSearch();
-            }
-        }
+        `Bạn có chắc muốn ${km.trangThai === 1 ? 'ngừng' : 'kích hoạt'} khuyến mãi này?`
     );
+
+    if (!confirm) return;
+
+    try {
+
+        await promotionService.toggleStatus(km.id);
+
+        showSuccess("Thành công", "Đã cập nhật trạng thái!");
+
+        handleSearch();
+
+    } catch (e) {
+
+        showError("Lỗi", "Không thể thay đổi trạng thái!");
+
+    }
 };
 
 
@@ -1115,6 +1179,32 @@ const resetFilters = () => {
     pagination.currentPage = 1;
     handleSearch();
 };
+const calculateStatus = (km) => {
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const start = new Date(km.ngayBatDau);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(km.ngayKetThuc);
+    end.setHours(0, 0, 0, 0);
+
+    // ❗ Nếu đã hết hạn → coi như ngừng
+    if (end < today) {
+        return { text: 'Ngừng hoạt động', class: 'badge bg-secondary' };
+    }
+
+    if (km.trangThai === 0) {
+        return { text: 'Ngừng hoạt động', class: 'badge bg-secondary' };
+    }
+
+    if (start > today) {
+        return { text: 'Chưa bắt đầu', class: 'badge bg-warning text-dark' };
+    }
+
+    return { text: 'Đang hoạt động', class: 'badge bg-success' };
+};
 const formatPrice = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
 const selectedProducts = computed(() => {
     const sets = listSetLau.value
@@ -1153,16 +1243,6 @@ const removeSelectedItem = (item) => {
 const clearAllSelected = () => {
     formData.idSetLauChiTiet = [];
     formData.idMonAnChiTiet = [];
-};
-
-const calculateStatus = (km) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = new Date(km.ngayKetThuc);
-    endDate.setHours(0, 0, 0, 0);
-    if (km.trangThai === 0) return { text: 'Ngừng hoạt động', class: 'badge bg-secondary' };
-    if (endDate < today) return { text: 'Đã hết hạn', class: 'badge bg-danger' };
-    return { text: 'Đang hoạt động', class: 'badge bg-success' };
 };
 
 const jumpToPage = () => {
@@ -1219,7 +1299,38 @@ const getErrorMessage = (e) => {
         "Lỗi không xác định"
     );
 };
+const showSuccess = (title, text) => {
+    Swal.fire({
+        icon: 'success',
+        title: title,
+        text: text,
+        timer: 2000,
+        showConfirmButton: false
+    });
+};
 
+const showError = (title, text) => {
+    Swal.fire({
+        icon: 'error',
+        title: title,
+        text: text
+    });
+};
+
+const confirmAction = async (title, text) => {
+    const result = await Swal.fire({
+        title: title,
+        text: text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#8b0000',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Xác nhận',
+        cancelButtonText: 'Hủy'
+    });
+
+    return result.isConfirmed;
+};
 </script>
 
 <style scoped>
