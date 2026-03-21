@@ -10,4 +10,5 @@ public class DatBanSearchRequest {
     private String soDienThoai;
     private Integer trangThai;
     private LocalDate thoiGianDat;
+    private String idBanAn;
 }

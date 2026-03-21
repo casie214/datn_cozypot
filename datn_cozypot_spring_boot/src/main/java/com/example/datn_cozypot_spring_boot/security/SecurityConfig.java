@@ -49,13 +49,15 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler) // Xử lý 403 từ main
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/ws/**").permitAll()
                         // Auth & Tài khoản (Từ main)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
+                        .requestMatchers("/api/phieu-giam-gia/public").permitAll()
+                        .requestMatchers("/api/refresh-token").permitAll()
 
-                        // Public API (Gộp chung)
                         .requestMatchers("/api/payment/**").permitAll() // Từ code của bạn
                         .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                         .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()

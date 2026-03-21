@@ -13,6 +13,7 @@ import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.Phuon
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -79,6 +80,8 @@ public class DatBanService {
     private ThamSoHeThongRepository thamSoHeThongRepository;
     @Autowired
     private com.example.datn_cozypot_spring_boot.repository.phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
+    @Autowired
+    private ModelMapper modelMapper;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
@@ -173,9 +176,30 @@ public class DatBanService {
             end = date.plusDays(1).atStartOfDay();
         }
 
-        PageRequest pageRequest = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted());
+        // Xử lý cắt chuỗi ID Bàn và gán cờ hasBan
+        List<Integer> listIdBanAn;
+        boolean hasBan = false;
 
-        Page<PhieuDatBan> page = phieuDatBanRepository.search(request.getSoDienThoai(), request.getTrangThai(), start, end, pageRequest);
+        if (request.getIdBanAn() != null && !request.getIdBanAn().trim().isEmpty()) {
+            listIdBanAn = Arrays.stream(request.getIdBanAn().split(","))
+                    .map(String::trim)
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+            hasBan = true;
+        } else {
+            // Gán giá trị ảo để tránh lỗi cú pháp SQL Server khi mảng rỗng
+            listIdBanAn = List.of(-1);
+        }
+
+        Page<PhieuDatBan> page = phieuDatBanRepository.search(
+                request.getSoDienThoai(),
+                request.getTrangThai(),
+                start,
+                end,
+                hasBan, // Truyền cờ hasBan vào đây
+                listIdBanAn,
+                pageable
+        );
 
         return page.map(DatBanListResponse::new);
     }
@@ -1228,5 +1252,9 @@ public class DatBanService {
                 .stream()
                 .map(DatBanListResponse::new)
                 .toList();
+    }
+
+    public PhieuDatBan getPhieuDatBanById(Integer id) {
+        return phieuDatBanRepository.findById(id).orElse(null);
     }
 }

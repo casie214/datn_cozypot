@@ -14,6 +14,10 @@ import Multiselect from "@vueform/multiselect";
 import "@vueform/multiselect/themes/default.css";
 import Swal from "sweetalert2";
 import axiosClient from "@/services/axiosClient";
+import { useRoute, useRouter } from "vue-router";
+
+const route = useRoute();
+const router = useRouter();
 
 const Toast = Swal.mixin({
   toast: true,
@@ -66,6 +70,23 @@ const formErrors = ref({
   soLuongKhach: "",
   idBanAn: "", // Dùng chung key lỗi cho Bàn
 });
+
+const checkUrlAndOpenDetail = () => {
+    const openId = route.query.openId;
+    if (openId) {
+        console.log("🚀 Đang tự động mở phiếu ID:", openId);
+        
+        // Gọi hàm mở detail modal với ID lấy từ URL
+        // Chúng ta truyền object có id để hàm openDetailModal của bạn xử lý được
+        openDetailModal({ 
+            id: Number(openId), 
+            idDatBan: Number(openId) 
+        });
+
+        // Xóa ID trên URL sau khi đã mở để tránh việc Admin F5 trang nó lại tự mở lại
+        router.replace({ query: { ...route.query, openId: undefined } });
+    }
+};
 
 const showCreateModal = ref(false);
 const listBanAn = ref([]);
@@ -410,6 +431,15 @@ const processSaveTableSelection = async () => {
   }
 };
 
+watch(
+  () => route.query.openId,
+  (newId) => {
+    if (newId) {
+      checkUrlAndOpenDetail();
+    }
+  }
+);
+
 watch(() => createForm.value.thoiGianDat, (newVal) => {
   if (newVal) {
     // So sánh thời gian vừa chọn với thời gian hiện tại (tính tới phút)
@@ -711,6 +741,7 @@ const handleConfirmOrder = async (idHoaDon) => {
     const response = await axiosClient.put(
       `/hoa-don-thanh-toan/xac-nhan-va-gui-mail/${idHoaDon}`,
     );
+    
     console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
 
     Swal.fire({
@@ -727,6 +758,8 @@ const handleConfirmOrder = async (idHoaDon) => {
     
     // Cập nhật lại list ở background
     searchDatBan();
+    loadTables();
+    loadAllCustomers();
 
   } catch (error) {
     console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
@@ -895,8 +928,13 @@ const showToast = (type, title, message, duration = 4000) => {
   }, duration);
 };
 
-onMounted(() => {
-  searchDatBan();
+onMounted(async () => {
+    await searchDatBan(); // Chờ load danh sách xong
+    
+    // Delay 500ms để đảm bảo mọi thứ đã sẵn sàng rồi mới mở Modal
+    setTimeout(() => {
+        checkUrlAndOpenDetail();
+    }, 500);
 });
 </script>
 
@@ -974,7 +1012,7 @@ onMounted(() => {
                 style="border-radius: 6px;">
                 <i class="fa-solid fa-map-location-dot me-1"></i> Chọn bàn trên sơ đồ
               </button>
-              <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-success">
+              <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-danger">
                 Đã chọn {{ createForm.danhSachBanChon.length }} bàn
               </span>
             </div>
@@ -1089,7 +1127,7 @@ onMounted(() => {
                   }}</b></span>
             </div>
             <div class="fw-bold fs-5"
-              :class="totalTempCapacity >= createForm.soLuongKhach ? 'text-success' : 'text-danger'">
+              :class="totalTempCapacity >= createForm.soLuongKhach ? 'text-danger' : 'text-danger'">
               Đã đáp ứng: {{ totalTempCapacity }} / {{ createForm.soLuongKhach }} chỗ
             </div>
           </div>
@@ -1124,7 +1162,7 @@ onMounted(() => {
                       ban.soNguoiToiDa }} chỗ</div>
 
                     <div v-if="tempSelectedTables.some(b => b.id === ban.id)"
-                      class="status-tag bg-success text-white w-100 rounded-pill"><i
+                      class="status-tag bg-danger text-white w-100 rounded-pill"><i
                         class="fa-solid fa-check-double"></i>
                       Đã chọn</div>
                     <div
@@ -1141,7 +1179,7 @@ onMounted(() => {
           </div>
 
           <div class="bg-white shadow-sm border rounded p-3 d-flex flex-column" style="width: 350px;">
-            <h6 class="fw-bold mb-3 pb-2 border-bottom text-success flex-shrink-0">
+            <h6 class="fw-bold mb-3 pb-2 border-bottom text-danger flex-shrink-0">
               <i class="fa-solid fa-list-check me-2"></i> Bàn trống có thể chọn
             </h6>
             <div class="overflow-auto flex-grow-1 pe-2" style="max-height: calc(100vh - 250px);">
@@ -1166,7 +1204,7 @@ onMounted(() => {
                     </div>
 
                     <div class="fw-bold fs-5"
-                      :class="tempSelectedTables.some(b => b.id === ban.id) ? 'text-white' : 'text-success'">{{
+                      :class="tempSelectedTables.some(b => b.id === ban.id) ? 'text-white' : 'text-danger'">{{
                       ban.maBan
                       }}</div>
                     <div class="small mb-1"
@@ -1174,7 +1212,7 @@ onMounted(() => {
                       <i class="fa-solid fa-users"></i> {{ ban.soCho || ban.soNguoiToiDa }} chỗ
                     </div>
                     <div class="badge border"
-                      :class="tempSelectedTables.some(b => b.id === ban.id) ? 'bg-white text-success border-white' : 'bg-light text-dark'">
+                      :class="tempSelectedTables.some(b => b.id === ban.id) ? 'bg-white text-danger border-white' : 'bg-light text-dark'">
                       Tầng {{ ban.soTang || ban.tang }}
                     </div>
                   </div>
@@ -1223,13 +1261,6 @@ onMounted(() => {
       </div>
 
       <div class="modal-body-custom p-0" style="max-height: 70vh; overflow-y: auto; overflow-x: hidden;">
-
-        <div v-if="isLoadingDetail" class="d-flex flex-column align-items-center justify-content-center py-5 my-5">
-          <div class="spinner-border text-danger" role="status"
-            style="width: 3.5rem; height: 3.5rem; border-width: 0.35em;"></div>
-          <div class="mt-3 text-muted fw-bold fs-5 blink-animation">Đang tải dữ liệu hệ thống...</div>
-        </div>
-
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <div class="p-3 border rounded bg-light h-100">
@@ -1266,7 +1297,7 @@ onMounted(() => {
           <div v-if="!detailHoaDon?.danhSachTenBan || detailHoaDon.danhSachTenBan.length === 0"
             class="alert alert-warning d-flex justify-content-between align-items-center mb-0">
             <span><i class="fa-solid fa-triangle-exclamation me-2"></i> Phiếu này chưa được xếp bàn.</span>
-            <button class="btn btn-sm btn-success fw-bold px-3 py-2 rounded" @click="handleAssignTableFromDetail">
+            <button class="btn btn-sm btn-danger fw-bold px-3 py-2 rounded" @click="handleAssignTableFromDetail">
               <i class="fa-solid fa-chair me-1"></i> Bấm để chọn bàn
             </button>
           </div>
@@ -1299,7 +1330,7 @@ onMounted(() => {
                 </div>
                 <div class="text-muted small">
                   Số lượng: x{{ item.quantity }} | Đơn giá: {{ item.price.toLocaleString() }}đ
-                  <span v-if="item.served" class="badge bg-success ms-2" style="font-size: 10px;">Đã lên</span>
+                  <span v-if="item.served" class="badge bg-danger ms-2" style="font-size: 10px;">Đã lên</span>
                   <span v-else class="badge bg-warning text-dark ms-2" style="font-size: 10px;">Chưa lên</span>
                 </div>
               </li>
@@ -1312,7 +1343,7 @@ onMounted(() => {
               <span>Đã cọc:</span><span>- {{ detailHoaDon.tienCoc.toLocaleString() }} đ</span>
             </div>
             <div v-if="(detailHoaDon?.soTienDaGiam || 0) > 0"
-              class="d-flex justify-content-between text-success small mb-1">
+              class="d-flex justify-content-between text-danger small mb-1">
               <span>Giảm giá:</span><span>- {{ detailHoaDon.soTienDaGiam.toLocaleString() }} đ</span>
             </div>
             <div class="d-flex justify-content-between align-items-center pt-2 border-top border-danger mt-2">
@@ -1329,12 +1360,12 @@ onMounted(() => {
         </div>
 
         <div v-if="orderHistory.length > 0" class="mt-4">
-          <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử hệ thống</h6>
+          <h6 class="fw-bold text-danger mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i>Lịch sử hệ thống</h6>
           <div class="border rounded p-3 bg-light">
             <div v-for="log in orderHistory" :key="log.idLog"
-              class="border-start border-2 border-primary ps-3 mb-3 position-relative">
+              class="border-start border-2 border-danger ps-3 mb-3 position-relative">
               <div class="position-absolute"
-                style="left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #0d6efd;"></div>
+                style="left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #7d161a;"></div>
               <div class="d-flex justify-content-between mb-1">
                 <strong style="font-size: 14px;">{{ log.hanhDong }}</strong>
                 <small class="text-muted">{{ formatDate(log.thoiGian) }}</small>
@@ -1736,10 +1767,10 @@ hr {
 }
 
 .is-selected-merge {
-  border: 3px solid #28a745 !important;
+  border: 3px solid #7D161A !important;
   background-color: #f0fdf4 !important;
   transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(40, 167, 69, 0.4) !important;
+  box-shadow: 0 0 15px rgba(167, 40, 40, 0.4) !important;
   opacity: 1 !important;
   filter: grayscale(0%) !important;
   z-index: 10;
@@ -1793,16 +1824,16 @@ hr {
 }
 
 .mini-table-card:hover {
-  border-color: #28a745;
+  border-color: #7D161A;
   background-color: #f8fff9;
   transform: translateY(-3px);
-  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.15);
+  box-shadow: 0 4px 10px rgba(167, 40, 40, 0.15);
 }
 
 .mini-table-card.is-selected-list {
-  background-color: #28a745 !important;
-  border-color: #28a745 !important;
-  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3) !important;
+  background-color: #7D161A !important;
+  border-color: #7D161A !important;
+  box-shadow: 0 4px 10px rgba(167, 40, 40, 0.3) !important;
   transform: scale(1.05);
   z-index: 5;
 }
