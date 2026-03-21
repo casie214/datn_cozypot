@@ -5,10 +5,12 @@ import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.GopBanRequest
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanRequest;
 import com.example.datn_cozypot_spring_boot.dto.HoaDonThanhToanDTO.HoaDonThanhToanResponse;
 import com.example.datn_cozypot_spring_boot.dto.LichSuHoaDonDTO.LichSuHoaDonRequest;
+import com.example.datn_cozypot_spring_boot.dto.request.EmailHuyDatBanDTO;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository;
 import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository;
+import com.example.datn_cozypot_spring_boot.service.EmailDatBanService;
 import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,6 +33,9 @@ public class HoaDonThanhToanService {
 
     @Autowired
     ChiTietHoaDonService chiTietHoaDonService;
+
+    @Autowired
+    EmailDatBanService emailDatBanService;
 
     @Autowired
     ChiTietHoaDonRepository chiTietHoaDonRepository;
@@ -151,8 +157,8 @@ public class HoaDonThanhToanService {
         chiTietHoaDonRepository.saveAll(listgetAllMonAn);
 
         // 🚨 N-N LOGIC: Hủy phiếu và dọn toàn bộ danh sách bàn thuộc phiếu đó
-        if (hd.getIdPhieuDatBan() != null) {
-            PhieuDatBan phieu = hd.getIdPhieuDatBan();
+        PhieuDatBan phieu = hd.getIdPhieuDatBan();
+        if (phieu != null) {
             phieu.setTrangThai(2); // Hủy phiếu
 
             for (BanAn ban : phieu.getBanAns()) {
@@ -184,6 +190,32 @@ public class HoaDonThanhToanService {
             log.setIdNhanVien(nv);
         }
         lichSuHoaDonRepository.save(log);
+
+        // GỬI EMAIL THÔNG BÁO HỦY (SAU KHI ĐÃ LƯU DB)
+        var khachHang = hd.getIdKhachHang();
+        if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank()) {
+
+            // Format tiền tệ nếu có hoàn trả (Trạng thái 9)
+            String tienHoanTraMail = null;
+            if (trangThaiMoi == 9 && hd.getTienHoanTra() != null) {
+                NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+                tienHoanTraMail = currencyFormat.format(hd.getTienHoanTra());
+            }
+
+            // Lấy mã phiếu hoặc mã hóa đơn
+            String maGiaoDichMail = (phieu != null && phieu.getMaDatBan() != null) ? phieu.getMaDatBan() : hd.getMaHoaDon();
+
+            EmailHuyDatBanDTO mailData = EmailHuyDatBanDTO.builder()
+                    .email(khachHang.getEmail())
+                    .tenKhachHang(khachHang.getTenKhachHang())
+                    .maPhieuDatBan(maGiaoDichMail)
+                    .nguoiHuy("Nhà hàng CozyPot") // Chỗ này có thể lấy tên nv nếu cần
+                    .lyDoHuy(request.getLyDoThucHien())
+                    .tienHoanTra(tienHoanTraMail)
+                    .build();
+
+            emailDatBanService.sendEmailHuyDatBan(mailData);
+        }
     }
 
     @Transactional

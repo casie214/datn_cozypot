@@ -12,6 +12,7 @@ import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.PhuongThucThanhToanRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -46,6 +48,8 @@ public class DatBanService {
 
     @Autowired
     private KhachHangRepository khachHangRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private KhuVucRepository khuVucRepository;
@@ -842,6 +846,9 @@ public class DatBanService {
             khachHang = khachHangRepository.findBySoDienThoai(request.getPhone()).orElse(null);
         }
 
+        boolean isKhachMoiTao = false;
+        String mkMoi = "";
+
         // Ưu tiên 3: Nếu vẫn không có -> Tạo khách mới
         if (khachHang == null) {
             khachHang = new KhachHang();
@@ -849,11 +856,14 @@ public class DatBanService {
             khachHang.setSoDienThoai(request.getPhone());
             khachHang.setEmail(request.getEmail());
             khachHang.setTenDangNhap(request.getPhone());
-            khachHang.setMatKhauDangNhap(request.getPhone());
+            mkMoi = RandomStringUtils.randomAlphanumeric(8);
+            String encodedPassword = passwordEncoder.encode(mkMoi);
+            khachHang.setMatKhauDangNhap(encodedPassword);
             khachHang.setTrangThai(1);
             khachHang.setAuthProvider(com.example.datn_cozypot_spring_boot.config.AuthProvider.LOCAL);
             khachHang.setNgayTaoTaiKhoan(java.time.Instant.now());
             khachHang = khachHangRepository.save(khachHang);
+            isKhachMoiTao = true;
         }
 
         PhieuDatBan phieu = new PhieuDatBan();
@@ -986,9 +996,10 @@ public class DatBanService {
                             request.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
                     .soLuongKhach(request.getSoNguoi())
                     .maPhieuDatBan(maTraCuu)
+                    .isTaiKhoanMoi(isKhachMoiTao)
+                    .matKhauMoi(mkMoi)
                     .build();
 
-            // Gọi hàm Async, luồng chính vẫn tiếp tục chạy nhanh chóng
             emailDatBanService.sendEmailCamOnDatBan(emailDto);
         }
 
