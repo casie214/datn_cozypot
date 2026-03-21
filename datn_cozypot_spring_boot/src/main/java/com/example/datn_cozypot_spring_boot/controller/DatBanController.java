@@ -2,6 +2,7 @@ package com.example.datn_cozypot_spring_boot.controller;
 
 import com.example.datn_cozypot_spring_boot.dto.request.*;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
+import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.repository.HoaDonThanhToanRepository;
 import com.example.datn_cozypot_spring_boot.repository.KhuVucRepository;
@@ -11,12 +12,9 @@ import com.example.datn_cozypot_spring_boot.dto.response.BanAnResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.BanTrangThaiResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
-import com.example.datn_cozypot_spring_boot.entity.ChiTietHoaDon;
-import com.example.datn_cozypot_spring_boot.entity.HoaDonThanhToan;
-import com.example.datn_cozypot_spring_boot.entity.LichSuHoaDon;
-import com.example.datn_cozypot_spring_boot.entity.NhanVien;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
+import com.example.datn_cozypot_spring_boot.service.ThongBaoService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +55,8 @@ public class DatBanController {
     private NhanVienRepository nhanVienRepository;
     @Autowired
     private LichSuHoaDonRepository lichSuHoaDonRepository;
+    @Autowired
+    private ThongBaoService thongBaoService;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -90,22 +90,20 @@ public class DatBanController {
 
 
     @PostMapping("/search")
-public Page<DatBanListResponse> searchDatBan(
-        @RequestParam(required = false) Integer page,
-        @RequestParam(required = false) Integer size,
-        @RequestBody DatBanSearchRequest req
-) {
-    int p = page != null ? page : 0;
-    int s = size != null ? size : 5;
+    public Page<DatBanListResponse> searchDatBan(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestBody DatBanSearchRequest req
+    ) {
+        int p = page != null ? page : 0;
+        int s = size != null ? size : 5;
 
-    Pageable pageable = PageRequest.of(
-            p,
-            s,
-            Sort.by(Sort.Direction.ASC, "thoiGianDat")
-    );
+        // 🚨 SỬA Ở ĐÂY: Xóa bỏ cái Sort.by(...) đi
+        // Chỉ cần truyền đúng số trang (p) và kích thước trang (s)
+        Pageable pageable = PageRequest.of(p, s);
 
-    return datBanService.searchDatBan(req, pageable);
-}
+        return datBanService.searchDatBan(req, pageable);
+    }
 
 
     @PostMapping("/add-ban-an")
@@ -202,11 +200,46 @@ public Page<DatBanListResponse> searchDatBan(
     public ResponseEntity<?> updateTrangThai(
             @RequestBody @Valid UpdateTrangThaiPhieuRequest request
     ) {
-        datBanService.updateTrangThai(
-                request.getId(),
-                request.getTrangThai()
-        );
-        return ResponseEntity.ok().build();
+        try {
+            // 1. Thực hiện cập nhật trong Database
+            datBanService.updateTrangThai(
+                    request.getId(),
+                    request.getTrangThai()
+            );
+
+            // 2. Lấy thông tin phiếu sau khi cập nhật
+            PhieuDatBan phieu = datBanService.getPhieuDatBanById(request.getId());
+
+            // 3. Lấy tên trạng thái tương ứng
+            String tenTrangThai = getTenTrangThai(request.getTrangThai());
+
+            // 4. Gửi thông báo Real-time
+            // Tham số: idPhieu, tiêu đề, nội dung
+            thongBaoService.sendNotify(
+                    "Cập nhật trạng thái phiếu 🔥",
+                    "Mã phiếu: " + phieu.getMaDatBan() +
+                            "\nTrạng thái mới: " + tenTrangThai +
+                            "\nKhách hàng: " + phieu.getIdKhachHang().getTenKhachHang()
+            );
+
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Hàm helper để map trạng thái
+    private String getTenTrangThai(Integer trangThai) {
+        if (trangThai == null) return "Không xác định";
+        return switch (trangThai) {
+            case 0 -> "Chờ xác nhận";
+            case 1 -> "Đã xác nhận";
+            case 2 -> "Đã hủy";
+            case 3 -> "Đang sử dụng (Check-in)";
+            case 4 -> "Hoàn thành";
+            case 5 -> "Quá hạn / Khách không đến";
+            default -> "Không xác định (" + trangThai + ")";
+        };
     }
 
     @GetMapping("/ban-an/trang-thai-theo-ngay/{date}")
@@ -249,6 +282,13 @@ public Page<DatBanListResponse> searchDatBan(
     public ResponseEntity<?> taoPhieuDatBanOnline(@RequestBody DatBanOnlineRequest request) {
         try {
             Map<String, Object> responseData = datBanService.taoPhieuDatBanOnline(request);
+
+            thongBaoService.sendNotify(
+                    "Có khách đã đặt bàn 🔥",
+                    "Số điện thoại khách hàng: " + request.getPhone() + "\nThời gian đặt: " + request.getThoiGianDat()
+            );
+            System.out.println("Đã lưu thông báo");
+
             return ResponseEntity.ok(responseData);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

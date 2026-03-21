@@ -48,6 +48,29 @@ public class PhieuGiamGiaController {
         ));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<?> getPublicVouchers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer loaiGiamGia,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size
+    ) {
+        // Cố định doiTuong = 0 (Công khai) và trangThai = 1 (Đang hoạt động)
+        Integer doiTuongCongKhai = 0;
+        Integer trangThaiHoatDong = 1;
+
+        // Tận dụng hàm getAll có sẵn nhưng truyền cứng tham số
+        return ResponseEntity.ok(service.getAll(
+                keyword,
+                doiTuongCongKhai,
+                loaiGiamGia,
+                trangThaiHoatDong,
+                null, null, // Không lọc ngày bắt đầu/kết thúc ở đây vì Service thường đã check HSD
+                page,
+                size
+        ));
+    }
+
     // ============= GET BY ID =============
 
     @GetMapping("/{id}")
