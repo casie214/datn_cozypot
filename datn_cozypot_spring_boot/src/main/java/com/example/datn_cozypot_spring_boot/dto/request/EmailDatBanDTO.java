@@ -18,4 +18,6 @@ public class EmailDatBanDTO {
     private String khuVuc;
     private int soLuongKhach;
     private String maPhieuDatBan; // mã phiếu để khách tra cứu
+    private Boolean isTaiKhoanMoi;
+    private String matKhauMoi;
 }

@@ -18,9 +18,19 @@ public class LichSuDatBanController {
     private final LichSuDatBanService lichSuDatBanService;
 
     @GetMapping("/tra-cuu")
-    public ResponseEntity<?> traCuuKhachVangLai(@RequestParam String maPhieu) {
+    public ResponseEntity<?> traCuuKhachVangLai(@RequestParam String maPhieu, @RequestParam String sdt) {
         try {
-            Map<String, Object> data = lichSuDatBanService.traCuuKhachVangLai(maPhieu);
+            Map<String, Object> data = lichSuDatBanService.traCuuKhachVangLai(maPhieu, sdt);
+            return ResponseEntity.ok(data);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/chi-tiet/{maPhieu}")
+    public ResponseEntity<?> xemChiTietKhachDangNhap(@PathVariable String maPhieu) {
+        try {
+            Map<String, Object> data = lichSuDatBanService.xemChiTietChoKhachDangNhap(maPhieu);
             return ResponseEntity.ok(data);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

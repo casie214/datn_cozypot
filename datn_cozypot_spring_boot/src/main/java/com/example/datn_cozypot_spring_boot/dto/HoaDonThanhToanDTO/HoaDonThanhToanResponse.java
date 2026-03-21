@@ -29,6 +29,7 @@ public class HoaDonThanhToanResponse {
     private BigDecimal vatApDung;
     private Integer idPhieuGiamGia;
     private String maPhieuGiamGia;
+    private LocalDateTime thoiGianNhanBan;
 
     // 🚨 CONSTRUCTOR NÀY DÀNH RIÊNG CHO REPOSITORY (15 Tham số - KHÔNG CÓ List danhSachTenBan)
     public HoaDonThanhToanResponse(
@@ -37,7 +38,7 @@ public class HoaDonThanhToanResponse {
             BigDecimal tienCoc, BigDecimal tienHoanTra, Integer trangThaiHoaDon,
             Instant thoiGianTao, Integer hinhThucDat, LocalDateTime thoiGianDat,
             Integer soLuongKhach, BigDecimal vatApDung,
-            Integer idPhieuGiamGia, String maPhieuGiamGia // 🔥 THÊM 2 BIẾN NÀY VÀO CUỐI
+            Integer idPhieuGiamGia, String maPhieuGiamGia, LocalDateTime thoiGianNhanBan
     ) {
         this.id = id;
         this.maHoaDon = maHoaDon;
@@ -55,8 +56,8 @@ public class HoaDonThanhToanResponse {
         this.soLuongKhach = soLuongKhach;
         this.vatApDung = vatApDung;
 
-        // 🔥 Gán giá trị
         this.idPhieuGiamGia = idPhieuGiamGia;
         this.maPhieuGiamGia = maPhieuGiamGia;
+        this.thoiGianNhanBan = thoiGianNhanBan;
     }
 }

@@ -149,7 +149,7 @@ export const BeHuyHoaDon = async (payload) => {
 const SYSTEM_PREFIX = "/tham-so-he-thong";
 export const BeGetThamSoHeThong = async () => {
   try {
-    const response = await axiosClient.get(`${SYSTEM_PREFIX}/get-all-system`);
+    const response = await axiosClient.get(`${SYSTEM_PREFIX}/all-map`);
     return response.data;
   } catch (error) {
     console.error("Lỗi lấy cấu hình hệ thống:", error);

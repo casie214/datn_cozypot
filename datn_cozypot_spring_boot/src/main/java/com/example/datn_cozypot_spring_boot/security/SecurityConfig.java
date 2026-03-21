@@ -83,6 +83,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
 
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/tra-cuu").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/chi-tiet/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/lich-su-dat-ban/huy-don/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/ca-nhan").authenticated()
 

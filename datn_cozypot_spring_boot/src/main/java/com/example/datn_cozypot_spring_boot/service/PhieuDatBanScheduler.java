@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.service;
 
+import com.example.datn_cozypot_spring_boot.dto.request.EmailHuyDatBanDTO;
 import com.example.datn_cozypot_spring_boot.entity.*;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import jakarta.transaction.Transactional;
@@ -21,6 +22,7 @@ public class PhieuDatBanScheduler {
     private final LichSuHoaDonRepository lichSuHoaDonRepository;
     private final ChiTietHoaDonRepository chiTietHoaDonRepository;
     private final ThamSoHeThongRepository thamSoHeThongRepository;
+    private final EmailDatBanService emailDatBanService;
 
     @Scheduled(fixedRate = 5000)
     @Transactional
@@ -110,7 +112,7 @@ public class PhieuDatBanScheduler {
             // 2. Hủy Phiếu và giải phóng TOÀN BỘ BÀN (N-N LOGIC)
             PhieuDatBan phieu = hoaDon.getIdPhieuDatBan();
             if (phieu != null) {
-                phieu.setTrangThai(2); // 2: Đã Hủy
+                phieu.setTrangThai(2);
 
                 // Giải phóng các bàn liên kết
                 if (phieu.getBanAns() != null) {
@@ -133,14 +135,31 @@ public class PhieuDatBanScheduler {
 
             hoaDonThanhToanRepository.save(hoaDon);
 
+            String lyDoHuy = "Khách không thanh toán cọc trong vòng " + thoiGianChoCoc + " phút kể từ lúc đặt";
+
             ghiLichSu(
                     hoaDon,
                     null,
                     "Hủy tự động (Quá hạn cọc)",
-                    "Khách không thanh toán cọc trong vòng " + thoiGianChoCoc + " phút kể từ lúc đặt",
+                    lyDoHuy,
                     trangThaiCu,
                     8
             );
+
+            var khachHang = hoaDon.getIdKhachHang();
+            // Kiểm tra xem khách hàng có tồn tại và có email không
+            if (khachHang != null && khachHang.getEmail() != null && !khachHang.getEmail().isBlank() && phieu != null) {
+                EmailHuyDatBanDTO mailData = EmailHuyDatBanDTO.builder()
+                        .email(khachHang.getEmail())
+                        .tenKhachHang(khachHang.getTenKhachHang())
+                        .maPhieuDatBan(phieu.getMaDatBan())
+                        .nguoiHuy("Hệ thống CozyPot (Tự động)")
+                        .lyDoHuy(lyDoHuy)
+                        .tienHoanTra(null)
+                        .build();
+
+                emailDatBanService.sendEmailHuyDatBan(mailData);
+            }
         }
     }
 
