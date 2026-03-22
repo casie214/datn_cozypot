@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -64,6 +65,10 @@ public class HoaDonThanhToanService {
     private PhieuGiamGiaService phieuGiamGiaService;
     @Autowired
     private phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
+    @Autowired
+    private ChiTietKhuyenMaiSetRepository chiTietKhuyenMaiSetRepository;
+    @Autowired
+    private ChiTietKhuyenMaiMonRepository chiTietKhuyenMaiMonRepository;
 
     public Page<HoaDonThanhToanResponse> getAllHoaDon(Pageable pageable){
         return hoaDonThanhToanRepository.getAllHoaDon(pageable);
@@ -342,12 +347,11 @@ public class HoaDonThanhToanService {
             newPhieu = phieuDatBanRepository.save(newPhieu);
 
             // =========================================================
-            // 🚨 B. TẠO LIÊN KẾT BẢNG TRUNG GIAN CHO BÀN CHÍNH (FIX LỖI 204)
+            // B. TẠO LIÊN KẾT BẢNG TRUNG GIAN CHO BÀN CHÍNH
             // =========================================================
             PhieuDatBanBanAn linkGoc = new PhieuDatBanBanAn();
             linkGoc.setPhieuDatBan(newPhieu);
             linkGoc.setBanAn(banAn);
-
 
             PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
             linkId.setIdPhieuDatBan(newPhieu.getId());
@@ -355,11 +359,10 @@ public class HoaDonThanhToanService {
             linkGoc.setId(linkId);
 
             // Đẩy vào danh sách và cập nhật
+            if (newPhieu.getDsBanAn() == null) newPhieu.setDsBanAn(new HashSet<>());
             newPhieu.getDsBanAn().add(linkGoc);
             phieuDatBanRepository.save(newPhieu);
-
-            // Ép Hibernate xả dữ liệu xuống SQL Server ngay lập tức
-            phieuDatBanRepository.flush();
+            phieuDatBanRepository.flush(); // Ép xả dữ liệu xuống SQL Server
 
             // C. Tạo Hóa Đơn gắn với Phiếu đó
             hoaDon = new HoaDonThanhToan();
@@ -382,7 +385,8 @@ public class HoaDonThanhToanService {
 
         // Đảm bảo tất cả các bàn trong phiếu này đều bật đèn đỏ "Có khách"
         if (hoaDon.getIdPhieuDatBan() != null) {
-            for (BanAn ban : hoaDon.getIdPhieuDatBan().getBanAns()) {
+            for (PhieuDatBanBanAn link : hoaDon.getIdPhieuDatBan().getDsBanAn()) {
+                BanAn ban = link.getBanAn();
                 if (ban.getTrangThai() == 0 || ban.getTrangThai() == 2) {
                     ban.setTrangThai(1);
                     banAnRepo.save(ban);
@@ -391,9 +395,10 @@ public class HoaDonThanhToanService {
         }
 
         Integer trangThaiHienTai = hoaDon.getTrangThaiHoaDon();
+        LocalDate today = LocalDate.now(); // 🚨 Phục vụ kiểm tra khuyến mãi
 
         // =======================================================
-        // 2. ĐỒNG BỘ CHI TIẾT MÓN ĂN (Logic cũ của bạn giữ nguyên, rất chuẩn)
+        // 2. ĐỒNG BỘ CHI TIẾT MÓN ĂN & 🚨 TÍNH GIÁ ĐÃ GIẢM
         // =======================================================
         List<ChiTietHoaDon> existingDetails = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId());
         if (existingDetails == null) existingDetails = new ArrayList<>();
@@ -415,16 +420,14 @@ public class HoaDonThanhToanService {
             }).findFirst();
 
             ChiTietHoaDon chiTiet;
-            BigDecimal donGiaGoc = BigDecimal.ZERO;
-
-            // 🚨 BIẾN MỚI ĐỂ LƯU TỶ LỆ VAT (Mặc định 10%)
+            BigDecimal donGiaThucTe = BigDecimal.ZERO; // 🚨 Đổi tên từ donGiaGoc -> donGiaThucTe (Giá sau khi đã trừ KM)
             Integer vatPhanTramCuaMon = 10;
 
             if (matchOpt.isPresent()) {
+                // Cập nhật món đã có trong hóa đơn
                 chiTiet = matchOpt.get();
-                donGiaGoc = chiTiet.getDonGiaTaiThoiDiemBan();
+                donGiaThucTe = chiTiet.getDonGiaTaiThoiDiemBan();
 
-                // Lấy lại VAT của món cũ nếu có (hoặc lấy từ DM)
                 if (chiTiet.getIdChiTietMonAn() != null && chiTiet.getIdChiTietMonAn().getDanhMuc() != null) {
                     vatPhanTramCuaMon = chiTiet.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung() == 2 ? 8 : 10;
                 }
@@ -439,34 +442,54 @@ public class HoaDonThanhToanService {
                 chiTiet.setSoLuong(itemReq.getSoLuong());
                 chiTiet.setGhiChuMon(itemReq.getGhiChu());
             } else {
+                // Thêm món mới tinh vào hóa đơn
                 chiTiet = new ChiTietHoaDon();
                 chiTiet.setIdHoaDon(hoaDon);
 
                 if (itemReq.getIdChiTietMonAn() != null) {
+                    // XỬ LÝ MÓN LẺ
                     DanhMucChiTiet monAn = chiTietDanhMucChiTietRepository.findById(itemReq.getIdChiTietMonAn())
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn ID " + itemReq.getIdChiTietMonAn()));
                     chiTiet.setIdChiTietMonAn(monAn);
-                    donGiaGoc = monAn.getGiaBan();
 
-                    // 🚨 LẤY TỶ LỆ VAT TỪ DANH MỤC
+                    BigDecimal giaNiemYet = monAn.getGiaBan();
+
+                    // 🚨 TÌM KHUYẾN MÃI VÀ TRỪ TIỀN
+                    Integer phanTramGiam = chiTietKhuyenMaiMonRepository.findActiveDiscount(monAn.getId(), today);
+                    if (phanTramGiam != null && phanTramGiam > 0) {
+                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+                    } else {
+                        donGiaThucTe = giaNiemYet;
+                    }
+
                     if (monAn.getDanhMuc() != null && monAn.getDanhMuc().getLoaiVatApDung() != null) {
-                        // Giả sử: 2 = VAT 8%, Còn lại = VAT 10%
                         vatPhanTramCuaMon = monAn.getDanhMuc().getLoaiVatApDung() == 2 ? 8 : 10;
                     }
 
                 } else if (itemReq.getIdSetLau() != null) {
+                    // XỬ LÝ SET LẨU
                     SetLau setLau = setLauRepository.findById(itemReq.getIdSetLau())
                             .orElseThrow(() -> new RuntimeException("Không tìm thấy Set lẩu ID " + itemReq.getIdSetLau()));
                     chiTiet.setIdSetLau(setLau);
-                    donGiaGoc = setLau.getGiaBan();
 
-                    // Set lẩu mặc định là đồ chế biến -> VAT 10%
+                    BigDecimal giaNiemYet = setLau.getGiaBan();
+
+                    // 🚨 TÌM KHUYẾN MÃI VÀ TRỪ TIỀN
+                    Integer phanTramGiam = chiTietKhuyenMaiSetRepository.findActiveDiscount(setLau.getId(), today);
+                    if (phanTramGiam != null && phanTramGiam > 0) {
+                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+                    } else {
+                        donGiaThucTe = giaNiemYet;
+                    }
+
                     vatPhanTramCuaMon = 10;
                 } else {
                     throw new RuntimeException("Dữ liệu không hợp lệ: Phải truyền ID Món hoặc ID Set");
                 }
 
-                chiTiet.setDonGiaTaiThoiDiemBan(donGiaGoc);
+                chiTiet.setDonGiaTaiThoiDiemBan(donGiaThucTe); // 🚨 LƯU GIÁ ĐÃ GIẢM
                 chiTiet.setTrangThaiMon(1);
                 chiTiet.setNgayGioTao(LocalDateTime.now());
                 chiTiet.setSoLuong(itemReq.getSoLuong());
@@ -478,27 +501,23 @@ public class HoaDonThanhToanService {
             }
 
             // =========================================================
-            // 🚨 TÍNH VÀ LƯU TIỀN VAT XUỐNG DB
+            // 3. TÍNH VÀ LƯU TIỀN THÀNH TIỀN (SỬ DỤNG GIÁ ĐÃ GIẢM)
             // =========================================================
-            // 1. Tính tổng tiền gốc (Chưa VAT)
-            BigDecimal thanhTien = donGiaGoc.multiply(BigDecimal.valueOf(itemReq.getSoLuong()));
+            BigDecimal thanhTien = donGiaThucTe.multiply(BigDecimal.valueOf(itemReq.getSoLuong()));
 
-            // 2. Tính số tiền VAT = thanhTien * (vatPhanTram / 100)
             BigDecimal tienVatCuaMon = thanhTien
                     .multiply(BigDecimal.valueOf(vatPhanTramCuaMon))
-                    .divide(BigDecimal.valueOf(100), java.math.RoundingMode.HALF_UP);
+                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP); // Fix lỗi số lẻ
 
-            // 3. Set vào Entity
             chiTiet.setThanhTien(thanhTien);
-            chiTiet.setTienVat(tienVatCuaMon); // 🚨 Lưu tiền VAT (Ví dụ: 304100)
+            chiTiet.setTienVat(tienVatCuaMon);
 
-            // Lưu xuống DB
             chiTiet = chiTietHoaDonRepository.save(chiTiet);
             itemsToKeep.add(chiTiet);
             tongTienMoi = tongTienMoi.add(thanhTien);
         }
 
-        // XÓA MỀM
+        // XÓA MỀM (Logic giữ nguyên)
         List<ChiTietHoaDon> toDelete = existingDetails.stream()
                 .filter(oldItem -> oldItem.getTrangThaiMon() != null && oldItem.getTrangThaiMon() != 0)
                 .filter(oldItem -> !itemsToKeep.contains(oldItem))
@@ -513,23 +532,20 @@ public class HoaDonThanhToanService {
         }
 
         // =======================================================
-        // 3. TÍNH TOÁN LẠI TÀI CHÍNH
+        // 4. TÍNH TOÁN LẠI TÀI CHÍNH TỔNG (Logic giữ nguyên)
         // =======================================================
         List<ChiTietHoaDon> dsMonHienTai = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId())
                 .stream().filter(item -> item.getTrangThaiMon() != null && item.getTrangThaiMon() != 0)
                 .collect(Collectors.toList());
 
-        // Tính tổng tiền gốc của các món
         BigDecimal tongTienChuaGiam = dsMonHienTai.stream()
                 .map(ChiTietHoaDon::getThanhTien).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 🚨 TÍNH TỔNG TIỀN VAT BẰNG CÁCH CỘNG DỒN TỪ TỪNG MÓN ĂN
         BigDecimal tongTienVat = dsMonHienTai.stream()
                 .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
-
         hoaDon.setVatApDung(tongTienVat);
 
         hoaDon = hoaDonThanhToanRepository.save(hoaDon);
@@ -544,9 +560,7 @@ public class HoaDonThanhToanService {
         BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
         if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
 
-        // 🚨 CỘNG TRỰC TIẾP TIỀN VAT (FLAT) VÀO TỔNG THANH TOÁN (KHÔNG NHÂN % NỮA)
         BigDecimal tongTienThanhToan = tienSauGiam.add(tongTienVat).subtract(tienCoc);
-
         if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) tongTienThanhToan = BigDecimal.ZERO;
 
         hoaDon.setTongTienThanhToan(tongTienThanhToan);

@@ -86,19 +86,13 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan, Intege
     List<PhieuDatBan> findPhieuDatBanTrongNgay(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
     // 🚨 ĐÃ CẬP NHẬT: Kiểm tra trùng lịch đặt bàn (Sử dụng EXISTS qua dsBanAn)
-    @Query("""
-        SELECT COUNT(p) > 0
-        FROM PhieuDatBan p
-        WHERE p.trangThai != 3
-          AND p.thoiGianDat BETWEEN :start AND :end
-          AND EXISTS (
-              SELECT 1 FROM PhieuDatBanBanAn pb
-              WHERE pb.phieuDatBan = p
-                AND pb.banAn = :ban
-          )
-    """)
+    @Query("SELECT COUNT(p) > 0 FROM PhieuDatBanBanAn pb " +
+            "JOIN pb.phieuDatBan p " +
+            "WHERE pb.banAn.id = :banId " +
+            "AND p.trangThai IN (0, 1, 3) " + // 🚨 QUAN TRỌNG: Bỏ qua trạng thái 2 (Hủy) và 4 (Hoàn thành)
+            "AND p.thoiGianDat BETWEEN :start AND :end")
     boolean existsByTimeRange(
-            @Param("ban") BanAn ban,
+            @Param("banId") Integer banId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 

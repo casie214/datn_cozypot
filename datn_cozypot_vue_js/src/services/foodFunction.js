@@ -633,6 +633,7 @@ export function useFoodManager() {
     const itemsPerPage = ref(5);
     const isCategoryLocked = ref(false);
 
+    // Lưu ý: Đảm bảo usePriceFilter của bạn đã được import đúng
     const { selectedPriceRange, globalMinPrice, globalMaxPrice, calculatePriceLimits, isPriceInRange, resetPriceFilter } = usePriceFilter();
 
     const fetchInitialData = async () => {
@@ -644,13 +645,21 @@ export function useFoodManager() {
 
             mockData.value = (resFood.data || []).map(food => {
                 const category = categories.find(c => c.id === food.idDanhMuc);
+                
+                // 🚨 BƯỚC CHUẨN HÓA CỨU CÁNH: 
+                // Bắt cả giaGoc và giaBan ép về số để Slider và Sort không bị sập (NaN)
+                const rawPrice = Number(food.giaGoc) || Number(food.giaBan) || 0;
+
                 return {
                     ...food,
+                    giaBan: rawPrice, // Gán lại thành giaBan để các hàm dưới chạy mượt
+                    giaGoc: rawPrice, // Giữ lại giaGoc để Template HTML đọc
                     maDanhMuc: category ? category.maDanhMuc : 'N/A',
                     tenDanhMuc: category ? category.tenDanhMuc : 'Chưa phân loại'
                 };
             });
 
+            // Tính toán min/max cho thanh Slider dựa trên data đã chuẩn hóa
             calculatePriceLimits(mockData.value);
         } catch (e) { 
             console.error("Lỗi fetch dữ liệu:", e); 
@@ -713,7 +722,7 @@ export function useFoodManager() {
         const payload = {
             tenMon: item.tenMon,
             maMon: item.maMon,
-            giaBan: item.giaBan,
+            giaBan: item.giaBan, // Ở trên đã map chuẩn rồi nên ở đây dùng thẳng
             giaVon: item.giaVon || 0,
             moTa: item.moTa || '',
             hinhAnh: item.hinhAnh || '',
@@ -755,7 +764,7 @@ export function useFoodManager() {
             'Mã Món': item.maMon,
             'Tên Món Ăn': item.tenMon,
             'Định lượng': item.tenDinhLuong || '',
-            'Giá Bán (VNĐ)': item.giaBan,
+            'Giá Bán (VNĐ)': item.giaBan, // Dùng thẳng giá đã chuẩn hóa
             'Danh Mục': item.tenDanhMuc || '',
             'Trạng Thái': item.trangThai === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh',
         }));
@@ -765,10 +774,9 @@ export function useFoodManager() {
         XLSX.writeFile(wb, "Danh_Sach_Mon_An.xlsx");
     };
 
-    function getAllFoods() {
-        isLoading.value = true;
-        foodApi.getFoods().then(res => { mockData.value = res.data; })
-        .catch(console.error).finally(() => isLoading.value = false);
+    // 🚨 ĐÃ FIX: Gọi lại fetchInitialData để nó map lại Danh Mục và Giá thay vì gán thẳng
+    async function getAllFoods() {
+        await fetchInitialData();
     }
 
     return { 
@@ -925,12 +933,22 @@ export function useHotpotManager() {
                 foodApi.getHotpots(), 
                 foodApi.getHotpotTypes() 
             ]);
-            hotpotData.value = resHotpots.data;
-            listLoaiSet.value = resTypes.data || []; // Đảm bảo không bị null
+            
+            listLoaiSet.value = resTypes.data || []; 
+            
+            // 🚨 BƯỚC CHUẨN HÓA DỮ LIỆU CỨU CÁNH: 
+            // Ép biến giaGoc từ API trả về thành biến giaBan để các bộ lọc Slider/Sort của bạn vẫn chạy được
+            hotpotData.value = (resHotpots.data || []).map(item => {
+                const rawPrice = Number(item.giaGoc) || Number(item.giaBan) || 0;
+                return {
+                    ...item,
+                    giaBan: rawPrice, // Gán lại thành giaBan để hàm bên dưới đọc được
+                    giaGoc: rawPrice  // Giữ lại giaGoc cho HTML
+                };
+            });
+
             calculatePriceLimits(hotpotData.value);
             
-            // Log thử để kiểm tra dữ liệu thực tế từ API
-            console.log("Dữ liệu Loại Set Lẩu:", listLoaiSet.value);
         } catch (e) { console.error(e); }
     }
     
@@ -938,7 +956,6 @@ export function useHotpotManager() {
         await fetchInitialData();
         if (route.query.preType) {
             typeFilter.value = Number(route.query.preType) || route.query.preType;
-            
             isTypeLocked.value = route.query.locked === 'true';
         }
     });
@@ -950,7 +967,6 @@ export function useHotpotManager() {
             result = result.filter(i => (i.tenSetLau || '').toLowerCase().includes(q) || (i.maSetLau || '').toLowerCase().includes(q));
         }
         
-        // 1. CHUẨN HÓA TRẠNG THÁI (Chống lỗi undefined/null)
         if (statusFilter.value !== 'all') {
             const targetStatus = Number(statusFilter.value);
             result = result.filter(i => (Number(i.trangThai) === 1 ? 1 : 0) === targetStatus);
@@ -959,9 +975,11 @@ export function useHotpotManager() {
         if (typeFilter.value && typeFilter.value !== 'all') {
             result = result.filter(i => i.idLoaiSet == typeFilter.value);
         }
-        result = result.filter(item => isPriceInRange(item)); // Lọc giá
+        
+        result = result.filter(item => isPriceInRange(item));
 
         return result.sort((a, b) => {
+            // Nhờ chuẩn hóa ở trên nên a.giaBan ở đây không bị undefined nữa
             if (sortOption.value === 'price_asc') return a.giaBan - b.giaBan;
             if (sortOption.value === 'price_desc') return b.giaBan - a.giaBan;
             if (sortOption.value === 'name_asc') return (a.tenSetLau || '').localeCompare(b.tenSetLau || '');
@@ -992,21 +1010,18 @@ export function useHotpotManager() {
     const goToPage = (page) => { if (page >= 1 && page <= totalPages.value) currentPage.value = page; };
     watch([searchQuery, typeFilter, statusFilter, sortOption, selectedPriceRange], () => currentPage.value = 1);
 
-    // 2. SỬA LỖI ĐỔI TRẠNG THÁI (Gửi đúng Payload)
     const handleToggleStatus = async(item) => {
         const newStatus = Number(item.trangThai) === 1 ? 0 : 1;
         
-        // Tạo Payload chuẩn xác cho Backend
         const payload = {
             tenSetLau: item.tenSetLau,
             maSetLau: item.maSetLau,
             idLoaiSet: item.idLoaiSet,
             moTaChiTiet: item.moTaChiTiet || '',
             moTa: item.moTa || '',
-            giaBan: item.giaBan,
+            giaBan: item.giaBan, // Lấy giá trị đã chuẩn hóa
             hinhAnh: item.hinhAnh || '',
             trangThai: newStatus,
-            // Cần list món con nếu Backend yêu cầu Update toàn phần, nếu không có thể truyền mảng rỗng
             chiTietMonAn: item.danhSachMon ? item.danhSachMon.map(i => ({ idMonAn: i.idMon, soLuong: i.soLuong })) : []
         };
 
@@ -1037,18 +1052,15 @@ export function useHotpotManager() {
         XLSX.writeFile(wb, "Danh_Sach_Set_Lau.xlsx");
     };
 
-    function getAllHotpot() {
-        isLoading.value = true;
-        foodApi.getHotpots().then(res => { hotpotData.value = res.data; })
-        .catch(console.error).finally(() => isLoading.value = false);
+    // 🚨 ĐÃ FIX: Gọi lại fetchInitialData để nó map lại dữ liệu chuẩn thay vì gán cứng
+    async function getAllHotpot() {
+        await fetchInitialData();
     }
 
     const uniqueTypes = computed(() => {
-        // Nếu API trả về listLoaiSet có dạng [{id, tenLoaiSet, ...}]
-        // Chúng ta map nó về [{id, name}] để khớp với label="name" trong template
         return listLoaiSet.value.map(type => ({
             id: type.id,
-            name: type.tenLoaiSet || type.name // Ưu tiên tenLoaiSet nếu có
+            name: type.tenLoaiSet || type.name 
         }));
     });
 
@@ -1085,24 +1097,35 @@ export function useHotpotForm(isEditMode = false) {
         try {
             const [resTypes, resFoods] = await Promise.all([ foodApi.getHotpotTypes(), foodApi.getFoods() ]);
             listLoaiSet.value = resTypes.data;
-            listFoods.value = [...resFoods.data.filter(f => Number(f.trangThai) === 1)];
+            listFoods.value = [...resFoods.data.filter(f => Number(f.trangThai) === 1)].map(f => ({
+                ...f,
+                // 🚨 ÉP GIÁ GỐC VÀO BIẾN giaBan ĐỂ HIỂN THỊ TRÊN DANH SÁCH CHỌN
+                giaBan: f.giaGoc || f.giaBan || 0 
+            }));
 
             if ((isEditMode || isViewMode.value) && hotpotId) {
                 const resHotpot = await foodApi.getHotpotById(hotpotId);
                 const data = resHotpot.data;
-                formData.value = { ...data, trangThai: data.trangThai !== undefined ? data.trangThai : 1 };
+                
+                // 🚨 SỬA LỖI 1: Ưu tiên gán giaGoc để hiển thị trên Form
+                formData.value = { 
+                    ...data, 
+                    giaBan: data.giaGoc || data.giaBan || 0, // <--- Đã sửa ở đây
+                    trangThai: data.trangThai !== undefined ? data.trangThai : 1 
+                };
                 
                 if (data.danhSachMon || data.chiTietMonAn) {
                     const listChiTiet = data.danhSachMon || data.chiTietMonAn;
                     
                     selectedIngredients.value = listChiTiet.map(item => ({
-                        idMonAn: item.idMon || item.idMonAn, // Quét 2 trường hợp tên biến
+                        idMonAn: item.idMon || item.idMonAn, 
                         tenMon: item.tenMon || item.tenMonAn,
                         hinhAnh: item.hinhAnhMon || item.hinhAnh,
                         soLuong: item.soLuong,
                         
-                        // SỬA CHÍNH LÀ Ở ĐÂY: Quét tìm giá bán
-                        giaBan: item.giaBan || item.giaBanLe || 0, 
+                        // 🚨 SỬA LỖI 2: Ưu tiên gán giaGoc cho các món thành phần 
+                        // (Để "Tổng giá trị tham khảo" tính chuẩn theo giá niêm yết)
+                        giaBan: item.giaGoc || item.giaBan || 0, 
                         
                         dinhLuong: item.dinhLuong || item.tenDinhLuong || ''
                     }));
@@ -1110,6 +1133,7 @@ export function useHotpotForm(isEditMode = false) {
             }
         } catch (e) { console.error(e); }
     };
+
     onMounted(() => fetchInitialData());
 
     const filteredFoodList = computed(() => {
@@ -1129,7 +1153,8 @@ export function useHotpotForm(isEditMode = false) {
             tenMon: food.tenMon, 
             hinhAnh: food.hinhAnh, 
             soLuong: 1, 
-            giaBan: food.giaBan, 
+            // 🚨 SỬA TẠI ĐÂY: Ưu tiên lấy giaGoc từ object food truyền vào
+            giaBan: food.giaGoc || food.giaBan || 0, 
             dinhLuong: food.tenDinhLuong 
         });
         errors.value.ingredients = '';
