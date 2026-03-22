@@ -415,10 +415,10 @@ const processSaveTableSelection = async () => {
       showSelectTableModal.value = false;
       isAssigningExisting.value = false;
 
-      // Cập nhật lại list ở background
-      searchDatBan();
-      // Gọi API load lại mảng danh sách bàn bên trong Modal chi tiết ngay lập tức
-      await reloadDetailData(idPhieu);
+      await searchDatBan();      // Cập nhật lại danh sách phiếu
+      await reloadDetailData(idPhieu); // Cập nhật danh sách bàn hiển thị trong Modal chi tiết
+      refreshKey.value += 1;     // Re-render component con
+      await loadTables();
 
     } catch (e) {
       Swal.fire('Lỗi', e.response?.data?.message || 'Không thể xếp bàn', 'error');
@@ -744,22 +744,14 @@ const handleConfirmOrder = async (idHoaDon) => {
     
     console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
 
-    Swal.fire({
-      icon: "success",
-      title: "Hoàn tất!",
-      text: "Đã xác nhận đơn và gửi email thành công.",
-      timer: 2000,
-      showConfirmButton: false,
-    });
+    Swal.fire({ icon: "success", title: "Hoàn tất!", text: "Đã xác nhận đơn và gửi email.", timer: 1500, showConfirmButton: false });
 
-    // 🚨 SỬA LẠI: Load lại chi tiết bằng hàm reload mới
+    // ✅ REFRESH ĐỒNG BỘ
     const idPhieuCanTim = phieuDetail.value?.id || phieuDetail.value?.idDatBan;
-    await reloadDetailData(idPhieuCanTim); 
+    await reloadDetailData(idPhieuCanTim); // Cập nhật trạng thái ngay trong Modal đang mở
     
-    // Cập nhật lại list ở background
-    searchDatBan();
-    loadTables();
-    loadAllCustomers();
+    await searchDatBan();  // Cập nhật trạng thái (màu sắc/chữ) ở danh sách bên ngoài
+    refreshKey.value += 1;
 
   } catch (error) {
     console.error("🚨 BƯỚC LỖI: Cú pháp hoặc API bị lỗi!", error);
@@ -894,10 +886,11 @@ const submitCreate = async () => {
     await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
-    refreshKey.value += 1;
+    await searchDatBan(); // Tải lại danh sách phiếu ở trang 1
+    refreshKey.value += 1; // Thông báo cho component con (List/Calendar) load lại
+    await loadTables();    // Cập nhật lại trạng thái bàn
 
     Toast.fire({ icon: 'success', title: 'Thành công!', text: 'Đã tạo phiếu đặt bàn mới.' });
-    searchDatBan(); // Cập nhật lại danh sách
 
   } catch (error) {
     Toast.fire({ icon: 'error', title: 'Thất bại', text: error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.' });

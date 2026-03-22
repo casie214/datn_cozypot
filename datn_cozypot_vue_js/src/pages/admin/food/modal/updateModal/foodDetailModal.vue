@@ -72,7 +72,11 @@ onMounted(async () => {
             maMon: data.maMon || '',
             tenMon: data.tenMon || '',
             giaVon: data.giaVon || 0,
-            giaBan: data.giaBan || 0,
+            
+            // 🚨 ĐÃ SỬA: Lấy giaGoc làm chuẩn để hiển thị trong form cập nhật
+            // Vì nhân viên chỉnh sửa giá là chỉnh sửa giá gốc, không phải giá đang khuyến mãi
+            giaBan: data.giaGoc || data.giaBan || 0, 
+            
             moTa: data.moTa || '',
             idDanhMuc: data.idDanhMuc || '',
             trangThai: data.trangThai !== undefined ? data.trangThai : 1,

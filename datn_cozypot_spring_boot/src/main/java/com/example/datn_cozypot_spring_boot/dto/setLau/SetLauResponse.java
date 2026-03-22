@@ -23,7 +23,11 @@ public class SetLauResponse {
     private String maSetLau;
     private String tenSetLau;
     private String moTa;
-    private BigDecimal giaBan;
+    private BigDecimal giaGoc;
+    private BigDecimal giaSauGiam;
+    private Integer phanTramGiam;
+    private Boolean isGiamGia;
+    private Double phanTramVat;
     private String hinhAnh;
     private String moTaChiTiet;
 
@@ -33,8 +37,6 @@ public class SetLauResponse {
     private String nguoiSua;
 
     private Integer trangThai;
-
-    private Double phanTramVat;
 
     private List<SetLauChiTietResponse> listChiTietSetLau;
     private List<MonAnInSetResponse> danhSachMon;

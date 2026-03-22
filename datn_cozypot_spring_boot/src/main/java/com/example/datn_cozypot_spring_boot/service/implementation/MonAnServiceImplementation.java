@@ -17,6 +17,8 @@ import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauRequest;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
 
 import com.example.datn_cozypot_spring_boot.entity.*;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietKhuyenMaiMonRepository;
+import com.example.datn_cozypot_spring_boot.repository.ChiTietKhuyenMaiSetRepository;
 import com.example.datn_cozypot_spring_boot.repository.ThamSoHeThongRepository;
 import com.example.datn_cozypot_spring_boot.repository.monAnRepository.DonViRepository;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
@@ -25,13 +27,12 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,8 @@ public class MonAnServiceImplementation implements MonAnService {
     private final DonViRepository donViRepository; // Repository mới cho bảng Cha
     private final ModelMapper modelMapper;
     private final ThamSoHeThongRepository thamSoHeThongRepository;
+    private final ChiTietKhuyenMaiSetRepository chiTietKhuyenMaiSetRepository;
+    private final ChiTietKhuyenMaiMonRepository chiTietKhuyenMaiMonRepository;
 
     // --- UTILS ---
     private String generatePrefixFromData(String name) {
@@ -579,27 +582,24 @@ public class MonAnServiceImplementation implements MonAnService {
 
     @Override
     public List<MonAnResponse> findMonAnActive() {
-        // 1. Query VAT 1 lần duy nhất từ DB để tối ưu hiệu năng
         Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
         Double vatDongGoi = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT_DONG_GOI").get().getGiaTri());
 
         return danhMucChiTietRepository.findByTrangThai(1).stream()
                 .map(mon -> {
-                    // 2. Vẫn dùng nguyên hàm map của bạn kia
                     MonAnResponse res = mapToMonAnResponse(mon);
-
-                    // 3. Bơm thêm % VAT chỉ cho API của mình
+                    // VAT logic
                     if (mon.getDanhMuc() != null && mon.getDanhMuc().getLoaiVatApDung() != null) {
-                        int loaiVat = mon.getDanhMuc().getLoaiVatApDung();
-                        res.setPhanTramVat(loaiVat == 2 ? vatDongGoi : vatChung);
+                        res.setPhanTramVat(mon.getDanhMuc().getLoaiVatApDung() == 2 ? vatDongGoi : vatChung);
                     } else {
                         res.setPhanTramVat(vatChung);
                     }
-
                     return res;
                 })
                 .collect(Collectors.toList());
     }
+
+
 
     private MonAnResponse mapToMonAnResponse(DanhMucChiTiet entity) {
         MonAnResponse res = new MonAnResponse();
@@ -607,9 +607,29 @@ public class MonAnServiceImplementation implements MonAnService {
         res.setMaMon(entity.getMaMon());
         res.setTrangThai(entity.getTrangThai());
         res.setTenMon(entity.getTenMon());
-        res.setGiaBan(entity.getGiaBan());
         res.setHinhAnh(entity.getHinhAnh());
         res.setMoTa(entity.getMoTa());
+
+        // --- LOGIC GIÁ CẢ & GIẢM GIÁ (Đưa vào đây để dùng chung cho mọi hàm) ---
+        BigDecimal giaGoc = entity.getGiaBan();
+        res.setGiaGoc(giaGoc);
+
+        // Check giảm giá
+        LocalDate today = LocalDate.now();
+        Integer phanTramGiam = chiTietKhuyenMaiMonRepository.findActiveDiscount(entity.getId(), today);
+
+        if (phanTramGiam != null && phanTramGiam > 0) {
+            res.setIsGiamGia(true);
+            res.setPhanTramGiam(phanTramGiam);
+            // FIX LỖI CHIA BIGDECIMAL: Nhân trước chia sau, kèm RoundingMode
+            BigDecimal giaSauGiam = giaGoc.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+            res.setGiaSauGiam(giaSauGiam);
+        } else {
+            res.setIsGiamGia(false);
+            res.setPhanTramGiam(0);
+            res.setGiaSauGiam(giaGoc);
+        }
 
         if (entity.getDanhMuc() != null) {
             res.setTenDanhMuc(entity.getDanhMuc().getTenDanhMuc());
@@ -618,17 +638,12 @@ public class MonAnServiceImplementation implements MonAnService {
 
         if (entity.getDinhLuong() != null) {
             res.setTenDinhLuong(entity.getDinhLuong().getTenHienThi());
-            // Logic cũ: kichCo và dinhLuongText
-            // Logic mới: giaTri (trong bảng DinhLuong) và tenDonVi (trong bảng DonVi cha)
             res.setGiaTriDinhLuong(entity.getDinhLuong().getGiaTri());
-
-            // Nếu muốn lấy tên đơn vị cha (ml, L...)
             if (entity.getDinhLuong().getDonVi() != null) {
                 res.setKichCo(entity.getDinhLuong().getDonVi().getTenDonVi());
             }
             res.setIdDinhLuong(entity.getDinhLuong().getId());
         }
-
         return res;
     }
 
@@ -696,17 +711,12 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional
     public List<SetLauResponse> findSetLauActive() {
-        // 1. Query VAT chung
         Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
 
         return setLauRepository.findByTrangThai(1).stream()
                 .map(set -> {
-                    // 2. Vẫn dùng nguyên hàm map của bạn kia
                     SetLauResponse res = mapToSetLauResponse(set);
-
-                    // 3. Bơm thêm VAT cho Set Lẩu (mặc định loại 1)
                     res.setPhanTramVat(vatChung);
-
                     return res;
                 })
                 .collect(Collectors.toList());
@@ -789,17 +799,47 @@ public class MonAnServiceImplementation implements MonAnService {
         res.setId(entity.getId());
         res.setMaSetLau(entity.getMaSetLau());
         res.setTenSetLau(entity.getTenSetLau());
-        res.setGiaBan(entity.getGiaBan());
         res.setHinhAnh(entity.getHinhAnh());
         res.setMoTa(entity.getMoTa());
         res.setMoTaChiTiet(entity.getMoTaChiTiet());
         res.setTrangThai(entity.getTrangThai());
 
+        // ==========================================
+        // 1. LOGIC GIÁ CẢ & GIẢM GIÁ
+        // ==========================================
+        BigDecimal giaGoc = entity.getGiaBan();
+        res.setGiaGoc(giaGoc);
+
+        LocalDate today = LocalDate.now();
+        // Truy vấn phần trăm giảm từ Repository
+        Integer phanTramGiam = chiTietKhuyenMaiSetRepository.findActiveDiscount(entity.getId(), today);
+
+        if (phanTramGiam != null && phanTramGiam > 0) {
+            res.setIsGiamGia(true);
+            res.setPhanTramGiam(phanTramGiam);
+
+            // Tính giá sau giảm: (GiaGoc * (100 - PhanTramGiam)) / 100
+            // Sử dụng HALF_UP để làm tròn tiền VNĐ về 0 chữ số thập phân
+            BigDecimal giaSauGiam = giaGoc.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+            res.setGiaSauGiam(giaSauGiam);
+        } else {
+            res.setIsGiamGia(false);
+            res.setPhanTramGiam(0);
+            res.setGiaSauGiam(giaGoc);
+        }
+
+        // ==========================================
+        // 2. MAP THÔNG TIN LOẠI SET LẨU
+        // ==========================================
         if (entity.getIdLoaiSet() != null) {
             res.setTenLoaiSet(entity.getIdLoaiSet().getTenLoaiSet());
             res.setIdLoaiSet(entity.getIdLoaiSet().getId());
         }
 
+        // ==========================================
+        // 3. MAP DANH SÁCH CÁC MÓN ĂN TRONG SET
+        // ==========================================
         List<MonAnInSetResponse> monAns = new ArrayList<>();
         if (entity.getListChiTietSetLau() != null) {
             for (ChiTietSetLau ct : entity.getListChiTietSetLau()) {
@@ -808,7 +848,9 @@ public class MonAnServiceImplementation implements MonAnService {
                     item.setIdMon(ct.getMonAn().getId());
                     item.setTenMon(ct.getMonAn().getTenMon());
                     item.setHinhAnhMon(ct.getMonAn().getHinhAnh());
-                    item.setGiaBan(ct.getMonAn().getGiaBan());
+                    item.setGiaBan(ct.getMonAn().getGiaBan()); // Giá niêm yết của món lẻ đó
+
+                    // Lấy thông tin định lượng (VD: 200g, 1 mẹt...)
                     if (ct.getMonAn().getDinhLuong() != null) {
                         item.setDinhLuong(ct.getMonAn().getDinhLuong().getTenHienThi());
                     }
@@ -818,6 +860,7 @@ public class MonAnServiceImplementation implements MonAnService {
             }
         }
         res.setDanhSachMon(monAns);
+
         return res;
     }
 }

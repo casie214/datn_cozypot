@@ -466,7 +466,7 @@
 
                                         <!-- Giá sau KM -->
                                         <td class="text-end text-success fw-bold">
-                                            {{ formatPrice(getDiscountedPrice(item.gia)) }}
+                                            {{ formatPrice(item.gia * (100 - (formData.phanTramGiam || 0)) / 100) }}
                                         </td>
 
                                         <td v-if="!isReadOnly" class="text-center">
@@ -659,7 +659,8 @@ const formData = reactive({
     ngayKetThuc: '',
     moTa: '',
     idSetLauChiTiet: [],
-    idMonAnChiTiet: []
+    idMonAnChiTiet: [],
+    trangThai: 1 
 });
 
 const filters = reactive({
@@ -889,7 +890,7 @@ const validateForm = () => {
     }
 
     // ===== SET LẨU =====
-    if (formData.idSetLauChiTiet.length === 0) {
+    if (formData.idSetLauChiTiet.length === 0 && formData.idMonAnChiTiet.length === 0) {
         showError("Lỗi nhập liệu", "Phải chọn ít nhất 1 hàng hóa / set lẩu");
         isValid = false;
     }
@@ -1144,7 +1145,14 @@ const openFormAdd = () => {
     isReadOnly.value = false;
     selectedId.value = null;
     Object.assign(formData, {
-        tenDotKhuyenMai: '', phanTramGiam: 0, ngayBatDau: '', ngayKetThuc: '', moTa: '', idSetLauChiTiet: [], idMonAnChiTiet: []
+        tenDotKhuyenMai: '', 
+        phanTramGiam: 0, 
+        ngayBatDau: '', 
+        ngayKetThuc: '', 
+        moTa: '', 
+        idSetLauChiTiet: [], 
+        idMonAnChiTiet: [],
+        trangThai: 1
     });
     Object.keys(errors).forEach(k => errors[k] = '');
     isFormActive.value = true;

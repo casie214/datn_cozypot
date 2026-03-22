@@ -291,12 +291,12 @@ const calculatedTableStatuses = computed(() => {
     }
 
     const hasBookingInWindow = danhSachCho.value.some(khach => {
-      const isMatch = khach.idBanAn == ban.id || khach.maBan === ban.maBan;
+      // 🚨 Sửa chỗ này
+      const isMatch = khach.danhSachBan && khach.danhSachBan.some(b => b.id === ban.id);
       
       if (isMatch && [0, 1].includes(Number(khach.trangThai))) {
         const gioHen = dayjs(khach.thoiGianDat);
         const diff = gioHen.diff(now, "minute");
-        // 🚨 Thay -30 bằng -THOI_GIAN_GIU_BAN
         return diff <= window && diff >= -(sysParams.value.THOI_GIAN_GIU_BAN);
       }
       return false;
@@ -346,7 +346,43 @@ const getCurrentStaffId = () => {
 
 const handleFetchAllCheckIn = async () => {
   try {
-    danhSachCho.value = await fetchAllCheckIn();
+    const rawData = await fetchAllCheckIn();
+    
+    // 🚨 BƯỚC CHUẨN HÓA DỮ LIỆU
+    danhSachCho.value = rawData.map(khach => {
+      let mangBanChuanHoa = [];
+      
+      // Nếu maBan có chứa dấu phẩy -> Phiếu này ghép nhiều bàn
+      if (khach.maBan && typeof khach.maBan === 'string' && khach.maBan.includes(',')) {
+        // Cắt chuỗi thành mảng: ["BA002", "BA005", "BA006", "BA001"]
+        const cacMaBan = khach.maBan.split(',').map(m => m.trim());
+        const cacTenBan = khach.tenBan ? khach.tenBan.split(',').map(t => t.trim()) : [];
+        
+        // Tìm ID của từng mã bàn trong danhSachBan gốc
+        cacMaBan.forEach((ma, index) => {
+          const b = danhSachBan.value.find(tbl => tbl.maBan === ma);
+          if (b) {
+            mangBanChuanHoa.push({ id: b.id, maBan: b.maBan, tenBan: b.tenBan });
+          } else {
+            mangBanChuanHoa.push({ id: khach.idBanAn, maBan: ma, tenBan: cacTenBan[index] || ma });
+          }
+        });
+      } else {
+        // Trường hợp chỉ có 1 bàn
+        const b = danhSachBan.value.find(tbl => tbl.maBan === khach.maBan || tbl.id === khach.idBanAn);
+        if (b) {
+           mangBanChuanHoa.push({ id: b.id, maBan: b.maBan, tenBan: b.tenBan });
+        } else {
+           mangBanChuanHoa.push({ id: khach.idBanAn, maBan: khach.maBan, tenBan: khach.tenBan });
+        }
+      }
+      
+      return {
+        ...khach,
+        danhSachBan: mangBanChuanHoa
+      };
+    });
+
     await fetchTableStatus();
   } catch (error) {
     console.error("Lỗi fetch khách chờ:", error);
@@ -531,22 +567,36 @@ const quickWalkInCheckIn = async (ban) => {
 };
 
 const handleCheckInGuest = async (khach) => {
-  const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
+  // 1. TÌM BÀN (Lấy bàn đầu tiên trong mảng để làm Bàn Chủ)
+  const targetId = khach.danhSachBan?.length > 0 ? khach.danhSachBan[0].id : khach.idBanAn;
+  const ban = danhSachBan.value.find(b => b.id === targetId || b.maBan === khach.maBan);
+  
   if (!ban) return Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy thông tin bàn của khách này!', icon: 'error', confirmButtonText: 'Đóng' });
 
-  const soKhach = khach.soNguoi || 1;
-  const sucChua = Number(ban.soCho);
+  const soKhach = khach.soNguoi || khach.soLuongKhach || 1;
+  
+  // 2. TÍNH TỔNG SỨC CHỨA CỦA TẤT CẢ CÁC BÀN TRONG PHIẾU ĐẶT
+  let sucChuaTong = 0;
+  if (khach.danhSachBan && khach.danhSachBan.length > 0) {
+     khach.danhSachBan.forEach(b => {
+        const tb = danhSachBan.value.find(x => x.id === b.id);
+        if (tb) sucChuaTong += Number(tb.soCho || tb.soNguoiToiDa || 0);
+     });
+  } else {
+     sucChuaTong = Number(ban.soCho || ban.soNguoiToiDa || 0);
+  }
 
-  if (soKhach > sucChua) {
+  // Nếu vẫn vượt quá tổng sức chứa của tất cả các bàn cộng lại
+  if (soKhach > sucChuaTong) {
     const swalResult = await Swal.fire({
       title: 'Bàn không đủ chỗ!',
-      html: `Khách đi <b>${soKhach} người</b> nhưng bàn <b>${ban.maBan}</b> chỉ có <b>${sucChua} chỗ</b>.<br><br>Vui lòng chọn hướng xử lý:`,
+      html: `Khách đi <b>${soKhach} người</b> nhưng tổng sức chứa chỉ có <b>${sucChuaTong} chỗ</b>.<br><br>Vui lòng chọn hướng xử lý:`,
       icon: 'warning',
       iconColor: '#7D161A',
       showDenyButton: true,
       showCancelButton: true,
       confirmButtonColor: '#7d161a',
-      denyButtonColor: '#28a745',   
+      denyButtonColor: '#28a745',    
       confirmButtonText: '<i class="fa-solid fa-chair"></i> Kê thêm ghế',
       denyButtonText: '<i class="fa-solid fa-arrows-split-up-and-left"></i> Tách thành nhiều bàn',
       cancelButtonText: 'Hủy bỏ'
@@ -1261,26 +1311,32 @@ const handleCloseFoodList = async () => {
   await refreshTableData();
 };
 
-const hoveredTableId = ref(null);
+const hoveredTableIds = ref([]); // Đảm bảo khai báo là mảng rỗng []
 
 const onHoverCustomerCard = (khach) => {
-  const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
-  if (ban) {
-    hoveredTableId.value = ban.id;
-    if (Number(ban.soTang) !== activeFloor.value) {
-      activeFloor.value = Number(ban.soTang);
+  hoveredTableIds.value = [];
+  
+  // Lúc này khach.danhSachBan chắc chắn đã là 1 mảng xịn chứa các id
+  if (khach.danhSachBan && khach.danhSachBan.length > 0) {
+    hoveredTableIds.value = khach.danhSachBan.map(b => b.id);
+    
+    // Đổi tầng hiển thị theo tầng của bàn đầu tiên trong nhóm
+    const banDauTien = danhSachBan.value.find(b => b.id === hoveredTableIds.value[0]);
+    if (banDauTien && Number(banDauTien.soTang) !== activeFloor.value) {
+      activeFloor.value = Number(banDauTien.soTang);
     }
   }
 };
 
 const onLeaveCustomerCard = () => {
-  hoveredTableId.value = null;
+  hoveredTableIds.value = [];
 };
 
 const handleDirectCheckIn = async () => {
   if (!selectedBan.value) return;
   const bId = selectedBan.value.id;
   const soKhachThucTe = selectedPhieu.value?.soNguoi || selectedBan.value.soCho || 1;
+  
   const payload = {
     idBanAn: bId, 
     trangThai: 1, 
@@ -1288,20 +1344,19 @@ const handleDirectCheckIn = async () => {
     trangThaiPhieu: selectedPhieu.value?.id ? 3 : null,
     soNguoi: soKhachThucTe
   };
+
   try {
+    Swal.fire({ title: 'Đang Check-in...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    // Gọi 1 lần duy nhất, Backend sẽ tự lo liệu toàn bộ các bàn trong phiếu!
     await updateTrangThaiBan(payload);
-    tableStatusMap.value = { ...tableStatusMap.value, [bId]: 1 };
-    selectedBan.value.trangThai = 1; 
+
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã check-in toàn bộ bàn!', timer: 1500, showConfirmButton: false });
     
-    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã check-in bàn!', timer: 1500, showConfirmButton: false });
-    
+    closeModal(); // Đóng modal lại để Load lại toàn bộ sơ đồ
     await handleFetchAllCheckIn();
     await fetchAllBan();
     await fetchTableStatus();
-
-    // 🚨 THÊM DÒNG NÀY (THE FIX): Tự động load lại dữ liệu của chính bàn này 
-    // để lấy được idHoaDon vừa được Backend tạo ra -> Các nút sẽ lập tức sáng lên!
-    await openManageModal(selectedBan.value);
 
   } catch (err) {
     Swal.fire({ title: 'Lỗi', text: 'Check-in thất bại!', icon: 'error', confirmButtonText: 'Đóng' });
@@ -1555,10 +1610,17 @@ const handleCancelTicket = async () => {
 };
 
 const activeBookingTableIds = computed(() => {
-  const bookingIds = danhSachLoc.value.map(khach => {
-    const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
-    return ban ? ban.id : null;
+  const bookingIds = [];
+  
+  danhSachLoc.value.forEach(khach => {
+    if (khach.danhSachBan && khach.danhSachBan.length > 0) {
+      khach.danhSachBan.forEach(b => bookingIds.push(b.id || b.idBanAn));
+    } else {
+      const ban = danhSachBan.value.find(b => b.id === khach.idBanAn || b.maBan === khach.maBan);
+      if (ban) bookingIds.push(ban.id);
+    }
   });
+
   const occupiedIds = danhSachBan.value.filter(ban => getTrangThaiTheoNgay(ban.id) === 1).map(ban => ban.id);
   return [...new Set([...bookingIds, ...occupiedIds])].filter(id => id !== null);
 });
@@ -2323,9 +2385,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                       class="table-card"
                       :class="{ 
                         'highlight-red': getTrangThaiTheoNgay(ban.id) === 0,
-                        'is-hovered': hoveredTableId === ban.id,
-                        'is-dimmed': !activeBookingTableIds.includes(ban.id) && hoveredTableId !== ban.id,
-                        'quick-mode-ready': isQuickWalkInMode && getTrangThaiTheoNgay(ban.id) === 0
+                        'is-hovered': hoveredTableIds.includes(ban.id),  'is-dimmed': !activeBookingTableIds.includes(ban.id) && !hoveredTableIds.includes(ban.id), 'quick-mode-ready': isQuickWalkInMode && getTrangThaiTheoNgay(ban.id) === 0
                       }"
                       :style="{
                         gridColumnStart: ban.column,
@@ -2429,7 +2489,15 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                       <div v-for="khach in danhSachLoc" :key="khach.id" class="customer-card" @mouseenter="onHoverCustomerCard(khach)" @mouseleave="onLeaveCustomerCard">
                         <div class="card-header">
                           <span class="customer-name">{{ khach.tenKhachHang }}</span>
-                          <span class="table-badge">{{ khach.maBan }}</span>
+                          <span class="table-badge text-truncate" style="max-width: 100px;" 
+                              :title="khach.danhSachBan?.length > 1 ? khach.danhSachBan.map(b => b.maBan).join(', ') : khach.maBan">
+                          <template v-if="khach.danhSachBan && khach.danhSachBan.length > 1">
+                            {{ khach.danhSachBan.map(b => b.maBan).join(', ') }}
+                          </template>
+                          <template v-else>
+                            {{ khach.maBan }}
+                          </template>
+                        </span>
                         </div>
                         <div class="card-body">
                           <p class="time-info"><i class="fa-regular fa-calendar me-2"></i>{{ formatDate(khach.thoiGianDat) }}</p>

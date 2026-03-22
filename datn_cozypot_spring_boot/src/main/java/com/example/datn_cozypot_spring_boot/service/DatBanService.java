@@ -331,13 +331,19 @@ public class DatBanService {
                 phieu.getDsBanAn().add(linkMoi);
             }
 
-            // 3. Cập nhật trạng thái hiển thị
-            banCu.setTrangThai(0);
+            // 3. 🚨 ĐÃ FIX: Chỉ dọn Bàn Cũ (Trạng thái = 0) nếu không còn đoàn nào khác đang ngồi chung
+            List<PhieuDatBanBanAn> cacPhieuCungBanCu = phieuDatBanBanAnRepository.findActiveLinksByBanId(banCu.getId());
+            long countOtherActive = cacPhieuCungBanCu.stream()
+                    .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                    .count();
+
+            if (countOtherActive == 0) {
+                banCu.setTrangThai(0);
+            }
+
+            // Bàn mới chắc chắn có khách nên set = 1
             banMoi.setTrangThai(1);
 
-            // 🚨 ĐÃ FIX HIBERNATE ERROR:
-            // KHÔNG GỌI banAnRepository.save() Ở ĐÂY NỮA.
-            // Việc gán banMoi.setTrangThai(1) sẽ tự động được Hibernate UPDATE xuống DB khi kết thúc Transaction!
             phieuDatBanRepository.save(phieu);
             phieuDatBanRepository.flush();
 
@@ -501,6 +507,17 @@ public class DatBanService {
 
                         if (phieu.getDsBanAn() == null) phieu.setDsBanAn(new HashSet<>());
                         phieu.getDsBanAn().add(newLink);
+                    }
+
+                    if (request.getTrangThai() == 1) {
+                        for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
+                            BanAn banThuocPhieu = link.getBanAn();
+                            // Bật trạng thái thành 1 (Có khách) cho tất cả các bàn đang trống
+                            if (banThuocPhieu.getTrangThai() == 0) {
+                                banThuocPhieu.setTrangThai(1);
+                                banAnRepository.save(banThuocPhieu);
+                            }
+                        }
                     }
 
                     // C. Lưu và Ép Hibernate đẩy dữ liệu xuống DB ngay lập tức
@@ -1075,7 +1092,7 @@ public class DatBanService {
             BanAn ban = banAnRepository.findById(idBan)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ID: " + idBan));
 
-            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
+            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban.getId(), start, end);
             if (isTrung) {
                 throw new RuntimeException("Bàn " + ban.getMaBan() + " đã có lịch trong thời gian này");
             }

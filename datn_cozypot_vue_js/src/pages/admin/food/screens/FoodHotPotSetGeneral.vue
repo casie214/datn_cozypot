@@ -107,8 +107,8 @@ const getImg = (url) => {
           <div class="" style="display: flex; flex-direction: row; justify-content: space-between;">
             <label>
               Khoảng giá:
-              <span class="price-range-text">
-                {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+              <span class="price-range-text" v-if="selectedPriceRange?.length === 2">
+                {{ (selectedPriceRange[0] || 0).toLocaleString() }} - {{ (selectedPriceRange[1] || 0).toLocaleString() }}
               </span>
             </label>
             <div class="slider-wrapper" v-if="globalMaxPrice > 0">
@@ -164,7 +164,7 @@ const getImg = (url) => {
             <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.maSetLau }}</td>
             <td>{{ item.tenSetLau }}</td>
-            <td>{{ item.giaBan?.toLocaleString() }} VNĐ</td>
+            <td>{{ (item.giaGoc || item.giaBan || 0).toLocaleString() }} VNĐ</td>
             <td>{{ item.tenLoaiSet }}</td>
 
             <td :class="item.trangThai === 1 ? '' : ''">

@@ -64,26 +64,46 @@ const fetchAllData = async () => {
         }));
 
         // 2. Map dữ liệu MÓN LẺ
-        const foods = (resDetail.data || []).map(item => ({
-            ...item,
-            id: item.id || item.idDanhMucChiTiet,
-            type: 'FOOD',
-            uniqueId: `food_${item.id || item.idDanhMucChiTiet}`,
-            tenMonAn: item.tenDanhMucChiTiet, // Tên hiển thị chính
-            catId: item.idDanhMuc || (item.danhMuc ? item.danhMuc.id : null),
-            donVi: item.dinhLuong?.tenDinhLuong || 'Phần'
-        }));
+        const foods = (resDetail.data || []).map(item => {
+            const rawGiaGoc = Number(item.giaGoc) || Number(item.giaBan) || 0;
+            const rawGiaSauGiam = Number(item.giaSauGiam) || rawGiaGoc;
+            const currentPrice = item.isGiamGia ? rawGiaSauGiam : rawGiaGoc;
+
+            return {
+                ...item,
+                id: item.id || item.idDanhMucChiTiet,
+                type: 'FOOD',
+                uniqueId: `food_${item.id || item.idDanhMucChiTiet}`,
+                tenMonAn: item.tenDanhMucChiTiet, // Tên hiển thị chính
+                catId: item.idDanhMuc || (item.danhMuc ? item.danhMuc.id : null),
+                donVi: item.dinhLuong?.tenDinhLuong || 'Phần',
+                price: currentPrice, // Giá thực bán
+                giaGoc: rawGiaGoc,   // Giá gốc để gạch ngang
+                isGiamGia: item.isGiamGia || false,
+                phanTramGiam: item.phanTramGiam || 0
+            };
+        });
 
         // 3. Map dữ liệu SET LẨU
-        const sets = (resSet.data || []).map(item => ({
-            ...item,
-            id: item.id || item.idSetLau,
-            type: 'SET',
-            uniqueId: `set_${item.id || item.idSetLau}`,
-            tenMonAn: item.tenSetLau, // Tên hiển thị chính
-            setCatId: item.loaiSet?.id || item.idLoaiSet,
-            donVi: 'Set' 
-        }));
+        const sets = (resSet.data || []).map(item => {
+            const rawGiaGoc = Number(item.giaGoc) || Number(item.giaBan) || 0;
+            const rawGiaSauGiam = Number(item.giaSauGiam) || rawGiaGoc;
+            const currentPrice = item.isGiamGia ? rawGiaSauGiam : rawGiaGoc;
+
+            return {
+                ...item,
+                id: item.id || item.idSetLau,
+                type: 'SET',
+                uniqueId: `set_${item.id || item.idSetLau}`,
+                tenMonAn: item.tenSetLau, // Tên hiển thị chính
+                setCatId: item.loaiSet?.id || item.idLoaiSet,
+                donVi: 'Set',
+                price: currentPrice, // Giá thực bán
+                giaGoc: rawGiaGoc,   // Giá gốc để gạch ngang
+                isGiamGia: item.isGiamGia || false,
+                phanTramGiam: item.phanTramGiam || 0
+            };
+        });
 
         fullMenuList.value = [...sets, ...foods];
     } catch (e) {
@@ -134,7 +154,7 @@ const addItem = (item) => {
             type: item.type,
             name: item.tenMonAn, // Đồng bộ key cho modal cha
             tenMonAn: item.tenMonAn,
-            price: item.giaBan,
+            price: item.price, // 🚨 ĐÃ SỬA THÀNH ITEM.PRICE (Giá đã giảm)
             img: item.hinhAnh,
             unit: item.donVi,
             quantity: 1
@@ -233,7 +253,15 @@ const setCategoryOptions = computed(() => setCategories.value); // Sử dụng r
                         <div class="card-title" :title="item.tenMon">{{ item.tenMonAn || item.tenMon }}</div>
                         <div class="card-meta">
                             <span class="card-unit">{{ item.donVi || 'Phần' }}</span>
-                            <span class="card-price">{{ item.giaBan?.toLocaleString() }}đ</span>
+                            <div class="price-block text-end">
+                                <div v-if="item.isGiamGia" class="discount-info">
+                                    <span class="original-price">{{ item.giaGoc?.toLocaleString() }}đ</span>
+                                    <span class="badge-discount">-{{ item.phanTramGiam }}%</span>
+                                </div>
+                                <span class="card-price" :class="{'sale-price': item.isGiamGia}">
+                                    {{ item.price?.toLocaleString() }}đ
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -436,7 +464,7 @@ const setCategoryOptions = computed(() => setCategories.value); // Sử dụng r
 .card-meta {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end; /* Đẩy giá và đơn vị xuống bằng mép dưới */
 }
 
 .card-unit {
@@ -512,6 +540,39 @@ const setCategoryOptions = computed(() => setCategories.value); // Sử dụng r
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+.price-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.discount-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #9e9e9e;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-discount {
+    background: #e74c3c;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.sale-price {
+    color: #d32f2f !important;
 }
 
 .price {

@@ -473,9 +473,12 @@ const hideTooltip = () => {
                             <div class="food-info" style="flex: 1;">
                                 <div class="food-name fw-bold">{{ item.tenMon }}</div>
                                 <div class="food-meta text-muted" style="font-size: 0.9rem;">
-                                    <span class="food-price text-danger">{{ item.giaBan?.toLocaleString() }} ₫</span>
-                                    <span class="food-unit ms-1" v-if="item.tenDinhLuong">({{ item.tenDinhLuong
-                                        }})</span>
+                                    <span class="food-price text-danger">
+                                        {{ (item.giaGoc || item.giaBan || 0).toLocaleString() }} ₫
+                                    </span>
+                                    <span class="food-unit ms-1" v-if="item.tenDinhLuong">
+                                        ({{ item.tenDinhLuong }})
+                                    </span>
                                 </div>
                             </div>
                             <button class="btn btn-sm btn-outline-danger rounded-circle"><i
@@ -513,8 +516,8 @@ const hideTooltip = () => {
                                     '---' }}</div>
 
                                 <div class="selected-price-mini mt-1 text-danger" v-if="isViewMode">
-                                    {{ item.giaBan?.toLocaleString() }} ₫ <span class="text-dark fw-bold">x {{
-                                        item.soLuong }}</span>
+                                    {{ (item.giaGoc || item.giaBan || 0).toLocaleString() }} ₫ 
+                                    <span class="text-dark fw-bold">x {{ item.soLuong }}</span>
                                 </div>
                             </div>
 
@@ -577,7 +580,7 @@ const hideTooltip = () => {
                 </div>
                 <div class="tooltip-row">
                     <span>Giá bán lẻ:</span>
-                    <strong class="price-text">{{ hoveredItem.giaBan?.toLocaleString() }} ₫</strong>
+                    <strong class="price-text">{{ (hoveredItem.giaGoc || hoveredItem.giaBan || 0).toLocaleString() }} ₫</strong>
                 </div>
                 <div class="tooltip-row">
                     <span>Số lượng trong set:</span>
@@ -585,8 +588,7 @@ const hideTooltip = () => {
                 </div>
                 <div class="tooltip-row total-row">
                     <span>Tạm tính:</span>
-                    <strong class="price-text-lg">{{ (hoveredItem.giaBan * hoveredItem.soLuong)?.toLocaleString() }}
-                        ₫</strong>
+                    <strong class="price-text-lg">{{ ((hoveredItem.giaGoc || hoveredItem.giaBan || 0) * hoveredItem.soLuong).toLocaleString() }} ₫</strong>
                 </div>
             </div>
         </div>

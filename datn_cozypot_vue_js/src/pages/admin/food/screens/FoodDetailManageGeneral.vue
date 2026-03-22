@@ -87,8 +87,8 @@ const router = useRouter();
         <div class="filter-item price-filter-item" style="width: 250px;">
           <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 5px;">
             <label>Khoảng giá (VNĐ):</label>
-            <span class="price-range-text">
-              {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+            <span class="price-range-text" v-if="selectedPriceRange?.length === 2">
+              {{ (selectedPriceRange[0] || 0).toLocaleString() }} - {{ (selectedPriceRange[1] || 0).toLocaleString() }}
             </span>
           </div>
           <div class="slider-wrapper" v-if="globalMaxPrice > 0">
@@ -165,7 +165,7 @@ const router = useRouter();
 
 
 
-            <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
+            <td class="fw-bold">{{ (item.giaGoc || item.giaBan || 0).toLocaleString() }} ₫</td>
 
             <td>
               <span :class="['status-badge', item.trangThai === 1 ? 'active' : 'inactive']">

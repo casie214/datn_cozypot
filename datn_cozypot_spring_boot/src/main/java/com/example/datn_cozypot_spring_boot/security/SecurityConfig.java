@@ -56,8 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
                         .requestMatchers("/api/phieu-giam-gia/public").permitAll()
-                        .requestMatchers("/api/refresh-token").permitAll()
-
+                        .requestMatchers("/api/auth/refresh-token").permitAll()
+                        .requestMatchers("/api/chat").permitAll()
+                        .requestMatchers("/api/chat/history/**").permitAll()
+                        .requestMatchers("/api/chat/reset").permitAll()
                         .requestMatchers("/api/payment/**").permitAll() // Từ code của bạn
                         .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                         .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()
