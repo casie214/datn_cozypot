@@ -18,9 +18,9 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
     @Query("""
 SELECT p FROM PhieuGiamGia p
 WHERE (:keyword IS NULL OR 
-       LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
-       LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
-       LOWER(p.maPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')))
+       LOWER(COALESCE(p.tenPhieuGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(COALESCE(p.codeGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(COALESCE(p.maPhieuGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')))
 AND (:doiTuong IS NULL OR p.doiTuong = :doiTuong)
 AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia)
 AND (:trangThai IS NULL OR p.trangThai = :trangThai)
@@ -89,14 +89,14 @@ AND p.daGuiMailHetHan = false
     @Query("""
 SELECT p FROM PhieuGiamGia p
 WHERE (:keyword IS NULL OR 
-       LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
-       LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')))
-AND (:trangThai IS NULL OR p.trangThai = :trangThai)
+       LOWER(COALESCE(p.tenPhieuGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(COALESCE(p.codeGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+       LOWER(COALESCE(p.maPhieuGiamGia,'')) LIKE LOWER(CONCAT('%', :keyword, '%')))
 AND (:doiTuong IS NULL OR p.doiTuong = :doiTuong)
 AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia)
+AND (:trangThai IS NULL OR p.trangThai = :trangThai)
 AND (:ngayBatDau IS NULL OR p.ngayBatDau >= :ngayBatDau)
 AND (:ngayKetThuc IS NULL OR p.ngayKetThuc <= :ngayKetThuc)
-ORDER BY p.id DESC
 """)
     List<PhieuGiamGia> findForExport(
             @Param("keyword") String keyword,
