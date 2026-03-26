@@ -55,20 +55,19 @@ public class PhieuGiamGiaController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size
     ) {
-        // Cố định doiTuong = 0 (Công khai) và trangThai = 1 (Đang hoạt động)
-        Integer doiTuongCongKhai = 0;
-        Integer trangThaiHoatDong = 1;
+        // Gọi hàm chuyên dụng cho Public
+        return ResponseEntity.ok(service.getValidPublicVouchers(keyword, loaiGiamGia, page, size));
+    }
 
-        // Tận dụng hàm getAll có sẵn nhưng truyền cứng tham số
-        return ResponseEntity.ok(service.getAll(
-                keyword,
-                doiTuongCongKhai,
-                loaiGiamGia,
-                trangThaiHoatDong,
-                null, null, // Không lọc ngày bắt đầu/kết thúc ở đây vì Service thường đã check HSD
-                page,
-                size
-        ));
+    @GetMapping("/ca-nhan")
+    public ResponseEntity<?> getPersonalVouchers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer loaiGiamGia,
+            @RequestParam(required = false) Integer idKhachHang, // 🚨 Cực kỳ quan trọng để lọc mã theo khách
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size
+    ) {
+        return ResponseEntity.ok(service.getValidPersonalVouchers(keyword, loaiGiamGia, idKhachHang, page, size));
     }
 
     // ============= GET BY ID =============

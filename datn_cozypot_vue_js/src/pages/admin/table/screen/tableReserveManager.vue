@@ -138,12 +138,12 @@ const getStatusText = (trangThai) => {
 
 const getStatusClass = (trangThai) => {
   const status = String(trangThai).trim();
-  if (status === "0") return "bg-warning text-dark";
-  if (status === "1") return "bg-primary";
+  if (status === "0") return "bg-danger";
+  if (status === "1") return "bg-danger";
   if (status === "2") return "bg-danger";
-  if (status === "3") return "bg-info text-dark";
-  if (status === "4") return "bg-success";
-  return "bg-secondary";
+  if (status === "3") return "bg-danger";
+  if (status === "4") return "bg-danger";
+  return "bg-danger";
 };
 
 const mapAndGroupItems = (rawList) => {
@@ -695,7 +695,6 @@ const handleConfirmOrder = async (idHoaDon) => {
     return;
   }
 
-  // 🚨 SỬA LẠI: Lấy danh sách bàn từ detailHoaDon hoặc phieuDetail (cấu trúc mới)
   const danhSachBan = detailHoaDon.value?.danhSachTenBan || phieuDetail.value?.danhSachBan || [];
 
   if (danhSachBan.length === 0) {
@@ -716,7 +715,7 @@ const handleConfirmOrder = async (idHoaDon) => {
       html: "Trạng thái hóa đơn sẽ chuyển sang <b>Đã xác nhận</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.",
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#28a745",
+      confirmButtonColor: "#8b0000", // 🚨 ĐÃ SỬA: Đổi nút Đồng ý thành màu đỏ đậm
       cancelButtonColor: "#6c757d",
       confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
       cancelButtonText: "Hủy bỏ",
@@ -745,6 +744,12 @@ const handleConfirmOrder = async (idHoaDon) => {
     console.log("👉 BƯỚC 5: API chạy thành công! Kết quả:", response);
 
     Swal.fire({ icon: "success", title: "Hoàn tất!", text: "Đã xác nhận đơn và gửi email.", timer: 1500, showConfirmButton: false });
+
+    // ========================================================
+    // 🚨 ĐÃ FIX: ÉP TRẠNG THÁI UI LÊN 1 ĐỂ ẨN NÚT NGAY LẬP TỨC
+    // ========================================================
+    if (phieuDetail.value) phieuDetail.value.trangThai = 1;
+    if (detailHoaDon.value) detailHoaDon.value.trangThaiHoaDon = 1;
 
     // ✅ REFRESH ĐỒNG BỘ
     const idPhieuCanTim = phieuDetail.value?.id || phieuDetail.value?.idDatBan;
@@ -1277,7 +1282,7 @@ onMounted(async () => {
               <div class="mb-2">
                 <i class="fa-solid fa-circle-info me-2 text-muted"></i> Trạng thái:
                 <span class="badge" :class="getStatusClass(detailHoaDon?.trangThaiHoaDon || phieuDetail?.trangThai)">
-                  {{ getStatusText(detailHoaDon?.trangThaiHoaDon || phieuDetail?.trangThai) }}
+                  {{ getStatusText(detailHoaDon?.trangThai || phieuDetail?.trangThai) }}
                 </span>
               </div>
             </div>
