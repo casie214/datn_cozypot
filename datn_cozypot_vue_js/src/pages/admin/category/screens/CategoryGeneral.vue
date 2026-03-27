@@ -137,10 +137,12 @@ const goToFoodList = (category) => {
 
             <td>
               <div class="action-group">
-                <i class="fas fa-pen edit-icon" title="Sửa danh mục"
-                  @click="handleActionWithAuth(() => openModal(item), 'ADMIN')">
-                </i>
-
+                <div class="icon-tooltip">
+                  <i class="fas fa-pen edit-icon" title="Sửa danh mục"
+                    @click="handleActionWithAuth(() => openModal(item), 'ADMIN')">
+                  </i>
+                  <span class="tooltip-text">Cập nhật danh mục</span>
+                </div>
                 <label class="custom-toggle" :title="item.trangThai === 1 ? 'Ngưng kinh doanh' : 'Kích hoạt kinh doanh'">
                   <input 
                     type="checkbox" 
@@ -322,5 +324,50 @@ const goToFoodList = (category) => {
 /* Hiệu ứng khi hover vào toggle */
 .custom-toggle:hover .toggle-slider {
   filter: brightness(1.2);
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tooltip text */
+.icon-tooltip .tooltip-text {
+    position: absolute;
+    bottom: 130%; /* hiện phía trên icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Mũi tên nhỏ */
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Hover hiện tooltip */
+.icon-tooltip:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
 }
 </style>

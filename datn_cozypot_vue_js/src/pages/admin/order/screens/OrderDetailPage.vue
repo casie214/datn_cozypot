@@ -653,17 +653,22 @@ const cannotPrint = computed(() => {
               <div v-if="discount > 0">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-muted fw-medium">Giảm giá:</span>
-                  <span class="fw-bold text-custom-red">({{ formatMoney(discount) }})</span>
+                  <span class="fw-bold text-custom-red"
+                    >({{ formatMoney(discount) }})</span
+                  >
                 </div>
-                
+
                 <div class="d-flex justify-content-end mb-3">
-                   <div v-if="selectedOrder?.maPhieuGiamGia" class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-3 py-1 d-inline-flex align-items-center">
-                     <i class="fa-solid fa-ticket-simple me-2"></i>
-                     <span>{{ selectedOrder.maPhieuGiamGia }}</span>
-                   </div>
-                   <div v-else class="text-muted small fst-italic">
-                     Khuyến mãi áp dụng
-                   </div>
+                  <div
+                    v-if="selectedOrder?.maPhieuGiamGia"
+                    class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-3 py-1 d-inline-flex align-items-center"
+                  >
+                    <i class="fa-solid fa-ticket-simple me-2"></i>
+                    <span>{{ selectedOrder.maPhieuGiamGia }}</span>
+                  </div>
+                  <div v-else class="text-muted small fst-italic">
+                    Khuyến mãi áp dụng
+                  </div>
                 </div>
               </div>
 
@@ -708,17 +713,7 @@ const cannotPrint = computed(() => {
         </div>
 
         <div class="d-flex gap-2">
-          <button
-            v-if="
-              selectedOrder?.trangThaiCode === 0 ||
-              selectedOrder?.trangThaiCode === 2
-            "
-            class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
-            @click="handleConfirmOrder(selectedOrder?.dbId)"
-          >
-            <i class="fa-solid fa-envelope-circle-check me-2"></i>Xác nhận & Gửi
-            mail
-          </button>
+          
 
           <button
             class="btn btn-white border px-4 py-2 fw-medium"
@@ -945,10 +940,16 @@ const cannotPrint = computed(() => {
               <p class="mb-0">SĐT: {{ selectedOrder?.sdt || "---" }}</p>
             </div>
             <div class="col-6 ps-3">
+              
               <div class="border-bottom border-dark fw-bold mb-2 pb-1 text-end">
                 Chi tiết:
               </div>
+
               <p class="mb-1 text-end">Ngày in: {{ invoiceDate }}</p>
+
+              <p class="mb-1 text-end" v-if="selectedOrder?.thoiGianNhanBan">
+                Giờ đến: {{ formatDateTime(selectedOrder?.thoiGianNhanBan) }}
+              </p>
 
               <p
                 v-if="selectedOrder?.tienCocRaw > 0"
@@ -956,6 +957,7 @@ const cannotPrint = computed(() => {
               >
                 (Ngày đặt: {{ formatDate(selectedOrder?.thoiGianDat) }})
               </p>
+
               <p class="mb-0 text-end">
                 Bàn:
                 <span class="fw-bold">
@@ -977,8 +979,8 @@ const cannotPrint = computed(() => {
             <tr>
               <th class="text-center" style="width: 50px">STT</th>
               <th class="text-start">Tên dịch vụ / Món ăn</th>
-              <th class="text-center" style="width: 70px">SL</th>
               <th class="text-end" style="width: 120px">Đơn giá</th>
+              <th class="text-center" style="width: 70px">SL</th>
               <th class="text-end" style="width: 130px">Tổng tiền</th>
             </tr>
           </thead>
@@ -991,10 +993,10 @@ const cannotPrint = computed(() => {
                   (Set lẩu)
                 </div>
               </td>
-              <td class="text-center fw-bold">{{ item.soLuong }}</td>
               <td class="text-end">
                 {{ formatMoney(item.donGia).replace(" ₫", "") }}
               </td>
+              <td class="text-center fw-bold">{{ item.soLuong }}</td>
               <td class="text-end fw-bold">
                 {{ formatMoney(item.thanhTien).replace(" ₫", "") }}
               </td>
@@ -1022,7 +1024,17 @@ const cannotPrint = computed(() => {
                   <td class="fw-medium">
                     Giảm giá / Voucher:
                     <div v-if="selectedOrder?.maPhieuGiamGia" class="mt-1">
-                      <span style="font-size: 12px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 2px 8px; border-radius: 4px; display: inline-block;">
+                      <span
+                        style="
+                          font-size: 12px;
+                          background-color: #f8d7da;
+                          border: 1px solid #f5c6cb;
+                          color: #721c24;
+                          padding: 2px 8px;
+                          border-radius: 4px;
+                          display: inline-block;
+                        "
+                      >
                         Mã HĐ: {{ selectedOrder.maPhieuGiamGia }}
                       </span>
                     </div>

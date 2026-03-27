@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import Swal from 'sweetalert2';
-import axiosClient from '@/services/axiosClient'; 
+import axiosClient from '@/services/axiosClient';
 
 const waitingList = ref([]);
 const selectedId = ref(null);
@@ -10,7 +10,6 @@ const replyText = ref('');
 const customerSearch = ref('');
 const msgContainer = ref(null);
 
-// Biến lưu trữ vòng lặp để dọn dẹp khi chuyển trang
 let waitingListInterval = null;
 let messageInterval = null;
 
@@ -18,10 +17,10 @@ const filteredWaitingList = computed(() => {
     return waitingList.value.filter(id => id.toLowerCase().includes(customerSearch.value.toLowerCase()));
 });
 
-// 1. Lấy danh sách khách hàng chờ
+// 1. Lấy danh sách khách hàng chờ từ RAM
 const fetchWaitingList = async () => {
     try {
-        const res = await axiosClient.get('/botpress/waiting-list');
+        const res = await axiosClient.get('/chat/active-sessions');
         waitingList.value = res.data;
     } catch (error) {
         console.error("Lỗi lấy danh sách:", error);
@@ -32,28 +31,26 @@ const fetchWaitingList = async () => {
 const selectCustomer = async (id) => {
     selectedId.value = id;
     try {
-        const res = await axiosClient.get(`/botpress/history/${id}`);
-        messages.value = res.data.messages.reverse();
+        const res = await axiosClient.get(`/chat/history/${id}`);
+        messages.value = res.data; // API mới trả về List trực tiếp, không cần .messages.reverse()
         scrollToBottom();
     } catch (error) {
         Swal.fire('Lỗi', 'Không thể tải lịch sử trò chuyện', 'error');
     }
 };
 
-// 3. 🚀 Tự động quét tin nhắn mới mỗi 2 giây (Polling)
+// 3. Tự động quét tin nhắn mới mỗi 2 giây
 const refreshMessages = async () => {
-    if (!selectedId.value) return; // Nếu chưa chọn khách thì không làm gì cả
-    
+    if (!selectedId.value) return;
+
     try {
-        const res = await axiosClient.get(`/botpress/history/${selectedId.value}`);
-        const newMessages = res.data.messages.reverse();
-        
-        // Kiểm tra xem có tin nhắn mới không (so sánh độ dài mảng)
+        const res = await axiosClient.get(`/chat/history/${selectedId.value}`);
+        const newMessages = res.data;
+
         if (newMessages.length > messages.value.length) {
             messages.value = newMessages;
-            scrollToBottom(); // Có tin mới thì auto cuộn xuống đáy
+            scrollToBottom();
         } else {
-            // Không có tin mới thì cứ cập nhật ngầm để tránh giật màn hình
             messages.value = newMessages;
         }
     } catch (error) {
@@ -61,33 +58,30 @@ const refreshMessages = async () => {
     }
 };
 
-// 4. Gửi tin nhắn
+// 4. Gửi tin nhắn của Nhân viên
 const sendReply = async () => {
     if (!replyText.value.trim()) return;
     const textToSend = replyText.value;
     replyText.value = '';
 
     try {
-        await axiosClient.post('/botpress/reply', {
-            conversationId: selectedId.value,
+        await axiosClient.post('/chat/admin-reply', {
+            sessionId: selectedId.value,
             message: textToSend
         });
-        messages.value.push({
-            payload: { text: textToSend },
-            direction: 'outgoing',
-            createdAt: new Date().toISOString()
-        });
-        scrollToBottom();
+        // Quét lại ngay lập tức để hiện tin nhắn vừa gửi
+        await refreshMessages();
     } catch (error) {
-        Swal.fire('Thất bại', 'Token hết hạn hoặc lỗi server', 'error');
+        Swal.fire('Thất bại', 'Lỗi server', 'error');
     }
 };
 
 // 5. Kết thúc hỗ trợ
 const resolveChat = async () => {
     try {
-        await axiosClient.delete(`/botpress/resolve/${selectedId.value}`);
+        await axiosClient.delete(`/chat/resolve/${selectedId.value}`);
         selectedId.value = null;
+        messages.value = [];
         fetchWaitingList();
         Swal.fire({ icon: 'success', title: 'Hoàn tất hỗ trợ!', timer: 1000, showConfirmButton: false });
     } catch (error) {
@@ -95,7 +89,6 @@ const resolveChat = async () => {
     }
 };
 
-// Hàm tiện ích: Cuộn xuống đáy
 const scrollToBottom = () => {
     nextTick(() => {
         if (msgContainer.value) {
@@ -104,25 +97,19 @@ const scrollToBottom = () => {
     });
 };
 
-// Hàm tiện ích: Format giờ
+
 const formatTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-// Khi mở trang: Bật các vòng lặp tự động
 onMounted(() => {
     fetchWaitingList();
-    
-    // Quét khách chờ mỗi 5 giây
     waitingListInterval = setInterval(fetchWaitingList, 5000);
-    
-    // Quét tin nhắn của khách đang chọn mỗi 2 giây
     messageInterval = setInterval(refreshMessages, 2000);
 });
 
-// Khi thoát trang: Tắt các vòng lặp để tránh tràn RAM
 onUnmounted(() => {
     clearInterval(waitingListInterval);
     clearInterval(messageInterval);
@@ -132,7 +119,6 @@ onUnmounted(() => {
 <template>
     <div class="chat-wrapper">
         <div class="chat-admin-container">
-
             <div class="customer-sidebar">
                 <div class="sidebar-header">
                     <h5 class="sidebar-title">Danh sách chờ</h5>
@@ -152,7 +138,7 @@ onUnmounted(() => {
                         </div>
                         <span>Chưa có khách cần hỗ trợ</span>
                     </div>
-                    
+
                     <div v-for="id in filteredWaitingList" :key="id" @click="selectCustomer(id)"
                         :class="['customer-item', { active: selectedId === id }]">
                         <div class="avatar">
@@ -173,33 +159,27 @@ onUnmounted(() => {
             <div class="chat-main" v-if="selectedId">
                 <div class="chat-header-bar">
                     <div class="header-info">
-                        <div class="header-avatar">
-                            <i class="fas fa-user-circle"></i>
-                        </div>
+                        <div class="header-avatar"><i class="fas fa-user-circle"></i></div>
                         <div class="header-text">
                             <strong>KH-{{ selectedId.substring(0, 8).toUpperCase() }}</strong>
                             <span class="status-text"><span class="status-dot"></span> Đang trực tuyến</span>
                         </div>
                     </div>
                     <div class="header-actions">
-                        <button class="btn-action-icon btn-refresh-only" @click="selectCustomer(selectedId)"
-                            title="Tải lại tin nhắn">
+                        <button class="btn-action-icon btn-refresh-only" @click="selectCustomer(selectedId)">
                             <i class="fas fa-sync-alt"></i>
-                        </button>
-                        <button class="btn-action-icon btn-resolve" @click="resolveChat" title="Hoàn tất tư vấn">
-                            <i class="fas fa-check"></i> Hoàn tất
                         </button>
                     </div>
                 </div>
 
                 <div class="message-display custom-scrollbar" ref="msgContainer">
-                    <div class="chat-started-info">
-                        <span>Cuộc trò chuyện bắt đầu</span>
-                    </div>
-                    <div v-for="msg in messages" :key="msg.id"
-                        :class="['message-row', msg.direction === 'outgoing' ? 'row-admin' : 'row-user']">
-                        <div class="bubble">
-                            {{ msg.payload.text }}
+                    <div v-for="(msg, index) in messages" :key="index"
+                        :class="['message-row', (msg.sender === 'admin' || msg.sender === 'bot') ? 'row-admin' : 'row-user']">
+
+                        <small v-if="msg.sender === 'bot'" class="sender-label">Hệ thống AI</small>
+
+                        <div class="bubble" :class="{ 'bot-bubble': msg.sender === 'bot' }">
+                            {{ msg.content }}
                         </div>
                         <div class="msg-time">{{ formatTime(msg.createdAt) }}</div>
                     </div>
@@ -225,7 +205,7 @@ onUnmounted(() => {
                         <i class="fas fa-comments"></i>
                     </div>
                     <h4>Chọn khách hàng để bắt đầu</h4>
-                    <p>Hệ thống CSKH CozyPot - Dữ liệu đồng bộ realtime từ Botpress</p>
+                    <p>Hệ thống CSKH CozyPot - Trực tiếp hỗ trợ khách hàng</p>
                 </div>
             </div>
 
@@ -234,44 +214,43 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 1. KHUNG BỌC NGOÀI CÙNG: Ép tràn viền và trừ hao Header của Admin (Khoảng 80-100px) */
+/* Giữ nguyên 100% CSS cũ của bạn */
 .chat-wrapper {
     padding: 15px;
     background: #f0f2f5;
-    /* Tính toán chiều cao chính xác: 100vh trừ đi chiều cao header admin của bạn */
-    height: calc(100vh - 90px); 
+    height: calc(100vh - 90px);
     width: 100%;
     display: flex;
 }
 
-/* 2. KHUNG CHAT CHÍNH: Chiếm 100% không gian của wrapper, không bị co nhỏ nữa */
 .chat-admin-container {
     display: flex;
     width: 100%;
-    height: 100%; /* Quan trọng: Ép chiều cao tuyệt đối */
+    height: 100%;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    overflow: hidden; /* Cắt phần thừa */
+    overflow: hidden;
     border: 1px solid #e4e6eb;
 }
 
-/* Scrollbar Customization */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #cdd0d4;
     border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #aeb0b4;
 }
 
-/* Sidebar */
 .customer-sidebar {
     width: 340px;
     border-right: 1px solid #e4e6eb;
@@ -284,7 +263,7 @@ onUnmounted(() => {
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #e4e6eb;
-    flex-shrink: 0; /* Ghim Header Sidebar không bị cuộn */
+    flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -402,17 +381,17 @@ onUnmounted(() => {
     transition: opacity 0.2s;
 }
 
-.customer-item:hover .action-arrow, .customer-item.active .action-arrow {
+.customer-item:hover .action-arrow,
+.customer-item.active .action-arrow {
     opacity: 1;
 }
 
-/* 3. CỘT CHAT BÊN PHẢI */
 .chat-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     background: #ffffff;
-    height: 100%; /* Giới hạn không cho tràn */
+    height: 100%;
     overflow: hidden;
 }
 
@@ -423,7 +402,7 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     background: #fff;
-    flex-shrink: 0; /* Ghim chặt Header Chat */
+    flex-shrink: 0;
     z-index: 10;
 }
 
@@ -497,12 +476,11 @@ onUnmounted(() => {
     background: #218838;
 }
 
-/* 4. KHUNG HIỂN THỊ TIN NHẮN (Cuộn tại đây) */
 .message-display {
-    flex: 1; /* Chiếm hết phần không gian còn lại ở giữa */
+    flex: 1;
     padding: 25px;
     background: #f4f6f9;
-    overflow-y: auto; /* THANH CUỘN SẼ XUẤT HIỆN Ở ĐÂY KHI TRÀN */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
@@ -527,13 +505,36 @@ onUnmounted(() => {
     max-width: 65%;
 }
 
-.row-user {
-    align-self: flex-start;
+.row-admin {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.bot-bubble {
+    background: #e4e6eb !important;
+    /* Màu xám nhẹ cho bot */
+    color: #333 !important;
+    border: 1px solid #cdd0d4 !important;
+}
+
+.sender-label {
+    font-size: 0.65rem;
+    color: #8c939d;
+    margin-bottom: 2px;
+    font-weight: bold;
+    text-transform: uppercase;
 }
 
 .row-admin {
     align-self: flex-end;
     align-items: flex-end;
+    /* Cả Bot và Admin đều nảy về bên phải */
+}
+
+/* Row user vẫn ở bên trái */
+.row-user {
+    align-self: flex-start;
+    align-items: flex-start;
 }
 
 .bubble {
@@ -566,12 +567,11 @@ onUnmounted(() => {
     margin-right: 4px;
 }
 
-/* 5. KHUNG NHẬP TIN NHẮN (Ghim chặt dưới đáy) */
 .input-area {
     padding: 15px 25px;
     background: #ffffff;
     border-top: 1px solid #e4e6eb;
-    flex-shrink: 0; /* QUAN TRỌNG: Không bao giờ bị bóp méo hay trôi đi, ghim chặt ở đáy */
+    flex-shrink: 0;
     z-index: 10;
 }
 
@@ -634,7 +634,6 @@ onUnmounted(() => {
     cursor: not-allowed;
 }
 
-/* Empty State */
 .chat-empty-state {
     flex: 1;
     display: flex;

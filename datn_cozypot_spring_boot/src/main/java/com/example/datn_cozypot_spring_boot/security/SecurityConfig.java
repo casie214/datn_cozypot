@@ -49,13 +49,17 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler) // Xử lý 403 từ main
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/ws/**").permitAll()
                         // Auth & Tài khoản (Từ main)
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/tai-khoan/doi-mat-khau").authenticated()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
-
-                        // Public API (Gộp chung)
+                        .requestMatchers("/api/phieu-giam-gia/public").permitAll()
+                        .requestMatchers("/api/auth/refresh-token").permitAll()
+                        .requestMatchers("/api/chat").permitAll()
+                        .requestMatchers("/api/chat/history/**").permitAll()
+                        .requestMatchers("/api/chat/reset").permitAll()
                         .requestMatchers("/api/payment/**").permitAll() // Từ code của bạn
                         .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                         .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()
@@ -83,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/search").hasAnyRole("ADMIN", "EMPLOYEE")
 
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/tra-cuu").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/chi-tiet/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/lich-su-dat-ban/huy-don/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/ca-nhan").authenticated()
 

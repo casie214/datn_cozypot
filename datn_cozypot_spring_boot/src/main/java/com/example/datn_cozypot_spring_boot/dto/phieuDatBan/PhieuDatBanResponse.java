@@ -25,6 +25,8 @@ public class PhieuDatBanResponse {
     private Integer idPhieuGiamGia;
     private String maPhieuGiamGia;
 
+    private LocalDateTime thoiGianNhanBan;
+
     // 1. THÔNG TIN BÀN HIỆN TẠI (Bàn mà nhân viên đang click vào sơ đồ)
     private Integer idBanAn;
     private String maBan;

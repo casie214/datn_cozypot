@@ -16,9 +16,17 @@
                     </div>
                     <div class="col-md-4">
                         <label class="filter-label">Trạng thái</label>
-                        <Multiselect v-model="filters.trangThai" :options="statusOptions" label="label" track-by="value"
-                            placeholder="Chọn trạng thái" :multiple="false" :close-on-select="true"
-                            :clear-on-select="true" @select="handleSearch" />
+                        <Multiselect 
+                            v-model="filters.trangThai" 
+                            :options="statusOptions" 
+                            label="label" 
+                            valueProp="value"
+                            placeholder="Chọn trạng thái" 
+                            :searchable="true" 
+                            :close-on-select="true"
+                            class="custom-multiselect-theme shadow-sm"
+                            @change="handleSearch" 
+                        />
                     </div>
                     <div class="col-md-3">
                         <label class="filter-label">Từ ngày</label>
@@ -458,7 +466,7 @@
 
                                         <!-- Giá sau KM -->
                                         <td class="text-end text-success fw-bold">
-                                            {{ formatPrice(getDiscountedPrice(item.gia)) }}
+                                            {{ formatPrice(item.gia * (100 - (formData.phanTramGiam || 0)) / 100) }}
                                         </td>
 
                                         <td v-if="!isReadOnly" class="text-center">
@@ -500,9 +508,8 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { usePromotionLogic } from './promotionFunction.js';
 import promotionService from '@/services/promotionService';
-import '../promotionStyle.css';
-import Multiselect from 'vue-multiselect'
-import 'vue-multiselect/dist/vue-multiselect.min.css'
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 
 const statusOptions = [
     { value: null, label: 'Tất cả trạng thái' },
@@ -512,12 +519,18 @@ const statusOptions = [
 ]
 const exportExcel = async () => {
     try {
+        // 🚨 Xử lý trạng thái chuẩn trước khi gửi xuống API
+        let trangThaiExport = filters.trangThai;
+        if (trangThaiExport === '' || trangThaiExport === 2) {
+            trangThaiExport = null;
+        }
+
         const response = await axiosClient.get(
             '/dot-khuyen-mai/export-excel',
             {
                 params: {
                     keyword: filters.keyword,
-                    trangThai: filters.trangThai,
+                    trangThai: trangThaiExport, // Dùng biến đã xử lý
                     ngayBatDau: filters.ngayBatDau,
                     ngayKetThuc: filters.ngayKetThuc
                 },
@@ -646,7 +659,8 @@ const formData = reactive({
     ngayKetThuc: '',
     moTa: '',
     idSetLauChiTiet: [],
-    idMonAnChiTiet: []
+    idMonAnChiTiet: [],
+    trangThai: 1 
 });
 
 const filters = reactive({
@@ -876,7 +890,7 @@ const validateForm = () => {
     }
 
     // ===== SET LẨU =====
-    if (formData.idSetLauChiTiet.length === 0) {
+    if (formData.idSetLauChiTiet.length === 0 && formData.idMonAnChiTiet.length === 0) {
         showError("Lỗi nhập liệu", "Phải chọn ít nhất 1 hàng hóa / set lẩu");
         isValid = false;
     }
@@ -884,9 +898,16 @@ const validateForm = () => {
     return isValid;
 };
 const handleSearch = async () => {
+    // 🚨 Bỏ .value đi. Ép kiểu về null nếu người dùng chọn "Tất cả" (chuỗi rỗng) hoặc "Đã hết hạn" (2 - vì BE xử lý riêng)
+    let trangThaiApi = filters.trangThai;
+    if (trangThaiApi === '' || trangThaiApi === 2) {
+        trangThaiApi = null;
+    }
+
     const apiFilters = {
         keyword: filters.keyword,
-        trangThai: filters.trangThai?.value === 2 ? null : filters.trangThai?.value, ngayBatDau: formatDateForApi(filters.ngayBatDau),
+        trangThai: trangThaiApi, 
+        ngayBatDau: formatDateForApi(filters.ngayBatDau),
         ngayKetThuc: formatDateForApi(filters.ngayKetThuc)
     };
 
@@ -907,54 +928,29 @@ const handleSearch = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // // ===== LỌC TRẠNG THÁI =====
-    // if (filters.trangThai === 1) {
-    //     results = results.filter(km => {
-    //         const end = new Date(km.ngayKetThuc);
-    //         end.setHours(0, 0, 0, 0);
-    //         return km.trangThai === 1 && end >= today;
-    //     });
-    // }
-    // else if (filters.trangThai === 0) {
-    //     results = results.filter(km => km.trangThai === 0);
-    // }
-    // else if (filters.trangThai === 2) {
-    //     results = results.filter(km => {
-    //         const end = new Date(km.ngayKetThuc);
-    //         end.setHours(0, 0, 0, 0);
-    //         return end < today;
-    //     });
-    // }
-
-    if (filters.trangThai && filters.trangThai.value !== null) {
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
+    // ===== LỌC TRẠNG THÁI (FIXED BỎ .value) =====
+    if (filters.trangThai !== '' && filters.trangThai !== null) {
         results = results.filter(km => {
-
             const end = new Date(km.ngayKetThuc);
             end.setHours(0, 0, 0, 0);
 
             // Đang hoạt động
-            if (filters.trangThai.value === 1) {
+            if (filters.trangThai === 1) {
                 return km.trangThai === 1 && end >= today;
             }
 
             // Ngừng
-            if (filters.trangThai.value === 0) {
+            if (filters.trangThai === 0) {
                 return km.trangThai === 0;
             }
 
             // Hết hạn
-            if (filters.trangThai.value === 2) {
+            if (filters.trangThai === 2) {
                 return end < today;
             }
 
             return true;
         });
-
-
     }
 
     // ✅ LƯU DATA ĐÃ LỌC
@@ -1149,7 +1145,14 @@ const openFormAdd = () => {
     isReadOnly.value = false;
     selectedId.value = null;
     Object.assign(formData, {
-        tenDotKhuyenMai: '', phanTramGiam: 0, ngayBatDau: '', ngayKetThuc: '', moTa: '', idSetLauChiTiet: [], idMonAnChiTiet: []
+        tenDotKhuyenMai: '', 
+        phanTramGiam: 0, 
+        ngayBatDau: '', 
+        ngayKetThuc: '', 
+        moTa: '', 
+        idSetLauChiTiet: [], 
+        idMonAnChiTiet: [],
+        trangThai: 1
     });
     Object.keys(errors).forEach(k => errors[k] = '');
     isFormActive.value = true;
@@ -1333,6 +1336,8 @@ const confirmAction = async (title, text) => {
 };
 </script>
 
+<style scoped src="../promotionStyle.css"></style>
+
 <style scoped>
 .form-switch .form-check-input {
     background-color: #e9ecef;
@@ -1363,4 +1368,55 @@ const confirmAction = async (title, text) => {
     box-shadow: 0 0 0 0.25rem rgba(125, 22, 26, 0.25);
     /* Hiệu ứng tỏa sáng đỏ nhạt */
 }
+
+/* --- CSS CHUẨN CHO MULTISELECT VUEFORM (ĐỒNG BỘ 38px & MÀU ĐỎ) --- */
+.custom-multiselect-theme {
+  --ms-border-color: #dee2e6; /* Viền trùng với input bootstrap */
+  --ms-border-color-active: #7d161a;
+  --ms-radius: 0.375rem; 
+  
+  --ms-ring-width: 3px;
+  --ms-ring-color: rgba(125, 22, 26, 0.15);
+  
+  --ms-option-bg-pointed: #fdf2f2;
+  --ms-option-color-pointed: #7d161a;
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+  --ms-option-bg-selected-pointed: #5c0a13;
+  
+  --ms-tag-bg: #7d161a;
+  --ms-tag-color: #ffffff;
+  --ms-tag-radius: 4px;
+  
+  /* ÉP CHIỀU CAO CHUẨN BOOTSTRAP 38px */
+  min-height: 38px !important; 
+}
+
+.custom-multiselect-theme :deep(.multiselect-wrapper) {
+  min-height: 36px !important; 
+}
+
+.custom-multiselect-theme :deep(.multiselect-tags) {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.custom-multiselect-theme :deep(.multiselect-tag) {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+/* ÉP 100% CÁC CHECKBOX/LỰA CHỌN MÀU XANH THÀNH ĐỎ */
+.custom-multiselect-theme :deep(.is-selected) {
+  background: #7d161a !important;
+  color: white !important;
+}
+
+.custom-multiselect-theme :deep(.is-active) {
+  box-shadow: 0 0 0 3px rgba(125, 22, 26, 0.15) !important;
+  border-color: #7d161a !important;
+}
+
 </style>

@@ -13,11 +13,13 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   </head>
   <body>
+    <script>
+      // Định nghĩa biến global để đánh lừa các thư viện cũ như sockjs
+      if (typeof global === 'undefined') {
+        var global = window;
+      }
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>  
-    <!-- <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
-    <script src="https://files.bpcontent.cloud/2026/03/08/05/20260308055825-NE1GWMIY.js"></script> -->
-
-    
   </body>
 </html>

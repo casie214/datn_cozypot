@@ -87,8 +87,8 @@ const router = useRouter();
         <div class="filter-item price-filter-item" style="width: 250px;">
           <div style="display: flex; flex-direction: row; justify-content: space-between; margin-bottom: 5px;">
             <label>Khoảng giá (VNĐ):</label>
-            <span class="price-range-text">
-              {{ selectedPriceRange[0].toLocaleString() }} - {{ selectedPriceRange[1].toLocaleString() }}
+            <span class="price-range-text" v-if="selectedPriceRange?.length === 2">
+              {{ (selectedPriceRange[0] || 0).toLocaleString() }} - {{ (selectedPriceRange[1] || 0).toLocaleString() }}
             </span>
           </div>
           <div class="slider-wrapper" v-if="globalMaxPrice > 0">
@@ -130,7 +130,7 @@ const router = useRouter();
             <th class="py-3">ĐƠN VỊ</th>
             <th class="py-3">GIÁ</th>
             <th class="py-3">TRẠNG THÁI</th>
-            <th class="py-3 text-center" style="width: 120px;">HÀNH ĐỘNG</th>
+            <th class="py-3 text-center" style="width: 120px;">CHỨC NĂNG</th>
           </tr>
         </thead>
         <tbody>
@@ -165,7 +165,7 @@ const router = useRouter();
 
 
 
-            <td class="fw-bold">{{ item.giaBan?.toLocaleString() }} ₫</td>
+            <td class="fw-bold">{{ (item.giaGoc || item.giaBan || 0).toLocaleString() }} ₫</td>
 
             <td>
               <span :class="['status-badge', item.trangThai === 1 ? 'active' : 'inactive']">
@@ -175,8 +175,10 @@ const router = useRouter();
 
             <td class="">
               <div class="action-group d-flex justify-content-center">
-                <i class="fas fa-pen edit-icon" title="Cập nhật" @click="goToEdit(item)"></i>
-
+                <div class="icon-tooltip">
+                  <i class="fas fa-pen edit-icon" title="Cập nhật" @click="goToEdit(item)"></i>
+                  <span class="tooltip-text">Cập nhật món ăn</span>                
+                </div>
                 <label class="custom-toggle" :title="item.trangThai === 1 ? 'Ngưng kinh doanh' : 'Kích hoạt kinh doanh'">
                   <input 
                     type="checkbox" 
@@ -365,5 +367,50 @@ const router = useRouter();
 /* Hiệu ứng khi hover vào toggle */
 .custom-toggle:hover .toggle-slider {
   filter: brightness(1.2);
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tooltip text */
+.icon-tooltip .tooltip-text {
+    position: absolute;
+    bottom: 130%; /* hiện phía trên icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Mũi tên nhỏ */
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Hover hiện tooltip */
+.icon-tooltip:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
 }
 </style>

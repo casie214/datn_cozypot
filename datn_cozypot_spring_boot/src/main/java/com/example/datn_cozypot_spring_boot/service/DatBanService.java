@@ -12,6 +12,8 @@ import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.repository.thanhToanRepository.PhuongThucThanhToanRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -46,6 +49,8 @@ public class DatBanService {
 
     @Autowired
     private KhachHangRepository khachHangRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private KhuVucRepository khuVucRepository;
@@ -73,6 +78,10 @@ public class DatBanService {
     private com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
     @Autowired
     private ThamSoHeThongRepository thamSoHeThongRepository;
+    @Autowired
+    private com.example.datn_cozypot_spring_boot.repository.phieuDatBanBanAnRepository phieuDatBanBanAnRepository;
+    @Autowired
+    private ModelMapper modelMapper;
 
     public List<DatBanListResponse> getAll(){
         return phieuDatBanRepository.findAll().stream().map(DatBanListResponse::new).toList();
@@ -167,9 +176,30 @@ public class DatBanService {
             end = date.plusDays(1).atStartOfDay();
         }
 
-        PageRequest pageRequest = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted());
+        // Xử lý cắt chuỗi ID Bàn và gán cờ hasBan
+        List<Integer> listIdBanAn;
+        boolean hasBan = false;
 
-        Page<PhieuDatBan> page = phieuDatBanRepository.search(request.getSoDienThoai(), request.getTrangThai(), start, end, pageRequest);
+        if (request.getIdBanAn() != null && !request.getIdBanAn().trim().isEmpty()) {
+            listIdBanAn = Arrays.stream(request.getIdBanAn().split(","))
+                    .map(String::trim)
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList());
+            hasBan = true;
+        } else {
+            // Gán giá trị ảo để tránh lỗi cú pháp SQL Server khi mảng rỗng
+            listIdBanAn = List.of(-1);
+        }
+
+        Page<PhieuDatBan> page = phieuDatBanRepository.search(
+                request.getSoDienThoai(),
+                request.getTrangThai(),
+                start,
+                end,
+                hasBan, // Truyền cờ hasBan vào đây
+                listIdBanAn,
+                pageable
+        );
 
         return page.map(DatBanListResponse::new);
     }
@@ -239,7 +269,7 @@ public class DatBanService {
     @Transactional
     public void updateCheckIn(DatBanUpdateRequest request) {
         // =========================================================================
-        // 1. XỬ LÝ NGHIỆP VỤ ĐỔI BÀN (NẾU CÓ idBanAnMoi)
+        // 1. XỬ LÝ NGHIỆP VỤ ĐỔI BÀN VÀ GHÉP BÀN
         // =========================================================================
         if (request.getId() != null && request.getIdBanAnMoi() != null) {
             PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
@@ -252,19 +282,11 @@ public class DatBanService {
             BanAn banMoi = banAnRepository.findById(request.getIdBanAnMoi())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn mới"));
 
-            // 🚨 KIỂM TRA BÀN MỚI CÓ ĐANG TRỐNG KHÔNG (Chặn đè khách)
-            if (banMoi.getTrangThai() != 0) {
-                throw new RuntimeException("Bàn " + banMoi.getMaBan() + " không trống, không thể chuyển sang!");
-            }
-
-            // =========================================================
-            // 🚨 ĐÃ FIX: Lấy số người trực tiếp từ Frontend truyền xuống
-            // =========================================================
+            // Tính số người mang sang
             Integer soNguoiMangSang = 0;
             if (request.getSoNguoi() != null && request.getSoNguoi() > 0) {
-                soNguoiMangSang = request.getSoNguoi(); // Lấy đúng 4 người (theo payload)
+                soNguoiMangSang = request.getSoNguoi();
             } else {
-                // Backup: Nếu FE không truyền, tự động lấy số người của bàn cũ
                 for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
                     if (link.getBanAn().getId().equals(banCu.getId())) {
                         soNguoiMangSang = link.getSoNguoiNgoi() != null ? link.getSoNguoiNgoi() : 0;
@@ -273,42 +295,62 @@ public class DatBanService {
                 }
             }
 
-            // =========================================================
-            // 🚨 THAO TÁC TRỰC TIẾP LÊN BẢNG TRUNG GIAN N-N
-            // =========================================================
-            // 1. Gỡ bỏ liên kết với Bàn Cũ trong SQL
-            phieu.getDsBanAn().removeIf(link -> link.getBanAn().getId().equals(banCu.getId()));
+            // 1. Xóa liên kết với Bàn Cũ một cách an toàn
+            PhieuDatBanBanAn linkCu = null;
+            for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
+                if (link.getBanAn().getId().equals(banCu.getId())) {
+                    linkCu = link;
+                    break;
+                }
+            }
+            if (linkCu != null) {
+                phieu.getDsBanAn().remove(linkCu);
+            }
 
-            // 2. Tạo liên kết với Bàn Mới
-            PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
-            linkMoi.setPhieuDatBan(phieu);
-            linkMoi.setBanAn(banMoi);
-            linkMoi.setSoNguoiNgoi(soNguoiMangSang); // Ghi đúng 4 người vào DB
+            // 2. Tạo liên kết với Bàn Mới (Kiểm tra tránh trùng lặp)
+            boolean daCoSanLienKet = false;
+            for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
+                if (link.getBanAn().getId().equals(banMoi.getId())) {
+                    link.setSoNguoiNgoi(link.getSoNguoiNgoi() + soNguoiMangSang);
+                    daCoSanLienKet = true;
+                    break;
+                }
+            }
 
-            PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
-            linkId.setIdPhieuDatBan(phieu.getId());
-            linkId.setIdBanAn(banMoi.getId());
-            linkMoi.setId(linkId);
+            if (!daCoSanLienKet) {
+                PhieuDatBanBanAn linkMoi = new PhieuDatBanBanAn();
+                PhieuDatBanBanAnId linkId = new PhieuDatBanBanAnId();
+                linkId.setIdPhieuDatBan(phieu.getId());
+                linkId.setIdBanAn(banMoi.getId());
 
-            phieu.getDsBanAn().add(linkMoi);
-            // =========================================================
+                linkMoi.setId(linkId);
+                linkMoi.setPhieuDatBan(phieu);
+                linkMoi.setBanAn(banMoi);
+                linkMoi.setSoNguoiNgoi(soNguoiMangSang);
 
-            // Cập nhật trạng thái hiển thị
-            banCu.setTrangThai(0);
+                phieu.getDsBanAn().add(linkMoi);
+            }
+
+            // 3. 🚨 ĐÃ FIX: Chỉ dọn Bàn Cũ (Trạng thái = 0) nếu không còn đoàn nào khác đang ngồi chung
+            List<PhieuDatBanBanAn> cacPhieuCungBanCu = phieuDatBanBanAnRepository.findActiveLinksByBanId(banCu.getId());
+            long countOtherActive = cacPhieuCungBanCu.stream()
+                    .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                    .count();
+
+            if (countOtherActive == 0) {
+                banCu.setTrangThai(0);
+            }
+
+            // Bàn mới chắc chắn có khách nên set = 1
             banMoi.setTrangThai(1);
 
-            banAnRepository.save(banCu);
-            banAnRepository.save(banMoi);
             phieuDatBanRepository.save(phieu);
-
-            // 🚨 BẮT BUỘC FLUSH
             phieuDatBanRepository.flush();
-            banAnRepository.flush();
 
             if (hoaDon != null) {
                 ghiLichSu(hoaDon, request.getIdNhanVien(),
-                        "Đổi bàn: " + banCu.getMaBan() + " -> " + banMoi.getMaBan(),
-                        "Chuyển một phần/toàn bộ khách sang bàn mới",
+                        "Đổi/Ghép bàn: " + banCu.getMaBan() + " -> " + banMoi.getMaBan(),
+                        "Chuyển khách sang bàn mới",
                         hoaDon.getTrangThaiHoaDon(), hoaDon.getTrangThaiHoaDon());
             }
             return;
@@ -333,6 +375,7 @@ public class DatBanService {
 
             PhieuDatBan phieuMoi = new PhieuDatBan();
             phieuMoi.setThoiGianDat(java.time.LocalDateTime.now());
+            phieuMoi.setThoiGianNhanBan(LocalDateTime.now());
             phieuMoi.setTrangThai(3); // Đang sử dụng
             phieuMoi.setHinhThucDat(2); // Vãng lai
             phieuMoi.setNguoiTao("POS System");
@@ -403,8 +446,20 @@ public class DatBanService {
             if (phieu != null) {
                 for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
                     BanAn ban = link.getBanAn();
-                    ban.setTrangThai(0);
-                    banAnRepository.save(ban);
+
+                    // Lấy tất cả các phiếu đang hoạt động tại bàn này
+                    List<PhieuDatBanBanAn> cacPhieuCungBan = phieuDatBanBanAnRepository.findActiveLinksByBanId(ban.getId());
+
+                    // Đếm xem có phiếu nào KHÁC với phiếu đang thanh toán/hủy này không
+                    long countOtherActive = cacPhieuCungBan.stream()
+                            .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                            .count();
+
+                    // Nếu KHÔNG có phiếu nào khác đang ngồi chung -> Bàn trống hoàn toàn
+                    if (countOtherActive == 0) {
+                        ban.setTrangThai(0);
+                        banAnRepository.save(ban);
+                    }
                 }
             }
         } else if (request.getIdBanAn() != null && request.getTrangThai() != null) {
@@ -454,6 +509,17 @@ public class DatBanService {
                         phieu.getDsBanAn().add(newLink);
                     }
 
+                    if (request.getTrangThai() == 1) {
+                        for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
+                            BanAn banThuocPhieu = link.getBanAn();
+                            // Bật trạng thái thành 1 (Có khách) cho tất cả các bàn đang trống
+                            if (banThuocPhieu.getTrangThai() == 0) {
+                                banThuocPhieu.setTrangThai(1);
+                                banAnRepository.save(banThuocPhieu);
+                            }
+                        }
+                    }
+
                     // C. Lưu và Ép Hibernate đẩy dữ liệu xuống DB ngay lập tức
                     phieuDatBanRepository.save(phieu);
                     phieuDatBanRepository.flush();
@@ -468,6 +534,11 @@ public class DatBanService {
             PhieuDatBan phieu = phieuDatBanRepository.findById(request.getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu đặt bàn"));
             phieu.setTrangThai(request.getTrangThaiPhieu());
+
+            if (request.getTrangThaiPhieu() == 3 && phieu.getThoiGianNhanBan() == null) {
+                phieu.setThoiGianNhanBan(LocalDateTime.now());
+            }
+
             phieuDatBanRepository.save(phieu);
         }
 
@@ -524,8 +595,17 @@ public class DatBanService {
                         // Dọn sạch toàn bộ bàn
                         for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
                             BanAn ban = link.getBanAn();
-                            ban.setTrangThai(0);
-                            banAnRepository.save(ban);
+
+                            List<PhieuDatBanBanAn> cacPhieuCungBan = phieuDatBanBanAnRepository.findActiveLinksByBanId(ban.getId());
+
+                            long countOtherActive = cacPhieuCungBan.stream()
+                                    .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                                    .count();
+
+                            if (countOtherActive == 0) {
+                                ban.setTrangThai(0);
+                                banAnRepository.save(ban);
+                            }
                         }
                     } else if (trangThaiMoi == 8) {
                         hanhDongLog = "Hủy hóa đơn";
@@ -534,8 +614,17 @@ public class DatBanService {
 
                         for (PhieuDatBanBanAn link : phieu.getDsBanAn()) {
                             BanAn ban = link.getBanAn();
-                            ban.setTrangThai(0);
-                            banAnRepository.save(ban);
+
+                            List<PhieuDatBanBanAn> cacPhieuCungBan = phieuDatBanBanAnRepository.findActiveLinksByBanId(ban.getId());
+
+                            long countOtherActive = cacPhieuCungBan.stream()
+                                    .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                                    .count();
+
+                            if (countOtherActive == 0) {
+                                ban.setTrangThai(0);
+                                banAnRepository.save(ban);
+                            }
                         }
                     }
                     phieuDatBanRepository.save(phieu);
@@ -722,6 +811,12 @@ public class DatBanService {
 
         List<PhieuDatBan> phieuCungGio = phieuDatBanRepository.findPhieuOverlapping(start, end);
 
+        if (request.getIdPhieu() != null) {
+            phieuCungGio = phieuCungGio.stream()
+                    .filter(p -> !p.getId().equals(request.getIdPhieu()))
+                    .collect(Collectors.toList());
+        }
+
         int tongSucChua = banAnRepository.getTongSucChua();
 
         int soKhachDaDat = phieuCungGio.stream()
@@ -792,6 +887,9 @@ public class DatBanService {
             khachHang = khachHangRepository.findBySoDienThoai(request.getPhone()).orElse(null);
         }
 
+        boolean isKhachMoiTao = false;
+        String mkMoi = "";
+
         // Ưu tiên 3: Nếu vẫn không có -> Tạo khách mới
         if (khachHang == null) {
             khachHang = new KhachHang();
@@ -799,11 +897,14 @@ public class DatBanService {
             khachHang.setSoDienThoai(request.getPhone());
             khachHang.setEmail(request.getEmail());
             khachHang.setTenDangNhap(request.getPhone());
-            khachHang.setMatKhauDangNhap(request.getPhone());
+            mkMoi = RandomStringUtils.randomAlphanumeric(8);
+            String encodedPassword = passwordEncoder.encode(mkMoi);
+            khachHang.setMatKhauDangNhap(encodedPassword);
             khachHang.setTrangThai(1);
             khachHang.setAuthProvider(com.example.datn_cozypot_spring_boot.config.AuthProvider.LOCAL);
             khachHang.setNgayTaoTaiKhoan(java.time.Instant.now());
             khachHang = khachHangRepository.save(khachHang);
+            isKhachMoiTao = true;
         }
 
         PhieuDatBan phieu = new PhieuDatBan();
@@ -936,9 +1037,10 @@ public class DatBanService {
                             request.getThoiGianDat().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "Chưa xác định")
                     .soLuongKhach(request.getSoNguoi())
                     .maPhieuDatBan(maTraCuu)
+                    .isTaiKhoanMoi(isKhachMoiTao)
+                    .matKhauMoi(mkMoi)
                     .build();
 
-            // Gọi hàm Async, luồng chính vẫn tiếp tục chạy nhanh chóng
             emailDatBanService.sendEmailCamOnDatBan(emailDto);
         }
 
@@ -990,7 +1092,7 @@ public class DatBanService {
             BanAn ban = banAnRepository.findById(idBan)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ID: " + idBan));
 
-            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban, start, end);
+            boolean isTrung = phieuDatBanRepository.existsByTimeRange(ban.getId(), start, end);
             if (isTrung) {
                 throw new RuntimeException("Bàn " + ban.getMaBan() + " đã có lịch trong thời gian này");
             }
@@ -1167,5 +1269,9 @@ public class DatBanService {
                 .stream()
                 .map(DatBanListResponse::new)
                 .toList();
+    }
+
+    public PhieuDatBan getPhieuDatBanById(Integer id) {
+        return phieuDatBanRepository.findById(id).orElse(null);
     }
 }

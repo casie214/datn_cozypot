@@ -8,7 +8,11 @@ public class MonAnResponse {
     private Integer id;
     private String maMon;
     private String tenMon;
-    private BigDecimal giaBan;
+    private BigDecimal giaGoc;
+    private BigDecimal giaSauGiam;
+    private Integer phanTramGiam;
+    private Boolean isGiamGia;
+    private Double phanTramVat;
     private String hinhAnh;
     private String moTa;
 
@@ -20,8 +24,6 @@ public class MonAnResponse {
     private String kichCo;
     private Integer idDinhLuong;
     private Integer trangThai;
-
-    private Double phanTramVat;
 
     public String getTenHienThi() {
         return tenMon + " (" + (giaTriDinhLuong != null ? giaTriDinhLuong : tenDinhLuong) + ")";

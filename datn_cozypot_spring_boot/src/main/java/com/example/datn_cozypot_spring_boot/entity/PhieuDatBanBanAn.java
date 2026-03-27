@@ -1,5 +1,6 @@
 package com.example.datn_cozypot_spring_boot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,6 +22,7 @@ public class PhieuDatBanBanAn {
     @MapsId("idPhieuDatBan")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_phieu_dat_ban")
+    @JsonIgnore
     private PhieuDatBan phieuDatBan;
 
     @MapsId("idBanAn")

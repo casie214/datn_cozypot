@@ -52,16 +52,21 @@ public class DatBanListResponse {
 
         // 🚨 LOGIC N-N: Xử lý lấy thông tin Bàn từ Set<BanAn>
         if (phieuDatBan.getBanAns() != null && !phieuDatBan.getBanAns().isEmpty()) {
-            // Nối tên tất cả các bàn để hiển thị UI (Ví dụ: "Bàn S01, Bàn S02")
+
+            // 1. Nối tên tất cả các bàn (Ví dụ: "Bàn S01, Bàn S02")
             this.tenBan = phieuDatBan.getBanAns().stream()
                     .map(BanAn::getTenBan)
                     .collect(Collectors.joining(", "));
 
-            // Lấy Bàn đầu tiên làm đại diện để map ID và Mã Bàn cho Frontend xử lý logic
+            // 2. 🚨 FIX Ở ĐÂY: Nối mã tất cả các bàn (Ví dụ: "BA005, BA002")
+            this.maBan = phieuDatBan.getBanAns().stream()
+                    .map(BanAn::getMaBan)
+                    .collect(Collectors.joining(", "));
+
+            // 3. Lấy ID và Tầng của Bàn đầu tiên làm đại diện cho logic click
             BanAn banDaiDien = phieuDatBan.getBanAns().stream().findFirst().orElse(null);
             if (banDaiDien != null) {
-                this.idBanAn = banDaiDien.getId();
-                this.maBan = banDaiDien.getMaBan();
+                this.idBanAn = banDaiDien.getId(); // Vẫn giữ ID đại diện
                 this.soTang = (banDaiDien.getIdKhuVuc() != null) ? banDaiDien.getIdKhuVuc().getTang() : null;
             }
         }

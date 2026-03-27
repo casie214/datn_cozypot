@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import axiosClient from "@/services/axiosClient";
 import Swal from "sweetalert2";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 const router = useRouter();
 // --- 1. STATE QUẢN LÝ DỮ LIỆU ---
@@ -12,6 +12,8 @@ const isLoading = ref(false);
 const searchQuery = ref("");
 const sortOption = ref("default");
 const activeCategory = ref("");
+const route = useRoute();
+
 
 // --- 2. STATE GIỎ HÀNG ---
 const cart = ref([]);
@@ -43,6 +45,68 @@ const handleImageError = (event) => {
   }
 };
 
+
+const checkAutoAddFromUrl = () => {
+  const targetName = route.query.autoAdd;
+  if (!targetName || menuData.value.length === 0) return;
+
+  let foundItem = null;
+
+  // Duyệt tìm món
+  for (const section of menuData.value) {
+    foundItem = section.items.find((item) => {
+      const nameInMenu = item.name.toLowerCase();
+      const nameFromChat = targetName.toLowerCase();
+      
+      // So sánh linh hoạt: 
+      // 1. Tên khớp hoàn toàn
+      // 2. Tên trong menu nằm trong tên chat (VD: "Ba chỉ bò" nằm trong "Ba chỉ bò Mỹ 100g")
+      // 3. Tên chat nằm trong tên menu
+      return nameInMenu === nameFromChat || 
+             nameFromChat.includes(nameInMenu) || 
+             nameInMenu.includes(nameFromChat);
+    });
+    if (foundItem) break;
+  }
+
+  if (foundItem) {
+    // 1. Tự động cuộn đến danh mục của món đó cho khách thấy
+    scrollToCategory(foundItem.groupId ? `cat-${foundItem.groupId}` : foundItem.categoryId);
+
+    // 2. GỌI HÀM handleItemClick NHƯ BẠN YÊU CẦU
+    // Hàm này sẽ tự biết: Nếu 1 size thì add luôn, nếu nhiều size thì bật Modal chọn.
+    handleItemClick(foundItem);
+    
+    // 3. Xóa query để tránh load lại trang bị nhảy modal liên tục
+    router.replace({ query: {} });
+
+    // 4. Thông báo Toast nhẹ
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2500,
+      background: '#7d161a',
+      color: '#fff'
+    });
+    Toast.fire({
+      icon: 'success',
+      title: `Đã tìm thấy: ${foundItem.name}`
+    });
+  }
+};
+
+// --- QUAN TRỌNG: WATCH ĐỂ NÚT CHẠY KHI ĐANG Ở TRANG MENU ---
+watch(
+  () => route.query.autoAdd,
+  (newVal) => {
+    if (newVal) {
+      checkAutoAddFromUrl();
+    }
+  }
+);
+
+
 // ==========================================
 // A. PHẦN XỬ LÝ DỮ LIỆU (THUẬT TOÁN GOM NHÓM THÔNG MINH)
 // ==========================================
@@ -69,21 +133,15 @@ const fetchData = async () => {
       let baseName = (m.tenMon || "Món chưa đặt tên").trim();
 
       // Lấy kích cỡ từ DB (nếu có)
-      let variantName =
-        m.tenDinhLuong || m.kichCo || m.giaTriDinhLuong || m.dinhLuong || "";
+      let variantName = m.tenDinhLuong || m.kichCo || m.giaTriDinhLuong || m.dinhLuong || "";
       if (m.donViTinh || m.tenDonVi) {
         variantName = `${variantName} ${m.donViTinh || m.tenDonVi}`.trim();
       }
 
-      // SỬA LỖI Ở ĐÂY: Bắt buộc phải tách đuôi khỏi baseName
       if (baseName.includes(" - ")) {
         const parts = baseName.split(" - ");
-        const extractedSize = parts.pop().trim(); // Luôn lấy phần đuôi ra
-
-        // Gán tên gốc là phần còn lại
+        const extractedSize = parts.pop().trim();
         baseName = parts.join(" - ").trim();
-
-        // Nếu DB không trả về size, thì lấy phần đuôi vừa cắt làm size
         if (!variantName) variantName = extractedSize;
       } else if (baseName.includes("(") && baseName.endsWith(")")) {
         const match = baseName.match(/(.*)\((.*?)\)$/);
@@ -95,14 +153,13 @@ const fetchData = async () => {
 
       if (!variantName) variantName = "Tiêu chuẩn";
 
-      // Tạo Key Nhóm (Dùng .toLowerCase() để gom chính xác)
       const catId = m.idDanhMuc || m.danhMuc?.id || "unknown";
       const groupKey = `cat_${catId}_name_${baseName.toLowerCase()}`;
 
       if (!groupedFoods[groupKey]) {
         groupedFoods[groupKey] = {
           groupKey: groupKey,
-          name: baseName, // Hiển thị "ÁDASDASDSADASD" (đã mất đuôi)
+          name: baseName,
           image: m.hinhAnh,
           desc: m.moTa,
           idDanhMuc: catId,
@@ -110,16 +167,21 @@ const fetchData = async () => {
         vMap[groupKey] = [];
       }
 
+      // --- LOGIC GIÁ CẢ MỚI: Chỉ dùng giaGoc và giaSauGiam ---
+      const rawGiaGoc = Number(m.giaGoc) || 0;
+      const rawGiaSauGiam = Number(m.giaSauGiam) || rawGiaGoc;
+      const currentPrice = m.isGiamGia ? rawGiaSauGiam : rawGiaGoc;
+
       vMap[groupKey].push({
         id: m.id,
-        name: variantName, // Hiển thị "100 gram", "3 kg"
-        price: parseFloat(m.giaBan) || 0,
-        fullName:
-          variantName === "Tiêu chuẩn"
-            ? baseName
-            : `${baseName} (${variantName})`,
+        name: variantName,
+        price: currentPrice, // Giá để tính tiền giỏ hàng
+        giaGoc: rawGiaGoc,   // Giá để gạch ngang
+        isGiamGia: m.isGiamGia || false,
+        phanTramGiam: m.phanTramGiam || 0,
+        fullName: variantName === "Tiêu chuẩn" ? baseName : `${baseName} (${variantName})`,
         image: m.hinhAnh,
-        phanTramVat: m.phanTramVat || 0
+        phanTramVat: m.phanTramVat || 0,
       });
     });
 
@@ -143,18 +205,28 @@ const fetchData = async () => {
         categoryName: "SET LẨU",
         activeFilter: "all",
         filters: hotpotFilters,
-        items: listSetLau.map((item) => ({
-          id: item.id,
-          name: item.tenSetLau,
-          price: item.giaBan,
-          image: getImg(item.hinhAnh),
-          desc: item.moTa || "Set lẩu đầy đặn, thích hợp cho nhiều người.",
-          type: "SET",
-          groupId: item.idLoaiSet || item.loaiSet?.id,
-          isRange: false,
-          hasVariants: false,
-          phanTramVat: item.phanTramVat || 0
-        })),
+        items: listSetLau.map((item) => {
+          // --- LOGIC GIÁ CẢ MỚI ---
+          const rawGiaGoc = Number(item.giaGoc) || 0;
+          const rawGiaSauGiam = Number(item.giaSauGiam) || rawGiaGoc;
+          const currentPrice = item.isGiamGia ? rawGiaSauGiam : rawGiaGoc;
+
+          return {
+            id: item.id,
+            name: item.tenSetLau,
+            price: currentPrice, // Giá để tính tiền giỏ hàng
+            giaGoc: rawGiaGoc,   // Giá để gạch ngang
+            isGiamGia: item.isGiamGia || false,
+            phanTramGiam: item.phanTramGiam || 0,
+            image: getImg(item.hinhAnh),
+            desc: item.moTa || "Set lẩu đầy đặn, thích hợp cho nhiều người.",
+            type: "SET",
+            groupId: item.idLoaiSet || item.loaiSet?.id,
+            isRange: false,
+            hasVariants: false,
+            phanTramVat: item.phanTramVat || 0,
+          };
+        }),
       });
     }
 
@@ -173,6 +245,9 @@ const fetchData = async () => {
           items: groupsInCat.map((group) => {
             const variants = vMap[group.groupKey] || [];
             let displayPrice = variants.length > 0 ? variants[0].price : 0;
+            let displayGiaGoc = variants.length > 0 ? variants[0].giaGoc : 0;
+            let isGiamGia = variants.length > 0 ? variants[0].isGiamGia : false;
+            let phanTramGiam = variants.length > 0 ? variants[0].phanTramGiam : 0;
             let isRange = false;
 
             if (variants.length > 1) {
@@ -188,6 +263,9 @@ const fetchData = async () => {
               id: group.groupKey,
               name: group.name,
               price: displayPrice,
+              giaGoc: displayGiaGoc,
+              isGiamGia: isGiamGia,
+              phanTramGiam: phanTramGiam,
               image: getImg(group.image),
               desc: group.desc,
               type: "MON",
@@ -215,6 +293,24 @@ const fetchData = async () => {
 // ==========================================
 // B. LOGIC CHỌN MÓN & MODAL SẢN PHẨM
 // ==========================================
+
+const handleCardClick = (item) => {
+  if (item.type === "SET") {
+    // Nếu là SET Lẩu, tạo một biến thể giả để Modal có thể đọc được dữ liệu
+    openProductModal(item, [{ 
+      id: item.id, 
+      name: "Tiêu chuẩn", 
+      price: item.price, 
+      fullName: item.name,
+      phanTramVat: item.phanTramVat || 0
+    }]);
+    return;
+  }
+
+  const variants = variantsMap.value[item.id] || [];
+  openProductModal(item, variants);
+};
+
 const handleItemClick = (item) => {
   if (item.type === "SET") {
     pushToCart({
@@ -224,7 +320,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "SET",
       quantity: 1,
-      phanTramVat: item.phanTramVat || 0
+      phanTramVat: item.phanTramVat || 0,
     });
     return;
   }
@@ -244,7 +340,7 @@ const handleItemClick = (item) => {
       image: item.image,
       type: "MON",
       quantity: 1,
-      phanTramVat: variant.phanTramVat || 0
+      phanTramVat: variant.phanTramVat || 0,
     });
   } else {
     // Có nhiều lựa chọn -> Bật Modal
@@ -277,9 +373,9 @@ const confirmAddToCart = () => {
     name: variant.fullName, // Chỗ này sẽ hiện "Coca (3L)" rất đẹp
     price: variant.price,
     image: variant.image ? getImg(variant.image) : selectedProduct.value.image,
-    type: "MON",
+    type: selectedProduct.value.type || "MON",
     quantity: modalQuantity.value,
-    phanTramVat: variant.phanTramVat || 0
+    phanTramVat: variant.phanTramVat || 0,
   });
   closeDetailModal();
 };
@@ -311,13 +407,19 @@ const pushToCart = (newItem) => {
   const currentTotal = totalPrice.value;
   const itemTotal = newItem.price * newItem.quantity;
   if (currentTotal + itemTotal > MAX_TOTAL_PRICE) {
-    return showWarning("Vượt hạn mức", `Tổng hóa đơn đặt trước không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}. Vui lòng liên hệ Hotline nếu bạn muốn đặt tiệc lớn!`);
+    return showWarning(
+      "Vượt hạn mức",
+      `Tổng hóa đơn đặt trước không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}. Vui lòng liên hệ Hotline nếu bạn muốn đặt tiệc lớn!`,
+    );
   }
 
   // 2. Check giới hạn TỔNG SỐ LƯỢNG MÓN
   const currentTotalItems = totalCount.value;
   if (currentTotalItems + newItem.quantity > MAX_TOTAL_ITEMS) {
-    return showWarning("Giỏ hàng đầy", `Hệ thống chỉ nhận tối đa ${MAX_TOTAL_ITEMS} món trên một đơn đặt online. Bạn có thể gọi thêm khi đến quán!`);
+    return showWarning(
+      "Giỏ hàng đầy",
+      `Hệ thống chỉ nhận tối đa ${MAX_TOTAL_ITEMS} món trên một đơn đặt online. Bạn có thể gọi thêm khi đến quán!`,
+    );
   }
 
   // 3. Check giới hạn TỪNG MÓN (Như cũ)
@@ -329,14 +431,20 @@ const pushToCart = (newItem) => {
   if (existingIndex !== -1) {
     const newTotal = cart.value[existingIndex].quantity + newItem.quantity;
     if (newTotal > MAX_QTY) {
-      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      showWarning(
+        "Giới hạn món",
+        `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`,
+      );
       cart.value[existingIndex].quantity = MAX_QTY;
     } else {
       cart.value[existingIndex].quantity = newTotal;
     }
   } else {
     if (newItem.quantity > MAX_QTY) {
-      showWarning("Giới hạn món", `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`);
+      showWarning(
+        "Giới hạn món",
+        `Nhà hàng chỉ nhận tối đa ${MAX_QTY} phần cho món này khi đặt online.`,
+      );
       newItem.quantity = MAX_QTY;
     }
     cart.value.push(newItem);
@@ -354,17 +462,26 @@ const increaseQty = (index) => {
 
   // Check 3 lớp bảo vệ khi bấm dấu + trong giỏ hàng
   if (totalPrice.value + item.price > MAX_TOTAL_PRICE) {
-    return showWarning("Vượt hạn mức", `Tổng hóa đơn không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}.`);
+    return showWarning(
+      "Vượt hạn mức",
+      `Tổng hóa đơn không được vượt quá ${formatPrice(MAX_TOTAL_PRICE)}.`,
+    );
   }
-  
+
   if (totalCount.value + 1 > MAX_TOTAL_ITEMS) {
-    return showWarning("Giỏ hàng đầy", `Bạn đã đạt giới hạn ${MAX_TOTAL_ITEMS} món trong giỏ hàng.`);
+    return showWarning(
+      "Giỏ hàng đầy",
+      `Bạn đã đạt giới hạn ${MAX_TOTAL_ITEMS} món trong giỏ hàng.`,
+    );
   }
 
   if (item.quantity < MAX_QTY) {
     item.quantity++;
   } else {
-    showWarning("Giới hạn món", `Nhà hàng chỉ nhận đặt trước tối đa ${MAX_QTY} phần cho món này.`);
+    showWarning(
+      "Giới hạn món",
+      `Nhà hàng chỉ nhận đặt trước tối đa ${MAX_QTY} phần cho món này.`,
+    );
   }
 };
 
@@ -402,17 +519,22 @@ const navigateToBooking = () => {
 // D. UTILS & SCROLL SPY
 // ==========================================
 const formatPrice = (value) => {
+  // Nếu là mảng/khoảng giá (min, max)
   if (typeof value === "object" && value !== null && value.min !== undefined) {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(value.min);
+    }).format(Number(value.min) || 0);
   }
-  if (typeof value !== "number" || isNaN(value)) return "0 ₫";
+
+  // Nếu là số đơn thuần, hoặc chuỗi có thể ép sang số
+  const numValue = Number(value);
+  if (isNaN(numValue)) return "0 ₫"; // Nếu vẫn không phải số thì trả về 0đ
+
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
-  }).format(value);
+  }).format(numValue);
 };
 
 const getFilteredItems = (section) => {
@@ -547,11 +669,15 @@ const onScroll = () => {
   }
 };
 
-onMounted(() => {
-  fetchData();
+onMounted(async () => {
+  // 1. Phải chờ lấy dữ liệu Menu từ API xong đã
+  await fetchData(); 
+
+  // 2. Sau đó mới kiểm tra xem có món nào cần add tự động không
+  checkAutoAddFromUrl();
+
   window.addEventListener("scroll", onScroll, true);
 
-  // KHI VÀO TRANG MENU, TỰ ĐỘNG KHÔI PHỤC GIỎ HÀNG TỪ LOCALSTORAGE
   const savedCart = localStorage.getItem("cart");
   if (savedCart) {
     try {
@@ -696,7 +822,7 @@ onUnmounted(() => {
                       : 'col-md-4 col-lg-3 col-6'
                   "
                 >
-                  <div class="food-card" @click="handleItemClick(item)">
+                  <div class="food-card" @click="handleCardClick(item)">
                     <div
                       class="card-img-wrapper"
                       :class="{
@@ -744,24 +870,26 @@ onUnmounted(() => {
                       </p>
 
                       <div class="card-footer-action">
-                        <span
-                          class="food-price"
-                          :class="
-                            section.categoryId === 'combo-set'
-                              ? 'food-price-lg'
-                              : ''
-                          "
-                        >
-                          {{
-                            item.isRange
-                              ? `${formatPrice(item.price.min)} +`
-                              : formatPrice(item.price)
-                          }}
-                        </span>
-                        <button
-                          class="btn-add"
-                          @click.stop="handleItemClick(item)"
-                        >
+                        <div class="price-container">
+                          <div v-if="item.isGiamGia && !item.isRange" class="discount-info">
+                            <span class="original-price">{{ formatPrice(item.giaGoc) }}</span>
+                            <span class="badge-discount">-{{ item.phanTramGiam }}%</span>
+                          </div>
+                          <span
+                            class="food-price"
+                            :class="{ 
+                              'food-price-lg': section.categoryId === 'combo-set',
+                              'sale-price': item.isGiamGia && !item.isRange 
+                            }"
+                          >
+                            {{
+                              item.isRange
+                                ? `${formatPrice(item.price.min)} - ${formatPrice(item.price.max)}`
+                                : formatPrice(item.price)
+                            }}
+                          </span>
+                        </div>
+                        <button class="btn-add" @click.stop="handleItemClick(item)">
                           <i class="fas fa-plus"></i>
                         </button>
                       </div>
@@ -904,31 +1032,65 @@ onUnmounted(() => {
           <button class="btn-close-product" @click="closeDetailModal">
             <i class="fas fa-times"></i>
           </button>
-          <div class="product-header">
-            <div class="product-img">
-              <img
-                v-if="selectedProduct?.image"
-                :src="selectedProduct?.image"
-                :alt="selectedProduct?.name"
-                @error="handleImageError"
-              />
-              <div
-                class="fallback-icon"
-                :style="{ display: selectedProduct?.image ? 'none' : 'flex' }"
-              >
-                <i class="fas fa-image fa-4x"></i>
-              </div>
-            </div>
-            <div class="product-info-basic">
-              <h4>{{ selectedProduct?.name }}</h4>
-              <p class="text-muted small mb-0">
-                {{ selectedProduct?.desc || "Món ngon mỗi ngày" }}
-              </p>
+
+          <div class="product-img">
+            <img
+              v-if="selectedProduct?.image"
+              :src="selectedProduct?.image"
+              :alt="selectedProduct?.name"
+              @error="handleImageError"
+            />
+            <div
+              class="fallback-icon"
+              :style="{ display: selectedProduct?.image ? 'none' : 'flex' }"
+            >
+              <i class="fas fa-image fa-4x"></i>
             </div>
           </div>
+
+          <div class="product-info-header">
+            <div class="title-price-group">
+              <h4 class="product-title-modal">{{ selectedProduct?.name }}</h4>
+              
+              <div class="product-price-modal">
+                <div v-if="currentVariants.find((v) => v.id === selectedVariantId)?.isGiamGia" class="discount-info-modal">
+                  <span class="original-price">{{ formatPrice(currentVariants.find((v) => v.id === selectedVariantId)?.giaGoc) }}</span>
+                  <span class="badge-discount">-{{ currentVariants.find((v) => v.id === selectedVariantId)?.phanTramGiam }}%</span>
+                </div>
+                <span :class="{'sale-price': currentVariants.find((v) => v.id === selectedVariantId)?.isGiamGia}">
+                  {{
+                    formatPrice(
+                      currentVariants.find((v) => v.id === selectedVariantId)
+                        ?.price || selectedProduct?.price,
+                    )
+                  }}
+                </span>
+              </div>
+            </div>
+
+            <div class="qty-selector-wrapper">
+              <button
+                @click="modalQuantity > 1 ? modalQuantity-- : null"
+                :disabled="modalQuantity <= 1"
+              >
+                -
+              </button>
+              <span>{{ modalQuantity }}</span>
+              <button
+                @click="
+                  modalQuantity < getMaxQty(selectedProduct?.type)
+                    ? modalQuantity++
+                    : null
+                "
+                :disabled="modalQuantity >= getMaxQty(selectedProduct?.type)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           <div class="product-body custom-scrollbar">
-            <div class="option-group">
-              <label class="option-title">Chọn phân loại:</label>
+            <div class="option-group" v-if="currentVariants.length > 1">
               <div class="option-list">
                 <label
                   v-for="variant in currentVariants"
@@ -949,33 +1111,63 @@ onUnmounted(() => {
                 </label>
               </div>
             </div>
-          </div>
-          <div class="product-footer">
-            <div class="qty-selector">
-              <button
-                @click="modalQuantity > 1 ? modalQuantity-- : null"
-                :disabled="modalQuantity <= 1"
-              >
-                -
-              </button>
-              <span>{{ modalQuantity }}</span>
-              <button
-                @click="
-                  modalQuantity < getMaxQty(selectedProduct?.type)
-                    ? modalQuantity++
-                    : null
-                "
-                :disabled="modalQuantity >= getMaxQty(selectedProduct?.type)"
-              >
-                +
-              </button>
+
+            <div
+              class="desc-section"
+              :class="{ 'mt-4': currentVariants.length > 1 }"
+            >
+              <h6 class="desc-title">Mô tả món ăn</h6>
+              <div class="desc-content">
+                <p><strong>Tên món:</strong> {{ selectedProduct?.name }}</p>
+
+                <p
+                  v-if="
+                    currentVariants.find((v) => v.id === selectedVariantId)
+                      ?.name !== 'Tiêu chuẩn'
+                  "
+                >
+                  <strong>Định lượng:</strong>
+                  {{
+                    currentVariants.find((v) => v.id === selectedVariantId)
+                      ?.name
+                  }}
+                </p>
+
+                <p>
+                  <strong>Mô tả:</strong>
+                  {{
+                    selectedProduct?.desc ||
+                    "Món ăn được chuẩn bị từ những đầu bếp chuyên nghiệp nhất của CozyPot."
+                  }}
+                </p>
+
+                <p class="mt-3 fst-italic text-muted" style="font-size: 13px">
+                  Trong quá trình dùng món, nếu quý khách có bất cứ vấn đề gì có
+                  thể liên hệ trực tiếp bộ phận CSKH để được hỗ trợ & xử lý
+                  nhanh nhất.
+                </p>
+
+                <p
+                  class="mt-2 fw-semibold"
+                  style="font-size: 13px; color: #7d161a"
+                  v-if="currentVariants[0]?.phanTramVat > 0"
+                >
+                  Giá chưa gồm VAT ({{ currentVariants[0]?.phanTramVat }}%)
+                </p>
+              </div>
             </div>
-            <button class="btn-confirm-add" @click="confirmAddToCart">
-              Thêm -
+          </div>
+
+          <div class="product-footer d-flex justify-content-end">
+            <button
+              class="btn-confirm-add pill-style"
+              @click="confirmAddToCart"
+            >
+              <i class="fas fa-plus-circle me-1"></i> ĐẶT MÓN -
               {{
                 formatPrice(
-                  currentVariants.find((v) => v.id === selectedVariantId)
-                    ?.price * modalQuantity,
+                  (currentVariants.find((v) => v.id === selectedVariantId)
+                    ?.price || selectedProduct?.price) * modalQuantity,
                 )
               }}
             </button>
@@ -1718,7 +1910,7 @@ onUnmounted(() => {
 
 .product-img {
   width: 100%;
-  height: 200px;
+  height: 280px;
   overflow: hidden;
   position: relative;
 }
@@ -1729,31 +1921,11 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-.product-info-basic {
-  padding: 15px 20px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.product-info-basic h4 {
-  margin: 0;
-  font-weight: 800;
-  color: #333;
-  font-size: 1.2rem;
-}
-
 .product-body {
   padding: 20px;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 150px;
-}
-
-.option-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #555;
-  margin-bottom: 10px;
-  display: block;
 }
 
 .option-list {
@@ -1766,7 +1938,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
+  padding: 8px 15px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   cursor: pointer;
@@ -1792,64 +1964,6 @@ onUnmounted(() => {
 .opt-price {
   font-weight: 700;
   font-size: 14px;
-}
-
-.product-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  background: white;
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.qty-selector {
-  display: flex;
-  align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  height: 44px;
-}
-
-.qty-selector button {
-  width: 36px;
-  height: 100%;
-  background: none;
-  border: none;
-  font-weight: bold;
-  font-size: 18px;
-  color: #333;
-  cursor: pointer;
-}
-
-.qty-selector button:disabled {
-  color: #ccc;
-  cursor: not-allowed;
-}
-
-.qty-selector span {
-  width: 30px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.btn-confirm-add {
-  flex: 1;
-  background: #7d161a;
-  color: white;
-  border: none;
-  height: 44px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  transition: 0.2s;
-  box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
-}
-
-.btn-confirm-add:hover {
-  background: #5e1013;
-  transform: translateY(-2px);
 }
 
 /* TRANSITIONS */
@@ -1919,10 +2033,6 @@ onUnmounted(() => {
 .item-img .fallback-icon {
   position: relative; /* Ghi đè cho thẻ nhỏ */
 }
-.product-header,
-.product-footer {
-  flex-shrink: 0;
-}
 .search-filter-bar {
   background: white;
   padding: 12px;
@@ -1942,5 +2052,178 @@ onUnmounted(() => {
 /* Ẩn thanh cuộn trên Chrome/Safari */
 .nav-scroll-container::-webkit-scrollbar {
   display: none;
+}
+
+.product-info-basic {
+  padding: 20px 25px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.product-title-modal {
+  margin: 0 0 8px 0;
+  font-weight: 800;
+  color: #7d161a; /* Trùng màu thương hiệu */
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+.product-desc-modal {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Giới hạn tối đa 3 dòng cho gọn */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-body {
+  padding: 25px;
+}
+
+.product-info-header {
+  padding: 15px 20px 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px dashed #ccc; /* Kẻ đứt giống Quán Nhậu Tự Do */
+}
+
+.title-price-group {
+  flex: 1;
+  padding-right: 15px;
+}
+
+.product-title-modal {
+  margin: 0 0 4px 0;
+  font-weight: 700;
+  color: #333;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.product-price-modal {
+  color: #7d161a;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.qty-selector-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  height: 36px;
+  background: #fff;
+}
+
+.qty-selector-wrapper button {
+  width: 32px;
+  height: 100%;
+  background: none;
+  border: none;
+  font-weight: bold;
+  font-size: 16px;
+  color: #555;
+  cursor: pointer;
+}
+
+.qty-selector-wrapper button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.qty-selector-wrapper span {
+  width: 35px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.desc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.desc-content p {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.product-footer {
+  padding: 15px 20px;
+  background: #fff;
+  /* Bỏ viền trên đi để giống mẫu */
+}
+
+.btn-confirm-add.pill-style {
+  background: #7d161a; /* Giữ màu đỏ thương hiệu của bạn */
+  color: white;
+  border: none;
+  border-radius: 30px; /* Bo tròn pill-style */
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
+}
+
+.btn-confirm-add.pill-style:hover {
+  background: #5e1013;
+  transform: translateY(-2px);
+}
+
+.price-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.discount-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.discount-info-modal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #9e9e9e;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.badge-discount {
+  background: #e74c3c;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sale-price {
+  color: #d32f2f !important;
+}
+
+/* Trong list variant của modal */
+.opt-price-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

@@ -279,6 +279,12 @@ const routes = [
     component: () => import("./pages/guest/viewPages/TraCuu.vue"), 
     meta: { requiresAuth: false },
   },
+  {
+    path: "/offers",
+    name: "uuDai",
+    component: () => import("./pages/guest/viewPages/promotionOffers.vue"), 
+    meta: { requiresAuth: false },
+  },
   // ================== QUẢN LÝ ĐƠN HÀNG==================
   {
     path: "/admin/orders",

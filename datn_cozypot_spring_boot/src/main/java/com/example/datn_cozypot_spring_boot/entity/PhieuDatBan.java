@@ -47,6 +47,9 @@ public class PhieuDatBan {
     @Column(name = "thoi_gian_dat")
     private LocalDateTime thoiGianDat;
 
+    @Column(name = "thoi_gian_nhan_ban")
+    private LocalDateTime thoiGianNhanBan;
+
     @Column(name = "hinh_thuc_dat")
     private Integer hinhThucDat;
 
