@@ -12,4 +12,7 @@ import lombok.Setter;
 public class SetLauChiTietResponse {
     private Integer id;
     private Integer soLuong;
+    private String tenMon;
+    private String hinhAnh;
+    private String dinhLuong;
 }

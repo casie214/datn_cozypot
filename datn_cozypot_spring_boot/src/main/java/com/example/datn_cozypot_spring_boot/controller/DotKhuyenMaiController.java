@@ -38,6 +38,19 @@ public class DotKhuyenMaiController {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/active/guest")
+    public ResponseEntity<?> getActiveCampaigns(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        try {
+            return ResponseEntity.ok(dotKhuyenMaiService.getActiveCampaigns(page, size));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi khi lấy danh sách đợt khuyến mãi: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/get-all")
     public ResponseEntity<List<DotKhuyenMaiDTO>> getAll() {
         return ResponseEntity.ok(dotKhuyenMaiService.getAll());

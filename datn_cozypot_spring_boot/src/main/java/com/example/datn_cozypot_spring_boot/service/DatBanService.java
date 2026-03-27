@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -860,6 +861,34 @@ public class DatBanService {
 
     @Transactional(rollbackOn = Exception.class)
     public Map<String, Object> taoPhieuDatBanOnline(DatBanOnlineRequest request) {
+
+        LocalDateTime thoiGianDatMoi = request.getThoiGianDat();
+        String soDienThoaiKhach = request.getPhone();
+
+        if (soDienThoaiKhach != null && !soDienThoaiKhach.trim().isEmpty()) {
+            // Tìm các phiếu cũ của SĐT này đang ở trạng thái 0 (Chờ xác nhận) hoặc 1 (Đã xác nhận)
+            List<PhieuDatBan> danhSachPhieuCu = phieuDatBanRepository
+                    .findByIdKhachHang_SoDienThoaiAndTrangThaiIn(soDienThoaiKhach, Arrays.asList(0, 1));
+
+            for (PhieuDatBan phieuCu : danhSachPhieuCu) {
+                LocalDateTime thoiGianCu = phieuCu.getThoiGianDat();
+
+                if (thoiGianCu != null) {
+                    // Tính khoảng cách giữa 2 lịch (trị tuyệt đối)
+                    long diffMinutes = Duration.between(thoiGianCu, thoiGianDatMoi).abs().toMinutes();
+
+                    if (diffMinutes < 180) { // 180 phút = 3 tiếng
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
+                        String thoiGianCuStr = thoiGianCu.format(formatter);
+
+                        // Quăng Exception, Controller sẽ bắt được và gửi HTTP 400 Bad Request về cho Vue
+                        throw new RuntimeException("Bạn đã có lịch đặt bàn lúc " + thoiGianCuStr +
+                                ". Hệ thống yêu cầu các lịch đặt phải cách nhau ít nhất 3 tiếng để tránh spam!");
+                    }
+                }
+            }
+        }
+
         DatBanRequest checkRequest = new DatBanRequest();
         checkRequest.setNgayDat(request.getThoiGianDat().toLocalDate());
         checkRequest.setGioDat(request.getThoiGianDat().toLocalTime());
