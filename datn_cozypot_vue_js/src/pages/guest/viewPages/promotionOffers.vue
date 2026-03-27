@@ -17,17 +17,31 @@ const fetchData = async () => {
     vouchers.value = []; // Xóa list cũ để tránh bị nháy hình
 
     try {
-        // Tự động đổi Endpoint tùy theo tab
         const endpoint = activeTab.value === "public"
             ? "/phieu-giam-gia/public"
-            : "/phieu-giam-gia/ca-nhan"; // Giả định endpoint cá nhân của bạn
+            : "/phieu-giam-gia/ca-nhan";
+
+        // Khởi tạo params mặc định
+        const apiParams = {
+            page: 0,
+            size: 50,
+        };
+
+        // 🚨 NẾU LÀ TAB CÁ NHÂN: Lấy ID khách từ LocalStorage nhét vào params
+        if (activeTab.value === "personal") {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const idKhach = user.idKhachHang || user.id; // Tùy key bạn lưu trong storage
+            
+            if (idKhach) {
+                apiParams.idKhachHang = idKhach;
+            } else {
+                // Nếu không có ID trong storage -> Ép quăng lỗi 401 để văng ra tab public
+                throw { response: { status: 401 } }; 
+            }
+        }
 
         const response = await axiosClient.get(endpoint, {
-            params: {
-                page: 0,
-                size: 50,
-                // Nếu là tab cá nhân, backend thường sẽ tự lấy userId từ Token
-            },
+            params: apiParams
         });
 
         const responseData = response.data || response;
@@ -611,7 +625,7 @@ onMounted(() => {
   top: 5px;
   left: 5px;
   width: calc(50% - 5px);
-  height: calc(100% - 100%); /* Sửa thành 100% - 10px */
+  height: calc(100% - 10px); /* Sửa thành 100% - 10px */
   height: 38px; /* Khớp với nút */
   background: #7d161a;
   border-radius: 50px;
