@@ -17,30 +17,82 @@ const form = ref({
 });
 
 const handleUpdate = async () => {
-  // 1. Kiểm tra khớp pass tại chỗ cho nhanh
-  if (form.value.matKhauMoi !== confirmPassword.value) {
-    Swal.fire('Lỗi', 'Mật khẩu xác nhận không khớp!', 'error');
+  const { matKhauCu, matKhauMoi } = form.value;
+  const confirmPass = confirmPassword.value;
+
+  // Cấu hình dùng chung cho Swal báo lỗi
+  const errorConfig = {
+    icon: 'error',
+    iconColor: '#7D161A',
+    confirmButtonColor: '#800000',
+    title: 'Thông báo lỗi'
+  };
+
+  // 1. Kiểm tra trống hoặc chỉ toàn khoảng trắng
+  if (!matKhauCu?.trim() || !matKhauMoi?.trim() || !confirmPass?.trim()) {
+    Swal.fire({
+      ...errorConfig,
+      text: 'Vui lòng điền đầy đủ thông tin vào các trường!'
+    });
     return;
   }
 
-  // 2. Kiểm tra độ dài mật khẩu mới (tùy chọn)
-  if (form.value.matKhauMoi.length < 6) {
-    Swal.fire('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự!', 'warning');
+  // 2. Kiểm tra khoảng trắng ở giữa mật khẩu
+  if (/\s/.test(matKhauMoi)) {
+    Swal.fire({
+      ...errorConfig,
+      icon: 'warning',
+      text: 'Mật khẩu mới không được chứa khoảng trắng!'
+    });
     return;
   }
 
+  // 3. Kiểm tra mật khẩu mới không được trùng mật khẩu cũ
+  if (matKhauMoi === matKhauCu) {
+    Swal.fire({
+      ...errorConfig,
+      icon: 'warning',
+      text: 'Mật khẩu mới phải khác mật khẩu hiện tại!'
+    });
+    return;
+  }
+
+  // 4. Kiểm tra độ dài tối thiểu
+  if (matKhauMoi.length < 6 || matKhauMoi.length > 50) {
+    Swal.fire({
+      ...errorConfig,
+      icon: 'warning',
+      text: 'Mật khẩu mới phải có độ dài từ 6 đến 50 ký tự!'
+    });
+    return;
+  }
+
+  // 5. Kiểm tra mật khẩu xác nhận
+  if (matKhauMoi !== confirmPass) {
+    Swal.fire({
+      ...errorConfig,
+      text: 'Xác nhận mật khẩu mới không khớp!'
+    });
+    return;
+  }
+
+  // --- Gọi API ---
   loading.value = true;
   try {
-    const response = await axiosClient.post('/tai-khoan/doi-mat-khau', form.value);
+    const response = await axiosClient.post('/tai-khoan/doi-mat-khau', {
+        matKhauCu: matKhauCu.trim(),
+        matKhauMoi: matKhauMoi.trim()
+    });
     
+    // Thông báo thành công
     await Swal.fire({
-    icon: 'success',
-    iconColor: '#7D161A',
-    title: 'Thành công',
-    text: 'Mật khẩu đã được thay đổi!',
-    showConfirmButton: false,
-    timer: 2000
-});
+        icon: 'success',
+        iconColor: '#7D161A',
+        title: 'Thành công',
+        text: 'Mật khẩu đã được thay đổi! Hệ thống sẽ đăng xuất.',
+        showConfirmButton: false,
+        timer: 2000
+    });
     
     authStore.logout();
     router.push('/login');
@@ -48,12 +100,18 @@ const handleUpdate = async () => {
   } catch (error) {
     console.error("Lỗi đổi mật khẩu:", error);
     loading.value = false;
-    let msg = "Có lỗi xảy ra";
+    
+    // Lấy message từ backend trả về (ví dụ: "Mật khẩu cũ không đúng")
+    let msg = "Kết nối máy chủ thất bại, vui lòng thử lại sau!";
     if (error.response) {
-        msg = error.response.data?.message || error.response.data || "Mật khẩu cũ không đúng hoặc Token hết hạn";
+        msg = error.response.data?.message || error.response.data || "Mật khẩu hiện tại không chính xác!";
     }
     
-    Swal.fire('Thất bại', msg, 'error');
+    Swal.fire({
+        ...errorConfig,
+        title: 'Đổi mật khẩu thất bại',
+        text: msg
+    });
   }
 };
 </script>
@@ -74,7 +132,7 @@ const handleUpdate = async () => {
           <label>Mật khẩu hiện tại</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-lock icon-left"></i>
-            <input type="password" v-model="form.matKhauCu" placeholder="Nhập mật khẩu cũ" required />
+            <input type="password" v-model="form.matKhauCu" placeholder="Nhập mật khẩu cũ"  />
           </div>
         </div>
 
@@ -82,7 +140,7 @@ const handleUpdate = async () => {
           <label>Mật khẩu mới</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-key icon-left"></i>
-            <input type="password" v-model="form.matKhauMoi" placeholder="Tối thiểu 6 ký tự" required />
+            <input type="password" v-model="form.matKhauMoi" placeholder="Tối thiểu 6 ký tự"  />
           </div>
         </div>
 
@@ -90,7 +148,7 @@ const handleUpdate = async () => {
           <label>Xác nhận mật khẩu</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-shield-check icon-left"></i>
-            <input type="password" v-model="confirmPassword" placeholder="Nhập lại mật khẩu mới" required />
+            <input type="password" v-model="confirmPassword" placeholder="Nhập lại mật khẩu mới"  />
           </div>
         </div>
 

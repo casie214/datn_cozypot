@@ -296,19 +296,19 @@ const onProvinceChange = async (provinceId, index, isInitial = false) => {
       item.tenTinhThanh = '';
     }
 
-    if (item.errors) item.errors.id_tinh_thanh = ''; 
+    if (item.errors) item.errors.id_tinh_thanh = '';
   }
 
   // Chỉ gọi API nếu có ID tỉnh
   if (provinceId) {
     try {
       const res = await axios.get(`https://provinces.open-api.vn/api/p/${provinceId}?depth=2`);
-      item.listHuyen = res.data.districts.map(d => ({ 
-        value: String(d.code), 
-        label: d.name 
+      item.listHuyen = res.data.districts.map(d => ({
+        value: String(d.code),
+        label: d.name
       }));
-    } catch (e) { 
-      console.error("Lỗi load huyện:", e); 
+    } catch (e) {
+      console.error("Lỗi load huyện:", e);
     }
   }
 };
@@ -335,12 +335,12 @@ const onDistrictChange = async (districtId, index, isInitial = false) => {
   if (districtId) {
     try {
       const res = await axios.get(`https://provinces.open-api.vn/api/d/${districtId}?depth=2`);
-      item.listXa = res.data.wards.map(w => ({ 
-        value: String(w.code), 
-        label: w.name 
+      item.listXa = res.data.wards.map(w => ({
+        value: String(w.code),
+        label: w.name
       }));
-    } catch (e) { 
-      console.error("Lỗi load xã:", e); 
+    } catch (e) {
+      console.error("Lỗi load xã:", e);
     }
   }
 };
@@ -393,32 +393,33 @@ const preparePayload = () => {
     if (val !== null && val !== undefined && val !== '') {
       data.append(key, val);
     }
+    if (key === 'tenDangNhap' && !val) {
+      val = formData.email;
+    }
   });
-
+  if (!data.has('tenDangNhap')) {
+    data.append('tenDangNhap', formData.email);
+  }
   // 2. Xử lý danh sách địa chỉ
   if (formData.danhSachDiaChi && formData.danhSachDiaChi.length > 0) {
-    // Lọc địa chỉ hợp lệ
-    const validAddresses = formData.danhSachDiaChi.filter(addr => 
+    const validAddresses = formData.danhSachDiaChi.filter(addr =>
       addr.id_tinh_thanh && addr.id_tinh_thanh !== ''
     );
 
     validAddresses.forEach((addr, index) => {
-      // 🚩 QUAN TRỌNG: Gửi ID để Backend biết là Update hay Insert
       if (addr.id_dia_chi) {
         data.append(`danhSachDiaChi[${index}].id`, addr.id_dia_chi);
       }
-
-      // Xử lý địa chỉ chi tiết (Fix lỗi dính ID nếu có)
-      let cleanAddr = (addr.dia_chi_chi_tiet || '').split(',')[0].trim(); 
+      let cleanAddr = (addr.dia_chi_chi_tiet || '').split(',')[0].trim();
       data.append(`danhSachDiaChi[${index}].diaChiChiTiet`, cleanAddr);
-      
+
       data.append(`danhSachDiaChi[${index}].idTinhThanh`, addr.id_tinh_thanh);
       data.append(`danhSachDiaChi[${index}].idQuanHuyen`, addr.id_quan_huyen);
       data.append(`danhSachDiaChi[${index}].idPhuongXa`, addr.id_phuong_xa);
       data.append(`danhSachDiaChi[${index}].tenTinhThanh`, addr.tenTinhThanh || '');
       data.append(`danhSachDiaChi[${index}].tenQuanHuyen`, addr.tenQuanHuyen || '');
       data.append(`danhSachDiaChi[${index}].tenPhuongXa`, addr.tenPhuongXa || '');
-      
+
       // Lấy tên/sdt trực tiếp từ địa chỉ hoặc fallback về thông tin chung
       data.append(`danhSachDiaChi[${index}].hoTenNhan`, addr.ho_ten_nhan || formData.tenKhachHang);
       data.append(`danhSachDiaChi[${index}].soDienThoaiNhan`, addr.so_dien_thoai_nhan || formData.soDienThoai);
@@ -603,10 +604,10 @@ const validateForm = async () => {
     errors.email = 'Địa chỉ email không đúng định dạng';
     ok = false;
   }
-if (!validateNgaySinh()) {
-  ok = false;
-}
-  
+  if (!validateNgaySinh()) {
+    ok = false;
+  }
+
   if (!ok) return false;
 
   try {
@@ -615,9 +616,7 @@ if (!validateNgaySinh()) {
       { key: 'email', label: 'Email' }
     ];
 
-    if (!clientId.value) {
-      checks.push({ key: 'tenDangNhap', label: 'Tên đăng nhập' });
-    }
+
 
     for (const item of checks) {
       const val = formData[item.key];
@@ -667,7 +666,9 @@ const handleSave = async () => {
     });
     return;
   }
-
+if (!formData.tenDangNhap) {
+    formData.tenDangNhap = formData.email;
+  }
   // Tự động gán tài khoản nếu là thêm mới
   if (!clientId.value) {
     formData.tenDangNhap = formData.soDienThoai;
@@ -679,8 +680,8 @@ const handleSave = async () => {
   const result = await Swal.fire({
     ...swalConfig,
     title: clientId.value ? 'Cập nhật khách hàng?' : 'Xác nhận thêm mới?',
-    text: clientId.value 
-      ? 'Lưu các thay đổi cho khách hàng này?' 
+    text: clientId.value
+      ? 'Lưu các thay đổi cho khách hàng này?'
       : 'Hệ thống sẽ tạo tài khoản khách hàng mới.',
     icon: 'question',
     showCancelButton: true,
@@ -692,7 +693,7 @@ const handleSave = async () => {
 
   try {
     loading.value = true;
-    
+
     // Đảm bảo cập nhật lại lần cuối tên Text của địa chỉ từ ID trước khi đóng gói
     const payload = preparePayload();
 
@@ -734,7 +735,7 @@ onMounted(async () => {
       // 1. Map thông tin cơ bản
       const { danhSachDiaChi, ...rest } = data;
       Object.assign(formData, rest);
-      
+
       // Fix format ngày sinh nếu cần (YYYY-MM-DD)
       if (formData.ngaySinh) {
         formData.ngaySinh = dayjs(formData.ngaySinh).format("YYYY-MM-DD");
@@ -780,7 +781,7 @@ onMounted(async () => {
               addr.listHuyen = resH.data.districts.map(i => ({ value: String(i.code), label: i.name }));
             } catch (err) { console.error("Lỗi fetch huyện cũ:", err); }
           }
-          
+
           if (addr.id_quan_huyen) {
             try {
               const resX = await axios.get(`https://provinces.open-api.vn/api/d/${addr.id_quan_huyen}?depth=2`);
@@ -814,9 +815,9 @@ onMounted(async () => {
     } finally {
       loading.value = false;
     }
-  }else {
-    formData.danhSachDiaChi = []; 
-    addAddress(); 
+  } else {
+    formData.danhSachDiaChi = [];
+    addAddress();
   }
 
 });
@@ -1265,6 +1266,7 @@ onMounted(async () => {
   color: #dc3545;
   font-weight: 500;
 }
+
 /* Radio khi được chọn */
 .form-check-input:checked {
   background-color: #800000;
@@ -1276,5 +1278,4 @@ onMounted(async () => {
   border-color: #800000;
   box-shadow: 0 0 0 0.2rem rgba(128, 0, 0, 0.25);
 }
-
 </style>
