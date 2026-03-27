@@ -14,6 +14,7 @@ import com.example.datn_cozypot_spring_boot.dto.response.DatBanListResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
+import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
 import com.example.datn_cozypot_spring_boot.service.ThongBaoService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -57,6 +58,8 @@ public class DatBanController {
     private LichSuHoaDonRepository lichSuHoaDonRepository;
     @Autowired
     private ThongBaoService thongBaoService;
+    @Autowired
+    private HoaDonThanhToanService hoaDonThanhToanService;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -201,11 +204,21 @@ public class DatBanController {
             @RequestBody @Valid UpdateTrangThaiPhieuRequest request
     ) {
         try {
-            // 1. Thực hiện cập nhật trong Database
+            // 1. Thực hiện cập nhật trạng thái phiếu trong Database
             datBanService.updateTrangThai(
                     request.getId(),
                     request.getTrangThai()
             );
+
+            // =======================================================
+            // 🚨 LOGIC MỚI: HỦY PHIẾU -> HỦY HÓA ĐƠN
+            // =======================================================
+            if (request.getTrangThai() == 2) {
+                // 2 = Đã hủy (Phiếu đặt bàn)
+                // Gọi hàm từ Service Hóa Đơn để cập nhật trạng thái thành 8 (CANCELLED)
+                // Cú pháp cụ thể phụ thuộc vào tên Service của bạn, ví dụ:
+                hoaDonThanhToanService.updateTrangThaiHoaDonByIdPhieu(request.getId(), 8);
+            }
 
             // 2. Lấy thông tin phiếu sau khi cập nhật
             PhieuDatBan phieu = datBanService.getPhieuDatBanById(request.getId());
@@ -214,7 +227,6 @@ public class DatBanController {
             String tenTrangThai = getTenTrangThai(request.getTrangThai());
 
             // 4. Gửi thông báo Real-time
-            // Tham số: idPhieu, tiêu đề, nội dung
             thongBaoService.sendNotify(
                     "Cập nhật trạng thái phiếu 🔥",
                     "Mã phiếu: " + phieu.getMaDatBan() +

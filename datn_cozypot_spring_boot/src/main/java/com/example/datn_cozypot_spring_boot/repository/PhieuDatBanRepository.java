@@ -37,6 +37,8 @@ public interface PhieuDatBanRepository extends JpaRepository<PhieuDatBan, Intege
             Pageable pageable
     );
 
+    List<PhieuDatBan> findByIdKhachHang_SoDienThoaiAndTrangThaiIn(String soDienThoai, List<Integer> trangThaiList);
+
     // Chức năng: Tìm phiếu chờ trong tương lai
     @Query("SELECT p FROM PhieuDatBan p WHERE p.trangThai = 1 AND p.thoiGianDat >= :thoiGianTraCuu ORDER BY p.thoiGianDat ASC")
     List<PhieuDatBan> findWaitingListFuture(@Param("thoiGianTraCuu") LocalDateTime thoiGianTraCuu);

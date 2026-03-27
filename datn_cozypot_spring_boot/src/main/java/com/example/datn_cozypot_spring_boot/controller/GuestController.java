@@ -6,6 +6,9 @@ import com.example.datn_cozypot_spring_boot.dto.danhMuc.DanhMucResponse;
 import com.example.datn_cozypot_spring_boot.dto.loaiLau.LoaiLauResponse;
 import com.example.datn_cozypot_spring_boot.dto.response.*;
 import com.example.datn_cozypot_spring_boot.dto.setLau.SetLauResponse;
+import com.example.datn_cozypot_spring_boot.dto.setLauChiTiet.SetLauChiTietResponse;
+import com.example.datn_cozypot_spring_boot.entity.ChiTietSetLau;
+import com.example.datn_cozypot_spring_boot.entity.SetLau;
 import com.example.datn_cozypot_spring_boot.repository.BanAnRepository;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import com.example.datn_cozypot_spring_boot.service.MonAnService;
@@ -20,7 +23,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/guest")
@@ -37,6 +42,8 @@ public class GuestController {
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.LoaiLauRepository loaiLauRepository;
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauRepository setLauRepository;
     private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.DanhMucChiTietRepository danhMucChiTietRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.ChiTietSetLauRepository chiTietSetLauRepository;
+    private final com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.SetLauChiTietRepository setLauChiTietRepository;
 
     // 1. Lấy danh sách Danh Mục (Category) đang hoạt động
     @GetMapping("/category/active")
@@ -48,6 +55,66 @@ public class GuestController {
     @GetMapping("/ban-an/active")
     public List<BanAnResponse> danhSachBanAn(){
         return datBanService.getAllBanAn();
+    }
+
+    @GetMapping("/{id}/chi-tiet")
+    public ResponseEntity<?> getChiTietSetLauFull(@PathVariable Integer id) {
+        try {
+            // 1. Tìm Set Lẩu
+            SetLau setLau = setLauRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy Set Lẩu"));
+
+            // 2. Map dữ liệu thủ công từ Entity sang DTO
+            SetLauResponse response = new SetLauResponse();
+            response.setId(setLau.getId());
+            response.setMaSetLau(setLau.getMaSetLau());
+            response.setTenSetLau(setLau.getTenSetLau());
+            response.setMoTa(setLau.getMoTa());
+            response.setMoTaChiTiet(setLau.getMoTaChiTiet());
+
+            // 🚨 Trong bảng chỉ có giaBan, tao gán thẳng nó vào giaGoc của DTO
+            response.setGiaGoc(setLau.getGiaBan());
+
+            response.setHinhAnh(setLau.getHinhAnh());
+            response.setTrangThai(setLau.getTrangThai());
+
+            // 🚨 Móc thông tin Loại Set (Dùng idLoaiSet)
+            if (setLau.getIdLoaiSet() != null) {
+                response.setIdLoaiSet(setLau.getIdLoaiSet().getId());
+                response.setTenLoaiSet(setLau.getIdLoaiSet().getTenLoaiSet());
+            }
+
+            // 3. 🚨 BÓC TÁCH CHI TIẾT MÓN ĂN (Dùng listChiTietSetLau)
+            if (setLau.getListChiTietSetLau() != null) {
+                List<SetLauChiTietResponse> listChiTiet = setLau.getListChiTietSetLau().stream().map(ct -> {
+                    SetLauChiTietResponse ctRes = new SetLauChiTietResponse();
+                    ctRes.setId(ct.getId());
+                    ctRes.setSoLuong(ct.getSoLuong());
+
+                    // Móc tên món, ảnh, định lượng từ bảng danh mục chi tiết
+                    if (ct.getMonAn() != null) {
+                        ctRes.setTenMon(ct.getMonAn().getTenMon());
+                        ctRes.setHinhAnh(ct.getMonAn().getHinhAnh());
+
+                        String dinhLuong = ct.getMonAn().getDinhLuong().getTenHienThi();
+                        ctRes.setDinhLuong(dinhLuong != null ? dinhLuong : "");
+                    } else {
+                        ctRes.setTenMon("Món không xác định");
+                        ctRes.setDinhLuong("");
+                    }
+                    return ctRes;
+                }).toList();
+
+                response.setListChiTietSetLau(listChiTiet);
+            }
+
+            // Trả về DTO hoàn chỉnh
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi tải chi tiết Set lẩu: " + e.getMessage());
+        }
     }
 
     // 2. Lấy danh sách Loại Set Lẩu đang hoạt động

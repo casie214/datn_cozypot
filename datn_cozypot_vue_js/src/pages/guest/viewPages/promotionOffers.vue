@@ -6,49 +6,65 @@ import Swal from "sweetalert2";
 // --- 1. STATE QUẢN LÝ DỮ LIỆU ---
 const vouchers = ref([]);
 const isLoading = ref(false);
-const activeTab = ref("public");
+const activeTab = ref("campaign"); 
 const filterType = ref("all");
 const sortOption = ref("default");
 const searchQuery = ref("");
 
+// 🚨 STATE CHO MODAL CHI TIẾT ĐỢT GIẢM GIÁ
+const isModalOpen = ref(false);
+const selectedCampaign = ref(null);
+const campaignItems = ref({
+    sets: [],
+    foods: []
+});
+const isLoadingItems = ref(false);
+
 // --- 2. FETCH DỮ LIỆU TỪ API ---
 const fetchData = async () => {
     isLoading.value = true;
-    vouchers.value = []; // Xóa list cũ để tránh bị nháy hình
+    vouchers.value = []; 
 
     try {
-        const endpoint = activeTab.value === "public"
-            ? "/phieu-giam-gia/public"
-            : "/phieu-giam-gia/ca-nhan";
+        let endpoint = "";
+        if (activeTab.value === "campaign") {
+            endpoint = "/dot-khuyen-mai/active/guest"; // Sửa lại URL chuẩn Backend mày đang dùng
+        } else if (activeTab.value === "public") {
+            endpoint = "/phieu-giam-gia/public";
+        } else {
+            endpoint = "/phieu-giam-gia/ca-nhan";
+        }
 
-        // Khởi tạo params mặc định
-        const apiParams = {
-            page: 0,
-            size: 50,
-        };
+        const apiParams = { page: 0, size: 50 };
 
-        // 🚨 NẾU LÀ TAB CÁ NHÂN: Lấy ID khách từ LocalStorage nhét vào params
         if (activeTab.value === "personal") {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const idKhach = user.idKhachHang || user.id; // Tùy key bạn lưu trong storage
+            const idKhach = user.idKhachHang || user.id; 
             
             if (idKhach) {
                 apiParams.idKhachHang = idKhach;
             } else {
-                // Nếu không có ID trong storage -> Ép quăng lỗi 401 để văng ra tab public
                 throw { response: { status: 401 } }; 
             }
         }
 
-        const response = await axiosClient.get(endpoint, {
-            params: apiParams
-        });
-
+        const response = await axiosClient.get(endpoint, { params: apiParams });
         const responseData = response.data || response;
-        vouchers.value = responseData.content || [];
+        const rawContent = responseData.content || responseData || [];
+
+        // 🚨 CHUẨN HÓA DATA CHO ĐỢT GIẢM GIÁ
+        vouchers.value = rawContent.map(item => ({
+            ...item,
+            tenPhieuGiamGia: item.tenPhieuGiamGia || item.tenDotKhuyenMai || 'Chương trình ưu đãi',
+            codeGiamGia: item.codeGiamGia || null, 
+            
+            // 🚨 BÙ LẠI 2 BIẾN MÀ BACKEND THIẾU ĐỂ VUE HIỂN THỊ ĐƯỢC GIAO DIỆN
+            loaiGiamGia: item.loaiGiamGia !== undefined ? item.loaiGiamGia : 1, // Đợt KM mặc định là 1 (Giảm %)
+            giaTriGiam: item.giaTriGiam !== undefined ? item.giaTriGiam : (item.phanTramGiam || 0)
+        }));
+
     } catch (error) {
-        console.error("Lỗi tải voucher:", error);
-        // Nếu lỗi 401 (chưa đăng nhập) khi vào tab cá nhân
+        console.error("Lỗi tải dữ liệu khuyến mãi:", error);
         if (error.response?.status === 401 && activeTab.value === "personal") {
             Swal.fire({
                 icon: "warning",
@@ -56,7 +72,7 @@ const fetchData = async () => {
                 text: "Vui lòng đăng nhập để xem các ưu đãi dành riêng cho bạn!",
                 confirmButtonColor: "#7d161a",
             });
-            activeTab.value = "public";
+            activeTab.value = "campaign"; 
             fetchData();
         }
     } finally {
@@ -69,11 +85,62 @@ watch(activeTab, () => {
     fetchData();
 });
 
-// --- 3. LOGIC LỌC & SẮP XẾP ---
+// --- 3. LOGIC XEM CHI TIẾT MÓN TRONG ĐỢT GIẢM GIÁ (MODAL) ---
+const openCampaignModal = async (campaign) => {
+    selectedCampaign.value = campaign;
+    isModalOpen.value = true;
+    isLoadingItems.value = true;
+    campaignItems.value = { sets: [], foods: [] };
+
+    try {
+        // 🚨 TẠO MẢNG REQUEST: Dùng vòng lặp gọi đúng API có sẵn trong MonAnController của mày
+        
+        // 1. Quét mảng ID Set Lẩu -> Tạo ra một đống API GET /api/manage/food/hotpot/{id}
+        const setRequests = (campaign.idSetLauChiTiet || []).map(id => 
+            axiosClient.get(`/guest/${id}/chi-tiet`)
+        );
+        
+        // 2. Quét mảng ID Món Lẻ -> Tạo ra một đống API GET /api/manage/food/{id}
+        const foodRequests = (campaign.idMonAnChiTiet || []).map(id => 
+            axiosClient.get(`/manage/food/${id}`)
+        );
+
+        // 🚨 THỰC THI: Bắn toàn bộ các API này lên Backend CÙNG 1 LÚC (Chạy song song)
+        const [setResponses, foodResponses] = await Promise.all([
+            Promise.all(setRequests),
+            Promise.all(foodRequests)
+        ]);
+
+        // Lấy ruột data ra và nhét vào giao diện Modal
+        campaignItems.value.sets = setResponses.map(res => res.data);
+        campaignItems.value.foods = foodResponses.map(res => res.data);
+
+    } catch (error) {
+        console.error("Lỗi lấy danh sách món áp dụng:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi tải dữ liệu",
+            text: "Không thể lấy thông tin chi tiết các món ăn, vui lòng thử lại sau.",
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 3000
+        });
+    } finally {
+        isLoadingItems.value = false;
+    }
+};
+
+const closeCampaignModal = () => {
+    isModalOpen.value = false;
+    selectedCampaign.value = null;
+};
+
+
+// --- 4. LOGIC LỌC & SẮP XẾP ---
 const displayedVouchers = computed(() => {
     let result = [...vouchers.value];
 
-    // A. Lọc theo Tìm kiếm (Tên hoặc Mã)
     const q = searchQuery.value.trim().toLowerCase();
     if (q) {
         result = result.filter((v) =>
@@ -82,12 +149,10 @@ const displayedVouchers = computed(() => {
         );
     }
 
-    // B. Lọc theo Loại giảm giá (0: Tiền mặt, 1: Phần trăm)
     if (filterType.value !== "all") {
         result = result.filter((v) => String(v.loaiGiamGia) === filterType.value);
     }
 
-    // C. Sắp xếp
     if (sortOption.value !== "default") {
         result.sort((a, b) => {
             if (sortOption.value === "expiring_soon") {
@@ -107,13 +172,41 @@ const clearSearch = () => {
 };
 
 
-// --- 4. UTILS & ACTIONS ---
+// --- 5. UTILS & ACTIONS ---
 const formatPrice = (value) => {
     if (!value) return "0 ₫";
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
     }).format(value);
+};
+
+const calculateDiscountedPrice = (originalPrice) => {
+    if (!originalPrice) return 0;
+    if (!selectedCampaign.value) return originalPrice;
+
+    let finalPrice = originalPrice;
+    if (selectedCampaign.value.loaiGiamGia === 1) { 
+        // Giảm theo %
+        finalPrice = originalPrice - (originalPrice * selectedCampaign.value.giaTriGiam / 100);
+    } else { 
+        // Giảm theo tiền mặt
+        finalPrice = originalPrice - selectedCampaign.value.giaTriGiam;
+    }
+    return finalPrice < 0 ? 0 : finalPrice;
+};
+
+const isSetDetailModalOpen = ref(false);
+const selectedSetDetail = ref(null);
+
+const openSetDetail = (set) => {
+    selectedSetDetail.value = set;
+    isSetDetailModalOpen.value = true;
+};
+
+const closeSetDetailModal = () => {
+    isSetDetailModalOpen.value = false;
+    selectedSetDetail.value = null;
 };
 
 const formatDate = (dateString) => {
@@ -123,9 +216,13 @@ const formatDate = (dateString) => {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
     });
+};
+
+const getImg = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http") || url.startsWith("data:image")) return url;
+  return `http://localhost:8080/uploads/${url}`;
 };
 
 const copyCode = (code) => {
@@ -133,23 +230,10 @@ const copyCode = (code) => {
     Swal.fire({
         icon: "success",
         title: "Đã sao chép mã!",
-        text: `Mã ${code} đã được lưu vào khay nhớ tạm.`,
         toast: true,
         position: "top-end",
         showConfirmButton: false,
         timer: 2000,
-        timerProgressBar: true,
-    });
-};
-
-const applyVoucher = (voucher) => {
-    // Logic chuyển sang trang đặt bàn hoặc giỏ hàng
-    Swal.fire({
-        icon: "info",
-        title: "Sử dụng ưu đãi",
-        text: `Hãy nhập mã ${voucher.codeGiamGia} ở bước thanh toán nhé!`,
-        confirmButtonText: "Đến thực đơn",
-        confirmButtonColor: "#7d161a",
     });
 };
 
@@ -163,7 +247,7 @@ onMounted(() => {
         <div class="promo-banner">
             <div class="banner-content text-center">
                 <h1 class="banner-title">Ưu Đãi Độc Quyền</h1>
-                <p class="banner-subtitle">Sưu tầm ngay mã giảm giá để thưởng thức Lẩu ngon với giá siêu hời!</p>
+                <p class="banner-subtitle">Khám phá các chương trình khuyến mãi và tận hưởng mức giá siêu hời!</p>
             </div>
         </div>
 
@@ -175,18 +259,21 @@ onMounted(() => {
         <div v-else class="container promo-container">
             <div class="tab-navigation mb-4">
                 <div class="tab-pill">
+                    <button :class="{ active: activeTab === 'campaign' }" @click="activeTab = 'campaign'">
+                        <i class="fas fa-fire me-2"></i>Đang diễn ra
+                    </button>
                     <button :class="{ active: activeTab === 'public' }" @click="activeTab = 'public'">
-                        <i class="fas fa-globe-asia me-2"></i>Ưu đãi chung
+                        <i class="fas fa-globe-asia me-2"></i>Mã dùng chung
                     </button>
                     <button :class="{ active: activeTab === 'personal' }" @click="activeTab = 'personal'">
-                        <i class="fas fa-user-tag me-2"></i>Ưu đãi của tôi
+                        <i class="fas fa-user-tag me-2"></i>Mã của tôi
                     </button>
                     <div class="tab-slider" :class="activeTab"></div>
                 </div>
             </div>
 
             <div class="search-filter-bar bg-white p-3 mb-4 rounded-4 border shadow-sm sticky-top"
-                style="top: 20px; z-index: 999">
+                style="top: 20px; z-index: 990">
                 <div class="row g-3 align-items-center">
 
                     <div class="col-lg-5 col-md-6">
@@ -240,8 +327,7 @@ onMounted(() => {
                                 {{ voucher.loaiGiamGia === 1 ? 'GIẢM %' : 'GIẢM TIỀN' }}
                             </div>
                             <h3 class="discount-value">
-                                {{ voucher.loaiGiamGia === 1 ? voucher.giaTriGiam + '%' :
-                                formatPrice(voucher.giaTriGiam) }}
+                                {{ voucher.loaiGiamGia === 1 ? voucher.giaTriGiam + '%' : formatPrice(voucher.giaTriGiam) }}
                             </h3>
                             <p class="min-order" v-if="voucher.donHangToiThieu > 0">
                                 Đơn tối thiểu {{ formatPrice(voucher.donHangToiThieu) }}
@@ -251,28 +337,148 @@ onMounted(() => {
                         <div class="voucher-divider"></div>
 
                         <div class="voucher-body">
-                            <h5 class="voucher-name">{{ voucher.tenPhieuGiamGia || 'Mã ưu đãi CozyPot' }}</h5>
+                            <h5 class="voucher-name">{{ voucher.tenPhieuGiamGia }}</h5>
 
-                            <div class="voucher-code-box" @click="copyCode(voucher.codeGiamGia)">
+                            <div class="voucher-code-box" v-if="voucher.codeGiamGia" @click="copyCode(voucher.codeGiamGia)">
                                 <span class="code-text">{{ voucher.codeGiamGia }}</span>
                                 <i class="far fa-copy ms-2 text-muted"></i>
                             </div>
-
-                            <div class="voucher-time">
-                                <i class="far fa-clock me-1"></i> HSD: {{ formatDate(voucher.ngayKetThuc) }}
+                            <div v-else class="voucher-auto-apply text-success fw-bold mb-3 d-flex align-items-center bg-light p-2 rounded">
+                                <i class="fas fa-check-circle me-2"></i> Tự động giảm giá
                             </div>
 
-                            <button class="btn-use-voucher w-100 mt-3" @click="applyVoucher(voucher)">
-                                DÙNG NGAY
+                            <div class="voucher-time">
+                                <i class="far fa-clock me-1"></i> {{ formatDate(voucher.ngayBatDau) }} - {{ formatDate(voucher.ngayKetThuc) }}
+                            </div>
+
+                            <button v-if="!voucher.codeGiamGia" class="btn-outline-red w-100 mt-3" @click="openCampaignModal(voucher)">
+                                <i class="fas fa-search-plus me-1"></i> Xem danh sách món áp dụng
                             </button>
+
+                        </div>
+                    </div>
+                </div>
+            </TransitionGroup>
+        </div>
+
+        <Transition name="modal-fade">
+            <div v-if="isModalOpen" class="campaign-modal-overlay" @click.self="closeCampaignModal">
+                <div class="campaign-modal-content custom-scrollbar">
+                    
+                    <div class="c-modal-header text-white" :class="selectedCampaign?.loaiGiamGia === 1 ? 'bg-percent' : 'bg-cash'">
+                        <button class="btn-close-modal" @click="closeCampaignModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <h4 class="mb-1 text-uppercase fw-bold">{{ selectedCampaign?.tenPhieuGiamGia }}</h4>
+                        <div class="badge bg-white text-dark fw-bold px-3 py-1 mt-2 fs-6">
+                            GIẢM {{ selectedCampaign?.loaiGiamGia === 1 ? selectedCampaign?.giaTriGiam + '%' : formatPrice(selectedCampaign?.giaTriGiam) }}
+                        </div>
+                    </div>
+
+                    <div class="c-modal-body p-4">
+                        <p class="text-muted fst-italic mb-4 text-center">
+                            {{ selectedCampaign?.moTa || 'Chương trình áp dụng tự động cho các món dưới đây:' }}
+                        </p>
+
+                        <div v-if="isLoadingItems" class="text-center py-4">
+                            <div class="spinner-border text-primary-red mb-2" role="status"></div>
+                            <p class="text-muted">Đang tải danh sách món...</p>
+                        </div>
+
+                        <div v-else>
+                            <div v-if="campaignItems.sets.length > 0" class="mb-4">
+                                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                    <i class="fas fa-fire text-danger me-2"></i>Các Set Lẩu Áp Dụng
+                                </h6>
+                                <div class="list-group">
+                                    <div v-for="set in campaignItems.sets" :key="set.id" 
+                                         class="list-group-item d-flex align-items-center py-3 border-0 bg-light rounded mb-2"
+                                         style="cursor: pointer; transition: 0.2s;"
+                                         @click="openSetDetail(set)"
+                                         onmouseover="this.style.background='#f0f0f0'"
+                                         onmouseout="this.style.background='#f8f9fa'">
+                                        <img :src="getImg(set.hinhAnh)" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="img" />
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold">{{ set.tenSetLau }}</div>
+                                            <div class="d-flex align-items-center gap-2 mt-1">
+                                                <span class="text-danger fw-bold">{{ formatPrice(calculateDiscountedPrice(set.giaGoc || set.giaBan)) }}</span>
+                                                <span class="text-muted small text-decoration-line-through">{{ formatPrice(set.giaGoc || set.giaBan) }}</span>
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-muted opacity-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="campaignItems.foods.length > 0">
+                                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                    <i class="fas fa-utensils text-danger me-2"></i>Các Món Gọi Thêm Áp Dụng
+                                </h6>
+                                <div class="list-group">
+                                    <div v-for="food in campaignItems.foods" :key="food.id" class="list-group-item d-flex align-items-center py-3 border-0 bg-light rounded mb-2">
+                                        <img :src="getImg(food.hinhAnh)" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;" alt="img" />
+                                        <div>
+                                            <div class="fw-bold">{{ food.tenMon }}</div>
+                                            <div class="text-muted small mb-1">{{ food.tenDinhLuong }}</div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="text-danger fw-bold">{{ formatPrice(calculateDiscountedPrice(food.giaGoc || food.giaBan || food.donGia)) }}</span>
+                                                <span class="text-muted small text-decoration-line-through">{{ formatPrice(food.giaGoc || food.giaBan || food.donGia) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="campaignItems.sets.length === 0 && campaignItems.foods.length === 0" class="text-center py-4">
+                                <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-25"></i>
+                                <p class="text-muted">Hiện tại đợt giảm giá này chưa áp dụng cho món nào.</p>
+                            </div>
                         </div>
 
                     </div>
                 </div>
-            </TransitionGroup>
-
+            </div>
+        </Transition>
         </div>
-    </div>
+
+        <Transition name="modal-fade">
+            <div v-if="isSetDetailModalOpen" class="campaign-modal-overlay" style="z-index: 2010;" @click.self="closeSetDetailModal">
+                <div class="campaign-modal-content custom-scrollbar" style="max-height: 70vh; width: 85%; max-width: 450px;">
+                    
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light sticky-top">
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-info-circle text-danger me-2"></i>Chi tiết {{ selectedSetDetail?.tenSetLau }}
+                        </h6>
+                        <button class="btn btn-sm btn-outline-secondary rounded-circle" @click="closeSetDetailModal" style="width: 30px; height: 30px; padding: 0;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-3">
+                        <p class="text-muted small mb-3 fst-italic">{{ selectedSetDetail?.moTa || 'Set lẩu bao gồm các món:' }}</p>
+                        
+                        <div class="list-group list-group-flush">
+                            <div v-for="(item, index) in selectedSetDetail?.listChiTietSetLau" :key="index" 
+                                 class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-check text-success me-2 small"></i>
+                                    <div>
+                                        <span class="fw-bold fs-6 text-dark">{{ item.danhMucChiTiet?.tenMon || item.tenMon }}</span>
+                                        <div class="text-muted small" style="font-size: 12px;">{{ item.danhMucChiTiet?.tenDinhLuong || item.dinhLuong }}</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-danger rounded-pill px-2 py-1">x{{ item.soLuong }}</span>
+                            </div>
+
+                            <div v-if="!selectedSetDetail?.listChiTietSetLau || selectedSetDetail.listChiTietSetLau.length === 0" class="text-center text-muted py-3">
+                                Đang cập nhật chi tiết món...
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </Transition>
 </template>
 
 <style scoped>
@@ -334,7 +540,6 @@ onMounted(() => {
 
 .promo-container {
     margin-top: -40px;
-    /* Kéo khung filter đè lên banner */
     position: relative;
     z-index: 10;
 }
@@ -448,7 +653,6 @@ onMounted(() => {
     margin: 0;
 }
 
-/* Tạo đường răng cưa cắt ngang vé */
 .voucher-divider {
     height: 20px;
     background-color: transparent;
@@ -464,7 +668,6 @@ onMounted(() => {
     width: 20px;
     height: 20px;
     background-color: #f9f9f9;
-    /* Khớp với màu nền trang */
     border-radius: 50%;
     top: 0;
 }
@@ -531,23 +734,7 @@ onMounted(() => {
 .voucher-time {
     font-size: 12px;
     color: #888;
-    margin-bottom: auto;
-    /* Đẩy button xuống đáy */
-}
-
-.btn-use-voucher {
-    background: white;
-    border: 2px solid #7d161a;
-    color: #7d161a;
-    font-weight: 700;
-    padding: 10px;
-    border-radius: 10px;
-    transition: 0.3s;
-}
-
-.btn-use-voucher:hover {
-    background: #7d161a;
-    color: white;
+    margin-top: auto; /* Đẩy thời gian xuống đáy sau khi bỏ nút */
 }
 
 /* ANIMATION */
@@ -580,7 +767,6 @@ onMounted(() => {
     border-color: #dee2e6;
 }
 
-/* Đảm bảo thanh Filter không bị nhảy dòng trên mobile */
 @media (max-width: 991px) {
     .sort-select {
         max-width: 100%;
@@ -599,14 +785,14 @@ onMounted(() => {
   border-radius: 50px;
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px; /* Tăng chiều rộng lên chút vì có 3 chữ */
 }
 
 .tab-pill button {
   flex: 1;
   border: none;
   background: none;
-  padding: 10px 20px;
+  padding: 10px 10px;
   font-weight: 700;
   font-size: 14px;
   color: #666;
@@ -619,29 +805,117 @@ onMounted(() => {
   color: white;
 }
 
-/* Thanh slider màu đỏ chạy bên dưới */
+/* 🚨 CHIA LẠI SLIDER CHO 3 TABS */
 .tab-slider {
   position: absolute;
   top: 5px;
   left: 5px;
-  width: calc(50% - 5px);
-  height: calc(100% - 10px); /* Sửa thành 100% - 10px */
-  height: 38px; /* Khớp với nút */
+  width: calc(33.333% - 3.33px); /* Chia 3 phần và trừ đi padding */
+  height: 38px;
   background: #7d161a;
   border-radius: 50px;
   transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   z-index: 1;
 }
 
-.tab-slider.personal {
+.tab-slider.campaign {
+  transform: translateX(0%);
+}
+
+.tab-slider.public {
   transform: translateX(100%);
 }
 
-/* CSS cho list voucher trống trong tab cá nhân */
+.tab-slider.personal {
+  transform: translateX(200%);
+}
+
 .personal-empty {
     padding: 40px;
     background: white;
     border-radius: 20px;
     border: 2px dashed #eee;
+}
+
+.btn-outline-red {
+    background: transparent;
+    color: #7d161a;
+    border: 1px solid #7d161a;
+    padding: 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-outline-red:hover {
+    background: #fdf2f2;
+}
+
+/* CSS Modal */
+.campaign-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
+
+.campaign-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.c-modal-header {
+    padding: 30px 20px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-close-modal:hover {
+    background: rgba(255,255,255,0.4);
+    transform: scale(1.1);
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
 }
 </style>
