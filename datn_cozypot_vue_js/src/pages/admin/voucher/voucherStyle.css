@@ -746,6 +746,10 @@
     color: #333;
 }
 
+.card-footer .btn:hover{
+    background-color: #7D161A !important;
+}
+
 /* ================= TYPE ================= */
 
 /* SUCCESS */

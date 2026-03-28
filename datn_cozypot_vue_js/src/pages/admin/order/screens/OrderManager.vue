@@ -164,7 +164,7 @@ const onPaginationChange = () => {
                   <th class="py-3">TỔNG TIỀN</th>
                   <th class="py-3">TIỀN CỌC</th>
                   <th class="py-3">TRẠNG THÁI</th>
-                  <th class="py-3 text-center">THAO TÁC</th>
+                  <th class="py-3 text-center">Hành động</th>
                 </tr>
               </thead>
               <tbody>

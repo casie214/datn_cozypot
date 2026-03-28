@@ -520,7 +520,7 @@ const finalBalance = computed(() => {
                     <th class="text-end py-3">Tổng Tiền</th>
                     <th class="text-end py-3">Tiền Cọc</th>
                     <th class="text-center py-3">Trạng Thái</th>
-                    <th class="text-center py-3 pe-3">Thao Tác</th>
+                    <th class="text-center py-3 pe-3">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>

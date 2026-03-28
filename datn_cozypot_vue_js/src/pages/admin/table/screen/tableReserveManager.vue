@@ -216,6 +216,52 @@ const searchDatBan = async () => {
 
 const currentStep = ref(1);
 
+const handleCancelPhieuFromDetail = async () => {
+  const idPhieuCanHuy = phieuDetail.value?.id || phieuDetail.value?.idDatBan || detailHoaDon.value?.idPhieuDatBan;
+  
+  if (!idPhieuCanHuy) {
+    return Swal.fire('Lỗi', 'Không tìm thấy thông tin phiếu để hủy!', 'error');
+  }
+
+  const confirm = await Swal.fire({
+    title: 'Xác nhận hủy phiếu?',
+    html: `Bạn có chắc chắn muốn hủy phiếu <b>${phieuDetail.value?.maDatBan || phieuDetail.value?.maPhieu || 'này'}</b> không?<br><br><i>Hệ thống sẽ tự động hủy Hóa đơn và giải phóng bàn liên quan!</i>`,
+    icon: 'warning',
+    iconColor: '#7D161A',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: '<i class="fa-solid fa-trash-can me-1"></i> Đồng ý hủy',
+    cancelButtonText: 'Quay lại'
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'Đang hủy phiếu...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // 🚀 GỌI API MỚI CỦA BÁC
+    // Lưu ý: Đổi /dat-ban/ thành prefix đúng của Controller chứa @PutMapping("/update-trang-thai-phieu")
+    const payload = {
+      id: idPhieuCanHuy,
+      trangThai: 2 // 2 = Đã hủy
+    };
+
+    await axiosClient.put(`/dat-ban/update-trang-thai-phieu`, payload);
+
+    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã hủy phiếu đặt bàn!', timer: 1500, showConfirmButton: false });
+
+    // Đóng Modal và làm mới dữ liệu
+    closeDetailModal();
+    await searchDatBan(); // Load lại danh sách phiếu bên dưới
+    await loadTables();   // Quét lại sơ đồ bàn cho nó trống
+    refreshKey.value += 1;
+
+  } catch (error) {
+    Swal.fire('Lỗi', error.response?.data?.message || 'Không thể hủy phiếu lúc này', 'error');
+  }
+};
+
 // ================= OPEN MODAL =================
 // ================= OPEN MODAL =================
 const openCreateModal = async () => {
@@ -771,15 +817,42 @@ const handleConfirmOrder = async (idHoaDon) => {
   }
 };
 
-const nextStep = () => {
+const nextStep = async () => {
   let isValid = true;
   resetCreateFormErrors();
+
+  const tenKhachHang = (createForm.value.tenKhachHang || "").trim();
+  const soDienThoai = (createForm.value.soDienThoai || "").trim();
+  const email = (createForm.value.email || "").trim();
+
+  // ========================================================
+  // 1. VALIDATE CƠ BẢN
+  // ========================================================
+  if (!tenKhachHang) {
+    formErrors.value.tenKhachHang = "Vui lòng nhập tên khách hàng";
+    isValid = false;
+  } else if (tenKhachHang.length < 2) {
+    formErrors.value.tenKhachHang = "Tên khách hàng phải có ít nhất 2 ký tự";
+    isValid = false;
+  }
+
+  if (!soDienThoai) {
+    formErrors.value.soDienThoai = "Vui lòng nhập số điện thoại";
+    isValid = false;
+  } else if (!isValidVietnamPhone(soDienThoai)) {
+    formErrors.value.soDienThoai = "Số điện thoại không đúng định dạng";
+    isValid = false;
+  }
+
+  if (email && !isValidEmail(email)) {
+    formErrors.value.email = "Email không đúng định dạng";
+    isValid = false;
+  }
 
   if (!createForm.value.thoiGianDat) {
     formErrors.value.thoiGianDat = "Vui lòng chọn thời gian đặt";
     isValid = false;
-  }
-  else if (dayjs(createForm.value.thoiGianDat).isBefore(dayjs(), 'minute')) {
+  } else if (dayjs(createForm.value.thoiGianDat).isBefore(dayjs(), 'minute')) {
     formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
     isValid = false;
   }
@@ -789,15 +862,91 @@ const nextStep = () => {
     isValid = false;
   }
 
-  if (createForm.value.danhSachBanChon.length === 0) {
-    formErrors.value.idBanAn = "Vui lòng chọn ít nhất 1 bàn phục vụ";
-    isValid = false;
+  if (!isValid) {
+    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng điền đủ thông tin Bước 1' });
+    return; // Dừng lại luôn nếu form lỗi
   }
 
-  if (isValid) {
+  // ========================================================
+  // 🚨 2. KIỂM TRA TRÙNG LẶP SĐT HOẶC EMAIL NẾU TẠO KHÁCH MỚI
+  // ========================================================
+  if (!isOldCustomer.value) { // Chỉ kiểm tra nếu người dùng đang cố nhập chay (Khách mới)
+    const duplicatedCustomer = allCustomers.value.find(c => {
+      const isPhoneMatch = c.raw.soDienThoai === soDienThoai;
+      const isEmailMatch = email && c.raw.email === email; // Chỉ check email nếu có nhập
+      return isPhoneMatch || isEmailMatch;
+    });
+
+    if (duplicatedCustomer) {
+      let errorMsg = "";
+      if (duplicatedCustomer.raw.soDienThoai === soDienThoai) {
+        formErrors.value.soDienThoai = "Số điện thoại này đã tồn tại trong hệ thống!";
+        errorMsg = `Số điện thoại <b>${soDienThoai}</b> đã được đăng ký cho khách hàng <b>${duplicatedCustomer.raw.tenKhachHang}</b>.<br><br>Vui lòng sử dụng <b>ô tìm kiếm</b> bên trên để chọn khách hàng này!`;
+      } else {
+        formErrors.value.email = "Email này đã tồn tại trong hệ thống!";
+        errorMsg = `Email <b>${email}</b> đã được đăng ký cho khách hàng <b>${duplicatedCustomer.raw.tenKhachHang}</b>.<br><br>Vui lòng sử dụng <b>ô tìm kiếm</b> bên trên để chọn khách hàng này!`;
+      }
+
+      Toast.fire({ icon: 'error', title: 'Khách hàng đã tồn tại', text: 'Vui lòng kiểm tra lại SĐT hoặc Email' });
+      return Swal.fire({
+        icon: 'warning',
+        iconColor: '#7D161A',
+        title: 'Trùng thông tin!',
+        html: errorMsg,
+        confirmButtonColor: '#7d161a',
+        confirmButtonText: 'Đã hiểu'
+      });
+    }
+  }
+
+  // ========================================================
+  // 3. CALL API KIỂM TRA SỨC CHỨA TRƯỚC KHI SANG BƯỚC 2
+  // ========================================================
+  try {
+    Swal.fire({ title: 'Đang kiểm tra bàn trống...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    const dateObj = dayjs(createForm.value.thoiGianDat);
+    const payload = {
+      ngayDat: dateObj.format('YYYY-MM-DD'),
+      gioDat: dateObj.format('HH:mm:ss'),
+      soNguoi: createForm.value.soLuongKhach,
+      idPhieu: null // Tạo mới nên id = null
+    };
+
+    // Gọi API xem giờ đó còn những bàn nào trống
+    const availableTables = await checkBanTrongService(payload);
+
+    // Xử lý: Hoàn toàn hết bàn
+    if (!availableTables || availableTables.length === 0) {
+      return Swal.fire({
+        icon: 'error',
+        iconColor: '#7D161A',
+        title: 'Hết bàn!',
+        text: 'Nhà hàng đã hết bàn trống tại thời điểm này. Vui lòng chọn khung giờ khác!',
+        confirmButtonColor: '#7d161a'
+      });
+    }
+
+    // Tính tổng sức chứa của tất cả các bàn đang trống
+    const totalAvailableCapacity = availableTables.reduce((sum, ban) => sum + (Number(ban.soCho || ban.soNguoiToiDa) || 0), 0);
+
+    // Xử lý: Có bàn trống nhưng tổng sức chứa không đủ cho số lượng khách
+    if (totalAvailableCapacity < createForm.value.soLuongKhach) {
+      return Swal.fire({
+        icon: 'error',
+        iconColor: '#7D161A',
+        title: 'Không đủ chỗ!',
+        html: `Khung giờ này nhà hàng chỉ còn tổng <b>${totalAvailableCapacity} chỗ trống</b>.<br>Không đủ để phục vụ đoàn <b>${createForm.value.soLuongKhach} người</b>.<br>Vui lòng giảm số lượng khách hoặc đổi giờ!`,
+        confirmButtonColor: '#7d161a'
+      });
+    }
+
+    // Đạt mọi điều kiện -> Đóng Loading và cho qua Bước 2
+    Swal.close();
     currentStep.value = 2; 
-  } else {
-    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng điền đủ thông tin Bước 1' });
+
+  } catch (error) {
+    Swal.fire('Lỗi', 'Không thể kiểm tra trạng thái bàn. Vui lòng thử lại!', 'error');
   }
 };
 
@@ -833,14 +982,18 @@ const removeSelectedTable = (index) => {
 
 // ================= SUBMIT =================
 const submitCreate = async () => {
-  if (!validateCreateForm()) return;
+  // 🚀 Kiểm tra đã chọn bàn chưa trước khi Submit
+  if (!createForm.value.danhSachBanChon || createForm.value.danhSachBanChon.length === 0) {
+    formErrors.value.idBanAn = "Vui lòng chọn ít nhất 1 bàn!";
+    Toast.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng chọn bàn phục vụ' });
+    return; // Dừng lại nếu chưa chọn bàn
+  }
 
-  // 🚀 KIỂM TRA TRÙNG LỊCH 3 TIẾNG 🚀
+  // 🚀 KIỂM TRA TRÙNG LỊCH 3 TIẾNG (Giữ nguyên logic cũ của bác) 🚀
   const phoneToBook = createForm.value.soDienThoai.trim();
   const timeToBook = dayjs(createForm.value.thoiGianDat);
 
   const conflictingBooking = listPhieuDatBan.value.find(phieu => {
-    // Bỏ qua phiếu Đã hủy (2) hoặc Hoàn tất (4)
     if (String(phieu.trangThai) === "2" || String(phieu.trangThai) === "4") return false;
 
     if (phieu.soDienThoai === phoneToBook) {
@@ -852,9 +1005,8 @@ const submitCreate = async () => {
         existingTimeObj = dayjs(phieu.thoiGianDat);
       }
       
-      // Độ chênh lệch thời gian theo giờ
       const diffHours = Math.abs(existingTimeObj.diff(timeToBook, 'hour', true));
-      return diffHours < 3; // Nằm trong khoảng dưới 3 tiếng
+      return diffHours < 3; 
     }
     return false;
   });
@@ -872,9 +1024,9 @@ const submitCreate = async () => {
         icon: 'warning',
         title: 'Trùng lịch!',
         text: `Khách đã có lịch lúc ${existingFormattedTime}. Các lịch phải cách nhau ít nhất 3 tiếng!`,
-        timer: 6000 // Hiện lâu hơn để khách đọc kịp
+        timer: 6000
      });
-     return; // Dừng lại không cho gọi API
+     return; 
   }
 
   isSubmitting.value = true;
@@ -891,9 +1043,9 @@ const submitCreate = async () => {
     await createPhieuDatBanFullService(payload);
 
     showCreateModal.value = false;
-    await searchDatBan(); // Tải lại danh sách phiếu ở trang 1
-    refreshKey.value += 1; // Thông báo cho component con (List/Calendar) load lại
-    await loadTables();    // Cập nhật lại trạng thái bàn
+    await searchDatBan(); 
+    refreshKey.value += 1; 
+    await loadTables();    
 
     Toast.fire({ icon: 'success', title: 'Thành công!', text: 'Đã tạo phiếu đặt bàn mới.' });
 
@@ -979,66 +1131,15 @@ onMounted(async () => {
         <h4 class="m-0 text-danger fw-bold">
           <i class="fa-solid fa-clipboard-user me-2"></i>Thêm phiếu đặt bàn
           <span class="fs-6 text-muted fw-normal ms-2">
-            {{ currentStep === 1 ? '(1/2: Chọn bàn)' : '(2/2: Khách hàng)' }}
+            {{ currentStep === 1 ? '(1/2: Thông tin khách)' : '(2/2: Chọn bàn)' }}
           </span>
         </h4>
         <button class="close-btn" @click="closeCreateModal">✕</button>
       </div>
 
       <div v-if="currentStep === 1" class="step-1-animation">
-        <div class="info-grid">
-          <div>
-            <label>Thời gian đặt <span class="required-star">*</span></label>
-            <VueDatePicker v-model="createForm.thoiGianDat" :enable-time-picker="true" :is-24="true"
-              :min-date="new Date()" :hide-input-icon="true" :clearable="false" auto-apply format="dd/MM/yyyy HH:mm"
-              placeholder="Chọn ngày giờ" class="custom-datetime-picker"
-              :class="{ 'input-error': formErrors.thoiGianDat }" />
-            <small v-if="formErrors.thoiGianDat" class="error-text">{{ formErrors.thoiGianDat }}</small>
-          </div>
 
-          <div>
-            <label>Số lượng khách <span class="required-star">*</span></label>
-            <input type="number" min="1" step="1" v-model.number="createForm.soLuongKhach"
-              :class="{ 'input-error': formErrors.soLuongKhach }" />
-            <small v-if="formErrors.soLuongKhach" class="error-text">{{ formErrors.soLuongKhach }}</small>
-          </div>
-
-          <div style="grid-column: span 2;">
-            <label>Bàn phục vụ <span class="required-star">*</span></label>
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <button class="btn btn-sm btn-custom-outline px-3 py-2 fw-bold" @click="openTableSelectionModal"
-                style="border-radius: 6px;">
-                <i class="fa-solid fa-map-location-dot me-1"></i> Chọn bàn trên sơ đồ
-              </button>
-              <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-danger">
-                Đã chọn {{ createForm.danhSachBanChon.length }} bàn
-              </span>
-            </div>
-            <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light" style="min-height: 50px;">
-              <div v-for="(ban, index) in createForm.danhSachBanChon" :key="ban.id"
-                class="badge bg-danger d-flex align-items-center py-2 px-3" style="font-size: 13px;">
-                <span>Bàn {{ ban.maBan }} ({{ ban.soCho || ban.soNguoiToiDa }} chỗ)</span>
-                <i class="fa-solid fa-xmark ms-2" style="cursor: pointer" @click="removeSelectedTable(index)"
-                  title="Xóa bàn này"></i>
-              </div>
-              <div v-if="!createForm.danhSachBanChon?.length"
-                class="text-muted small fst-italic w-100 text-center mt-1">
-                Vui lòng chọn thời gian, số lượng và bấm chọn bàn trên sơ đồ.
-              </div>
-            </div>
-            <small v-if="formErrors.idBanAn" class="error-text">{{ formErrors.idBanAn }}</small>
-          </div>
-        </div>
-
-        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-          <button class="btn btn-custom-outline me-2" @click="closeCreateModal">Hủy</button>
-          <button class="btn px-4" @click="nextStep">Tiếp tục <i class="fa-solid fa-arrow-right ms-2"></i></button>
-        </div>
-      </div>
-
-      <div v-if="currentStep === 2" class="step-2-animation">
-
-        <label>Tìm khách hàng cũ (Theo SĐT)</label>
+        <label>Tìm khách hàng cũ (Theo tên hoặc số điện thoại)</label>
         <Multiselect v-model="selectedCustomer" :options="customerOptions" :searchable="true" :filter-results="false"
           value-prop="value" label="label" track-by="value" placeholder="Tìm theo tên hoặc SĐT..."
           no-options-text="Không có khách hàng" no-results-text="Không tìm thấy" class="custom-filter-multiselect mb-3"
@@ -1089,12 +1190,69 @@ onMounted(async () => {
             <label>Ngày sinh</label>
             <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" />
           </div>
+
+          <div>
+            <label>Số lượng khách <span class="required-star">*</span></label>
+            <input type="number" min="1" step="1" v-model.number="createForm.soLuongKhach"
+              :class="{ 'input-error': formErrors.soLuongKhach }" />
+            <small v-if="formErrors.soLuongKhach" class="error-text">{{ formErrors.soLuongKhach }}</small>
+          </div>
+
+          <div style="grid-column: span 2;">
+            <label>Thời gian đặt <span class="required-star">*</span></label>
+            <VueDatePicker v-model="createForm.thoiGianDat" :enable-time-picker="true" :is-24="true"
+              :min-date="new Date()" :hide-input-icon="true" :clearable="false" auto-apply format="dd/MM/yyyy HH:mm"
+              placeholder="Chọn ngày giờ" class="custom-datetime-picker"
+              :class="{ 'input-error': formErrors.thoiGianDat }" />
+            <small v-if="formErrors.thoiGianDat" class="error-text">{{ formErrors.thoiGianDat }}</small>
+          </div>
+
+        </div>
+
+        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+          <button class="btn btn-custom-outline me-2" @click="closeCreateModal">Hủy</button>
+          <button class="btn px-4" @click="nextStep">Tiếp tục <i class="fa-solid fa-arrow-right ms-2"></i></button>
+        </div>
+      </div>
+
+      <div v-if="currentStep === 2" class="step-2-animation">
+        
+        <div class="alert alert-info mb-3">
+            <i class="fa-solid fa-circle-info me-2"></i> Đang chọn bàn cho <b>{{ createForm.tenKhachHang }}</b> ({{ createForm.soLuongKhach }} người) lúc <b>{{ dayjs(createForm.thoiGianDat).format('HH:mm DD/MM/YYYY') }}</b>
+        </div>
+
+        <div class="info-grid">
+          <div style="grid-column: span 2;">
+            <label>Bàn phục vụ <span class="required-star">*</span></label>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <button class="btn btn-sm btn-custom-outline px-3 py-2 fw-bold" @click="openTableSelectionModal"
+                style="border-radius: 6px;">
+                <i class="fa-solid fa-map-location-dot me-1"></i> Mở sơ đồ chọn bàn
+              </button>
+              <span v-if="createForm.danhSachBanChon?.length > 0" class="small fw-bold text-danger">
+                Đã chọn {{ createForm.danhSachBanChon.length }} bàn
+              </span>
+            </div>
+            
+            <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light" style="min-height: 80px;">
+              <div v-for="(ban, index) in createForm.danhSachBanChon" :key="ban.id"
+                class="badge bg-danger d-flex align-items-center py-2 px-3" style="font-size: 13px;">
+                <span>Bàn {{ ban.maBan }} ({{ ban.soCho || ban.soNguoiToiDa }} chỗ)</span>
+                <i class="fa-solid fa-xmark ms-2" style="cursor: pointer" @click="removeSelectedTable(index)"
+                  title="Xóa bàn này"></i>
+              </div>
+              <div v-if="!createForm.danhSachBanChon?.length"
+                class="text-muted small fst-italic w-100 text-center mt-2">
+                Chưa có bàn nào được chọn. Bấm vào nút bên trên để mở sơ đồ.
+              </div>
+            </div>
+            <small v-if="formErrors.idBanAn" class="error-text">{{ formErrors.idBanAn }}</small>
+          </div>
         </div>
 
         <div class="d-flex justify-content-between mt-4 pt-3 border-top">
           <button class="btn btn-custom-outline" @click="currentStep = 1"><i class="fa-solid fa-arrow-left me-2"></i>
-            Quay
-            lại</button>
+            Quay lại sửa thông tin</button>
           <button class="btn px-4" @click="submitCreate" :disabled="isSubmitting">
             <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin me-1"></i>
             {{ isSubmitting ? 'Đang lưu...' : 'Hoàn tất tạo phiếu' }}
@@ -1107,11 +1265,12 @@ onMounted(async () => {
 
   <div v-if="showSelectTableModal" class="modal-overlay" style="z-index: 10005;">
     <div class="modal-box-2 modal-fullscreen d-flex flex-column bg-light">
-      <div class="modal-header-custom bg-white shadow-sm z-1">
-        <h4 class="modal-title-custom text-danger m-0">
+      
+      <div class="modal-header d-flex justify-content-between align-items-center bg-white shadow-sm z-1 p-3">
+        <h4 class="modal-title-custom text-danger m-0 fw-bold">
           <i class="fa-solid fa-chair me-2"></i> Chọn bàn cho khách ({{ createForm.soLuongKhach }} người)
         </h4>
-        <button class="close-btn" @click="showSelectTableModal = false">✕</button>
+        <button class="close-btn m-0 p-0" @click="showSelectTableModal = false">✕</button>
       </div>
 
       <div class="modal-body-custom p-3 d-flex flex-column h-100 overflow-hidden">
@@ -1376,18 +1535,31 @@ onMounted(async () => {
 
       </div>
 
-      <div class="d-flex gap-2 justify-content-end mt-3 pt-3 border-top">
-        <button
-            v-if="detailHoaDon?.trangThaiHoaDon === 0 || phieuDetail?.trangThai === 0"
-            class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
-            style="background-color: #28a745; border: none;"
-            :disabled="!detailHoaDon?.danhSachTenBan || detailHoaDon.danhSachTenBan.length === 0"
-            :title="(!detailHoaDon?.danhSachTenBan || detailHoaDon.danhSachTenBan.length === 0) ? 'Vui lòng xếp bàn trước khi xác nhận' : ''"
-            @click="handleConfirmOrder(detailHoaDon?.id || detailHoaDon?.idHoaDon)"
-          >
-            <i class="fa-solid fa-envelope-circle-check me-2"></i> Xác nhận & Gửi mail
-        </button>
-        <button class="btn btn-outline-secondary px-4" @click="closeDetailModal">Đóng</button>
+      <div class="d-flex justify-content-between mt-3 pt-3 border-top">
+        
+        <div>
+            <button 
+                v-if="phieuDetail?.trangThai === 0 || phieuDetail?.trangThai === 1 || detailHoaDon?.trangThaiHoaDon === 0"
+                class="btn btn-outline-danger px-4 py-2 fw-bold" 
+                @click="handleCancelPhieuFromDetail"
+            >
+                <i class="fa-solid fa-ban me-1"></i> Hủy phiếu đặt
+            </button>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button
+                v-if="detailHoaDon?.trangThaiHoaDon === 0 || phieuDetail?.trangThai === 0"
+                class="btn btn-custom px-4 py-2 fw-medium text-white shadow-sm"
+                style="background-color: #28a745; border: none;"
+                :disabled="!detailHoaDon?.danhSachTenBan || detailHoaDon.danhSachTenBan.length === 0"
+                :title="(!detailHoaDon?.danhSachTenBan || detailHoaDon.danhSachTenBan.length === 0) ? 'Vui lòng xếp bàn trước khi xác nhận' : ''"
+                @click="handleConfirmOrder(detailHoaDon?.id || detailHoaDon?.idHoaDon)"
+              >
+                <i class="fa-solid fa-envelope-circle-check me-2"></i> Xác nhận & Gửi mail
+            </button>
+            <button class="btn btn-outline-secondary px-4" @click="closeDetailModal">Đóng</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1464,6 +1636,7 @@ hr {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-radius: 15px;
 }
 
 .close-btn {

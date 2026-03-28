@@ -121,7 +121,7 @@ const goToHotpotList = (item) => {
             <th>TÊN LOẠI SET</th>
             <th>MÔ TẢ</th>
             <th>TRẠNG THÁI</th>
-            <th>CHỨC NĂNG</th>
+            <th>HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>

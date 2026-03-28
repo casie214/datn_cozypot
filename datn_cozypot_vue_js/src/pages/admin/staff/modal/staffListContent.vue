@@ -111,7 +111,7 @@
                 <th style="color: white; border: none;">Liên hệ</th>
                 <th style="color: white; border: none;">Địa chỉ</th>
                 <th class="text-center" style="color: white; border: none;">Trạng thái</th>
-                <th class="text-center" style="color: white; border: none;">Thao tác</th>
+                <th class="text-center" style="color: white; border: none;">Hành động</th>
               </tr>
             </thead>
             <tbody>

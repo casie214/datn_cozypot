@@ -130,7 +130,7 @@ const router = useRouter();
             <th class="py-3">ĐƠN VỊ</th>
             <th class="py-3">GIÁ</th>
             <th class="py-3">TRẠNG THÁI</th>
-            <th class="py-3 text-center" style="width: 120px;">CHỨC NĂNG</th>
+            <th class="py-3 text-center" style="width: 120px;">HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>
