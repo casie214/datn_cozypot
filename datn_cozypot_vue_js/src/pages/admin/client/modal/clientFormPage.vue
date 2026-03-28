@@ -160,7 +160,7 @@
                           <div class="form-check form-switch d-flex align-items-center gap-2">
                             <input class="form-check-input switch-wine shadow-none" type="checkbox"
                               :checked="index === defaultIndex" @change="setDefault(index)">
-                            <label class="small text-muted mb-0">Đặt làm địa chỉ nhận hàng chính</label>
+                            <label class="small text-muted mb-0">Đặt làm địa chỉ chính</label>
                           </div>
                           <button @click="removeAddress(index)"
                             class="btn btn-link text-danger p-0 text-decoration-none small">
