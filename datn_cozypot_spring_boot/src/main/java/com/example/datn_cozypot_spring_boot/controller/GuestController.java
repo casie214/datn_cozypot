@@ -64,6 +64,8 @@ public class GuestController {
             SetLau setLau = setLauRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy Set Lẩu"));
 
+            checkAndSaveImage(setLau.getHinhAnh(), "setlau", setLau.getId());
+
             // 2. Map dữ liệu thủ công từ Entity sang DTO
             SetLauResponse response = new SetLauResponse();
             response.setId(setLau.getId());
@@ -200,44 +202,23 @@ public class GuestController {
         List<SetLauDTOCB> sets = setLauRepository.findAll().stream()
                 .filter(s -> s.getTrangThai() == 1)
                 .map(s -> {
-                    // Lấy danh sách tên món từ bảng chi tiết
+                    // Trigger tạo file ảnh
+                    checkAndSaveImage(s.getHinhAnh(), "setlau", s.getId());
+
                     List<String> monThanhPhan = s.getListChiTietSetLau().stream()
                             .map(ct -> ct.getMonAn().getTenMon())
                             .toList();
-
-                    return new SetLauDTOCB(
-                            s.getTenSetLau(),
-                            s.getIdLoaiSet().getTenLoaiSet(),
-                            s.getGiaBan(),
-                            s.getMoTa(),
-                            monThanhPhan // Đưa danh sách món vào đây
-                    );
-                })
-                .toList();
+                    return new SetLauDTOCB(s.getTenSetLau(), s.getIdLoaiSet().getTenLoaiSet(), s.getGiaBan(), s.getMoTa(), monThanhPhan);
+                }).toList();
 
         String baseUrl = "https://unrheumatic-gametically-yajaira.ngrok-free.dev/uploads/";
         String placeholderUrl = baseUrl + "placeholder.jpg";
         List<MonAnDTOCB> items = danhMucChiTietRepository.findAll().stream()
                 .filter(m -> m.getTrangThai() == 1)
                 .map(m -> {
-                    String finalImageUrl;
-
-                    // Kiểm tra dữ liệu trong DB
-                    if (m.getHinhAnh() != null && !m.getHinhAnh().isEmpty()) {
-                        String fileName = "monan_" + m.getId();
-                        saveBase64ToFile(m.getHinhAnh(), fileName);
-                        finalImageUrl = baseUrl + fileName + ".jpg";
-                    } else {
-                        // Nếu null hoặc rỗng, dùng ảnh placeholder
-                        finalImageUrl = placeholderUrl;
-                    }
-
-                    return new MonAnDTOCB(
-                            m.getTenMon(),
-                            m.getGiaBan(),
-                            m.getDanhMuc().getTenDanhMuc(),
-                            finalImageUrl
-                    );
+                    // Trigger tạo file ảnh
+                    String fileName = checkAndSaveImage(m.getHinhAnh(), "monan", m.getId());
+                    return new MonAnDTOCB(m.getTenMon(), m.getGiaBan(), m.getDanhMuc().getTenDanhMuc(), baseUrl + fileName);
                 }).toList();
 
         MenuSummaryDTO summary = MenuSummaryDTO.builder()
@@ -247,6 +228,30 @@ public class GuestController {
                 .monAnLe(items) // Đưa vào DTO tổng
                 .build();
 
-        return ResponseEntity.ok(summary);
+        return ResponseEntity.ok(MenuSummaryDTO.builder().danhMuc(null).loaiSetLau(null).setLau(sets).monAnLe(items).build());
+    }
+
+    private String checkAndSaveImage(String base64Data, String prefix, Integer id) {
+        if (base64Data == null || !base64Data.contains(",")) return "placeholder.jpg";
+
+        String fileName = prefix + "_" + id + ".jpg";
+        File file = new File("uploads/" + fileName);
+
+        // Nếu file đã tồn tại rồi thì thôi, không cần ghi đè cho tốn tài nguyên
+        if (file.exists()) return fileName;
+
+        try {
+            String base64Image = base64Data.split(",")[1];
+            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Image);
+
+            File uploadDir = new File("uploads");
+            if (!uploadDir.exists()) uploadDir.mkdirs();
+
+            Files.write(file.toPath(), imageBytes);
+            System.out.println("✅ Đã khởi tạo file ảnh mới: " + fileName);
+            return fileName;
+        } catch (Exception e) {
+            return "placeholder.jpg";
+        }
     }
 }

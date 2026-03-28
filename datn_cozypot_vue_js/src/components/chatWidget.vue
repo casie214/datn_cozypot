@@ -38,6 +38,7 @@ const parseMessage = (text) => {
     while ((match = cardRegex.exec(text)) !== null) {
         const parts = match[1].split('|');
         if (parts.length >= 3) {
+            console.log("🔥 Link ảnh AI gửi về:", parts[2].trim()); // 🚨 THÊM DÒNG NÀY
             cards.push({ name: parts[0].trim(), price: parts[1].trim(), image: parts[2].trim() });
         }
     }
