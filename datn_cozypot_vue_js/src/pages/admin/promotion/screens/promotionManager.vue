@@ -427,7 +427,7 @@
                                 <i class="fas fa-list-check me-2"></i> Sản phẩm đã chọn
                             </h6>
                             <button v-if="!isReadOnly" class="btn btn-sm btn-outline-danger" @click="clearAllSelected">
-                                <i class="fas fa-trash me-1"></i> Clear
+                                <i class="fas fa-trash me-1"></i> Hủy tất cả
                             </button>
                         </div>
 
@@ -436,41 +436,40 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>#</th>
-                                        <th>Ảnh</th> <!-- ✅ THÊM -->
+                                        <th>Ảnh</th>
                                         <th>Tên</th>
                                         <th>Loại</th>
-                                        <th class="text-end">Giá sau KM</th>
-                                        <th class="text-end ">Giá sau KM</th>
+                                        <th class="text-end">Giá gốc</th>
+                                        <th class="text-end text-success">Giá sau KM</th>
                                         <th v-if="!isReadOnly" class="text-center">Xóa</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="(item, index) in selectedProducts" :key="item.type + item.id">
                                         <td>{{ index + 1 }}</td>
-                                        <img :src="getImageUrl(item.hinhAnh)"
-                                            style="width:50px;height:50px;object-fit:cover;border-radius:6px" />
-
-
+                                        <td>
+                                            <img :src="getImageUrl(item.hinhAnh)"
+                                                 style="width:50px;height:50px;object-fit:cover;border-radius:6px" />
+                                        </td>
                                         <td class="fw-semibold">{{ item.ten }}</td>
                                         <td>
                                             <span :class="item.type === 'SET'
                                                 ? 'badge bg-warning text-dark'
-                                                : 'badge bg-info'">
+                                                : 'badge bg-danger'">
                                                 {{ item.type }}
                                             </span>
                                         </td>
-                                        <!-- Giá gốc -->
+                                        
                                         <td class="text-end text-muted text-decoration-line-through">
                                             {{ formatPrice(item.gia) }}
                                         </td>
 
-                                        <!-- Giá sau KM -->
                                         <td class="text-end text-success fw-bold">
-                                            {{ formatPrice(item.gia * (100 - (formData.phanTramGiam || 0)) / 100) }}
+                                            {{ formatPrice(item.gia - (item.gia * (Number(formData.phanTramGiam) || 0) / 100)) }}
                                         </td>
 
                                         <td v-if="!isReadOnly" class="text-center">
-                                            <button class="btn btn-sm btn-light" @click="removeSelectedItem(item)">
+                                            <button type="button" class="btn btn-sm btn-light" @click="removeSelectedItem(item)">
                                                 ❌
                                             </button>
                                         </td>
@@ -481,20 +480,20 @@
                     </div>
 
 
-                    <div class="card-footer bg-white border-top p-4 d-flex justify-content-end gap-3">
-                        <div class="card-footer under-nav bg-white border-top p-4 d-flex gap-3"
-                            style="align-items: end;">
-                            <button type="button"
-                                class="btn btn-cancel btn-light px-4 border text-secondary fw-bold d-flex align-items-center justify-content-center"
-                                style="height: 42px; color: white;background-color: #800000;" @click="closeForm">
-                                HỦY BỎ
-                            </button>
+                    <div class="card-footer bg-white border-top p-4 d-flex justify-content-end align-items-center gap-3">
+                        
+                        <button type="button"
+                            class="btn btn-outline-secondary px-4 fw-bold d-flex align-items-center justify-content-center"
+                            style="height: 42px;" @click="closeForm">
+                            HỦY BỎ
+                        </button>
 
-                            <button v-if="!isReadOnly" type="submit"
-                                class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center">
-                                <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
-                            </button>
-                        </div>
+                        <button v-if="!isReadOnly" type="submit"
+                            class="btn btn-outline-secondary px-4 fw-bold d-flex align-items-center justify-content-center"
+                            style="height: 42px;">
+                            <i class="fas fa-save me-2"></i> LƯU DỮ LIỆU
+                        </button>
+
                     </div>
                 </form>
             </div>
@@ -1227,7 +1226,7 @@ const selectedProducts = computed(() => {
             ten: m.tenMonAn,
             gia: m.giaBan,
             type: 'MÓN',
-            hinhAnh: m.hinhAnh   // ✅ SỬA Ở ĐÂY
+            hinhAnh: m.hinhAnh   
         }));
 
     return [...sets, ...mons];

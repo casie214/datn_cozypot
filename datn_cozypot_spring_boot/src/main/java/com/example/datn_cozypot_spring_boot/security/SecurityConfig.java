@@ -71,10 +71,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/mon-an-di-kem/**").permitAll()
                         .requestMatchers("/api/set-lau/**").permitAll()
 
+
                         // Đặt bàn (Public) - Từ code của bạn
                         // Lưu ý: Các API cụ thể này phải đặt TRƯỚC rule "/api/dat-ban/**" ở bên dưới
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/check-ban-trong").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/tao-moi").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/hoa-don-thanh-toan/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.PUT, "/api/hoa-don-thanh-toan/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/dot-khuyen-mai/active/guest").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/manage/food/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/manage/food/hotpot/").permitAll()
@@ -95,6 +100,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/chi-tiet/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/lich-su-dat-ban/huy-don/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/ca-nhan").authenticated()
+                        .requestMatchers("/api/chat/**").permitAll()
 
                         // Cho ADMIN và EMPLOYEE tự cập nhật profile
                         .requestMatchers(HttpMethod.GET, "/api/nhan-vien/my-profile")

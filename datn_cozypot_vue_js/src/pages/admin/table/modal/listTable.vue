@@ -397,7 +397,7 @@ onUnmounted(() => {
             <th>Số ghế</th>
             <th>Tầng</th>
             <th>Khu vực</th>
-            <th>Thao tác</th>
+            <th class="text-center" style="width: 120px;">Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -407,13 +407,12 @@ onUnmounted(() => {
             <td>{{ ban.soCho }} chỗ</td>
             <td>{{ ban.soTang }}</td>
             <td>{{ ban.tenKhuVuc }}</td>
-            <td>
-
-              
-              <button class="action-list" style="border: none; background-color: white"
-                @click="handleActionWithAuth(() => openUpdateModal(ban.id), 'ADMIN')">
+            <td class="text-center align-middle">
+              <button class="action-list" 
+                      style="border: none; background-color: transparent; padding: 0;"
+                      @click="handleActionWithAuth(() => openUpdateModal(ban.id), 'ADMIN')">
                 <div class="icon-tooltip">
-                  <i class="fas fa-pen action-icon"></i>
+                  <i class="fas fa-pen action-icon" style=" font-size: 1.1rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></i>
                   <span class="tooltip-text">Xem chi tiết</span>
                 </div>
               </button>

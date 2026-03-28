@@ -92,7 +92,7 @@
                             <th>SỐ LƯỢNG</th>
                             <th>THỜI GIAN HẠN</th>
                             <th>TRẠNG THÁI</th>
-                            <th class="col-action">HÀNH ĐỘNG</th>
+                            <th class="text-center">HÀNH ĐỘNG</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -574,7 +574,7 @@
                                                     <th>Mã KH</th>
                                                     <th>Tên khách hàng</th>
                                                     <th>Email</th>
-                                                    <th>Thao tác</th>
+                                                    <th>Hành động</th>
                                                 </tr>
                                             </thead>
 
@@ -603,14 +603,14 @@
                 <div class="mt-4 d-flex justify-content-end gap-2">
                     <div class="card-footer bg-white border-top p-4 d-flex gap-3" style="align-items: end;">
                         <button type="button"
-                            class="btn btn-outline-custom px-4 fw-bold d-flex align-items-center justify-content-center"
+                            class="btn btn-outline-secondary px-4 fw-bold d-flex align-items-center justify-content-center"
                             style="height: 42px;" @click="closeForm">
                             HỦY BỎ
                         </button>
 
                         <button v-if="!isReadOnly" type="submit"
-                            class="btn btn-red-dark px-5 fw-bold shadow-sm d-flex align-items-center justify-content-center"
-                            :disabled="isSubmitting">
+                            class="btn btn-outline-secondary px-4 fw-bold d-flex align-items-center justify-content-center"
+                            :disabled="isSubmitting" style="height: 42px;">
                             <span v-if="isSubmitting">
                                 <i class="fas fa-spinner fa-spin me-2"></i>
                                 Đang gửi email...
