@@ -17,12 +17,13 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter
 @Setter
 @Entity
 @Table(name = "dot_khuyen_mai")
+
 public class DotKhuyenMai {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -270,7 +270,7 @@ onUnmounted(() => {
                 <th scope="col">NGÀY GIỜ</th>
                 <th scope="col">SỐ NGƯỜI</th>
                 <th scope="col">TRẠNG THÁI</th>
-                <th scope="col">HÀNH ĐỘNG</th>
+                <th class="text-center" scope="col">HÀNH ĐỘNG</th>
               </tr>
             </thead>
             <tbody>
@@ -310,39 +310,11 @@ onUnmounted(() => {
                     {{ getStatusText(phieuDatBan.trangThai) }}
                   </span>
                 </td>
-                <td>
-                  <div class="action-groups d-flex align-items-center gap-3">
+                <td class="text-center">
 
-
-                    <i class="fa-solid fa-eye" style="cursor: pointer;" @click="$emit('open-detail', phieuDatBan)"></i>
-
-
-                    <div class="checkbox-wrapper-5">
-                      <label class="switch">
-                        <input type="checkbox" :checked="phieuDatBan.trangThai === 1"
-                          :disabled="phieuDatBan.trangThai !== 1" @click.prevent="onToggleCheckIn(phieuDatBan)" />
-                        <div class="slider">
-                          <div class="circle">
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="6" height="6"
-                              viewBox="0 0 365.696 365.696" class="cross">
-                              <g>
-                                <path
-                                  d="M243.188 182.86 356.32 69.726c12.5-12.5 12.5-32.766 0-45.247L341.238 9.398c-12.504-12.503-32.77-12.503-45.25 0L182.86 122.528 69.727 9.374c-12.5-12.5-32.766-12.5-45.247 0L9.375 24.457c-12.5 12.504-12.5 32.77 0 45.25l113.152 113.152L9.398 295.99c-12.503 12.503-12.503 32.769 0 45.25L24.48 356.32c12.5 12.5 32.766 12.5 45.247 0l113.132-113.132L295.99 356.32c12.503 12.5 32.769 12.5 45.25 0l15.081-15.082c12.5-12.504 12.5-32.77 0-45.25zm0 0"
-                                  fill="currentColor"></path>
-                              </g>
-                            </svg>
-                            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="10" height="10"
-                              viewBox="0 0 24 24" class="checkmark">
-                              <g>
-                                <path
-                                  d="M9.707 19.121a.997.997 0 0 1-1.414 0l-5.646-5.647a1.5 1.5 0 0 1 0-2.121l.707-.707a1.5 1.5 0 0 1 2.121 0L9 14.171l9.525-9.525a1.5 1.5 0 0 1 2.121 0l.707.707a1.5 1.5 0 0 1 0 2.121z"
-                                  fill="currentColor"></path>
-                              </g>
-                            </svg>
-                          </div>
-                        </div>
-                      </label>
-                    </div>
+                  <div class="icon-tooltip">
+                    <i class="fas fa-eye view-icon" @click="$emit('open-detail', phieuDatBan)"></i>
+                    <span class="tooltip-text">Xem chi tiết</span>
                   </div>
                 </td>
               </tr>
@@ -651,5 +623,51 @@ hr {
 .custom-multiselect-theme :deep(.is-active) {
   box-shadow: 0 0 0 3px rgba(125, 22, 26, 0.15) !important;
   border-color: #7d161a !important;
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor:pointer;
+}
+
+/* Tooltip text */
+.icon-tooltip .tooltip-text {
+    position: absolute;
+    bottom: 130%; /* hiện phía trên icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Mũi tên nhỏ */
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Hover hiện tooltip */
+.icon-tooltip:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
 }
 </style>

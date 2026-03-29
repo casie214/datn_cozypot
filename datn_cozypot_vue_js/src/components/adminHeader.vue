@@ -275,7 +275,7 @@ onUnmounted(() => {
                             <tr>
                                 <th class="ps-4" style="width: 60%;">Nội dung</th>
                                 <th style="width: 20%;">Thời gian</th>
-                                <th class="text-end pe-4" style="width: 20%;">Thao tác</th>
+                                <th class="text-end pe-4" style="width: 20%;">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>

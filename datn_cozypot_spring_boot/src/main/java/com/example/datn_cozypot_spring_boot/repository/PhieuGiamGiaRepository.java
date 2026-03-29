@@ -36,6 +36,25 @@ AND (:ngayKetThuc IS NULL OR p.ngayKetThuc <= :ngayKetThuc)
             @Param("ngayKetThuc") LocalDateTime ngayKetThuc,
             Pageable pageable
     );
+
+    @Query("SELECT DISTINCT p FROM PhieuGiamGia p LEFT JOIN p.danhSachCaNhan k " +
+            "WHERE p.doiTuong = 1 AND p.trangThai = 1 " +
+            "AND p.ngayBatDau <= CURRENT_TIMESTAMP AND p.ngayKetThuc >= CURRENT_TIMESTAMP " +
+            "AND (:keyword IS NULL OR LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia) " +
+            "AND (:idKhachHang IS NULL OR k.id = :idKhachHang)")
+    Page<PhieuGiamGia> findValidPersonalVouchers(
+            @Param("keyword") String keyword,
+            @Param("loaiGiamGia") Integer loaiGiamGia,
+            @Param("idKhachHang") Integer idKhachHang,
+            Pageable pageable);
+
+    @Query("SELECT p FROM PhieuGiamGia p WHERE p.doiTuong = 0 AND p.trangThai = 1 " +
+            "AND p.ngayBatDau <= CURRENT_TIMESTAMP AND p.ngayKetThuc >= CURRENT_TIMESTAMP " +
+            "AND (:keyword IS NULL OR LOWER(p.tenPhieuGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.codeGiamGia) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:loaiGiamGia IS NULL OR p.loaiGiamGia = :loaiGiamGia)")
+    Page<PhieuGiamGia> findValidPublicVouchers(@Param("keyword") String keyword, @Param("loaiGiamGia") Integer loaiGiamGia, Pageable pageable);
+
     @Query("SELECT p FROM PhieuGiamGia p LEFT JOIN FETCH p.danhSachCaNhan WHERE p.id = :id")
     Optional<PhieuGiamGia> findDetailById(@Param("id") Integer id);
     boolean existsByCodeGiamGia(String codeGiamGia);

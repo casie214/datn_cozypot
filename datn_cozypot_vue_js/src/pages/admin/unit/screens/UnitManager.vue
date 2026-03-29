@@ -195,7 +195,7 @@ const handleEditValue = async (valItem, parentUnit) => {
             <th style="width: 60px;">STT</th>
             <th>ĐƠN VỊ TÍNH</th>
             <th>MÔ TẢ</th>
-            <th style="width: 100px;">HÀNH ĐỘNG</th>
+            <th class="text-center" style="width: 100px;">HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>
@@ -216,10 +216,15 @@ const handleEditValue = async (valItem, parentUnit) => {
               </td>
               <td class="text-muted">{{ unit.moTa || '---' }}</td>
               <td class="text-center">
-                <button class="btn-icon" @click.stop="handleActionWithAuth(() => openUpdateModal(unit), 'ADMIN')"
-                  title="Chỉnh sửa">
-                  <i class="fas fa-pen"></i>
-                </button>
+
+
+                <div class="icon-tooltip">
+                  <button class="btn-icon" @click.stop="handleActionWithAuth(() => openUpdateModal(unit), 'ADMIN')"
+                    title="Chỉnh sửa">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <span class="tooltip-text">Cập nhật giá trị</span>
+                </div>
               </td>
             </tr>
 
@@ -489,39 +494,87 @@ const handleEditValue = async (valItem, parentUnit) => {
 }
 
 .tab-content {
-    font-family: var(--bs-body-font-family);
-    font-size: var(--bs-body-font-size);
-    font-weight: var(--bs-body-font-weight);
-    line-height: var(--bs-body-line-height);
-    color: var(--bs-body-color);
-    text-align: var(--bs-body-text-align);
+  font-family: var(--bs-body-font-family);
+  font-size: var(--bs-body-font-size);
+  font-weight: var(--bs-body-font-weight);
+  line-height: var(--bs-body-line-height);
+  color: var(--bs-body-color);
+  text-align: var(--bs-body-text-align);
 }
 
 /* Tinh chỉnh lại bảng để khớp với font-size hệ thống */
 .table-bootstrap-style {
-    width: 100%;
-    margin-bottom: 1rem;
-    vertical-align: top;
-    border-color: var(--bs-border-color); /* Dùng biến màu viền của Bootstrap */
+  width: 100%;
+  margin-bottom: 1rem;
+  vertical-align: top;
+  border-color: var(--bs-border-color);
+  /* Dùng biến màu viền của Bootstrap */
 }
 
 .table-bootstrap-style thead th {
-    background-color: var(--bs-tertiary-bg); /* Màu nền nhẹ chuẩn BS5 */
-    color: var(--bs-secondary-color);
-    /* Font size cho header thường nhỏ hơn body một chút (0.875rem) */
-    font-size: 0.875em; 
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
-    font-weight: 700;
-    padding: 12px 16px;
-    border-bottom: 2px solid var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
+  /* Màu nền nhẹ chuẩn BS5 */
+  color: var(--bs-secondary-color);
+  /* Font size cho header thường nhỏ hơn body một chút (0.875rem) */
+  font-size: 0.875em;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--bs-border-color);
 }
 
 .table-bootstrap-style tbody td {
-    padding: 14px 16px;
-    /* Sử dụng kế thừa từ .tab-content hoặc set cứng theo biến */
-    font-size: inherit; 
-    vertical-align: middle;
-    border-bottom: 1px solid var(--bs-border-color-translucent);
+  padding: 14px 16px;
+  /* Sử dụng kế thừa từ .tab-content hoặc set cứng theo biến */
+  font-size: inherit;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.icon-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor:pointer;
+}
+
+/* Tooltip text */
+.icon-tooltip .tooltip-text {
+    position: absolute;
+    bottom: 130%; /* hiện phía trên icon */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Mũi tên nhỏ */
+.icon-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Hover hiện tooltip */
+.icon-tooltip:hover .tooltip-text {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
 }
 </style>

@@ -10,7 +10,9 @@ import com.example.datn_cozypot_spring_boot.repository.DanhMucChiTietRepository.
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.OutputStream;
@@ -48,6 +50,8 @@ public class DotKhuyenMaiService {
 
     @Autowired
     private DanhMucChiTietRepository monAnRepo;
+    @Autowired
+    private DotKhuyenMaiRepository dotKhuyenMaiRepository;
 
     // Bổ sung phương thức này nếu chưa có hoặc đang sai tên
     public List<DotKhuyenMaiDTO> getAll() {
@@ -62,6 +66,51 @@ public class DotKhuyenMaiService {
         DotKhuyenMai entity = dotKhuyenMaiRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đợt khuyến mãi id: " + id));
         return convertToDto(entity);
+    }
+
+    public Page<DotKhuyenMaiDTO> getActiveCampaigns(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("ngayKetThuc").ascending());
+
+        // 1. Lấy Entity từ DB
+        Page<DotKhuyenMai> entityPage = dotKhuyenMaiRepository.findActiveCampaigns(pageable);
+
+        // 2. Chuyển đổi Entity -> DTO
+        return entityPage.map(entity -> {
+            DotKhuyenMaiDTO dto = new DotKhuyenMaiDTO();
+            dto.setId(entity.getId());
+            dto.setMaDotKhuyenMai(entity.getMaDotKhuyenMai());
+            dto.setTenDotKhuyenMai(entity.getTenDotKhuyenMai());
+            dto.setMoTa(entity.getMoTa());
+            dto.setPhanTramGiam(entity.getPhanTramGiam());
+            dto.setNgayBatDau(entity.getNgayBatDau());
+            dto.setNgayKetThuc(entity.getNgayKetThuc());
+            dto.setTrangThai(entity.getTrangThai());
+
+            // Map sang trường cho Vue dễ đọc
+            dto.setPhanTramGiam(entity.getPhanTramGiam());
+
+            // =========================================================
+            // 🚨 LOGIC MỚI: BÓC TÁCH ID TỪ BẢNG TRUNG GIAN NÉM VÀO DTO
+            // =========================================================
+
+            // 1. Móc ID của các Set Lẩu
+            if (entity.getSetLaus() != null && !entity.getSetLaus().isEmpty()) {
+                List<Integer> listIdSetLau = entity.getSetLaus().stream()
+                        .map(setLau -> setLau.getId())
+                        .collect(Collectors.toList());
+                dto.setIdSetLauChiTiet(listIdSetLau);
+            }
+
+            // 2. Móc ID của các Món Ăn Lẻ
+            if (entity.getMonAnDiKems() != null && !entity.getMonAnDiKems().isEmpty()) {
+                List<Integer> listIdMonAn = entity.getMonAnDiKems().stream()
+                        .map(monAn -> monAn.getId())
+                        .collect(Collectors.toList());
+                dto.setIdMonAnChiTiet(listIdMonAn);
+            }
+
+            return dto;
+        });
     }
 
     @Transactional

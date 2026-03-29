@@ -33,6 +33,12 @@ public interface DotKhuyenMaiRepository extends JpaRepository<DotKhuyenMai, Inte
             Pageable pageable
     );
 
+    @Query("SELECT d FROM DotKhuyenMai d " +
+            "WHERE d.trangThai = 1 " +
+            "AND CURRENT_DATE >= d.ngayBatDau " +
+            "AND CURRENT_DATE <= d.ngayKetThuc")
+    Page<DotKhuyenMai> findActiveCampaigns(Pageable pageable);
+
 
     @Query("""
     select d from DotKhuyenMai d

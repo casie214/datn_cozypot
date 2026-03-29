@@ -782,4 +782,30 @@ public class HoaDonThanhToanService {
         // 8. Ghi Log Lịch sử Hóa đơn
         ghiLichSu(hd, null, "Mở rộng bàn", "Xếp thêm đoàn vào Bàn " + banMoi.getMaBan(), hd.getTrangThaiHoaDon(), hd.getTrangThaiHoaDon());
     }
+
+    @Transactional
+    public void updateTrangThaiHoaDonByIdPhieu(Integer idPhieu, Integer trangThaiMoi) {
+        // 1. Tìm hóa đơn đang gắn với cái Phiếu đặt bàn này
+        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findByIdPhieuDatBan_Id(idPhieu);
+
+        // 2. Nếu tìm thấy thì cập nhật trạng thái
+        if (hoaDon != null) {
+            // 🚨 LẤY TRẠNG THÁI CŨ TRƯỚC KHI GHI ĐÈ LÊN
+            Integer trangThaiCu = hoaDon.getTrangThaiHoaDon();
+
+            // Cập nhật trạng thái mới
+            hoaDon.setTrangThaiHoaDon(trangThaiMoi);
+            hoaDonThanhToanRepository.save(hoaDon);
+
+            // 🚨 GỌI HÀM GHI LỊCH SỬ (Truyền null cho nhân viên để hiểu là Hệ thống tự động xử lý)
+            ghiLichSu(
+                    hoaDon,
+                    null,
+                    "Hủy hóa đơn tự động",
+                    "Hệ thống tự động hủy hóa đơn do Phiếu đặt bàn liên kết đã bị hủy",
+                    trangThaiCu,
+                    trangThaiMoi
+            );
+        }
+    }
 }

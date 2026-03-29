@@ -1847,24 +1847,43 @@ const openMergeTableView = () => {
   danhSachBanChonGop.value = []; // Reset mảng mỗi khi mở lại tab này
 };
 
-const toggleSelectBanGop = (ban) => {
+const toggleSelectBanGop = async (ban) => { // 🚨 Nhớ thêm chữ async ở đây
   const index = danhSachBanChonGop.value.findIndex(b => b.id === ban.id);
   
   // Nếu đã tick rồi thì bỏ tick (Bỏ chọn)
   if (index !== -1) {
     danhSachBanChonGop.value.splice(index, 1); 
   } 
-  // Nếu chưa tick -> Chuẩn bị tick -> Phải kiểm tra sức chứa
+  // Nếu chưa tick -> Chuẩn bị tick -> Phải kiểm tra
   else {
+    // ========================================================
+    // 🚨 YÊU CẦU 2: Kiểm tra bàn mục tiêu có đang gộp/ghép nhiều khách không
+    // ========================================================
+    try {
+      Swal.fire({ title: 'Đang kiểm tra...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const resTabs = await axiosClient.get(`/hoa-don-thanh-toan/danh-sach-phieu-tai-ban/${ban.id}`);
+      if (resTabs.data && resTabs.data.length > 1) {
+          return Swal.fire({
+              icon: 'warning',
+              iconColor: '#7D161A',
+              title: 'Không thể chọn!',
+              html: `Bàn <b>${ban.maBan}</b> hiện đang có nhiều đoàn khách ngồi chung (đã ghép).<br>Hệ thống không hỗ trợ gộp tiếp bàn này để tránh sai sót!`,
+              confirmButtonColor: '#7d161a',
+              confirmButtonText: 'Đã hiểu'
+          });
+      }
+      Swal.close();
+    } catch (e) {
+      Swal.close();
+      console.error(e);
+    }
+
     // 1. Sức chứa tối đa của bàn hiện tại
     const maxCapacity = Number(selectedBan.value?.soCho || selectedBan.value?.soNguoiToiDa) || 0;
-    
     // 2. Tổng khách HIỆN ĐANG NGỒI tại bàn này
     const currentPeople = Number(selectedBan.value?.tongKhachDangNgoi || 0);
-    
     // 3. Tổng khách của các bàn đã tick chọn gộp TRƯỚC ĐÓ
     const selectedGopTotal = danhSachBanChonGop.value.reduce((sum, b) => sum + Number(b._hoaDonInfo.soNguoi || 0), 0);
-    
     // 4. Số khách của cái bàn VỪA MỚI CLICK vào
     const newPeople = Number(ban._hoaDonInfo.soNguoi || 0);
     
@@ -1912,6 +1931,21 @@ const handleConfirmShare = async (banBiGhep) => {
   try {
     Swal.fire({ title: 'Đang kiểm tra...', didOpen: () => Swal.showLoading() });
     
+    // ========================================================
+    // 🚨 YÊU CẦU 2: Kiểm tra bàn bị ghép có đang ngồi nhiều đoàn không
+    // ========================================================
+    const resTabs = await axiosClient.get(`/hoa-don-thanh-toan/danh-sach-phieu-tai-ban/${banBiGhep.id}`);
+    if (resTabs.data && resTabs.data.length > 1) {
+        return Swal.fire({
+            icon: 'warning',
+            iconColor: '#7D161A',
+            title: 'Không thể chuyển!',
+            html: `Bàn <b>${banBiGhep.maBan}</b> hiện đang có nhiều đoàn khách ngồi chung.<br>Vui lòng chuyển từng phiếu riêng lẻ thay vì chuyển cả cụm bàn!`,
+            confirmButtonColor: '#7d161a',
+            confirmButtonText: 'Đã hiểu'
+        });
+    }
+
     // Lấy thông tin phiếu của cái bàn vừa click
     const resTarget = await axiosClient.get(`/hoa-don-thanh-toan/active-by-ban/${banBiGhep.id}`);
     const phieuBiGhep = resTarget.data; 
@@ -1920,9 +1954,7 @@ const handleConfirmShare = async (banBiGhep) => {
         return Swal.fire('Lỗi', 'Không tìm thấy phiếu của bàn này!', 'error');
     }
 
-    // ========================================================
     // 🚨 CHỐT CHẶN SỨC CHỨA: Kiểm tra số người của bàn bị ghép
-    // ========================================================
     const soNguoiGhepVao = Number(phieuBiGhep.soNguoiBanNay || phieuBiGhep.soNguoi || 1);
     
     if (soNguoiGhepVao > remainingSeats.value) {
@@ -1934,7 +1966,6 @@ const handleConfirmShare = async (banBiGhep) => {
             confirmButtonText: 'Đã hiểu'
         });
     }
-    // ========================================================
 
     const confirm = await Swal.fire({
       title: 'Xác nhận ghép bàn?',
@@ -2688,9 +2719,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                         <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openChangeTableView">
                             <i class="fa-solid fa-right-left me-1"></i> Đổi / Tách
                         </button>
-                        <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openMergeTableView">
-                            <i class="fa-solid fa-file-invoice me-1"></i> Gộp Hóa Đơn
-                        </button>
+                        
                         <button :disabled="!isServing" class="btn-action flex-grow-1" @click="openShareTableView">
                             <i class="fa-solid fa-users me-1"></i> Ghép Bàn
                         </button>

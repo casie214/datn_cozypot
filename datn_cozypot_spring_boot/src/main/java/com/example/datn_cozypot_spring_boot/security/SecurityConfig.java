@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/refresh-token").permitAll()
                         .requestMatchers("/api/phieu-giam-gia/public").permitAll()
                         .requestMatchers("/api/auth/refresh-token").permitAll()
+                        .requestMatchers("/api/dat-ban/search").permitAll()
                         .requestMatchers("/api/chat").permitAll()
                         .requestMatchers("/api/chat/history/**").permitAll()
                         .requestMatchers("/api/chat/reset").permitAll()
@@ -70,16 +71,25 @@ public class SecurityConfig {
                         .requestMatchers("/api/mon-an-di-kem/**").permitAll()
                         .requestMatchers("/api/set-lau/**").permitAll()
 
+
                         // Đặt bàn (Public) - Từ code của bạn
                         // Lưu ý: Các API cụ thể này phải đặt TRƯỚC rule "/api/dat-ban/**" ở bên dưới
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/check-ban-trong").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/dat-ban/tao-moi").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/dat-ban/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/hoa-don-thanh-toan/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.PUT, "/api/hoa-don-thanh-toan/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/dot-khuyen-mai/active/guest").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/manage/food/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/manage/food/hotpot/").permitAll()
 
                         // VNPay (Gộp của bạn và main)
                         .requestMatchers("/api/vnpay/vnpay-return").permitAll()
                         .requestMatchers("/api/vnpay/create-payment/**").permitAll()
                         .requestMatchers("/api/vnpay/vnpay-return-deposit").permitAll()
                         .requestMatchers("/api/vnpay/create-payment-deposit/**").permitAll()
+                        .requestMatchers("/api/phieu-giam-gia/ca-nhan").permitAll()
                         .requestMatchers("/api/vnpay/**").permitAll() // Của main bao trọn vnpay
 
                         // Đặt bàn (Protected)
@@ -90,6 +100,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/chi-tiet/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/lich-su-dat-ban/huy-don/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/lich-su-dat-ban/ca-nhan").authenticated()
+                        .requestMatchers("/api/chat/**").permitAll()
 
                         // Cho ADMIN và EMPLOYEE tự cập nhật profile
                         .requestMatchers(HttpMethod.GET, "/api/nhan-vien/my-profile")

@@ -296,6 +296,65 @@ const submitFinalBooking = async () => {
     return;
   }
 
+  // ==========================================================
+  // 🚨 THÊM LOGIC CHECK TRÙNG LỊCH 3 TIẾNG CỦA KHÁCH HÀNG
+  // ==========================================================
+  try {
+    Swal.fire({ title: "Đang kiểm tra thông tin...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Gọi API tìm các phiếu cũ của SĐT này 
+    // (Lưu ý: Cần đảm bảo API này cho phép role Guest truy cập)
+    const resSearch = await axiosClient.post("/dat-ban/search", {
+      soDienThoai: customerInfo.phone,
+      trangThai: null
+    });
+
+    const historyBookings = resSearch.data?.content || resSearch.data || [];
+    const timeToBook = new Date(`${bookingData.date}T${bookingData.time}:00`).getTime();
+
+    const conflictingBooking = historyBookings.find(phieu => {
+      // Bỏ qua phiếu Đã hủy (2) hoặc Hoàn thành (4)
+      if (String(phieu.trangThai) === "2" || String(phieu.trangThai) === "4") return false;
+
+      // Xử lý parse ngày tháng (hỗ trợ cả dạng mảng [Y,M,D,H,m] hoặc chuỗi ISO)
+      let existingTimeObj;
+      if (Array.isArray(phieu.thoiGianDat)) {
+        const [y, m, d, h, min, s] = phieu.thoiGianDat;
+        existingTimeObj = new Date(y, m - 1, d, h || 0, min || 0, s || 0);
+      } else {
+        existingTimeObj = new Date(phieu.thoiGianDat);
+      }
+
+      // Tính khoảng cách giữa 2 lịch (trị tuyệt đối)
+      const diffHours = Math.abs(existingTimeObj.getTime() - timeToBook) / (1000 * 60 * 60);
+      return diffHours < 3; // Nằm trong khoảng dưới 3 tiếng
+    });
+
+    if (conflictingBooking) {
+      let existingFormattedTime = "";
+      if (Array.isArray(conflictingBooking.thoiGianDat)) {
+        const [y, m, d, h, min] = conflictingBooking.thoiGianDat;
+        existingFormattedTime = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')} ngày ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+      } else {
+        const d = new Date(conflictingBooking.thoiGianDat);
+        existingFormattedTime = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ngày ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      }
+
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Trùng lịch đặt bàn!',
+        text: `Số điện thoại ${customerInfo.phone} đã có lịch đặt lúc ${existingFormattedTime}. Các lịch phải cách nhau ít nhất 3 tiếng!`,
+        confirmButtonColor: '#7d161a',
+      });
+    }
+    
+    Swal.close(); // Đóng loading nếu check OK
+  } catch (e) {
+    console.warn("Không thể check lịch khách hàng từ FE (Có thể do phân quyền API):", e);
+    Swal.close(); 
+    // Nếu API /search bị chặn 403, vẫn cho đi tiếp để Backend tự block ở API /tao-moi
+  }
+
   let depositHtml = "";
   if (depositAmount.value > 0) {
     depositHtml = `

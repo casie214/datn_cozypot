@@ -107,7 +107,7 @@ const goToFoodList = (category) => {
             <th>SỐ MÓN ĂN</th>
             <th>MÔ TẢ</th>
             <th>TRẠNG THÁI</th>
-            <th>CHỨC NĂNG</th>
+            <th>HÀNH ĐỘNG</th>
           </tr>
         </thead>
         <tbody>

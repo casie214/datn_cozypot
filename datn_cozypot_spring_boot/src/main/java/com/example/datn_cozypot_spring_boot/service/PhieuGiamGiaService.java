@@ -110,6 +110,41 @@ public class PhieuGiamGiaService {
         return list.map(this::mapToResponseDTO);
     }
 
+    public Page<PhieuGiamGiaResponseDTO> getValidPersonalVouchers(String keyword, Integer loaiGiamGia, Integer idKhachHang, int page, int size) {
+        // Tiền xử lý keyword tránh lỗi LIKE %%
+        if (keyword != null) {
+            keyword = keyword.trim();
+            if (keyword.isEmpty()) {
+                keyword = null;
+            }
+        }
+
+        // Sắp xếp mới nhất đưa lên đầu
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        // Gọi query trong Repo
+        Page<PhieuGiamGia> list = repo.findValidPersonalVouchers(keyword, loaiGiamGia, idKhachHang, pageable);
+
+        // Map sang DTO trả về (đảm bảo mày đã có sẵn hàm mapToResponseDTO trong Service)
+        return list.map(this::mapToResponseDTO);
+    }
+
+    public Page<PhieuGiamGiaResponseDTO> getValidPublicVouchers(String keyword, Integer loaiGiamGia, int page, int size) {
+        if (keyword != null) {
+            keyword = keyword.trim();
+            if (keyword.isEmpty()) {
+                keyword = null;
+            }
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+
+        // Gọi thẳng query chỉ lấy phiếu còn hạn
+        Page<PhieuGiamGia> list = repo.findValidPublicVouchers(keyword, loaiGiamGia, pageable);
+
+        return list.map(this::mapToResponseDTO);
+    }
+
     public PhieuGiamGiaResponseDTO getById(Integer id) {
         PhieuGiamGia entity = repo.findDetailById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu giảm giá với ID: " + id));
