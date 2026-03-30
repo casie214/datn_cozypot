@@ -978,42 +978,6 @@ const sliderTrackStyle = computed(() => {
 
 const submitForm = async () => {
     if (!validateForm()) return;
-    // 🔥 CHECK TRÙNG KHUYẾN MÃI
-    const conflict = filteredKhuyenMai.value.find(km => {
-
-        // bỏ qua chính nó khi edit
-        if (selectedId.value && km.id === selectedId.value) return false;
-
-        // check trùng thời gian
-        const overlap = isDateOverlap(
-            formData.ngayBatDau,
-            formData.ngayKetThuc,
-            km.ngayBatDau,
-            km.ngayKetThuc
-        );
-
-        if (!overlap) return false;
-
-        // check trùng sản phẩm
-        const setConflict = km.setLauIds?.some(id =>
-            formData.idSetLauChiTiet.includes(id)
-        );
-
-        const monConflict = km.monAnIds?.some(id =>
-            formData.idMonAnChiTiet.includes(id)
-        );
-
-        return setConflict || monConflict;
-    });
-
-    if (conflict) {
-        showToast(
-            "Trùng khuyến mãi",
-            `Sản phẩm đã có khuyến mãi "${conflict.tenDotKhuyenMai}" trong thời gian này!`,
-            "error"
-        );
-        return;
-    }
 
     const confirm = await confirmAction(
         'Xác nhận lưu?',
@@ -1023,7 +987,6 @@ const submitForm = async () => {
     if (!confirm) return;
 
     try {
-
         if (selectedId.value) {
             await promotionService.update(selectedId.value, formData);
             showSuccess("Thành công", "Cập nhật khuyến mãi thành công!");
