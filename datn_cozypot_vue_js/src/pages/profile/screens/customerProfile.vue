@@ -167,7 +167,7 @@
                                     <div
                                         class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between">
                                         <h6 class="fw-bold m-0 text-wine">
-                                            <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ nhận hàng
+                                            <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ chính
                                         </h6>
                                         <button @click="addAddress" type="button"
                                             class="btn btn-sm btn-outline-wine rounded-pill">
