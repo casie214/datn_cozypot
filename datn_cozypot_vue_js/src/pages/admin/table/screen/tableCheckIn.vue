@@ -1701,7 +1701,6 @@ const handleSwitchTable = async (banMoi) => {
   }
   // ========================================================
 
-
   // 3. TRƯỜNG HỢP: ĐANG TÁCH / THÊM BÀN PHỤ
   if (isSelectingSecondTable.value || localStorage.getItem("pendingSplitCustomer")) {
         try {
@@ -1764,18 +1763,14 @@ const handleSwitchTable = async (banMoi) => {
       html: `Bàn hiện tại đang có <b>${soKhach} người</b> nhưng bàn <b>${banMoi.maBan}</b> chỉ có <b>${sucChuaBanMoi} chỗ</b>.<br><br>Chọn hướng xử lý:`,
       icon: 'warning',
       iconColor: '#7D161A',
-      showDenyButton: true,
       showCancelButton: true,
-      confirmButtonColor: '#7d161a',
-      denyButtonColor: '#28a745',
-      confirmButtonText: '<i class="fa-solid fa-chair"></i> Kê ghế',
-      denyButtonText: '<i class="fa-solid fa-arrows-split-up-and-left"></i> Đổi & Mở bàn phụ',
+      confirmButtonColor: '#7d161a', // <-- Đổi thành màu đỏ mận
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fa-solid fa-arrows-split-up-and-left"></i> Đổi & Mở bàn phụ',
       cancelButtonText: 'Hủy'
     });
 
     if (swalResult.isConfirmed) {
-       // Kê ghế
-    } else if (swalResult.isDenied) {
       try {
         await updateTrangThaiBan({ id: selectedPhieu.value.id, idBanAn: selectedBan.value.id, idBanAnMoi: banMoi.id, idNhanVien: getCurrentStaffId() || 1, trangThai: 0, soNguoi: sucChuaBanMoi});
         isSelectingSecondTable.value = true;
@@ -1795,10 +1790,12 @@ const handleSwitchTable = async (banMoi) => {
       } catch (error) {
         return Swal.fire({ title: 'Lỗi', text: 'Lỗi đổi và tách bàn!', icon: 'error', confirmButtonText: 'Đóng' });
       }
-    } else { return; }
+    } else { 
+      return; // Bấm hủy hoặc click ra ngoài thì thoát hàm
+    }
   } else {
-    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonText: 'Lưu thay đổi',
-    cancelButtonText: 'Hủy', confirmButtonColor: '#7d161a' });
+    // Trường hợp bàn đủ chỗ
+    const confirm = await Swal.fire({ title: 'Xác nhận đổi?', text: `Sang bàn ${banMoi.maBan}?`, icon: 'question', iconColor: '#7D161A', showCancelButton: true, confirmButtonText: 'Lưu thay đổi', cancelButtonText: 'Hủy', confirmButtonColor: '#7d161a' });
     if (!confirm.isConfirmed) return;
   }
 

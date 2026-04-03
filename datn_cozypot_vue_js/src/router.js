@@ -36,7 +36,7 @@ const routes = [
         name: "clientForm",
         component: () =>
           import("@/pages/admin/client/modal/clientFormPage.vue"),
-        meta: { index: 2, requiredRole: ["ADMIN"] },
+        meta: { index: 2, requiredRole: ["ADMIN", "EMPLOYEE"] },
       },
     ],
   },

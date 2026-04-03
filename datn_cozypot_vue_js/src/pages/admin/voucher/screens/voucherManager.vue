@@ -635,6 +635,11 @@ import '@vueform/multiselect/themes/default.css'
 import axios from 'axios';
 import voucherService from '@/services/voucherService';
 import Swal from 'sweetalert2'
+
+import { usePermission } from '@/components/permissionHelper';
+
+const { handleActionWithAuth } = usePermission();
+
 const formatCurrency = (value) => {
     if (!value) return '0 đ'
     return value.toLocaleString('vi-VN') + ' đ'
@@ -1437,25 +1442,26 @@ const isExpired = (ngayKetThuc) => {
 
 const isSubmitting = ref(false);
 const triggerToggleStatus = async (pg) => {
+    handleActionWithAuth(async () => {
+        const actionText = pg.trangThai === 1
+            ? 'ngừng hoạt động'
+            : 'kích hoạt'
 
-    const actionText = pg.trangThai === 1
-        ? 'ngừng hoạt động'
-        : 'kích hoạt'
+        const confirmed = await showConfirm(
+            "Xác nhận thay đổi",
+            `Bạn có chắc muốn ${actionText} phiếu ${pg.maPhieuGiamGia}?`
+        )
 
-    const confirmed = await showConfirm(
-        "Xác nhận thay đổi",
-        `Bạn có chắc muốn ${actionText} phiếu ${pg.maPhieuGiamGia}?`
-    )
+        if (!confirmed) return
 
-    if (!confirmed) return
-
-    try {
-        await voucherService.toggleStatus(pg.id, pg.trangThai)
-        showAlert("Thành công", "Trạng thái đã được cập nhật")
-        handleSearch()
-    } catch (e) {
-        showAlert("Lỗi", "Không thể cập nhật trạng thái", "error")
-    }
+        try {
+            await voucherService.toggleStatus(pg.id, pg.trangThai)
+            showAlert("Thành công", "Trạng thái đã được cập nhật")
+            handleSearch()
+        } catch (e) {
+            showAlert("Lỗi", "Không thể cập nhật trạng thái", "error")
+        }
+    });
 }
 const resetCustomerFilter = () => {
     customerSearch.value = '';
@@ -1463,24 +1469,28 @@ const resetCustomerFilter = () => {
 
 // --- ĐIỀU HƯỚNG FORM ---
 const openFormAdd = async () => {
-    resetFormData();
-    clearErrors();
-    selectedId.value = null;
-    isReadOnly.value = false;
-    isFormActive.value = true;
-    isCustomerListOpen.value = false; // Reset khi thêm mới
+    handleActionWithAuth(async () => {
+        resetFormData();
+        clearErrors();
+        selectedId.value = null;
+        isReadOnly.value = false;
+        isFormActive.value = true;
+        isCustomerListOpen.value = false; // Reset khi thêm mới
+    });
 };
 
 const openFormEdit = async (id) => {
-    clearErrors();
-    selectedId.value = id;
-    isReadOnly.value = false;
-    if (listKhachHang.value.length === 0) {
-        await loadCustomers();
-    }
-    await loadDetail(id);
-    // ⭐ TRUYỀN idDotKhuyenMai
-    isFormActive.value = true;
+    handleActionWithAuth(async () => {
+        clearErrors();
+        selectedId.value = id;
+        isReadOnly.value = false;
+        if (listKhachHang.value.length === 0) {
+            await loadCustomers();
+        }
+        await loadDetail(id);
+        // ⭐ TRUYỀN idDotKhuyenMai
+        isFormActive.value = true;
+    });
 };
 
 

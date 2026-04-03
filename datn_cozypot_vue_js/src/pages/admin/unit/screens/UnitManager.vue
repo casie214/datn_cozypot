@@ -236,7 +236,8 @@ const handleEditValue = async (valItem, parentUnit) => {
                     <h6 class="detail-title"><i class="fas fa-ruler-combined"></i> Các giá trị định lượng:</h6>
                     <div class="d-flex flex-wrap gap-2">
                       <span v-for="v in unit.values" :key="v.id" class="status-badge value-badge clickable-badge"
-                        :class="{ 'inactive': v.trangThai === 0 }" @click="handleEditValue(v, unit)"
+                        :class="{ 'inactive': v.trangThai === 0 }" 
+                        @click="handleActionWithAuth(() => handleEditValue(v, unit), 'ADMIN')"
                         title="Click để sửa hoặc tắt trạng thái">
                         {{ v.giaTri }}
                         <i v-if="v.trangThai === 0" class="fas fa-eye-slash ms-1 small-icon"></i>
