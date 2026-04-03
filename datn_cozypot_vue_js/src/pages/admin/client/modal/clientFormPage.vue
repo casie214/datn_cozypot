@@ -558,7 +558,7 @@ const validateForm = async () => {
 
   // --- BẮT ĐẦU VALIDATE CHI TIẾT DANH SÁCH ĐỊA CHỈ ---
   if (!formData.danhSachDiaChi || formData.danhSachDiaChi.length === 0) {
-    errors.diaChi = 'Vui lòng thêm ít nhất một địa chỉ nhận hàng';
+    errors.diaChi = 'Vui lòng thêm ít nhất một địa chỉ';
     ok = false;
   } else {
     // Duyệt qua từng địa chỉ để kiểm tra các ô select và textarea

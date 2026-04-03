@@ -167,7 +167,7 @@
                                     <div
                                         class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between">
                                         <h6 class="fw-bold m-0 text-wine">
-                                            <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ chính
+                                            <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ
                                         </h6>
                                         <button @click="addAddress" type="button"
                                             class="btn btn-sm btn-outline-wine rounded-pill">
@@ -786,7 +786,7 @@ const validateForm = async () => {
 
     // --- VALIDATE DANH SÁCH ĐỊA CHỈ ---
     if (!formData.danhSachDiaChi || formData.danhSachDiaChi.length === 0) {
-        errors.diaChi = 'Vui lòng thêm ít nhất một địa chỉ nhận hàng';
+        errors.diaChi = 'Vui lòng thêm ít nhất một địa chỉ';
         ok = false;
     } else {
         formData.danhSachDiaChi.forEach((item, index) => {
@@ -977,7 +977,7 @@ onMounted(async () => {
                 previewUrl.value = `http://localhost:8080/uploads/images/${formData.anhDaiDien}`;
             }
 
-            // 4. Xử lý danh sách địa chỉ nhận hàng
+            // 4. Xử lý danh sách địa chỉ
             if (danhSachDiaChi && danhSachDiaChi.length > 0) {
                 const mappedAddresses = [];
 
