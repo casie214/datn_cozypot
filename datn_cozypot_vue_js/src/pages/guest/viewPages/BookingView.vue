@@ -92,6 +92,8 @@ const validateFullName = () => {
     errors.fullName = "Vui lòng nhập họ và tên.";
   } else if (customerInfo.fullName.trim().length < 2) {
     errors.fullName = "Tên quá ngắn, vui lòng nhập đầy đủ.";
+  } else if (customerInfo.fullName.trim().length > 50) { // <--- THÊM CHECK MAX LENGTH
+    errors.fullName = "Họ và tên không được vượt quá 50 ký tự.";
   } else {
     errors.fullName = "";
   }
@@ -367,8 +369,7 @@ const submitFinalBooking = async () => {
 
   // BƯỚC XÁC NHẬN THÔNG TIN
   const isConfirm = await Swal.fire({
-    title:
-      '<h3 style="font-weight: bold; color: #333; margin-bottom: 0px;">Xác Nhận Đặt Bàn</h3>',
+    title: '<h3 style="font-weight: bold; color: #333; margin-bottom: 0px;">Xác Nhận Đặt Bàn</h3>',
     html: `
       <p style="color: #888; font-size: 14px; margin-bottom: 20px;">Vui lòng kiểm tra lại thông tin trước khi xác nhận</p>
 
@@ -414,14 +415,13 @@ const submitFinalBooking = async () => {
     `,
     icon: "question",
     showCancelButton: true,
-    confirmButtonText:
-      '<i class="fas fa-check-circle me-1"></i> Xác Nhận Đặt Bàn',
+    confirmButtonText: '<i class="fas fa-check-circle me-1"></i> Xác Nhận Đặt Bàn',
     cancelButtonText: '<i class="fas fa-times me-1"></i> Hủy',
     buttonsStyling: false,
     customClass: {
       popup: "rounded-4",
-      confirmButton: "btn text-white fw-bold px-4 py-2 mx-2",
-      cancelButton: "btn text-dark fw-bold px-4 py-2 mx-2",
+      confirmButton: "swal-confirm-btn", 
+      cancelButton: "swal-cancel-btn",
     },
     didOpen: () => {
       const confirmBtn = Swal.getConfirmButton();
@@ -796,6 +796,7 @@ const minDate = computed(() => {
                     <input
                       type="text"
                       v-model="customerInfo.fullName"
+                      maxlength="50"
                       class="form-control custom-input border-0 border-bottom bg-transparent px-1 rounded-0 fw-bold text-dark fs-6"
                       placeholder="Nhập họ và tên..."
                       :readonly="!!customerInfo.idKhachHang && isNameLocked"
@@ -911,8 +912,7 @@ const minDate = computed(() => {
                   <button
                     type="button"
                     @click="goBack"
-                    class="btn text-dark fw-bold px-4 py-2"
-                    style="background-color: #c4c4c4; border-radius: 8px"
+                    class="btn text-dark fw-bold px-4 py-2 btn-go-back"
                   >
                     <i class="fas fa-arrow-left me-2"></i> Quay về
                   </button>
@@ -962,16 +962,7 @@ const minDate = computed(() => {
                     <p class="mb-2">Chưa có món nào được chọn.</p>
                     <button
                       @click="goToMenu"
-                      class="btn btn-sm text-white"
-                      style="
-                        background: linear-gradient(
-                          135deg,
-                          #7d161a 0%,
-                          #d32f2f 100%
-                        );
-                        border-radius: 8px;
-                        padding: 6px 20px;
-                      "
+                      class="btn btn-sm btn-custom-red fw-bold px-3 py-2"
                     >
                       Chọn món ngay
                     </button>
@@ -999,7 +990,7 @@ const minDate = computed(() => {
                           {{ formatPrice(item.price * item.quantity) }}
                         </h6>
                         <button
-                          class="btn btn-link text-danger p-0 mt-1 small text-decoration-none"
+                          class="btn btn-link text-danger p-0 mt-1 small text-decoration-none btn-delete-item"
                           style="font-size: 0.75rem"
                           @click="removeCartItem(index)"
                         >
@@ -1186,5 +1177,62 @@ textarea::placeholder {
   flex: 1;
   border-bottom: 1.5px solid rgba(125, 22, 26, 0.4);
   margin: 0 25px;
+}
+
+.btn-go-back {
+  background-color: #c4c4c4;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.btn-go-back:hover {
+  background-color: #a8a8a8;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Hiệu ứng hover cho nút Xóa món */
+.btn-delete-item {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.btn-delete-item:hover {
+  color: #8b0000 !important;
+  text-decoration: underline !important;
+}
+
+/* === CSS TOÀN CỤC CHO POPUP SWEETALERT === */
+/* Do SweetAlert render ngoài #app nên phải dùng :global để CSS ăn được */
+:global(.swal-confirm-btn) {
+  background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 30px !important;
+  font-size: 1.1rem !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(125, 22, 26, 0.2) !important;
+  transition: all 0.2s ease !important;
+  margin: 0 8px !important;
+  cursor: pointer !important;
+}
+
+:global(.swal-confirm-btn:hover) {
+  opacity: 0.85 !important;
+  transform: translateY(-2px) !important;
+}
+
+:global(.swal-cancel-btn) {
+  background-color: #f3f4f6 !important;
+  color: #333 !important;
+  border: none !important;
+  padding: 12px 30px !important;
+  font-size: 1.1rem !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+  margin: 0 8px !important;
+  cursor: pointer !important;
+}
+
+:global(.swal-cancel-btn:hover) {
+  background-color: #d1d5db !important; /* Đậm hơn khi hover */
 }
 </style>

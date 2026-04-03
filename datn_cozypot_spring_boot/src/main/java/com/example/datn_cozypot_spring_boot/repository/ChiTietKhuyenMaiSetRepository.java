@@ -7,12 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface ChiTietKhuyenMaiSetRepository extends JpaRepository<ChiTietKhuyenMaiSet, ChiTietKhuyenMaiSetId> {
 
     @Query("SELECT ct.dotKhuyenMai.phanTramGiam FROM ChiTietKhuyenMaiSet ct " +
             "WHERE ct.setLau.id = :idSet AND ct.dotKhuyenMai.trangThai = 1 " +
             "AND :now BETWEEN ct.dotKhuyenMai.ngayBatDau AND ct.dotKhuyenMai.ngayKetThuc")
-    Integer findActiveDiscount(@Param("idSet") Integer idSet, @Param("now") LocalDate now);
+    List<Integer> findActiveDiscount(@Param("idSet") Integer idSet, @Param("now") LocalDate now);
 
 }

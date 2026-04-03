@@ -509,6 +509,9 @@ import { usePromotionLogic } from './promotionFunction.js';
 import promotionService from '@/services/promotionService';
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
+import { usePermission } from '@/components/permissionHelper.js';
+
+const { handleActionWithAuth } = usePermission();
 
 const statusOptions = [
     { value: null, label: 'Tất cả trạng thái' },
@@ -978,42 +981,6 @@ const sliderTrackStyle = computed(() => {
 
 const submitForm = async () => {
     if (!validateForm()) return;
-    // 🔥 CHECK TRÙNG KHUYẾN MÃI
-    const conflict = filteredKhuyenMai.value.find(km => {
-
-        // bỏ qua chính nó khi edit
-        if (selectedId.value && km.id === selectedId.value) return false;
-
-        // check trùng thời gian
-        const overlap = isDateOverlap(
-            formData.ngayBatDau,
-            formData.ngayKetThuc,
-            km.ngayBatDau,
-            km.ngayKetThuc
-        );
-
-        if (!overlap) return false;
-
-        // check trùng sản phẩm
-        const setConflict = km.setLauIds?.some(id =>
-            formData.idSetLauChiTiet.includes(id)
-        );
-
-        const monConflict = km.monAnIds?.some(id =>
-            formData.idMonAnChiTiet.includes(id)
-        );
-
-        return setConflict || monConflict;
-    });
-
-    if (conflict) {
-        showToast(
-            "Trùng khuyến mãi",
-            `Sản phẩm đã có khuyến mãi "${conflict.tenDotKhuyenMai}" trong thời gian này!`,
-            "error"
-        );
-        return;
-    }
 
     const confirm = await confirmAction(
         'Xác nhận lưu?',
@@ -1023,7 +990,6 @@ const submitForm = async () => {
     if (!confirm) return;
 
     try {
-
         if (selectedId.value) {
             await promotionService.update(selectedId.value, formData);
             showSuccess("Thành công", "Cập nhật khuyến mãi thành công!");
@@ -1042,30 +1008,25 @@ const submitForm = async () => {
 
 
 const handleToggleStatus = async (km) => {
-    const originalStatus = km.trangThai;
+    handleActionWithAuth(async () => {
+        const originalStatus = km.trangThai;
 
-    const confirm = await confirmAction(
-        'Thay đổi trạng thái?',
-        `Bạn có chắc muốn ${km.trangThai === 1 ? 'ngừng' : 'kích hoạt'} khuyến mãi này?`
-    );
+        const confirm = await confirmAction(
+            'Thay đổi trạng thái?',
+            `Bạn có chắc muốn ${km.trangThai === 1 ? 'ngừng' : 'kích hoạt'} khuyến mãi này?`
+        );
 
-    if (!confirm) return;
+        if (!confirm) return;
 
-    try {
-
-        await promotionService.toggleStatus(km.id);
-
-        showSuccess("Thành công", "Đã cập nhật trạng thái!");
-
-        handleSearch();
-
-    } catch (e) {
-
-        showError("Lỗi", "Không thể thay đổi trạng thái!");
-
-    }
+        try {
+            await promotionService.toggleStatus(km.id);
+            showSuccess("Thành công", "Đã cập nhật trạng thái!");
+            handleSearch();
+        } catch (e) {
+            showError("Lỗi", "Không thể thay đổi trạng thái!");
+        }
+    });
 };
-
 
 const fetchListSetLau = async () => {
     try {
@@ -1141,32 +1102,37 @@ const filteredMonAn = computed(() => {
 
 
 const openFormAdd = () => {
-    isReadOnly.value = false;
-    selectedId.value = null;
-    Object.assign(formData, {
-        tenDotKhuyenMai: '', 
-        phanTramGiam: 0, 
-        ngayBatDau: '', 
-        ngayKetThuc: '', 
-        moTa: '', 
-        idSetLauChiTiet: [], 
-        idMonAnChiTiet: [],
-        trangThai: 1
-    });
-    Object.keys(errors).forEach(k => errors[k] = '');
-    isFormActive.value = true;
+    handleActionWithAuth(() => {
+        isReadOnly.value = false;
+        selectedId.value = null;
+        Object.assign(formData, {
+            tenDotKhuyenMai: '', 
+            phanTramGiam: 0, 
+            ngayBatDau: '', 
+            ngayKetThuc: '', 
+            moTa: '', 
+            idSetLauChiTiet: [], 
+            idMonAnChiTiet: [],
+            trangThai: 1
+        });
+        Object.keys(errors).forEach(k => errors[k] = '');
+        isFormActive.value = true;
+    });
 };
 
 const openFormEdit = async (id) => {
-    isReadOnly.value = false;
-    selectedId.value = id;
-    await loadDataToForm(id);
+    handleActionWithAuth(async () => {
+        isReadOnly.value = false;
+        selectedId.value = id;
+        await loadDataToForm(id);
 
-    // Thêm dòng này để xóa sạch các thông báo lỗi cũ từ lần trước hoặc do logic map gây ra
-    Object.keys(errors).forEach(k => errors[k] = '');
+        // Thêm dòng này để xóa sạch các thông báo lỗi cũ từ lần trước hoặc do logic map gây ra
+        Object.keys(errors).forEach(k => errors[k] = '');
 
-    isFormActive.value = true;
+        isFormActive.value = true;
+    });
 };
+
 const openFormView = async (id) => { isReadOnly.value = true; selectedId.value = id; await loadDataToForm(id); isFormActive.value = true; };
 const closeForm = () => { isFormActive.value = false; selectedId.value = null; };
 const resetFilters = () => {

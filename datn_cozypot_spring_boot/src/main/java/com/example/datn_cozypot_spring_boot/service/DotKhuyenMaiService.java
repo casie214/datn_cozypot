@@ -122,50 +122,6 @@ public class DotKhuyenMaiService {
         if (dto.getNgayBatDau().isAfter(dto.getNgayKetThuc())) {
             throw new RuntimeException("Ngày bắt đầu không được sau ngày kết thúc");
         }
-
-        // ===== CHECK TRÙNG TRƯỚC =====
-        // CHECK MÓN ĂN
-        if (dto.getIdMonAnChiTiet() != null && !dto.getIdMonAnChiTiet().isEmpty()) {
-
-            for (Integer idMon : dto.getIdMonAnChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapByMonAn(
-                                idMon,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Món ăn đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-        // CHECK SET LẨU
-        if (dto.getIdSetLauChiTiet() != null && !dto.getIdSetLauChiTiet().isEmpty()) {
-
-            for (Integer idSet : dto.getIdSetLauChiTiet()) {
-
-                List<DotKhuyenMai> overlaps =
-                        dotKhuyenMaiRepo.checkOverlapBySet(
-                                idSet,
-                                dto.getNgayBatDau(),
-                                dto.getNgayKetThuc()
-                        );
-
-                if (!overlaps.isEmpty()) {
-                    throw new RuntimeException(
-                            "Set lẩu đã có khuyến mãi trong thời gian này!"
-                    );
-                }
-            }
-        }
-
-
-
         // ===== TẠO MỚI =====
         DotKhuyenMai entity = new DotKhuyenMai();
         mapDtoToEntity(dto, entity);

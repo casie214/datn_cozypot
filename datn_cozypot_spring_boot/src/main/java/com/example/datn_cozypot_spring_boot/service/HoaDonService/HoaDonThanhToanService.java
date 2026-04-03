@@ -455,7 +455,19 @@ public class HoaDonThanhToanService {
                     BigDecimal giaNiemYet = monAn.getGiaBan();
 
                     // 🚨 TÌM KHUYẾN MÃI VÀ TRỪ TIỀN
-                    Integer phanTramGiam = chiTietKhuyenMaiMonRepository.findActiveDiscount(monAn.getId(), today);
+                    List<Integer> danhSachGiamGia = chiTietKhuyenMaiMonRepository.findActiveDiscount(monAn.getId(), today);
+                    Integer phanTramGiam = danhSachGiamGia.stream()
+                            .filter(Objects::nonNull)
+                            .max(Integer::compareTo)
+                            .orElse(0);
+
+                    if (phanTramGiam > 0) {
+                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+                    } else {
+                        donGiaThucTe = giaNiemYet;
+                    }
+
                     if (phanTramGiam != null && phanTramGiam > 0) {
                         donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
                                 .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
@@ -476,7 +488,18 @@ public class HoaDonThanhToanService {
                     BigDecimal giaNiemYet = setLau.getGiaBan();
 
                     // 🚨 TÌM KHUYẾN MÃI VÀ TRỪ TIỀN
-                    Integer phanTramGiam = chiTietKhuyenMaiSetRepository.findActiveDiscount(setLau.getId(), today);
+                    List<Integer> danhSachGiamGiaSet = chiTietKhuyenMaiSetRepository.findActiveDiscount(setLau.getId(), today);
+                    Integer phanTramGiam = danhSachGiamGiaSet.stream()
+                            .filter(Objects::nonNull)
+                            .max(Integer::compareTo)
+                            .orElse(0);
+
+                    if (phanTramGiam > 0) {
+                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
+                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
+                    } else {
+                        donGiaThucTe = giaNiemYet;
+                    }
                     if (phanTramGiam != null && phanTramGiam > 0) {
                         donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
                                 .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);

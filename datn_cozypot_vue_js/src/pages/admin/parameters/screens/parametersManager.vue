@@ -51,7 +51,8 @@
 
                     <tbody>
                         <tr v-for="(item, index) in paginatedList" :key="item.id">
-<td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>                            <td class="fw-bold">{{ item.maThamSo }}</td>
+                            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+                            <td class="fw-bold">{{ item.maThamSo }}</td>
                             <td>{{ item.tenThamSo }}</td>
                             <td>{{ formatValue(item) }}</td>
 
@@ -65,12 +66,14 @@
                                 <div class="action-wrapper">
 
                                     <button type="button" class="btn-icon" data-bs-toggle="tooltip"
-    title="Chỉnh sửa" @click="openEditModal(item)">
+                                        data-bs-placement="top" title="Chỉnh sửa" @click="openEditModal(item)">
                                         <i class="fas fa-pen"></i>
                                     </button>
 
                                     <div class="form-check form-switch">
                                         <input class="form-check-input custom-red-switch" type="checkbox"
+                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                            :title="item.trangThai === 1 ? 'Ngừng hoạt động' : 'Kích hoạt lại'"
                                             :checked="item.trangThai === 1" @change="toggleStatus(item)" />
                                     </div>
                                 </div>
@@ -286,7 +289,7 @@ const dataTypeOptions = ref([
 
 const handleSave = async () => {
     if (!validateEditForm()) return
-        showModal.value = false   // đóng modal trước
+    showModal.value = false   // đóng modal trước
 
     const result = await Swal.fire({
         title: "Xác nhận cập nhật?",
@@ -339,15 +342,22 @@ const confirmSave = async () => {
 
     } catch (error) {
 
-    Swal.fire({
-        icon: "error",
-        title: "Cập nhật thất bại",
-        timer: 2000,
-        showConfirmButton: false
-    })
+        Swal.fire({
+            icon: "error",
+            title: "Cập nhật thất bại",
+            timer: 2000,
+            showConfirmButton: false
+        })
 
+    }
 }
-}
+
+onMounted(() => {
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    tooltipTriggerList.forEach(el => {
+        new bootstrap.Tooltip(el)
+    })
+})
 const keyword = ref('')
 const status = ref(null)
 const currentPage = ref(1)
@@ -394,8 +404,30 @@ const formatValue = (item) => {
 const validateEditForm = () => {
     errors.value = {}
 
-    if (!editingItem.value.tenThamSo?.trim()) {
+    /* ===== TÊN THAM SỐ: 3 -> 200 ký tự ===== */
+
+    /* ===== TÊN THAM SỐ =====
+       - Không để trống
+       - 3 -> 200 ký tự
+       - Không chứa ký tự đặc biệt
+    */
+
+    const ten = editingItem.value.tenThamSo?.trim()
+
+    // chỉ cho chữ + số + khoảng trắng + tiếng Việt
+    const nameRegex = /^[a-zA-ZÀ-ỹ0-9\s]+$/
+
+    if (!ten) {
         errors.value.tenThamSo = "Tên tham số không được để trống"
+    }
+    else if (ten.length < 3) {
+        errors.value.tenThamSo = "Tên tham số phải tối thiểu 3 ký tự"
+    }
+    else if (ten.length > 200) {
+        errors.value.tenThamSo = "Tên tham số không được vượt quá 200 ký tự"
+    }
+    else if (!nameRegex.test(ten)) {
+        errors.value.tenThamSo = "Tên tham số không được chứa ký tự đặc biệt"
     }
 
     if (!editingItem.value.giaTri?.toString().trim()) {
@@ -497,8 +529,9 @@ const toggleStatus = async (item) => {
         Swal.fire({
             icon: "success",
             title: "Cập nhật trạng thái thành công",
-timer: 1500,
-    showConfirmButton: false        })
+            timer: 1500,
+            showConfirmButton: false
+        })
 
     } catch (error) {
 
@@ -507,8 +540,9 @@ timer: 1500,
         Swal.fire({
             icon: "error",
             title: "Lỗi cập nhật trạng thái",
-timer: 1500,
-    showConfirmButton: false        })
+            timer: 1500,
+            showConfirmButton: false
+        })
 
     }
 }
@@ -553,6 +587,8 @@ const editingItem = ref({
 })
 
 const filteredList = computed(() => {
+    const kw = keyword.value.trim().toLowerCase()   // xử lý khoảng trắng ở đầu
+
     return list.value.filter(item => {
         if (!item) return false
 
@@ -560,8 +596,8 @@ const filteredList = computed(() => {
         const ten = item.tenThamSo?.toLowerCase() || ""
 
         const matchKeyword =
-            ma.includes(keyword.value.toLowerCase()) ||
-            ten.includes(keyword.value.toLowerCase())
+            ma.includes(kw) ||
+            ten.includes(kw)
 
         const matchStatus =
             !status.value ||
@@ -682,9 +718,11 @@ const statusOptions = ref([
     padding: 10px 14px;
     border: 1px solid #d1d5db;
 }
+
 .swal2-container {
     z-index: 20000 !important;
 }
+
 .custom-input:focus {
     border-color: #8B0000;
     box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
@@ -788,7 +826,7 @@ const statusOptions = ref([
 }
 
 
-.btn-page{
+.btn-page {
     background: transparent;
     border: none;
     color: #333;
@@ -809,14 +847,17 @@ const statusOptions = ref([
 .page-number {
     cursor: pointer;
     width: 32px;
-    height: 32px;    border-radius: 6px;
+    height: 32px;
+    border-radius: 6px;
     margin: 0 2px;
     color: #8b0000;
     font-weight: 500;
     display: flex;
-    align-items: center;     /* căn giữa dọc */
-    justify-content: center; /* căn giữa ngang */
-    padding: 0;   
+    align-items: center;
+    /* căn giữa dọc */
+    justify-content: center;
+    /* căn giữa ngang */
+    padding: 0;
 }
 
 
@@ -1120,6 +1161,7 @@ const statusOptions = ref([
     background: #f3d6d6 !important;
     color: #8B0000 !important;
 }
+
 /* Option đã chọn */
 .multiselect__option--selected {
     background: #f3d6d6 !important;
@@ -1131,10 +1173,12 @@ const statusOptions = ref([
     background: #8B0000 !important;
     color: white;
 }
+
 .multiselect:focus-within .multiselect__tags {
     border-color: #8B0000;
-    box-shadow: 0 0 0 2px rgba(139,0,0,0.1);
+    box-shadow: 0 0 0 2px rgba(139, 0, 0, 0.1);
 }
+
 .action-wrapper {
     display: flex;
     align-items: center;
