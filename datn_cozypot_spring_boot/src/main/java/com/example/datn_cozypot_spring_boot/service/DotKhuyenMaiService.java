@@ -254,8 +254,8 @@ public class DotKhuyenMaiService {
                                 dto.getNgayBatDau(),
                                 dto.getNgayKetThuc()
                         );
+                // Bỏ qua chính đợt khuyến mãi đang update
                 overlaps.removeIf(km -> km.getId().equals(id));
-
 
                 if (!overlaps.isEmpty()) {
                     throw new RuntimeException(
@@ -277,6 +277,10 @@ public class DotKhuyenMaiService {
                                 dto.getNgayBatDau(),
                                 dto.getNgayKetThuc()
                         );
+
+                // 🔥 ĐÂY LÀ CHỖ CẦN THÊM VÀO ĐỂ FIX LỖI 🔥
+                // Phải bỏ qua chính đợt khuyến mãi đang được update
+                overlaps.removeIf(km -> km.getId().equals(id));
 
                 if (!overlaps.isEmpty()) {
                     throw new RuntimeException(
@@ -302,7 +306,8 @@ public class DotKhuyenMaiService {
             List<DanhMucChiTiet> selectedMons =
                     monAnRepo.findAllById(dto.getIdMonAnChiTiet());
 
-            entity.setMonAnDiKems(new HashSet<>(selectedMons));
+            entity.getMonAnDiKems().clear(); // Đảm bảo clear list cũ trước khi add list mới
+            entity.getMonAnDiKems().addAll(selectedMons);
         }
 
         entity.setNgaySua(Instant.now());
