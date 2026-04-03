@@ -78,7 +78,7 @@
                 </div>
             </div>
             <div class="chart-box small">
-                <h6>Trạng thái đơn hàng</h6>
+                <h6>Trạng thái đặt lịch</h6>
                 <div class="chart-container">
                     <Pie v-if="trangThaiData.length" :data="pieChartData" :options="pieOptions" />
 
