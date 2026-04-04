@@ -119,26 +119,34 @@ public class MonAnServiceImplementation implements MonAnService {
         d.setTenDanhMuc(request.getTenDanhMuc());
         d.setMoTa(request.getMoTa());
         d.setTrangThai(1);
-        d.setMaDanhMuc(generateNextCode(request.getTenDanhMuc(), "DANH_MUC"));
         d.setNgayTao(Instant.now());
         d.setLoaiVatApDung(request.getLoaiVatApDung());
-        System.out.println("asdsadsa: " + request.getLoaiVatApDung());
         d.setPhanLoaiMayIn(request.getPhanLoaiMayIn());
 
-        // Lưu Danh Mục xuống DB trước để Hibernate cấp phát ID (ID này cần để tạo liên kết)
+        // ======================================================
+        // 🚀 BÊ LOGIC CHỐNG TRÙNG TỪ MON_AN SANG ĐÂY
+        // ======================================================
+        String baseCode = generateNextCode(request.getTenDanhMuc(), "DANH_MUC");
+        String finalCode = baseCode;
+        int suffix = 1;
+
+        // Vòng lặp check trùng: Cứ trùng là gắn thêm đuôi -1, -2
+        while (danhMucRepository.existsByMaDanhMuc(finalCode)) {
+            finalCode = baseCode + "-" + suffix;
+            suffix++;
+        }
+        d.setMaDanhMuc(finalCode); // Gán cái mã cuối cùng đã an toàn
+        // ======================================================
+
+        // Lưu Danh Mục xuống DB trước để Hibernate cấp phát ID
         DanhMuc savedDanhMuc = danhMucRepository.save(d);
 
         // 2. XỬ LÝ LIÊN KẾT NHIỀU-NHIỀU VỚI BẢNG ĐƠN VỊ
         if (request.getListIdDonVi() != null && !request.getListIdDonVi().isEmpty()) {
-            // Tìm tất cả các Đơn vị có ID nằm trong mảng Frontend gửi lên
             List<DonVi> donVis = donViRepository.findAllById(request.getListIdDonVi());
-
             for (DonVi dv : donVis) {
-                // Thêm danh mục vừa tạo vào danh sách danh mục của đơn vị đó
                 dv.getListDanhMuc().add(savedDanhMuc);
             }
-
-            // Lưu lại danh sách đơn vị (Hibernate sẽ tự động chèn dữ liệu vào bảng trung gian)
             donViRepository.saveAll(donVis);
         }
 

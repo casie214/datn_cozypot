@@ -13,4 +13,6 @@ public interface DanhMucRepository extends JpaRepository<DanhMuc, Integer> {
     String findMaxCodeByPrefix(@Param("prefix") String prefix);
 
     List<DanhMuc> findByTrangThai(int i);
+
+    boolean existsByMaDanhMuc(String finalCode);
 }
