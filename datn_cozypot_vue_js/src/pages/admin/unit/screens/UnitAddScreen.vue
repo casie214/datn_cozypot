@@ -31,6 +31,16 @@ const formData = ref({
     values: []
 });
 
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    background: '#fff',
+    color: '#333'
+});
+
 const newValueInput = ref('');
 
 // ==========================================
@@ -144,18 +154,38 @@ const removeValue = (index) => {
 };
 
 const handleSave = async () => {
-    if (!formData.value.tenDonVi.trim()) {
-        return Swal.fire('Chú ý', 'Vui lòng nhập tên đơn vị (VD: ml, gram)!', 'warning');
+    // 1. Lấy độ dài chuỗi sau khi đã cắt khoảng trắng thừa
+    const tenDonViTrimmed = formData.value.tenDonVi.trim();
+    const moTaTrimmed = formData.value.moTa.trim();
+
+    // 2. Validate Tên Đơn Vị (Từ 5 đến 100 ký tự)
+    if (!tenDonViTrimmed) {
+        return Toast.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng nhập tên đơn vị!' });
+    }
+    if (tenDonViTrimmed.length < 5 || tenDonViTrimmed.length > 50) {
+        return Toast.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Tên đơn vị phải từ 5 đến 50 ký tự!' });
     }
 
+    // 3. Validate Danh Mục Áp Dụng
     if (!props.isQuickAddMode && formData.value.listIdDanhMuc.length === 0) {
-        return Swal.fire('Chú ý', 'Vui lòng chọn ít nhất một danh mục áp dụng!', 'warning');
+        return Toast.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng chọn ít nhất một danh mục áp dụng!' });
     }
 
+    // 4. Validate Giá trị định lượng con
     if (formData.value.values.length === 0) {
-        return Swal.fire('Chú ý', 'Vui lòng thêm ít nhất một giá trị định lượng!', 'warning');
+        return Toast.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng thêm ít nhất một giá trị định lượng!' });
     }
 
+    // 5. Validate Mô Tả (Không bắt buộc, nhưng nếu có thì tối đa 255 ký tự)
+    if (moTaTrimmed.length > 255) {
+        return Toast.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Mô tả không được vượt quá 255 ký tự!' });
+    }
+
+    // 6. Gắn lại giá trị đã trim cho an toàn trước khi lưu
+    formData.value.tenDonVi = tenDonViTrimmed;
+    formData.value.moTa = moTaTrimmed;
+
+    // 7. Xác nhận trước khi tạo
     const result = await Swal.fire({
         title: 'Xác nhận',
         text: `Tạo đơn vị "${formData.value.tenDonVi}" với ${formData.value.values.length} giá trị?`,
@@ -170,14 +200,15 @@ const handleSave = async () => {
     if (result.isConfirmed) {
         try {
             const res = await foodApi.createUnitType(formData.value);
-            Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', timer: 1500, showConfirmButton: false });
+            // Sửa luôn thông báo thành công thành dạng Toast cho đồng bộ
+            Toast.fire({ icon: 'success', title: 'Thành công', text: 'Đã tạo định lượng mới!' });
             const newUnitId = res.data?.id;
             emit('refresh', newUnitId); 
             emit('close');
         } catch (error) {
             console.error(error);
             const msg = error.response?.data?.message || 'Không thể thêm đơn vị. Vui lòng thử lại!';
-            Swal.fire('Lỗi', msg, 'error');
+            Toast.fire({ icon: 'error', title: 'Thất bại', text: msg });
         }
     }
 };
@@ -195,7 +226,10 @@ const handleSave = async () => {
                 <div class="form-group">
                     <label>Tên đơn vị tính (VD: ml, gram, đĩa) <span class="required">*</span></label>
                     <input v-model="formData.tenDonVi" type="text" class="form-control"
-                        placeholder="Nhập tên đơn vị...">
+                        placeholder="Nhập tên đơn vị..." maxlength="100">
+                    <small class="text-muted" style="text-align: right; font-size: 11px;">
+                        {{ formData.tenDonVi.length }}
+                    </small>
                 </div>
 
                 <div class="form-group" v-if="!isQuickAddMode">
@@ -245,7 +279,10 @@ const handleSave = async () => {
                 <div class="form-group">
                     <label>Mô tả đơn vị</label>
                     <textarea v-model="formData.moTa" class="form-control" rows="2"
-                        placeholder="Nhập mô tả ngắn..."></textarea>
+                        placeholder="Nhập mô tả ngắn..." maxlength="260"></textarea>
+                    <small class="text-muted" style="text-align: right; font-size: 11px;">
+                        {{ formData.moTa.length }}
+                    </small>
                 </div>
             </div>
 

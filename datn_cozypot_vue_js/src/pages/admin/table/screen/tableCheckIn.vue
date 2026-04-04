@@ -2709,7 +2709,6 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
 
                 <div v-if="selectedPhieu?.id" class="action-buttons">
                     <button :disabled="!isServing" class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood"><i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i><span v-if="listMonDaChon.length === 0">Thêm món</span><span v-else> Đã chọn {{ listMonDaChon.length }} món </span></button>
-                    <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewQR'"><i class="fa-solid fa-qrcode me-1"></i> QR đặt món</button>
                     <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'"><i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng</button>
                     <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn</button>
                     <div class="d-flex gap-2 mt-2">
