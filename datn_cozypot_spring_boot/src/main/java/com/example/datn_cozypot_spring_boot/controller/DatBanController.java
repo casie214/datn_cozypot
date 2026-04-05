@@ -15,6 +15,7 @@ import com.example.datn_cozypot_spring_boot.dto.response.KhuVucResponse;
 import com.example.datn_cozypot_spring_boot.repository.*;
 import com.example.datn_cozypot_spring_boot.service.DatBanService;
 import com.example.datn_cozypot_spring_boot.service.HoaDonService.HoaDonThanhToanService;
+import com.example.datn_cozypot_spring_boot.service.PhieuGiamGiaService;
 import com.example.datn_cozypot_spring_boot.service.ThongBaoService;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -28,10 +29,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -60,6 +63,8 @@ public class DatBanController {
     private ThongBaoService thongBaoService;
     @Autowired
     private HoaDonThanhToanService hoaDonThanhToanService;
+    @Autowired
+    private PhieuGiamGiaService phieuGiamGiaService;
 
     @GetMapping("/danh-sach")
     public List<DatBanListResponse> danhSach(){
@@ -140,17 +145,22 @@ public class DatBanController {
             return ResponseEntity.badRequest().body("Không tìm thấy chi tiết hóa đơn");
         }
 
-        // 2. Lưu lại thông tin trước khi cập nhật để ghi log
+        // Lưu lại thông tin trước khi cập nhật để ghi log
         Integer trangThaiCuCuaMon = chiTiet.getTrangThaiMon();
         HoaDonThanhToan hoaDon = chiTiet.getIdHoaDon();
         Integer trangThaiBillHienTai = hoaDon.getTrangThaiHoaDon();
         String tenMon = getTenMonFromEntity(chiTiet);
 
-        // 3. Cập nhật trạng thái mới
+        // Cập nhật trạng thái mới
         chiTiet.setTrangThaiMon(trangThai);
         chiTietHoaDonRepository.save(chiTiet);
 
-        // 4. LOGIC GHI LỊCH SỬ HÓA ĐƠN
+        // 🚨 QUAN TRỌNG: GỌI HÀM TÍNH LẠI TIỀN NẾU LÀ THAO TÁC XÓA MÓN (Trạng thái = 0)
+        if (trangThai == 0) {
+            tinhToanLaiTienHoaDon(hoaDon.getId());
+        }
+
+        // LOGIC GHI LỊCH SỬ HÓA ĐƠN
         String hanhDong = "";
         String lyDo = "Cập nhật trạng thái món ăn";
 
@@ -166,12 +176,50 @@ public class DatBanController {
         }
 
         if (!hanhDong.isEmpty()) {
-            // Gọi hàm ghi log đã viết ở các bước trước
-            // Lưu ý: trangThaiTruocDo và trangThaiMoi ở đây là trạng thái của HÓA ĐƠN (vẫn là 4 - Đang phục vụ)
             ghiLichSu(hoaDon, idNhanVien, hanhDong, lyDo, trangThaiBillHienTai, trangThaiBillHienTai);
         }
 
         return ResponseEntity.ok("Cập nhật thành công");
+    }
+
+    // 🚨 HÀM DÙNG CHUNG ĐỂ TÍNH LẠI TOÀN BỘ TIỀN CỦA HÓA ĐƠN
+    private void tinhToanLaiTienHoaDon(Integer idHoaDon) {
+        HoaDonThanhToan hoaDon = hoaDonThanhToanRepository.findById(idHoaDon).orElse(null);
+        if (hoaDon == null) return;
+
+        // Lấy tất cả các món KHÔNG BỊ XÓA (trangThaiMon != 0)
+        List<ChiTietHoaDon> dsMonHienTai = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId())
+                .stream().filter(item -> item.getTrangThaiMon() != null && item.getTrangThaiMon() != 0)
+                .collect(Collectors.toList());
+
+        BigDecimal tongTienChuaGiam = dsMonHienTai.stream()
+                .map(item -> item.getThanhTien() != null ? item.getThanhTien() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal tongTienVat = dsMonHienTai.stream()
+                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
+        hoaDon.setVatApDung(tongTienVat);
+
+        hoaDon = hoaDonThanhToanRepository.save(hoaDon);
+
+        // Kiểm tra xem việc giảm tiền có làm rớt Voucher không
+        phieuGiamGiaService.kiemTraLaiDieuKienVoucher(hoaDon.getId());
+        hoaDon = hoaDonThanhToanRepository.findById(hoaDon.getId()).orElseThrow();
+
+        BigDecimal giamGia = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
+        BigDecimal tienCoc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
+
+        BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
+        if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
+
+        BigDecimal tongTienThanhToan = tienSauGiam.add(tongTienVat).subtract(tienCoc);
+        if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) tongTienThanhToan = BigDecimal.ZERO;
+
+        hoaDon.setTongTienThanhToan(tongTienThanhToan);
+        hoaDonThanhToanRepository.save(hoaDon);
     }
 
     private String getTenMonFromEntity(ChiTietHoaDon ct) {
