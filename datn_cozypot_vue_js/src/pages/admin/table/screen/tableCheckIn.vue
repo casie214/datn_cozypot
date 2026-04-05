@@ -2221,13 +2221,33 @@ const markAllServed = async () => {
 };
 
 const handleDeleteItem = async (item, index) => {
-const confirm = await Swal.fire({ title: 'Xóa món?', icon: 'warning', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' });
+  const confirm = await Swal.fire({ 
+    title: 'Xóa món?', 
+    text: `Bạn chắc chắn muốn xóa ${item.name}?`,
+    icon: 'warning', 
+    iconColor: '#7D161A', 
+    showCancelButton: true, 
+    confirmButtonColor: '#dc3545', 
+    confirmButtonText: 'Xóa', 
+    cancelButtonText: 'Hủy' 
+  });
+
   if (confirm.isConfirmed) {
     try {
+      Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      
+      // 1. Bắn API xóa món (Đổi trạng thái về 0)
       await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=0`);
-      listMonDaChon.value.splice(index, 1);
+      
+      // 2. 🚨 QUAN TRỌNG: Gọi lại hàm này để lấy lại cục Tiền và kiểm tra rớt Voucher
+      await refreshTableData(); 
+
       Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã xóa!', timer: 1000, showConfirmButton: false });
-      if (listMonDaChon.value.length === 0) modalView.value = 'info';
+      
+      // 3. Nếu xóa xong mà mảng món ăn trống trơn -> Đá văng ra tab Info
+      if (listMonDaChon.value.length === 0) {
+         modalView.value = 'info';
+      }
     } catch (error) {
       Swal.fire({ title: 'Lỗi', text: 'Không thể xóa!', icon: 'error', confirmButtonText: 'Đóng' });
     }

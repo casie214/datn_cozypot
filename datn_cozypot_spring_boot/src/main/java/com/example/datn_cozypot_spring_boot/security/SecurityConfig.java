@@ -64,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/payment/**").permitAll() // Từ code của bạn
                         .requestMatchers("/api/phieu-giam-gia/export-excel").permitAll()
                         .requestMatchers("/api/dot-khuyen-mai/export-excel").permitAll()
+                        .requestMatchers("/api/phieu-giam-gia/ap-dung").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/guest/**").permitAll()
                         .requestMatchers("/api/khach-hang/**").permitAll()
                         .requestMatchers("/api/tham-so-he-thong/**").permitAll()
