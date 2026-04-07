@@ -5,7 +5,7 @@ import {
   fetchBanAnById,
   updateBanAn,
 } from "@/services/tableManageService";
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, inject, onMounted, onUnmounted, ref, watch } from "vue";
 import dayjs from "dayjs";
 import Multiselect from '@vueform/multiselect';
 import '@vueform/multiselect/themes/default.css';
@@ -15,6 +15,7 @@ import CommonPagination from "@/components/commonPagination.vue";
 import Swal from "sweetalert2";
 
 // Cấu hình Toast mặc định của SweetAlert2 
+const refreshTableData = inject("refreshTableData");
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -197,14 +198,19 @@ const submitUpdateBan = async () => {
     try {
       await updateBanAn(form.value);
       closeAddModal(); 
-      await fetchAllBan(); 
+      
+      // 🚀 GỌI HÀM CẬP NHẬT CỦA CHA ĐỂ ĐỒNG BỘ LẠI TẤT CẢ DỮ LIỆU
+      if (refreshTableData) {
+        await refreshTableData();
+      } else {
+        await fetchAllBan(); // Sơ cua nếu chạy độc lập
+      }
       
       Swal.fire({
         icon: 'success', title: 'Thành công!', text: 'Cập nhật thông tin bàn thành công!',
         iconColor: '#7d161a', confirmButtonText: 'Đóng', confirmButtonColor: '#7d161a', 
       });
     } catch (e) {
-      console.error("Lỗi sửa bàn", e);
       Swal.fire({
         icon: 'error', title: 'Thất bại!', text: 'Có lỗi xảy ra khi cập nhật!', confirmButtonColor: '#dc3545',
       });

@@ -8,12 +8,16 @@ import { inject } from "vue";
 import { usePermission } from "@/components/permissionHelper";
 
 const { handleActionWithAuth } = usePermission();
-const danhSachBanFromParent = inject("danhSachBan", ref([]));
 // const tableStatusMapFromParent = inject('tableStatusMap', ref({}));
 // const selectedDateFromParent = inject('selectedDate', ref(''));
-
+const danhSachBanRef = inject("danhSachBan", ref([]));
+const listKhuVucRef = inject("listKhuVuc", ref([]));
 // ✅ Sử dụng data từ parent thay vì fetch riêng
-const danhSachBan = danhSachBanFromParent;
+const danhSachBan = computed(() => {
+  // Nếu inject vào là computed (như đã sửa ở cha), ta dùng .value
+  return danhSachBanRef.value || []; 
+});
+
 // const tableStatusMap = tableStatusMapFromParent;
 // const selectedDate = selectedDateFromParent;
 /* 1. KHỞI TẠO TRẠNG THÁI */
@@ -239,15 +243,13 @@ watch(
   { immediate: true },
 );
 
-const listKhuVucFromParent = inject("listKhuVuc", ref([]));
-const listKhuVuc = listKhuVucFromParent;
+const listKhuVuc = computed(() => {
+  return listKhuVucRef.value || [];
+});
 
 const listTang = computed(() => {
   if (!listKhuVuc.value.length) return [];
-
-  return [...new Set(
-    listKhuVuc.value.map((kv) => Number(kv.tang))
-  )].sort((a, b) => a - b);
+  return [...new Set(listKhuVuc.value.map((kv) => Number(kv.tang)))].sort((a, b) => a - b);
 });
 
 watch(
@@ -273,6 +275,16 @@ watch(
     console.log("Table status map updated:", val);
   },
   { deep: true },
+);
+
+watch(
+  danhSachBan,
+  (newVal) => {
+    if (newVal && newVal.length > 0) {
+      autoLayoutBan();
+    }
+  },
+  { immediate: true, deep: true }
 );
 
 onMounted(() => {

@@ -635,6 +635,8 @@ public class MonAnServiceImplementation implements MonAnService {
                     // Mày set % giảm vào DTO (Mày nhớ thêm thuộc tính phanTramGiam vào MonAnResponse nếu chưa có nhé)
                     res.setPhanTramGiam(maxGiam);
 
+                    res.setIsGiamGia(maxGiam > 0);
+
                     BigDecimal giaGoc = mon.getGiaBan();
 
                     if (giaGoc != null) {
@@ -812,6 +814,8 @@ public class MonAnServiceImplementation implements MonAnService {
                     // Lấy % giảm từ Map (Mặc định 0 nếu không có)
                     int maxGiam = maxDiscountMap.getOrDefault(set.getId(), 0);
                     res.setPhanTramGiam(maxGiam); // 🚨 CHÚ Ý 2: Nhớ thêm phanTramGiam vào SetLauResponse DTO
+
+                    res.setIsGiamGia(maxGiam > 0);
 
                     // Tính toán giaSauGiam bằng BigDecimal để tránh lỗi toán học
                     BigDecimal giaGoc = set.getGiaBan();

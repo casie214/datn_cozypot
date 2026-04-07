@@ -45,6 +45,18 @@ const handleImageError = (event) => {
   }
 };
 
+const scrollFilter = (categoryId, direction) => {
+  const container = document.getElementById(`filter-scroll-${categoryId}`);
+  if (container) {
+    const scrollAmount = 200; // Khoảng cách mỗi lần bấm nút (200px)
+    if (direction === 'left') {
+      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  }
+};
+
 
 const checkAutoAddFromUrl = () => {
   const targetName = route.query.autoAdd;
@@ -796,10 +808,20 @@ onUnmounted(() => {
               <h3 class="section-title">{{ section.categoryName }}</h3>
 
               <div
-                class="filter-bar mb-3"
+                class="filter-bar-container mb-3"
                 v-if="section.filters && section.filters.length > 1"
               >
-                <div class="filter-scroll-wrapper">
+                <button 
+                  class="scroll-btn d-none d-md-flex" 
+                  @click="scrollFilter(section.categoryId, 'left')"
+                >
+                  <i class="fas fa-chevron-left"></i>
+                </button>
+
+                <div 
+                  :id="`filter-scroll-${section.categoryId}`" 
+                  class="filter-scroll-wrapper flex-grow-1 mx-md-2"
+                >
                   <button
                     v-for="filter in section.filters"
                     :key="filter.id"
@@ -810,6 +832,13 @@ onUnmounted(() => {
                     {{ filter.name }}
                   </button>
                 </div>
+
+                <button 
+                  class="scroll-btn d-none d-md-flex" 
+                  @click="scrollFilter(section.categoryId, 'right')"
+                >
+                  <i class="fas fa-chevron-right"></i>
+                </button>
               </div>
 
               <TransitionGroup name="filter-list" tag="div" class="row g-3">
@@ -1316,19 +1345,58 @@ onUnmounted(() => {
   text-transform: uppercase;
 }
 
-.filter-scroll-wrapper {
+.filter-bar-container {
   display: flex;
-  overflow-x: auto;
-  gap: 8px;
-  padding: 5px 0;
-  scrollbar-width: none;
+  align-items: center;
+  width: 100%;
 }
 
+/* Nút mũi tên điều hướng */
+.scroll-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #eaeaea;
+  color: #7d161a;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.scroll-btn:hover {
+  background: linear-gradient(135deg, #7d161a 0%, #d32f2f 100%);
+  color: white;
+  border-color: transparent;
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(125, 22, 26, 0.2);
+}
+
+.scroll-btn:active {
+  transform: scale(0.95);
+}
+
+/* Fix lại wrapper một chút để ăn nhập với layout flex */
+.filter-scroll-wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 5px 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth; /* Thêm cái này để mượt hơn */
+}
 .filter-scroll-wrapper::-webkit-scrollbar {
   display: none;
 }
 
 .btn-filter {
+  flex-shrink: 0; /* 🚨 QUAN TRỌNG NHẤT: Chống bóp méo nút khi màn hình nhỏ */
   background: #fff;
   border: 1px solid #eaeaea;
   color: #666;
@@ -1336,7 +1404,7 @@ onUnmounted(() => {
   border-radius: 30px;
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: nowrap; /* Không cho chữ rớt dòng */
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 }
@@ -2226,4 +2294,6 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
 }
+
+
 </style>
