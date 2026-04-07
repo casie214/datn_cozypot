@@ -69,11 +69,14 @@ const handleImageError = (e) => {
 };
 
 const handleWheel = (event) => {
-    if (scrollContainer.value) {
-        // event.preventDefault(); // Dòng này để ngăn trang web chính bị cuộn khi đang lăn chuột trong thanh gợi ý
-
-        // Chuyển lăn dọc thành cuộn ngang
-        scrollContainer.value.scrollLeft += event.deltaY;
+    // Lấy chính phần tử (Card list hoặc Gợi ý) đang được trỏ chuột
+    const container = event.currentTarget;
+    if (container) {
+        // Chuyển thao tác lăn chuột dọc (deltaY) thành cuộn ngang (scrollLeft)
+        container.scrollLeft += event.deltaY;
+        
+        // Tùy chọn: Bỏ comment dòng dưới nếu muốn chặn cuộn toàn bộ khung chat khi đang lăn ngang
+        event.preventDefault(); 
     }
 };
 
@@ -207,7 +210,7 @@ onUnmounted(() => {
                         </div>
 
                         <div v-if="msg.sender === 'bot' && parseMessage(msg.content).cards.length > 0"
-                            class="card-list mt-2">
+                            class="card-list mt-2" @wheel="handleWheel">
                             <div v-for="(card, cIdx) in parseMessage(msg.content).cards" :key="cIdx"
                                 class="food-card shadow-sm">
                                 <img :src="card.image" class="card-img-top" @error="handleImageError">
@@ -509,20 +512,37 @@ onUnmounted(() => {
 
 .card-list {
     display: flex;
+    flex-wrap: nowrap; /* Bắt buộc các card nằm trên 1 hàng ngang */
     gap: 12px;
-    overflow-x: auto;
+    overflow-x: auto; /* Bật cuộn ngang */
     padding: 5px 0 10px 0;
-    width: 100%;               /* Tràn hết chiều ngang của khung chat */
-    max-width: 300px;          /* Giới hạn vừa đủ để thấy scroll */
-    scrollbar-width: none;
+    width: 100%;
+    max-width: 310px; /* Điều chỉnh vừa vặn với khung chat 350px */
+    -webkit-overflow-scrolling: touch; /* Giúp vuốt mượt trên điện thoại */
+    scroll-behavior: smooth;
+}
+
+/* Thanh cuộn cho phần Card để khách xài máy tính dễ dùng */
+.card-list::-webkit-scrollbar {
+    height: 6px; 
+}
+
+.card-list::-webkit-scrollbar-thumb {
+    background: #d32f2f; /* Màu đỏ tone-sur-tone với quán */
+    border-radius: 10px;
+}
+
+.card-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
 }
 
 .food-card {
-    min-width: 200px;          /* Tăng độ rộng card cho đẹp */
+    min-width: 200px;
     background: white;
     border-radius: 12px;
     border: 1px solid #eee;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Quan trọng: Chống bị bóp méo form card khi bị thiếu chỗ */
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 

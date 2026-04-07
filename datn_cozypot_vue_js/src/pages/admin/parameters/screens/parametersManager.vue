@@ -72,9 +72,10 @@
 
                                     <div class="form-check form-switch">
                                         <input class="form-check-input custom-red-switch" type="checkbox"
-                                            data-bs-toggle="tooltip" data-bs-placement="top"
-                                            :title="item.trangThai === 1 ? 'Ngừng hoạt động' : 'Kích hoạt lại'"
-                                            :checked="item.trangThai === 1" @change="toggleStatus(item)" />
+                                        data-bs-toggle="tooltip" data-bs-placement="top"
+                                        :title="item.trangThai === 1 ? 'Ngừng hoạt động' : 'Kích hoạt lại'"
+                                        :checked="item.trangThai === 1" 
+                                        @click.prevent="toggleStatus(item)" />
                                     </div>
                                 </div>
                             </td>

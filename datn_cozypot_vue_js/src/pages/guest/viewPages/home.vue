@@ -181,32 +181,12 @@ const orderHotpotSet = (setName) => {
       </div>
     </section>
 
-    <section class="reviews-section">
-      <div class="container">
-        <div class="section-title text-center">
-          <span class="sub-heading">Khách hàng nói gì?</span>
-          <h2>Trải Nghiệm Của Thực Khách</h2>
-        </div>
-        <div class="reviews-grid">
-          <div v-for="(rv, idx) in reviews" :key="idx" class="review-card">
-            <div class="stars">
-              <i v-for="i in rv.rate" :key="i" class="fa-solid fa-star text-warning"></i>
-            </div>
-            <p class="review-text">"{{ rv.text }}"</p>
-            <div class="reviewer">
-              <div class="avatar"><i class="fa-solid fa-user"></i></div>
-              <div class="name">{{ rv.name }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <section class="gallery-section">
       <div class="gallery-grid">
         <div class="g-item"><img src="https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&q=80&w=600" alt="Hotpot"></div>
-        <div class="g-item"><img src="https://images.unsplash.com/photo-1563379926898-05f45c51040c?auto=format&fit=crop&q=80&w=600" alt="Meat"></div>
-        <div class="g-item"><img src="https://images.unsplash.com/photo-1626804475297-41609ea160eb?auto=format&fit=crop&q=80&w=600" alt="Veggies"></div>
+        <div class="g-item"><img src="https://pasgo.vn/Upload/anh-chi-tiet/nha-hang-meat-plus-royal-city-1-normal-1428470245230.webp" alt="Meat"></div>
+        <div class="g-item"><img src="https://www.eatingwell.com/thmb/ZsFqmJC3Cwvnb8D4OUuGBqLZRzE=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/EWL-Sheet-Pan-Chickpeas-Spring-Veggies-1x1-222_preview_maxWidth_4000_maxHeight_4000_ppi_300_quality_100-8090eacd4bfc4356b45d8b64c0ab901f.jpg" alt="Veggies"></div>
         <div class="g-item"><img src="https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&q=80&w=600" alt="Restaurant"></div>
       </div>
     </section>
@@ -396,7 +376,7 @@ button { cursor: pointer; font-family: inherit; }
   position: relative;
   height: 80vh;
   min-height: 600px;
-  background: url('https://scontent.fhan5-2.fna.fbcdn.net/v/t39.30808-6/547694788_1226390556179253_8964046942972862171_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=7b2446&_nc_eui2=AeElAnThv_-uMvOS8hLwZSO2RuqSEKaDtJtG6pIQpoO0m5L7tHawMdDOjRCSFp1UWVOUkidNxwrxUoJ4ICRTiR7X&_nc_ohc=mGl93Sbf52sQ7kNvwEM4To7&_nc_oc=AdqWLYIYb5sdiim_wHoZWaSlKYJpndfmWahID29quBKEnXtdiy_Ee3E98pnhJ6EUr8kaJUOZCM9IgGwCzvcD-5vC&_nc_zt=23&_nc_ht=scontent.fhan5-2.fna&_nc_gid=QJMP2z4crnIajsk7_j27cw&_nc_ss=7a32e&oh=00_Afy3yoNFmyovXDoE7doen3OihqFklHY43mXEiq6oF34EqA&oe=69CC0812') center/cover no-repeat;
+  background: url('https://product.hstatic.net/200000358419/product/hsan__d18c7eeb7a7d49ecafe7fbd487181222_master.png') center/cover no-repeat;
   display: flex;
   align-items: center;
 }
