@@ -202,8 +202,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
     return;
   }
 
-  // 2. NẾU CÓ CỌC -> TÍNH TOÁN DỰA TRÊN THAM SỐ ĐỘNG VÀ GIỜ ĐẶT (thoiGianDat)
-  // Lưu ý: thoiGianDat lấy từ displayOrderData (cục chi tiết m vừa mở ra xem)
+  // 2. NẾU CÓ CỌC -> TÍNH TOÁN DỰA TRÊN THAM SỐ ĐỘNG VÀ GIỜ ĐẶT 
   const bookingTime = dayjs(displayOrderData.value.thoiGianDat);
   const now = dayjs();
 
@@ -284,7 +283,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   if (isConfirmed) executeCancel(idPhieu, reason);
 };
 
-// Hàm phụ để gọi API Hủy (Tránh lặp code)
+// Hàm phụ để gọi API Hủy
 const executeCancel = async (idPhieu, reason) => {
   Swal.fire({
     title: "Đang xử lý...",
@@ -402,13 +401,7 @@ const calculatedSubTotal = computed(() => {
   return sum > 0 ? sum : displayOrderData.value.tongTienChuaGiam || 0;
 });
 
-// 2. Tiền thuế (Bây giờ lấy trực tiếp từ trường vatApDung vì nó lưu tổng tiền VAT)
-const calculatedTax = computed(() => {
-  if (!displayOrderData.value || isOrderDead.value) return 0;
-  return displayOrderData.value.vatApDung || 0;
-});
-
-// 3. Tiền cọc THỰC TẾ đã thu (Chỉ tính khi trạng thái >= 2 và không phải đơn đã hủy)
+// 2. Tiền cọc THỰC TẾ đã thu (Chỉ tính khi trạng thái >= 2 và không phải đơn đã hủy)
 const actualDepositPaid = computed(() => {
   if (!displayOrderData.value || isOrderDead.value) return 0;
   const status = displayOrderData.value.trangThaiHoaDon;
@@ -417,11 +410,11 @@ const actualDepositPaid = computed(() => {
   return displayOrderData.value.tienCoc || 0;
 });
 
-// 4. Thành tiền cuối cùng
+// 3. Thành tiền cuối cùng
 const finalBalance = computed(() => {
   if (isOrderDead.value) return 0;
   return (
-    calculatedSubTotal.value + calculatedTax.value - actualDepositPaid.value
+    calculatedSubTotal.value - actualDepositPaid.value
   );
 });
 </script>
@@ -792,11 +785,6 @@ const finalBalance = computed(() => {
                   <span class="fw-bold">{{
                     formatMoney(calculatedSubTotal)
                   }}</span>
-                </div>
-
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Tổng thuế VAT:</span>
-                  <span class="fw-bold">{{ formatMoney(calculatedTax) }}</span>
                 </div>
 
                 <div

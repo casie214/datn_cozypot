@@ -1147,13 +1147,13 @@ onUnmounted(() => {
                   nhanh nhất.
                 </p>
 
-                <p
+                <!-- <p
                   class="mt-2 fw-semibold"
                   style="font-size: 13px; color: #7d161a"
                   v-if="currentVariants[0]?.phanTramVat > 0"
                 >
                   Giá chưa gồm VAT ({{ currentVariants[0]?.phanTramVat }}%)
-                </p>
+                </p> -->
               </div>
             </div>
           </div>
