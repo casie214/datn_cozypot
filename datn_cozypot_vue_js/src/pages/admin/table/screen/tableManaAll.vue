@@ -175,12 +175,13 @@ const submitAddBan = async () => {
       });
 
       closeAddModal();
-      await refreshData();
+      
+      // 🚀 GỌI LẠI API ĐỂ CẬP NHẬT CẢ BẢNG VÀ SƠ ĐỒ
+      await refreshData(); 
       refreshKey.value += 1;
 
       Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Thêm bàn mới thành công!', iconColor: '#7d161a', confirmButtonColor: '#7d161a' });
     } catch (error) {
-      console.error("Lỗi thêm bàn:", error);
       Swal.fire({ icon: 'error', title: 'Thất bại!', text: 'Có lỗi xảy ra khi thêm bàn!', confirmButtonColor: '#dc3545' });
     }
   }
@@ -220,9 +221,22 @@ const validateAddTang = () => {
   }
   return isValid;
 };
+
+const filterNumberOnly = (query, selectRef) => {
+  if (!query) return;
+  const numericVal = query.replace(/[^0-9]/g, '');
+  if (query !== numericVal && selectRef) {
+    selectRef.search = numericVal; // Ép lại thành số
+  }
+};
+
+// 2. Khai báo ref để trỏ tới Multiselect
+const tangMultiselectRef = ref(null);
+const addKhuVucTangRef = ref(null);
+
 const submitAddTang = async () => {
   if (!validateAddTang()) return;
-
+  
   const confirmResult = await Swal.fire({
     title: 'Xác nhận lưu?',
     text: "Bạn có chắc chắn muốn thêm khu vực/tầng này không?",
@@ -244,17 +258,21 @@ const submitAddTang = async () => {
         moTa: tangForm.value.moTa,
       });
 
+      // 🚀 GỌI LẠI HÀM CẬP NHẬT
       await handleFetchAllKhuVuc();
       refreshKey.value += 1;
       closeAddTangModal();
 
       Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Thêm tầng và khu vực thành công!', iconColor: '#7d161a', confirmButtonColor: '#7d161a' });
     } catch (error) {
-      console.log("FULL ERROR:", error);
       Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data || error.message || "Có lỗi xảy ra", confirmButtonColor: '#dc3545' });
     }
   }
 };
+
+
+
+
 
 watch(selectedTang, (val) => {
   form.value.tang = Number(val);
@@ -271,12 +289,13 @@ watch(
 );
 
 const refreshData = async () => {
-  await Promise.all([fetchAllBan()]);
+  await Promise.all([fetchAllBan(), handleFetchAllKhuVuc()]);
 };
 
 provide("refreshTableData", refreshData);
-provide("danhSachBan", danhSachBan);
-provide("listKhuVuc", listKhuVuc);
+// Wrap trong computed để đảm bảo tính reactive khi data thay đổi
+provide("danhSachBan", computed(() => danhSachBan.value)); 
+provide("listKhuVuc", computed(() => listKhuVuc.value));
 
 onMounted(() => {
   updateTime();
@@ -354,14 +373,16 @@ onUnmounted(() => {
         <div class="form-group">
           <label class="form-label">Tầng <span class="required-star">*</span></label>
           <Multiselect 
+            ref="tangMultiselectRef"
             v-model="selectedTang" 
             :options="listTang" 
             :searchable="true" 
             :create-option="true" 
             :canClear="true" 
-            placeholder="-- Chọn hoặc nhập tầng mới --"
-            no-results-text="Không tìm thấy tầng này" 
+            placeholder="-- Chọn hoặc nhập số tầng mới --"
+            no-results-text="Nhập số để tạo tầng mới" 
             :class="['custom-modal-multiselect', {'is-invalid-multiselect': addBanErrors.tang}]"
+            @search-change="(query) => filterNumberOnly(query, tangMultiselectRef)"
           /> 
           <span v-if="addBanErrors.tang" class="error-text">Vui lòng chọn hoặc nhập tầng</span>
         </div>
@@ -414,12 +435,15 @@ onUnmounted(() => {
         <div class="form-group">
           <label class="form-label">Tầng <span class="required-star">*</span></label>
           <Multiselect
+            ref="addKhuVucTangRef"
             v-model="tangForm.tang"
             :options="listTang"
             :searchable="true"
             :create-option="true"
-            placeholder="-- Chọn hoặc nhập tầng mới --"
+            placeholder="-- Chọn hoặc nhập số tầng mới --"
+            no-results-text="Nhập số để tạo tầng mới"
             :class="['custom-modal-multiselect', {'is-invalid-multiselect': addTangErrors.tang}]"
+            @search-change="(query) => filterNumberOnly(query, addKhuVucTangRef)"
           />
           <span v-if="addTangErrors.tang" class="error-text">Vui lòng chọn hoặc nhập số tầng hợp lệ</span>
         </div>
@@ -672,5 +696,27 @@ textarea.form-input {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+:deep(.custom-modal-multiselect) {
+  /* Màu viền khi click (Focus) */
+  --ms-border-color-active: #7d161a;
+  --ms-ring-color: rgba(125, 22, 26, 0.2);
+
+  /* Màu khi Hover (Rê chuột qua) */
+  --ms-option-bg-pointed: #fdf2f2;
+  --ms-option-color-pointed: #7d161a;
+
+  /* Màu khi Đã chọn (Selected) */
+  --ms-option-bg-selected: #7d161a;
+  --ms-option-color-selected: #ffffff;
+
+  /* Màu khi Hover vào cái Đã chọn */
+  --ms-option-bg-selected-pointed: #5f0f12;
+  --ms-option-color-selected-pointed: #ffffff;
+  
+  /* Căn chỉnh bo góc cho đẹp */
+  --ms-radius: 8px;
+  --ms-py: 8px;
 }
 </style>
