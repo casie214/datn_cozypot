@@ -17,7 +17,7 @@ const router = useRouter();
 const {
   selectedOrder,
   orderDetails,
-  currentVAT,
+  // currentVAT,
   configHoldTime,
   configCancelLimit,
   handleViewDetail,
@@ -96,16 +96,16 @@ const finalTotal = computed(() => {
   return baseTotal;
 });
 
-const taxAmount = computed(() => {
-  if (
-    selectedOrder.value?.vatApDung !== undefined &&
-    selectedOrder.value?.vatApDung !== null
-  ) {
-    // Ép kiểu về Number để đảm bảo an toàn tính toán
-    return Number(selectedOrder.value.vatApDung);
-  }
-  return 0; // Mặc định là 0 nếu không có dữ liệu
-});
+// const taxAmount = computed(() => {
+//   if (
+//     selectedOrder.value?.vatApDung !== undefined &&
+//     selectedOrder.value?.vatApDung !== null
+//   ) {
+//     // Ép kiểu về Number để đảm bảo an toàn tính toán
+//     return Number(selectedOrder.value.vatApDung);
+//   }
+//   return 0; // Mặc định là 0 nếu không có dữ liệu
+// });
 
 const isReadOnly = computed(() => {
   const code = selectedOrder.value?.trangThaiCode;
@@ -668,6 +668,11 @@ const cannotPrint = computed(() => {
                 class="border-secondary border-opacity-25 border-dashed my-3"
               />
 
+              <!-- <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted fw-medium">Thuế VAT:</span>
+                <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
+              </div> -->
+
               <div v-if="discount > 0">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-muted fw-medium">Giảm giá:</span>
@@ -1034,10 +1039,10 @@ const cannotPrint = computed(() => {
                   <td class="fw-medium" style="width: 70%">Tổng tiền hàng:</td>
                   <td class="text-end fw-bold">{{ formatMoney(subTotal) }}</td>
                 </tr>
-                <tr>
+                <!-- <tr>
                   <td class="fw-medium" style="width: 70%">Thuế VAT:</td>
                   <td class="text-end fw-bold">{{ formatMoney(taxAmount) }}</td>
-                </tr>
+                </tr> -->
                 <tr v-if="discount > 0">
                   <td class="fw-medium">
                     Giảm giá / Voucher:
@@ -1074,7 +1079,7 @@ const cannotPrint = computed(() => {
                       >Tổng thanh toán:</span
                     >
                     <div class="small fst-italic text-muted mt-1">
-                      (Đã bao gồm VAT và các khoản giảm trừ)
+                      (Đã bao tổng tiền và các khoản giảm trừ)
                     </div>
                   </td>
                   <td class="text-end align-middle">

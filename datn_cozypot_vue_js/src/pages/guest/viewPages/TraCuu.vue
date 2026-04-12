@@ -29,8 +29,7 @@ const fetchConfig = async () => {
     const response = await axiosClient.get("/tham-so-he-thong/all-map");
     const config = response.data;
     configHoldTime.value = Number(config.THOI_GIAN_GIU_BAN || 15);
-    configCancelLimit.value = Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60; 
-    
+    configCancelLimit.value = Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60;
   } catch (error) {
     console.error("Lỗi lấy config, dùng mặc định", error);
     configHoldTime.value = 15;
@@ -88,9 +87,11 @@ const getStatusBadge = (code) => {
     case 3:
       return { class: "bg-info text-dark", text: "Đã xác nhận" };
     case 4:
-    case 5:
-    case 6:
       return { class: "bg-success", text: "Đang phục vụ" };
+    case 5:
+      return { class: "bg-warning text-dark", text: "Chờ thanh toán" };
+    case 6:
+      return { class: "bg-success", text: "Đã thanh toán" };
     case 7:
       return { class: "bg-success", text: "Hoàn thành" };
     case 8:
@@ -202,8 +203,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
     return;
   }
 
-  // 2. NẾU CÓ CỌC -> TÍNH TOÁN DỰA TRÊN THAM SỐ ĐỘNG VÀ GIỜ ĐẶT (thoiGianDat)
-  // Lưu ý: thoiGianDat lấy từ displayOrderData (cục chi tiết m vừa mở ra xem)
+  // 2. NẾU CÓ CỌC -> TÍNH TOÁN DỰA TRÊN THAM SỐ ĐỘNG VÀ GIỜ ĐẶT
   const bookingTime = dayjs(displayOrderData.value.thoiGianDat);
   const now = dayjs();
 
@@ -284,7 +284,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   if (isConfirmed) executeCancel(idPhieu, reason);
 };
 
-// Hàm phụ để gọi API Hủy (Tránh lặp code)
+// Hàm phụ để gọi API Hủy
 const executeCancel = async (idPhieu, reason) => {
   Swal.fire({
     title: "Đang xử lý...",
@@ -330,6 +330,8 @@ const visibleSteps = computed(() => {
     { code: 2, label: "Đã cọc", icon: "fa-money-bill-transfer" },
     { code: 3, label: "Xác nhận", icon: "fa-circle-check" },
     { code: 4, label: "Khách đến", icon: "fa-utensils" },
+    { code: 5, label: "Chờ TT", icon: "fa-file-invoice-dollar" }, 
+    { code: 6, label: "Đã TT", icon: "fa-hand-holding-dollar" },  
     { code: 7, label: "Hoàn thành", icon: "fa-flag-checkered" },
   ];
 
@@ -392,23 +394,19 @@ const isOrderDead = computed(() => {
   return status === 8 || status === 9;
 });
 
-// 1. Tính tổng tiền hàng (Nếu đơn đã hủy thì trả về 0)
+// 1. Tổng tiền hàng
 const calculatedSubTotal = computed(() => {
   if (!displayOrderData.value || isOrderDead.value) return 0;
-  const sum = (displayOrderData.value.chiTiet || []).reduce(
-    (acc, item) => acc + item.thanhTien,
-    0,
-  );
-  return sum > 0 ? sum : displayOrderData.value.tongTienChuaGiam || 0;
+  return displayOrderData.value.tongTienChuaGiam || 0;
 });
 
-// 2. Tiền thuế (Bây giờ lấy trực tiếp từ trường vatApDung vì nó lưu tổng tiền VAT)
-const calculatedTax = computed(() => {
+// 2. Số tiền được giảm giá
+const discountAmount = computed(() => {
   if (!displayOrderData.value || isOrderDead.value) return 0;
-  return displayOrderData.value.vatApDung || 0;
+  return displayOrderData.value.soTienDaGiam || 0;
 });
 
-// 3. Tiền cọc THỰC TẾ đã thu (Chỉ tính khi trạng thái >= 2 và không phải đơn đã hủy)
+// 3. Tiền cọc THỰC TẾ đã thu
 const actualDepositPaid = computed(() => {
   if (!displayOrderData.value || isOrderDead.value) return 0;
   const status = displayOrderData.value.trangThaiHoaDon;
@@ -417,12 +415,9 @@ const actualDepositPaid = computed(() => {
   return displayOrderData.value.tienCoc || 0;
 });
 
-// 4. Thành tiền cuối cùng
 const finalBalance = computed(() => {
   if (isOrderDead.value) return 0;
-  return (
-    calculatedSubTotal.value + calculatedTax.value - actualDepositPaid.value
-  );
+  return displayOrderData.value.tongTienThanhToan || 0;
 });
 </script>
 
@@ -786,36 +781,63 @@ const finalBalance = computed(() => {
                 <i class="fas fa-sack-dollar" style="color: orange"></i> Thông
                 tin thanh toán
               </div>
-              <div class="card-body p-4 d-flex flex-column">
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Tổng tiền hàng:</span>
+              <div
+                class="card-body p-4 d-flex flex-column"
+                :style="{ opacity: isCancelledOrRefunded ? 0.5 : 1 }"
+              >
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-muted fw-medium">Tổng tiền hàng:</span>
                   <span class="fw-bold">{{
                     formatMoney(calculatedSubTotal)
                   }}</span>
                 </div>
+                <div class="text-end text-muted small mb-3 fst-italic">
+                  Giá trị sản phẩm
+                </div>
 
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="text-muted">Tổng thuế VAT:</span>
-                  <span class="fw-bold">{{ formatMoney(calculatedTax) }}</span>
+                <hr
+                  class="border-secondary border-opacity-25 border-dashed my-3"
+                />
+
+                <div v-if="discountAmount > 0">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted fw-medium">Giảm giá:</span>
+                    <span class="fw-bold text-custom-red"
+                      >- {{ formatMoney(discountAmount) }}</span
+                    >
+                  </div>
+                  <div class="d-flex justify-content-end mb-3">
+                    <div
+                      v-if="displayOrderData?.maPhieuGiamGia"
+                      class="badge rounded-pill bg-danger-subtle text-custom-red border border-danger border-opacity-25 px-3 py-1 d-inline-flex align-items-center"
+                    >
+                      <i class="fa-solid fa-ticket-simple me-2"></i>
+                      <span>{{ displayOrderData.maPhieuGiamGia }}</span>
+                    </div>
+                    <div v-else class="text-muted small fst-italic">
+                      Khuyến mãi áp dụng
+                    </div>
+                  </div>
                 </div>
 
                 <div
                   v-if="actualDepositPaid > 0"
                   class="d-flex justify-content-between mb-3"
                 >
-                  <span class="text-muted">Đã đặt cọc:</span>
+                  <span class="text-muted fw-medium">Đã đặt cọc:</span>
                   <span class="fw-bold text-success"
                     >- {{ formatMoney(actualDepositPaid) }}</span
                   >
                 </div>
-
                 <div
-                  v-else-if="displayOrderData.trangThaiHoaDon === 1"
+                  v-else-if="displayOrderData?.trangThaiHoaDon === 1"
                   class="d-flex justify-content-between mb-3"
                 >
-                  <span class="text-muted small italic">Yêu cầu đặt cọc:</span>
+                  <span class="text-muted small fst-italic"
+                    >Yêu cầu đặt cọc:</span
+                  >
                   <span class="text-dark small fw-bold">{{
-                    formatMoney(displayOrderData.tienCoc)
+                    formatMoney(displayOrderData?.tienCoc)
                   }}</span>
                 </div>
 
@@ -824,17 +846,20 @@ const finalBalance = computed(() => {
                 />
 
                 <div
-                  class="d-flex justify-content-between align-items-center mb-4"
+                  class="d-flex justify-content-between align-items-center mb-1"
                 >
-                  <span class="fs-5 fw-bold">Thành tiền:</span>
-                  <span class="fs-4 fw-bold text-custom-red">
-                    {{ formatMoney(finalBalance) }}
-                  </span>
+                  <span class="fs-5 fw-bold text-dark">Thành tiền:</span>
+                  <span class="fs-4 fw-bold text-custom-red">{{
+                    formatMoney(finalBalance)
+                  }}</span>
+                </div>
+                <div class="text-end text-muted small fst-italic">
+                  Số tiền phải thanh toán
                 </div>
 
                 <div class="mt-auto pt-3">
                   <button
-                    v-if="displayOrderData.trangThaiHoaDon === 1"
+                    v-if="displayOrderData?.trangThaiHoaDon === 1"
                     @click="handlePayDeposit(displayOrderData.idPhieu)"
                     class="btn btn-success w-100 fw-bold py-2 shadow-sm mb-2"
                   >
