@@ -103,7 +103,6 @@
                         <tbody>
                             <tr v-for="(item, index) in thongKe.topSets" :key="index">
                                 <td><span class="rank-mini">{{ index + 1 }}</span></td>
-                                <!-- SỬA Ở ĐÂY -->
                                 <td>
                                     <img :src="item.anh" class="product-img-mini" />
                                 </td>
@@ -114,7 +113,6 @@
                                     {{ formatCurrency(item.gia) }}
                                 </td>
 
-                                <!-- SỬA Ở ĐÂY -->
                                 <td class="text-right">
                                     <span class="badge-count">{{ item.soLuongBan }}</span>
                                 </td>
@@ -136,83 +134,65 @@
             <h6 class="growth-title">Phân tích tăng trưởng</h6>
 
             <div class="growth-grid">
-
-                <!-- HÔM NAY -->
                 <div class="growth-col">
                     <p class="growth-time">Hôm nay</p>
-
                     <div class="metric-row">
                         <span>Doanh thu</span>
-                        <strong>{{ formatVND(thongKe.doanhThuHomNay) }}</strong>
+                        <strong>{{ formatVND(thongKeTongQuan.doanhThuHomNay) }}</strong>
                     </div>
-
                     <div class="metric-row">
                         <span>Đơn hàng</span>
-                        <strong>{{ thongKe.tongHoaDon }}</strong>
+                        <strong>{{ thongKeTongQuan.soDonHomNay }}</strong>
                     </div>
-
-                    <div class="growth-percent up">
-                        ↑ {{ Math.abs(thongKe.tocDoTangTruong) }}%
+                    <div class="growth-percent neutral">
+                        Cập nhật hôm nay
                     </div>
                 </div>
 
-                <!-- TUẦN -->
                 <div class="growth-col">
                     <p class="growth-time">Tuần này</p>
-
                     <div class="metric-row">
                         <span>Doanh thu</span>
-                        <strong>{{ formatVND(thongKe.doanhThuTuanNay) }}</strong>
+                        <strong>{{ formatVND(thongKeTongQuan.doanhThuTuanNay) }}</strong>
                     </div>
-
                     <div class="metric-row">
                         <span>Đơn hàng</span>
-                        <strong>{{ thongKe.tongHoaDonTuan || 0 }}</strong>
+                        <strong>{{ thongKeTongQuan.soDonTuanNay }}</strong>
                     </div>
-
                     <div class="growth-percent neutral">
                         So với tuần trước
                     </div>
                 </div>
 
-                <!-- THÁNG -->
                 <div class="growth-col highlight">
                     <p class="growth-time">Tháng này</p>
-
                     <div class="metric-row">
                         <span>Doanh thu</span>
-                        <strong>{{ formatVND(thongKe.doanhThuThangNay) }}</strong>
+                        <strong>{{ formatVND(thongKeTongQuan.doanhThuThangNay) }}</strong>
                     </div>
-
                     <div class="metric-row">
-                        <span>Thực nhận</span>
-                        <strong>{{ formatVND(thongKe.doanhThuThucNhan) }}</strong>
+                        <span>Đơn hàng</span>
+                        <strong>{{ thongKeTongQuan.soDonThangNay }}</strong>
                     </div>
-
-                    <div class="growth-percent up">
-                        ↑ {{ Math.abs(thongKe.tocDoTangTruong) }}%
+                    <div class="growth-percent neutral">
+                        Dữ liệu tháng hiện tại
                     </div>
                 </div>
 
-                <!-- NĂM -->
                 <div class="growth-col">
                     <p class="growth-time">Năm {{ new Date().getFullYear() }}</p>
-
                     <div class="metric-row">
                         <span>Doanh thu</span>
-                        <strong>{{ formatVND(thongKe.doanhThuNamNay) }}</strong>
+                        <strong>{{ formatVND(thongKeTongQuan.doanhThuNamNay) }}</strong>
                     </div>
-
                     <div class="metric-row">
                         <span>Khách hàng</span>
-                        <strong>{{ thongKe.tongKhachHang }}</strong>
+                        <strong>{{ thongKeTongQuan.tongKhachHang }}</strong>
                     </div>
-
                     <div class="growth-percent neutral">
                         Tổng kết năm
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -221,26 +201,8 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import axios from 'axios';
-
-const startDate = ref(new Date().toISOString().substr(0, 10)); // Mặc định là hôm nay
-const endDate = ref(new Date().toISOString().substr(0, 10));
-// 1. Khai báo State
-// Trong file Vue của bạn
-const activeTab = ref('Tháng này');
-
-const changeTab = (tabName) => {
-    activeTab.value = tabName;
-
-    if (tabName !== 'Tùy chỉnh') {
-        loadThongKe();
-    }
-}
-// Thêm vào trong phần <script setup>
-const formatCurrency = (value) => {
-    if (!value) return '0 đ';
-    return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
-};
+import axiosClient from '@/services/axiosClient';
+import * as XLSX from 'xlsx';
 import {
     Chart as ChartJS,
     Title,
@@ -251,13 +213,10 @@ import {
     LinearScale,
     CategoryScale,
     Filler,
-    ArcElement   // 🔥 thêm cái này
+    ArcElement
 } from 'chart.js'
+import { Line, Pie } from 'vue-chartjs'
 
-import { Line, Pie } from 'vue-chartjs' // 🔥 thêm Pie
-
-// Đăng ký các module của Chart.js
-// Register tất cả 1 lần
 ChartJS.register(
     Title,
     Tooltip,
@@ -267,11 +226,192 @@ ChartJS.register(
     LinearScale,
     CategoryScale,
     Filler,
-    ArcElement  // 🔥 bắt buộc để Pie chạy
+    ArcElement
 )
-// Giả sử thongKe.doanhThuTheoNgay là một mảng 31 phần tử từ Backend
-// thongKe.value.doanhThuTheoNgay = [0, 0, ..., 580175, 1214900, 0, 2391100, 5918788, 0
-// Cập nhật Options để hiển thị Tooltip đẹp hơn
+
+const startDate = ref(new Date().toISOString().substr(0, 10));
+const endDate = ref(new Date().toISOString().substr(0, 10));
+const activeTab = ref('Tháng này');
+const isLoading = ref(false);
+const trangThaiData = ref([]);
+const kenhDatData = ref([]);
+
+const thongKe = ref({
+    doanhThuHomNay: 0,
+    doanhThuTuanNay: 0,
+    doanhThuThangNay: 0,
+    doanhThuNamNay: 0,
+    doanhThuTienMat: 0,
+    doanhThuChuyenKhoan: 0,
+    tongHoaDon: 0,
+    tongBanDaDat: 0,
+    doanhThuDuKien: 0,
+    giaTriTrungBinhDon: 0,
+    tongTienCoc: 0,
+    tongGiamGia: 0,
+    tongHoaDonHuy: 0,
+    doanhThuThucNhan: 0,
+    doanhThu12Thang: [],
+    tongKhachHang: 0,
+    khachMoi: 0,
+    khachQuayLai: 0,
+    tyLeQuayLai: 0,
+    datBanTheoGio: [],
+    topSets: []
+});
+
+const thongKeTongQuan = ref({
+    doanhThuHomNay: 0,
+    doanhThuTuanNay: 0,
+    doanhThuThangNay: 0,
+    doanhThuNamNay: 0,
+    soDonHomNay: 0,
+    soDonTuanNay: 0,
+    soDonThangNay: 0,
+    soDonNamNay: 0,
+    tongKhachHang: 0
+});
+
+const formatCurrency = (value) => {
+    if (!value) return '0 đ';
+    return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+};
+
+const formatVND = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
+
+const changeTab = (tabName) => {
+    activeTab.value = tabName;
+    if (tabName !== 'Tùy chỉnh') {
+        loadThongKe();
+    }
+}
+
+const applyCustomFilter = () => {
+    if (!startDate.value || !endDate.value) {
+        alert("Vui lòng chọn đầy đủ ngày");
+        return;
+    }
+    if (startDate.value > endDate.value) {
+        alert("Từ ngày không được lớn hơn đến ngày");
+        return;
+    }
+    loadThongKe();
+};
+
+const loadThongKeTongQuan = async () => {
+    try {
+        const response = await axiosClient.get('/thong-ke/doanh-thu', {
+            params: { loai: 'Tháng này' }
+        });
+        
+        const data = response.data;
+        thongKeTongQuan.value = {
+            doanhThuHomNay: data.doanhThuHomNay || 0,
+            doanhThuTuanNay: data.doanhThuTuanNay || 0,
+            doanhThuThangNay: data.doanhThuThangNay || 0,
+            doanhThuNamNay: data.doanhThuNamNay || 0,
+            
+            soDonHomNay: data.soDonHomNay || 0,
+            soDonTuanNay: data.soDonTuanNay || 0,
+            soDonThangNay: data.soDonThangNay || 0,
+            soDonNamNay: data.soDonNamNay || 0,
+            
+            tongKhachHang: data.tongKhachHang || 0
+        };
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê tổng quan:", error);
+    }
+};
+
+const loadThongKe = async () => {
+    isLoading.value = true;
+    try {
+        const response = await axiosClient.get('/thong-ke/doanh-thu', {
+            params: {
+                loai: activeTab.value,
+                tuNgay: activeTab.value === 'Tùy chỉnh' ? startDate.value : null,
+                denNgay: activeTab.value === 'Tùy chỉnh' ? endDate.value : null
+            }
+        });
+        thongKe.value = response.data;
+    } catch (error) {
+        console.error("Lỗi khi lấy thống kê:", error);
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+const loadTrangThai = async () => {
+    try {
+        const res = await axiosClient.get("/thong-ke/trang-thai-don-hang");
+        trangThaiData.value = res.data;
+    } catch (e) {
+        console.error("Lỗi trạng thái đơn hàng", e);
+    }
+}
+
+const loadKenhDat = async () => {
+    try {
+        const res = await axiosClient.get("/thong-ke/kenh-dat");
+        kenhDatData.value = res.data;
+    } catch (e) {
+        console.error("Lỗi kênh đặt lịch", e);
+    }
+}
+
+onMounted(() => {
+    loadThongKeTongQuan();
+    loadThongKe();
+    loadTrangThai();
+    loadKenhDat();
+});
+
+watch(activeTab, () => {
+    if (activeTab.value !== 'Tùy chỉnh') {
+        loadThongKe();
+    }
+});
+
+const danhSachTheTongQuan = computed(() => {
+    return [
+        {
+            label: 'Doanh thu hôm nay',
+            value: Number(thongKeTongQuan.value.doanhThuHomNay) || 0,
+            moTa: 'Cập nhật tức thời',
+            chuThich: 'Hệ thống CozyPot'
+        },
+        {
+            label: 'Doanh thu tuần này',
+            value: Number(thongKeTongQuan.value.doanhThuTuanNay) || 0,
+            moTa: `${thongKeTongQuan.value.soDonTuanNay || 0} hóa đơn hoàn tất`,
+            chuThich: 'Dữ liệu 7 ngày gần nhất'
+        },
+        {
+            label: 'Doanh thu tháng này',
+            value: Number(thongKeTongQuan.value.doanhThuThangNay) || 0,
+            moTa: `${thongKeTongQuan.value.soDonThangNay || 0} hóa đơn hoàn tất`,
+            chuThich: `Trung bình ${formatVND((Number(thongKeTongQuan.value.doanhThuThangNay) || 0) / 30)}/ngày`
+        },
+        {
+            label: 'Doanh thu năm nay',
+            value: Number(thongKeTongQuan.value.doanhThuNamNay) || 0,
+            moTa: 'Tổng kết doanh số',
+            chuThich: `Năm ${new Date().getFullYear()}`
+        }
+    ];
+});
+
+const thongKeChiTiet = computed(() => [
+    { label: 'Tổng hóa đơn hoàn tất', value: thongKe.value.tongHoaDon, isNumber: true },
+    { label: 'Doanh thu tiền mặt', value: thongKe.value.doanhThuTienMat, color: 'text-blue' },
+    { label: 'Doanh thu chuyển khoản', value: thongKe.value.doanhThuChuyenKhoan, color: 'text-green' },
+    { label: 'Doanh thu thực nhận', value: thongKe.value.doanhThuThucNhan, color: 'text-green' },
+    { label: 'Giá trị trung bình / đơn', value: thongKe.value.giaTriTrungBinhDon },
+    { label: 'Tiền cọc đã thu', value: thongKe.value.tongTienCoc, color: 'text-blue' },
+    { label: 'Tổng giảm giá', value: thongKe.value.tongGiamGia, color: 'text-orange' },
+    { label: 'Hóa đơn hủy', value: thongKe.value.tongHoaDonHuy, isNumber: true, color: 'text-red' },
+]);
+
 const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -304,173 +444,27 @@ const chartOptions = {
         }
     }
 };
-const isLoading = ref(false);
-const thongKe = ref({
-    doanhThuHomNay: 0,
-    doanhThuTuanNay: 0,
-    doanhThuThangNay: 0,
-    doanhThuNamNay: 0,
-    doanhThuTienMat: 0,
-    doanhThuChuyenKhoan: 0,
-    tongHoaDon: 0,
-    tongBanDaDat: 0,
-    doanhThuDuKien: 0,
-    giaTriTrungBinhDon: 0,
-    tongTienCoc: 0,
-    tongGiamGia: 0,
-    tongHoaDonHuy: 0,
-    doanhThuThucNhan: 0,
-    doanhThu12Thang: [],
-    tongKhachHang: 0,
-    khachMoi: 0,
-    khachQuayLai: 0,
-    tyLeQuayLai: 0,
-    datBanTheoGio: [] // VD: [5,12,20,35,40,30]
-});
-const chartKhungGioData = computed(() => ({
-    labels: ['10-12h', '12-14h', '14-16h', '16-18h', '18-20h', '20-22h'],
+
+const chartData = computed(() => ({
+    labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
     datasets: [
         {
-            label: 'Số lượt đặt',
-            data: thongKe.value.datBanTheoGio?.length
-                ? thongKe.value.datBanTheoGio
-                : [0, 0, 0, 0, 0, 0],
-            backgroundColor: '#8b0000',
-            borderRadius: 8
+            label: 'Doanh thu tháng',
+            data: thongKe.value.doanhThu12Thang?.length
+                ? thongKe.value.doanhThu12Thang
+                : Array(12).fill(0),
+            borderColor: '#F4511E',
+            backgroundColor: 'rgba(244,81,30,0.12)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#C62828',
+            pointBorderColor: '#fff',
+            pointHoverRadius: 8
         }
     ]
 }));
-const applyCustomFilter = () => {
-    if (!startDate.value || !endDate.value) {
-        alert("Vui lòng chọn đầy đủ ngày");
-        return;
-    }
-
-    if (startDate.value > endDate.value) {
-        alert("Từ ngày không được lớn hơn đến ngày");
-        return;
-    }
-
-    console.log("Đang lọc từ:", startDate.value, "đến", endDate.value);
-
-    loadThongKe();
-};
-const chartKhungGioOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false }
-    },
-    scales: {
-        y: {
-            beginAtZero: true,
-            grid: { color: '#f1f5f9' }
-        },
-        x: {
-            grid: { display: false }
-        }
-    }
-};
-// 2. Hàm gọi API từ Backend
-const fetchData = async () => {
-    isLoading.value = true;
-    try {
-        // Gửi kèm params activeTab để Backend biết cần lấy dữ liệu cho khoảng thời gian nào
-        const response = await axios.get('http://localhost:8080/api/thong-ke/doanh-thu', {
-            params: { thoiGian: activeTab.value }
-        });
-        thongKe.value = response.data;
-    } catch (error) {
-        console.error("Lỗi khi kết nối dữ liệu:", error);
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-const loadThongKe = async () => {
-    isLoading.value = true;
-    try {
-        const response = await axios.get('http://localhost:8080/api/thong-ke/doanh-thu', {
-            params: {
-                loai: activeTab.value,
-                tuNgay: activeTab.value === 'Tùy chỉnh' ? startDate.value : null,
-                denNgay: activeTab.value === 'Tùy chỉnh' ? endDate.value : null
-            }
-        });
-
-        // Gán dữ liệu thực vào thongKe
-        thongKe.value = response.data;
-
-        // KIỂM TRA DỮ LIỆU TẠI ĐÂY:
-        console.log("Dữ liệu biểu đồ:", thongKe.value.doanhThu12Thang);
-        console.log("TOP SET:", thongKe.value.topSets);
-
-    } catch (error) {
-        console.error("Lỗi khi lấy thống kê:", error);
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-// 3. Theo dõi sự thay đổi của Tab để tự động load lại dữ liệu
-watch(activeTab, () => {
-    loadThongKe();
-});
-
-const danhSachTheTongQuan = computed(() => {
-    const doanhThuThang = Number(thongKe.value.doanhThuThangNay) || 0;
-
-    return [
-        {
-            label: 'Doanh thu dự kiến',
-            value: Number(thongKe.value.doanhThuDuKien) || 0,
-            moTa: `${thongKe.value.tongBanDaDat || 0} bàn đã đặt`,
-            chuThich: 'Tính từ đơn chưa hoàn tất'
-        },
-        {
-            label: 'Doanh thu hôm nay',
-            value: Number(thongKe.value.doanhThuHomNay) || 0,
-            moTa: 'Cập nhật tức thời',
-            chuThich: 'Hệ thống CozyPot'
-        },
-        {
-            label: 'Doanh thu tuần này',
-            value: Number(thongKe.value.doanhThuTuanNay) || 0,
-            moTa: `${thongKe.value.tongHoaDonTuan || 0} hóa đơn hoàn tất`,
-            chuThich: 'Dữ liệu 7 ngày gần nhất'
-        },
-        {
-            label: 'Doanh thu tháng này',
-            value: doanhThuThang,
-            moTa: `${thongKe.value.tongHoaDon || 0} hóa đơn hoàn tất`,
-            chuThich: `Trung bình ${formatVND(doanhThuThang / 30)}/ngày`
-        },
-        {
-            label: 'Doanh thu năm nay',
-            value: Number(thongKe.value.doanhThuNamNay) || 0,
-            moTa: 'Tổng kết doanh số',
-            chuThich: `Năm ${new Date().getFullYear()}`
-        }
-    ];
-});
-
-const trangThaiData = ref([])
-
-const loadTrangThai = async () => {
-    try {
-        const res = await axios.get("http://localhost:8080/api/thong-ke/trang-thai-don-hang")
-        trangThaiData.value = res.data
-    } catch (e) {
-        console.error("Lỗi trạng thái đơn hàng", e)
-    }
-}
-
-onMounted(() => {
-    loadThongKe()
-    loadTrangThai()
-    loadKenhDat()
-
-})
 
 const mapTrangThai = (status) => {
     const map = {
@@ -492,20 +486,14 @@ const pieChartData = computed(() => ({
         {
             data: trangThaiData.value.map(i => i.soLuong),
             backgroundColor: [
-                '#FFB300', // Chờ xác nhận - vàng cam
-                '#FB8C00', // Đã cọc - cam
-                '#F4511E', // Đang phục vụ - cam đỏ
-                '#E53935', // Hoàn tất tạm
-                '#C62828', // Đã thanh toán
-                '#B71C1C', // Đã giao
-                '#8E0000', // Hoàn tất
-                '#5D0000'  // Đã hủy - đỏ tối
+                '#FFB300', '#FB8C00', '#F4511E', '#E53935',
+                '#C62828', '#B71C1C', '#8E0000', '#5D0000'
             ],
             borderColor: '#fff',
             borderWidth: 2
         }
     ]
-}))
+}));
 
 const pieOptions = {
     responsive: true,
@@ -515,121 +503,45 @@ const pieOptions = {
             position: 'bottom'
         }
     }
-}
+};
 
 const pieKenhDatData = computed(() => ({
     labels: kenhDatData.value.map(i => i.tenKenh),
     datasets: [
         {
             data: kenhDatData.value.map(i => i.soLuong),
-            backgroundColor: [
-                '#F4511E', // Online - cam logo
-                '#8b0000'  // Offline - đỏ đậm
-            ],
+            backgroundColor: ['#F4511E', '#8b0000'],
             borderColor: '#fff',
             borderWidth: 2
         }
     ]
-}))
+}));
+
 const pieKenhOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: {
             position: 'bottom',
-            labels: {
-                font: { size: 12 }
-            }
+            labels: { font: { size: 12 } }
         },
         tooltip: {
             callbacks: {
                 label: (context) => {
-                    const total = context.dataset.data.reduce((a, b) => a + b, 0)
-                    const value = context.raw
-                    const percent = ((value / total) * 100).toFixed(1)
-                    return `${context.label}: ${value} (${percent}%)`
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const value = context.raw;
+                    const percent = ((value / total) * 100).toFixed(1);
+                    return `${context.label}: ${value} (${percent}%)`;
                 }
             }
         }
     }
-}
-const thongKeChiTiet = computed(() => [
-    { label: 'Tổng hóa đơn hoàn tất', value: thongKe.value.tongHoaDon, isNumber: true },
-    // 🔥 THÊM MỚI
-    {
-        label: 'Số bàn đã đặt',
-        value: thongKe.value.tongBanDaDat,
-        isNumber: true,
-        color: 'text-blue'
-    },
-
-    {
-        label: 'Doanh thu dự kiến',
-        value: thongKe.value.doanhThuDuKien,
-        color: 'text-orange'
-    },
-    {
-        label: 'Doanh thu tiền mặt',
-        value: thongKe.value.doanhThuTienMat,
-        color: 'text-blue'
-    },
-    {
-        label: 'Doanh thu chuyển khoản',
-        value: thongKe.value.doanhThuChuyenKhoan,
-        color: 'text-green'
-    },
-        { label: 'Doanh thu thực nhận', value: thongKe.value.doanhThuThucNhan, color: 'text-green' }
-,
-    { label: 'Giá trị trung bình / đơn', value: thongKe.value.giaTriTrungBinhDon },
-    { label: 'Tiền cọc đã thu', value: thongKe.value.tongTienCoc, color: 'text-blue' },
-    { label: 'Tổng giảm giá', value: thongKe.value.tongGiamGia, color: 'text-orange' },
-    { label: 'Hóa đơn hủy', value: thongKe.value.tongHoaDonHuy, isNumber: true, color: 'text-red' },
-]);
-const chartData = computed(() => ({
-    labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
-    datasets: [
-        {
-            label: 'Doanh thu tháng',
-            data: thongKe.value.doanhThu12Thang?.length
-                ? thongKe.value.doanhThu12Thang
-                : Array(12).fill(0),
-
-            borderColor: '#F4511E', // 🟠 cam logo
-            backgroundColor: 'rgba(244,81,30,0.12)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-
-            pointRadius: 5,
-            pointBackgroundColor: '#C62828', // 🔴 đỏ đậm
-            pointBorderColor: '#fff',
-            pointHoverRadius: 8
-        }
-    ]
-}))
-const formatVND = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
-
-
-const kenhDatData = ref([])
-
-const loadKenhDat = async () => {
-    try {
-        const res = await axios.get("http://localhost:8080/api/thong-ke/kenh-dat")
-        kenhDatData.value = res.data
-    } catch (e) {
-        console.error("Lỗi kênh đặt lịch", e)
-    }
-}
-const danhSachHoaDon = ref([])
-import * as XLSX from 'xlsx'; // Import thư viện Excel
-
-// ... các ref hiện có của bạn ...
+};
 
 const exportToExcel = () => {
     const reportDate = new Date().toLocaleString('vi-VN');
     const fileName = `Bao-cao-doanh-thu-${activeTab.value.replace(' ', '-')}.xls`;
 
-    // Tạo HTML Table với Style
     const tableHtml = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="UTF-8"></head>
@@ -661,14 +573,13 @@ const exportToExcel = () => {
                     <td colspan="2" style="padding: 8px; text-align: right; font-weight: bold;">${formatVND(thongKe.value.doanhThuThangNay)}</td>
                 </tr>
                 <tr>
-<td colspan="2">Doanh thu tiền mặt</td>
-<td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuTienMat)}</td>
-</tr>
-
-<tr>
-<td colspan="2">Doanh thu chuyển khoản</td>
-<td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuChuyenKhoan)}</td>
-</tr>
+                    <td colspan="2">Doanh thu tiền mặt</td>
+                    <td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuTienMat)}</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Doanh thu chuyển khoản</td>
+                    <td colspan="2" style="text-align:right">${formatVND(thongKe.value.doanhThuChuyenKhoan)}</td>
+                </tr>
                 <tr>
                     <td colspan="2" style="padding: 8px;">Tổng số hóa đơn hoàn tất</td>
                     <td colspan="2" style="padding: 8px; text-align: right;">${thongKe.value.tongHoaDon} đơn</td>
@@ -718,7 +629,6 @@ const exportToExcel = () => {
         </html>
     `;
 
-    // Xuất file
     const blob = new Blob([tableHtml], { type: "application/vnd.ms-excel" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -727,17 +637,6 @@ const exportToExcel = () => {
     a.click();
     window.URL.revokeObjectURL(url);
 };
-
-const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('vi-VN')
-}
-
-const getStatusClass = (status) => {
-    if (status === 7) return "status success"
-    if (status === 8) return "status cancel"
-    return "status pending"
-}
-
 </script>
 
 <style scoped>
@@ -760,7 +659,6 @@ const getStatusClass = (status) => {
 .chart-container {
     position: relative;
     height: 300px;
-    /* Độ cao của biểu đồ */
     width: 100%;
 }
 
@@ -772,14 +670,6 @@ const getStatusClass = (status) => {
     color: #94a3b8;
 }
 
-.box-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-/* Header của box bảng */
 .box-header {
     display: flex;
     justify-content: space-between;
@@ -796,7 +686,6 @@ const getStatusClass = (status) => {
     font-weight: 600;
 }
 
-/* Định dạng bảng */
 .table-container {
     overflow-x: auto;
 }
@@ -834,7 +723,6 @@ const getStatusClass = (status) => {
     color: #8b0000;
 }
 
-/* Thanh progress hiển thị tỷ lệ */
 .progress-bar {
     width: 100px;
     height: 6px;
@@ -855,7 +743,6 @@ const getStatusClass = (status) => {
     padding: 2rem !important;
 }
 
-/* Thêm vào phần style */
 .date-picker-group {
     display: flex;
     gap: 15px;
@@ -906,48 +793,36 @@ const getStatusClass = (status) => {
 
 .growth-value.up {
     color: #F4511E;
-    /* cam logo */
 }
 
-/* Xanh dương cho tăng */
 .growth-value.down {
     color: #ef4444;
 }
 
-/* Đỏ cho giảm */
 .input-item {
-
     display: flex;
     flex-direction: column;
 }
 
-/* Tìm đến đoạn này trong CSS của bạn và cập nhật */
 .input-item input {
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    /* Bo góc tròn hơn một chút cho hiện đại */
     padding: 8px 15px;
-    /* Tăng padding để ô input cao và thoáng hơn */
     font-size: 14px;
     color: #1e293b;
     background-color: #fff;
     outline: none;
-
-    /* CHỈNH ĐỘ DÀI Ở ĐÂY */
-    width: 400px;
-    /* Tăng từ 160px lên 280px */
-
+    width: 160px;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
 .input-item label {
-    font-size: 12px;
-    /* Tăng nhẹ size chữ label */
+    font-size: 11px;
     font-weight: 700;
-    color: #64748b;
+    color: #94a3b8;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     letter-spacing: 0.5px;
 }
 
@@ -962,65 +837,23 @@ const getStatusClass = (status) => {
     font-size: 0.875rem;
 }
 
-/* Grid cho 4 thẻ */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
     margin-bottom: 2.5rem;
 }
 
-/* Container bọc ngoài 2 ô input */
 .date-picker-row {
     display: flex;
-    /* Ép các thẻ con nằm cùng 1 dòng */
     gap: 20px;
-    /* Khoảng cách giữa ô "Từ ngày" và "Đến ngày" */
     margin-top: 12px;
-    /* Khoảng cách với dòng chữ phía trên */
 }
 
-/* Từng khối (Label + Input) */
-.input-item {
-    display: flex;
-    flex-direction: column;
-    /* Label nằm trên, Input nằm dưới trong cùng 1 khối */
-    align-items: flex-start;
-}
-
-.input-item label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #94a3b8;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-}
-
-.input-item input {
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 13px;
-    color: #1e293b;
-    background-color: #fff;
-    outline: none;
-    width: 160px;
-    /* Độ rộng cố định cho ô input */
-    transition: all 0.2s ease;
-}
-
-.input-item input:focus {
-    border-color: #8b0000;
-    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
-}
-
-/* Căn chỉnh lại Header để không bị lệch khi xuất hiện Input */
 .filter-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    /* Quan trọng: căn lên đỉnh để tabs không bị nhảy vị trí */
     margin-bottom: 2rem;
 }
 
@@ -1055,25 +888,12 @@ const getStatusClass = (status) => {
     color: #cbd5e1;
 }
 
-/* Căn chỉnh header của bộ lọc */
-.filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    /* Đưa các thành phần về giữa theo chiều dọc */
-    margin-bottom: 2rem;
-}
-
-/* Quan trọng: Cho phép Tabs và Button nằm cùng hàng */
 .filter-actions {
     display: flex;
     align-items: center;
-    /* Căn giữa theo chiều dọc */
     gap: 12px;
-    /* Khoảng cách giữa các nút chọn và nút Xuất Excel */
 }
 
-/* Định dạng nút Xuất Excel giống mẫu */
 .btn-export {
     background: linear-gradient(135deg, #7D161A 0%, #D32F2F 100%);
     color: white;
@@ -1091,7 +911,6 @@ const getStatusClass = (status) => {
     flex-shrink: 0;
 }
 
-/* Điều chỉnh lại filter-tabs để cân bằng chiều cao */
 .filter-tabs {
     display: flex;
     background: #f1f5f9;
@@ -1116,38 +935,11 @@ const getStatusClass = (status) => {
     align-items: center;
 }
 
-/* Filter Section */
 .filter-section {
     background: white;
     padding: 2rem;
     border-radius: 1rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
-}
-
-.filter-tabs {
-    display: flex;
-    background: #f1f5f9;
-    padding: 0.3rem;
-    border-radius: 0.75rem;
-    gap: 0.5rem;
-}
-
-.tab-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    border-radius: 0.5rem;
-    border: none;
-    cursor: pointer;
-    color: #64748b;
-    background: transparent;
-    transition: 0.3s;
 }
 
 .tab-btn.active {
@@ -1157,7 +949,6 @@ const getStatusClass = (status) => {
     font-weight: 700;
 }
 
-/* Grid cho chi tiết (6 cột) */
 .detail-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -1241,7 +1032,6 @@ const getStatusClass = (status) => {
     color: #ea580c;
 }
 
-/* Charts */
 .charts-row {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -1268,17 +1058,13 @@ const getStatusClass = (status) => {
     margin-top: 1rem;
 }
 
-/* Responsive cho mobile */
 @media (max-width: 1024px) {
-
     .stats-grid,
     .detail-grid,
     .charts-row {
         grid-template-columns: 1fr;
     }
 }
-
-/* ===== GROWTH SECTION NEW ===== */
 
 .growth-section-new {
     margin-top: 2rem;
@@ -1353,7 +1139,6 @@ const getStatusClass = (status) => {
     color: #64748b;
 }
 
-/* Table Top Set Lau Mini */
 .table-container-mini {
     margin-top: 10px;
 }
@@ -1403,7 +1188,6 @@ const getStatusClass = (status) => {
 
 .product-price-mini {
     color: #b91c1c;
-    /* Màu đỏ sẫm đặc trưng */
     font-weight: 700;
     font-size: 12px;
 }

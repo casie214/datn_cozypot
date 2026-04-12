@@ -371,7 +371,6 @@ public class HoaDonThanhToanService {
             hoaDon.setTrangThaiHoaDon(4); // 4 = Đang phục vụ
             hoaDon.setTongTienChuaGiam(BigDecimal.ZERO);
             hoaDon.setTongTienThanhToan(BigDecimal.ZERO);
-            hoaDon.setVatApDung(BigDecimal.ZERO); // Khởi tạo VAT = 0 cho khách vãng lai
 
             if (req.getIdNhanVien() != null) {
                 NhanVien nv = nhanVienRepository.findById(req.getIdNhanVien()).orElse(null);
@@ -421,16 +420,11 @@ public class HoaDonThanhToanService {
 
             ChiTietHoaDon chiTiet;
             BigDecimal donGiaThucTe = BigDecimal.ZERO; // 🚨 Đổi tên từ donGiaGoc -> donGiaThucTe (Giá sau khi đã trừ KM)
-            Integer vatPhanTramCuaMon = 10;
 
             if (matchOpt.isPresent()) {
                 // Cập nhật món đã có trong hóa đơn
                 chiTiet = matchOpt.get();
                 donGiaThucTe = chiTiet.getDonGiaTaiThoiDiemBan();
-
-                if (chiTiet.getIdChiTietMonAn() != null && chiTiet.getIdChiTietMonAn().getDanhMuc() != null) {
-                    vatPhanTramCuaMon = chiTiet.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung() == 2 ? 8 : 10;
-                }
 
                 if (chiTiet.getTrangThaiMon() != null && chiTiet.getTrangThaiMon() == 0) {
                     chiTiet.setTrangThaiMon(1);
@@ -468,17 +462,6 @@ public class HoaDonThanhToanService {
                         donGiaThucTe = giaNiemYet;
                     }
 
-                    if (phanTramGiam != null && phanTramGiam > 0) {
-                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
-                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
-                    } else {
-                        donGiaThucTe = giaNiemYet;
-                    }
-
-                    if (monAn.getDanhMuc() != null && monAn.getDanhMuc().getLoaiVatApDung() != null) {
-                        vatPhanTramCuaMon = monAn.getDanhMuc().getLoaiVatApDung() == 2 ? 8 : 10;
-                    }
-
                 } else if (itemReq.getIdSetLau() != null) {
                     // XỬ LÝ SET LẨU
                     SetLau setLau = setLauRepository.findById(itemReq.getIdSetLau())
@@ -500,14 +483,6 @@ public class HoaDonThanhToanService {
                     } else {
                         donGiaThucTe = giaNiemYet;
                     }
-                    if (phanTramGiam != null && phanTramGiam > 0) {
-                        donGiaThucTe = giaNiemYet.multiply(BigDecimal.valueOf(100 - phanTramGiam))
-                                .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
-                    } else {
-                        donGiaThucTe = giaNiemYet;
-                    }
-
-                    vatPhanTramCuaMon = 10;
                 } else {
                     throw new RuntimeException("Dữ liệu không hợp lệ: Phải truyền ID Món hoặc ID Set");
                 }
@@ -528,12 +503,7 @@ public class HoaDonThanhToanService {
             // =========================================================
             BigDecimal thanhTien = donGiaThucTe.multiply(BigDecimal.valueOf(itemReq.getSoLuong()));
 
-            BigDecimal tienVatCuaMon = thanhTien
-                    .multiply(BigDecimal.valueOf(vatPhanTramCuaMon))
-                    .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP); // Fix lỗi số lẻ
-
             chiTiet.setThanhTien(thanhTien);
-            chiTiet.setTienVat(tienVatCuaMon);
 
             chiTiet = chiTietHoaDonRepository.save(chiTiet);
             itemsToKeep.add(chiTiet);
@@ -555,7 +525,7 @@ public class HoaDonThanhToanService {
         }
 
         // =======================================================
-        // 4. TÍNH TOÁN LẠI TÀI CHÍNH TỔNG (Logic giữ nguyên)
+        // 4. TÍNH TOÁN LẠI TÀI CHÍNH TỔNG
         // =======================================================
         List<ChiTietHoaDon> dsMonHienTai = chiTietHoaDonRepository.findByIdHoaDon_Id(hoaDon.getId())
                 .stream().filter(item -> item.getTrangThaiMon() != null && item.getTrangThaiMon() != 0)
@@ -564,12 +534,7 @@ public class HoaDonThanhToanService {
         BigDecimal tongTienChuaGiam = dsMonHienTai.stream()
                 .map(ChiTietHoaDon::getThanhTien).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal tongTienVat = dsMonHienTai.stream()
-                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
-        hoaDon.setVatApDung(tongTienVat);
 
         hoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
@@ -583,7 +548,7 @@ public class HoaDonThanhToanService {
         BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
         if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
 
-        BigDecimal tongTienThanhToan = tienSauGiam.add(tongTienVat).subtract(tienCoc);
+        BigDecimal tongTienThanhToan = tienSauGiam.subtract(tienCoc);
         if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) tongTienThanhToan = BigDecimal.ZERO;
 
         hoaDon.setTongTienThanhToan(tongTienThanhToan);
@@ -699,13 +664,13 @@ public class HoaDonThanhToanService {
                 .map(ChiTietHoaDon::getThanhTien).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // 🚨 TỔNG TIỀN VAT
-        BigDecimal tongTienVat = dsMonHienTai.stream()
-                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//        BigDecimal tongTienVat = dsMonHienTai.stream()
+//                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
 
-        hoaDon.setVatApDung(tongTienVat);
+//        hoaDon.setVatApDung(tongTienVat);
 
         hoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
@@ -720,8 +685,7 @@ public class HoaDonThanhToanService {
         if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
 
         // 🚨 CỘNG TRỰC TIẾP TIỀN VAT
-        BigDecimal tongTienThanhToan = tienSauGiam.add(tongTienVat).subtract(tienCoc);
-
+        BigDecimal tongTienThanhToan = tienSauGiam.subtract(tienCoc); // Gỡ bỏ .add(tongTienVat)
         if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) tongTienThanhToan = BigDecimal.ZERO;
 
         hoaDon.setTongTienThanhToan(tongTienThanhToan);

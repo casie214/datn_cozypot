@@ -668,11 +668,6 @@ const cannotPrint = computed(() => {
                 class="border-secondary border-opacity-25 border-dashed my-3"
               />
 
-              <div class="d-flex justify-content-between mb-3">
-                <span class="text-muted fw-medium">Thuế VAT:</span>
-                <span class="fw-bold">{{ formatMoney(taxAmount) }}</span>
-              </div>
-
               <div v-if="discount > 0">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-muted fw-medium">Giảm giá:</span>
