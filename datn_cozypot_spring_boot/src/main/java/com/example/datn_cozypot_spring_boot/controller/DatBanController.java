@@ -196,12 +196,12 @@ public class DatBanController {
                 .map(item -> item.getThanhTien() != null ? item.getThanhTien() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal tongTienVat = dsMonHienTai.stream()
-                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//        BigDecimal tongTienVat = dsMonHienTai.stream()
+//                .map(item -> item.getTienVat() != null ? item.getTienVat() : BigDecimal.ZERO)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         hoaDon.setTongTienChuaGiam(tongTienChuaGiam);
-        hoaDon.setVatApDung(tongTienVat);
+//        hoaDon.setVatApDung(tongTienVat);
 
         hoaDon = hoaDonThanhToanRepository.save(hoaDon);
 
@@ -215,7 +215,7 @@ public class DatBanController {
         BigDecimal tienSauGiam = tongTienChuaGiam.subtract(giamGia);
         if (tienSauGiam.compareTo(BigDecimal.ZERO) < 0) tienSauGiam = BigDecimal.ZERO;
 
-        BigDecimal tongTienThanhToan = tienSauGiam.add(tongTienVat).subtract(tienCoc);
+        BigDecimal tongTienThanhToan = tienSauGiam.subtract(tienCoc);
         if (tongTienThanhToan.compareTo(BigDecimal.ZERO) < 0) tongTienThanhToan = BigDecimal.ZERO;
 
         hoaDon.setTongTienThanhToan(tongTienThanhToan);

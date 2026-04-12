@@ -573,15 +573,15 @@ public class DatBanService {
                         BigDecimal daGiam = hoaDon.getSoTienDaGiam() != null ? hoaDon.getSoTienDaGiam() : BigDecimal.ZERO;
                         BigDecimal coc = hoaDon.getTienCoc() != null ? hoaDon.getTienCoc() : BigDecimal.ZERO;
 
-                        BigDecimal tienVat = BigDecimal.ZERO;
-                        if (hoaDon.getVatApDung() != null) {
-                            tienVat = new BigDecimal(hoaDon.getVatApDung().toString());
-                        }
+//                        BigDecimal tienVat = BigDecimal.ZERO;
+//                        if (hoaDon.getVatApDung() != null) {
+//                            tienVat = new BigDecimal(hoaDon.getVatApDung().toString());
+//                        }
 
                         BigDecimal sauGiam = tongChuaGiam.subtract(daGiam);
                         if (sauGiam.compareTo(BigDecimal.ZERO) < 0) sauGiam = BigDecimal.ZERO;
 
-                        BigDecimal tongThanhToanCuoi = sauGiam.add(tienVat);
+                        BigDecimal tongThanhToanCuoi = sauGiam; // Gỡ bỏ .add(tienVat)
                         hoaDon.setTongTienThanhToan(tongThanhToanCuoi);
 
                         if (coc.compareTo(tongThanhToanCuoi) > 0) {

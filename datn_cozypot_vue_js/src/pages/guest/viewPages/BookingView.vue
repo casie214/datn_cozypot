@@ -40,7 +40,6 @@ const errors = reactive({
 
 //Gia trị mặc định
 const systemParams = reactive({
-  vat: 10,
   phanTramCoc: 40,
 });
 
@@ -49,7 +48,6 @@ const fetchSystemParams = async () => {
     const response = await axiosClient.get("/tham-so-he-thong/all-map");
     const data = response.data;
     if (data) {
-      if (data.VAT) systemParams.vat = parseFloat(data.VAT);
       if (data.PHAN_TRAM_COC)
         systemParams.phanTramCoc = parseFloat(data.PHAN_TRAM_COC);
     }
@@ -196,15 +194,7 @@ const subTotal = computed(() =>
   cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
 );
 
-const taxAmount = computed(() => {
-  return cart.value.reduce((sum, item) => {
-    const vatRate = item.phanTramVat || 0;
-    const tienVatCuaMon = item.price * item.quantity * (vatRate / 100);
-    return sum + tienVatCuaMon;
-  }, 0);
-});
-
-const totalAmount = computed(() => subTotal.value + taxAmount.value);
+const totalAmount = computed(() => subTotal.value); 
 const depositAmount = computed(
   () => totalAmount.value * (systemParams.phanTramCoc / 100),
 );
@@ -467,15 +457,14 @@ const submitFinalBooking = async () => {
       tongTien: totalAmount.value,
       tienCoc: depositAmount.value,
       chiTiet: cart.value.map((item) => {
-        const vatRate = item.phanTramVat || 0;
-
+        // const vatRate = item.phanTramVat || 0;
         return {
           idChiTietMonAn: item.type === "MON" ? item.id : null,
           idSetLau: item.type === "SET" ? item.id : null,
           soLuong: item.quantity,
           donGia: item.price,
-          phanTramVat: vatRate,
-          tienVat: item.price * item.quantity * (vatRate / 100),
+          phanTramVat: 0, 
+          tienVat: 0,
         };
       }),
     };
@@ -1010,14 +999,14 @@ const minDate = computed(() => {
                       }}</span>
                     </div>
 
-                    <div class="d-flex justify-content-between mb-3">
+                    <!-- <div class="d-flex justify-content-between mb-3">
                       <span class="text-dark fw-bold small"
                         >Tổng thuế VAT:</span
                       >
                       <span class="text-dark fw-bold small">{{
                         formatPrice(taxAmount)
                       }}</span>
-                    </div>
+                    </div> -->
 
                     <hr class="border-secondary opacity-25" />
 
