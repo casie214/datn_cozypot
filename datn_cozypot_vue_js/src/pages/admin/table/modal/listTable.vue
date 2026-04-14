@@ -157,24 +157,54 @@ const errors = ref({
 
 const validateForm = () => {
   let isValid = true;
-  errors.value = { maBan: false, soNguoiToiDa: false, tang: false, idKhuVuc: false };
 
-  if (!form.value.maBan || String(form.value.maBan).trim() === "") {
-    errors.value.maBan = true; isValid = false;
+  errors.value = {
+    maBan: false,
+    soNguoiToiDa: false,
+    tang: false,
+    idKhuVuc: false,
+    tenKhuVuc: false,
+  };
+
+  /* ===== MÃ BÀN ===== */
+  if (!form.value.maBan || form.value.maBan.trim() === "") {
+    errors.value.maBan = true;
+    isValid = false;
   }
-  if (!form.value.soNguoiToiDa || form.value.soNguoiToiDa <= 0) {
-    errors.value.soNguoiToiDa = true; isValid = false;
+
+  /* ===== SỐ NGƯỜI (1 - 50, không được null) ===== */
+  const soNguoi = Number(form.value.soNguoiToiDa);
+
+  if (!form.value.soNguoiToiDa || isNaN(soNguoi) || soNguoi < 1 || soNguoi > 50) {
+    errors.value.soNguoiToiDa = true;
+    isValid = false;
   }
-  if (!form.value.tang) {
-    errors.value.tang = true; isValid = false;
+
+  /* ===== TẦNG (1 - 50 + KHÔNG TRÙNG) ===== */
+  const tang = Number(form.value.tang);
+
+  if (!form.value.tang || isNaN(tang) || tang < 1 || tang > 50) {
+    errors.value.tang = true;
+    isValid = false;
+  } else {
+    
   }
+
+  /* ===== KHU VỰC ===== */
   if (!form.value.idKhuVuc) {
-    errors.value.idKhuVuc = true; isValid = false;
+    errors.value.idKhuVuc = true;
+    isValid = false;
   }
 
+  /* ===== TOAST ===== */
   if (!isValid) {
-    Toast.fire({ icon: 'error', title: 'Dữ liệu không hợp lệ', text: 'Vui lòng kiểm tra lại các trường báo đỏ' });
+    Toast.fire({
+      icon: "error",
+      title: "Dữ liệu không hợp lệ",
+      text: "Vui lòng kiểm tra lại các trường",
+    });
   }
+
   return isValid;
 };
 
@@ -199,12 +229,8 @@ const submitUpdateBan = async () => {
       await updateBanAn(form.value);
       closeAddModal(); 
       
-      // 🚀 GỌI HÀM CẬP NHẬT CỦA CHA ĐỂ ĐỒNG BỘ LẠI TẤT CẢ DỮ LIỆU
-      if (refreshTableData) {
-        await refreshTableData();
-      } else {
-        await fetchAllBan(); // Sơ cua nếu chạy độc lập
-      }
+      // 🚨 SỬA Ở ĐÂY: Xóa vụ refreshTableData lằng nhằng đi, gọi thẳng fetchAllBan()
+      await fetchAllBan();
       
       Swal.fire({
         icon: 'success', title: 'Thành công!', text: 'Cập nhật thông tin bàn thành công!',
@@ -452,7 +478,8 @@ onUnmounted(() => {
           <label class="form-label">Số người tối đa <span class="required-star">*</span></label>
           <input type="number" v-model="form.soNguoiToiDa" class="form-input"
             :class="{ 'is-invalid': errors.soNguoiToiDa }" placeholder="Nhập số người tối đa..." />
-          <span v-if="errors.soNguoiToiDa" class="error-text">Số người tối đa phải lớn hơn 0</span>
+          <span v-if="errors.soNguoiToiDa" class="error-text">Số người phải từ 1 đến 50</span>
+          
         </div>
 
         <div class="form-group">
