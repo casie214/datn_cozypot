@@ -120,11 +120,11 @@ const validateAddBan = () => {
   let isValid = true;
   addBanErrors.value = { soNguoiToiDa: false, tang: false, idKhuVuc: false, newKhuVucName: false };
 
-  if (!form.value.soNguoiToiDa || form.value.soNguoiToiDa <= 0) { addBanErrors.value.soNguoiToiDa = true; isValid = false; }
+  if (!form.value.soNguoiToiDa || form.value.soNguoiToiDa <= 0 || form.value.soNguoiToiDa > 50) { addBanErrors.value.soNguoiToiDa = true; isValid = false; }
   if (!selectedTang.value) { addBanErrors.value.tang = true; isValid = false; }
   
   if (isTangMoi.value) {
-    if (!newKhuVucName.value || newKhuVucName.value.trim() === "") { addBanErrors.value.newKhuVucName = true; isValid = false; }
+    if (!newKhuVucName.value || newKhuVucName.value.trim() === "" || newKhuVucName.value.length > 100) { addBanErrors.value.newKhuVucName = true; isValid = false; }
   } else {
     if (!form.value.idKhuVuc) { addBanErrors.value.idKhuVuc = true; isValid = false; }
   }
@@ -367,7 +367,7 @@ onUnmounted(() => {
             :class="{'is-invalid': addBanErrors.soNguoiToiDa}"
             placeholder="Nhập số người tối đa" 
           />
-          <span v-if="addBanErrors.soNguoiToiDa" class="error-text">Số người phải lớn hơn 0</span>
+          <span v-if="addBanErrors.soNguoiToiDa" class="error-text">Số người phải lớn hơn 0 và nhỏ hơn 50</span>
         </div>
 
         <div class="form-group">

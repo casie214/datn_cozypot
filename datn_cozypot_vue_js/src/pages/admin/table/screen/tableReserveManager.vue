@@ -849,30 +849,52 @@ const nextStep = () => {
 
 const toggleTableForCreate = (ban) => {
   const status = tableStatusMap.value[String(ban.id)]?.trangThai || 0;
+
   if (status !== 0) {
-    return Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Bàn đã có lịch lúc này!', showConfirmButton: false, timer: 1500 });
+    return Swal.fire({ 
+      toast: true, 
+      position: 'top-end', 
+      icon: 'error', 
+      title: 'Bàn đã có lịch lúc này!', 
+      showConfirmButton: false, 
+      timer: 1500 
+    });
   }
 
   const idx = tempSelectedTables.value.findIndex(b => b.id === ban.id);
+
   if (idx !== -1) {
+    // ✅ CHO BỎ TỰ DO
     tempSelectedTables.value.splice(idx, 1);
   } else {
-    // 🚨 ĐÃ SỬA: Chặn nếu đã chọn đủ số người
-    if (totalTempCapacity.value >= createForm.value.soLuongKhach) {
-      return Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'warning',
-        title: 'Đã đủ chỗ, không cần chọn thêm bàn!',
-        showConfirmButton: false,
-        timer: 2000
-      });
-    }
+    // ✅ CHO CHỌN TỰ DO (không giới hạn nữa)
     tempSelectedTables.value.push(ban);
   }
 };
 
 const removeSelectedTable = (index) => {
+  const ban = createForm.value.danhSachBanChon[index];
+
+  const capacityAfterRemove =
+    createForm.value.danhSachBanChon.reduce(
+      (sum, b, i) => i !== index
+        ? sum + (Number(b.soCho || b.soNguoiToiDa) || 0)
+        : sum,
+      0
+    );
+
+  if (capacityAfterRemove < createForm.value.soLuongKhach) {
+    return Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'warning',
+      title: 'Không thể xóa bàn!',
+      text: 'Xóa bàn này sẽ không đủ chỗ cho khách.',
+      showConfirmButton: false,
+      timer: 2000
+    });
+  }
+
   createForm.value.danhSachBanChon.splice(index, 1);
 };
 
