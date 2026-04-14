@@ -1093,19 +1093,31 @@ public class DatBanService {
             if (req.getSoDienThoai() == null || req.getSoDienThoai().isBlank()) {
                 throw new RuntimeException("Số điện thoại không được để trống");
             }
-            Optional<KhachHang> existing = khachHangRepository.findBySoDienThoai(req.getSoDienThoai());
-            if (existing.isPresent()) {
-                khachHang = existing.get();
-            } else {
-                khachHang = new KhachHang();
-                khachHang.setTenKhachHang(req.getTenKhachHang());
-                khachHang.setSoDienThoai(req.getSoDienThoai());
-                khachHang.setEmail(req.getEmail());
-                khachHang.setNgaySinh(req.getNgaySinh());
-                khachHang.setGioiTinh(req.getGioiTinh());
-                khachHang.setTrangThai(1);
-                khachHang = khachHangRepository.save(khachHang);
+
+            // Kiểm tra trùng SĐT
+            Optional<KhachHang> existingPhone = khachHangRepository.findBySoDienThoai(req.getSoDienThoai());
+            if (existingPhone.isPresent()) {
+                throw new RuntimeException("Số điện thoại này đã tồn tại trong hệ thống!");
             }
+
+            // Kiểm tra trùng Email (nếu có nhập)
+            if (req.getEmail() != null && !req.getEmail().isBlank()) {
+                Optional<KhachHang> existingEmail = khachHangRepository.findByEmail(req.getEmail());
+                if (existingEmail.isPresent()) {
+                    throw new RuntimeException("Email này đã tồn tại trong hệ thống!");
+                }
+            }
+
+            // Khởi tạo khách hàng mới
+            khachHang = new KhachHang();
+            khachHang.setTenKhachHang(req.getTenKhachHang());
+            khachHang.setSoDienThoai(req.getSoDienThoai());
+            khachHang.setEmail(req.getEmail());
+            khachHang.setNgaySinh(req.getNgaySinh());
+            khachHang.setGioiTinh(req.getGioiTinh());
+            khachHang.setTrangThai(1);
+            khachHang.setTenDangNhap(req.getSoDienThoai());
+            khachHang = khachHangRepository.save(khachHang);
         }
 
         // 2. VALIDATE DANH SÁCH BÀN & THỜI GIAN
