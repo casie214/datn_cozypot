@@ -59,7 +59,7 @@ const discount = computed(() => selectedOrder.value?.soTienDaGiam || 0);
 const rawDeposit = computed(() => selectedOrder.value?.tienCocRaw || 0);
 const deposit = computed(() => {
   const code = selectedOrder.value?.trangThaiCode;
-  
+
   // 1. Nếu đang ở trạng thái Vừa tạo (0) hoặc Chờ cọc (1) -> Chắc chắn chưa có cọc
   if (code === 0 || code === 1) {
     return 0;
@@ -67,12 +67,14 @@ const deposit = computed(() => {
 
   // 2. Nếu đã Hủy (8) hoặc Hoàn tiền (9), kiểm tra xem trước đó khách đã đóng cọc chưa
   if (code === 8 || code === 9) {
-    const historyCodes = historyEvents.value
-      ?.map((e) => e.trangThaiMoi)
-      .filter((c) => c !== null && c !== undefined && c < 8) || [];
-      
-    const maxCodeBeforeCancel = historyCodes.length > 0 ? Math.max(...historyCodes) : 0;
-    
+    const historyCodes =
+      historyEvents.value
+        ?.map((e) => e.trangThaiMoi)
+        .filter((c) => c !== null && c !== undefined && c < 8) || [];
+
+    const maxCodeBeforeCancel =
+      historyCodes.length > 0 ? Math.max(...historyCodes) : 0;
+
     // Nếu trước khi hủy mà trạng thái đi được xa nhất chỉ là 0 hoặc 1 -> Khách chưa đóng cọc
     if (maxCodeBeforeCancel < 2) {
       return 0;
@@ -84,7 +86,7 @@ const deposit = computed(() => {
 const finalTotal = computed(() => {
   const baseTotal = selectedOrder.value?.tongTienRaw || 0;
   const code = selectedOrder.value?.trangThaiCode;
-  
+
   // THÊM MỚI: Nếu trạng thái là Đã hủy (8) hoặc Hoàn tiền (9) -> Thành tiền = 0
   if (code === 8 || code === 9) {
     return 0;
@@ -655,7 +657,10 @@ const cannotPrint = computed(() => {
               <i class="fas fa-sack-dollar" style="color: orange"></i> Tổng kết
               đơn hàng
             </div>
-            <div class="card-body p-4 d-flex flex-column" :style="{ opacity: isCancelledOrRefunded ? 0.5 : 1 }">
+            <div
+              class="card-body p-4 d-flex flex-column"
+              :style="{ opacity: isCancelledOrRefunded ? 0.5 : 1 }"
+            >
               <div class="d-flex justify-content-between mb-1">
                 <span class="text-muted fw-medium">Tổng tiền hàng:</span>
                 <span class="fw-bold">{{ formatMoney(subTotal) }}</span>
@@ -736,8 +741,6 @@ const cannotPrint = computed(() => {
         </div>
 
         <div class="d-flex gap-2">
-          
-
           <button
             class="btn btn-white border px-4 py-2 fw-medium"
             @click="onBack"
@@ -891,13 +894,22 @@ const cannotPrint = computed(() => {
                     <div
                       class="d-flex align-items-center me-2 text-warning small fw-bold"
                     >
-                      <i class="fa-solid fa-check-circle me-1"></i> Hủy đúng hạn
+                      <i class="fa-solid fa-check-circle me-1"></i>
+                      {{
+                        cancelModalState.orderData?.trangThaiCode === 2
+                          ? "Đơn chưa xác nhận"
+                          : "Hủy đúng hạn"
+                      }}
                     </div>
                     <button
                       type="button"
                       class="btn btn-custom px-4"
                       @click="confirmCancelOrder('quan')"
-                      title="Hủy đúng quy định -> Hoàn tiền"
+                      :title="
+                        cancelModalState.orderData?.trangThaiCode === 2
+                          ? 'Chưa xác nhận -> Hoàn tiền'
+                          : 'Hủy đúng quy định -> Hoàn tiền'
+                      "
                     >
                       Xác nhận Hủy đơn <br />
                       <small style="font-size: 0.7rem">(Hoàn cọc 100%)</small>
@@ -963,7 +975,6 @@ const cannotPrint = computed(() => {
               <p class="mb-0">SĐT: {{ selectedOrder?.sdt || "---" }}</p>
             </div>
             <div class="col-6 ps-3">
-              
               <div class="border-bottom border-dark fw-bold mb-2 pb-1 text-end">
                 Chi tiết:
               </div>

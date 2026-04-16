@@ -51,7 +51,7 @@ export function useOrderManager() {
 
   const getLoggedInUserId = () => {
     const userStr = localStorage.getItem("user");
-    console.log(userStr)
+    console.log(userStr);
     if (userStr) {
       try {
         const userObj = JSON.parse(userStr);
@@ -213,13 +213,14 @@ export function useOrderManager() {
     });
   };
 
-const fetchConfig = async () => {
+  const fetchConfig = async () => {
     try {
       const config = await BeGetThamSoHeThong();
       if (config) {
         currentVAT.value = Number(config.VAT || 10);
         configHoldTime.value = Number(config.THOI_GIAN_GIU_BAN || 15);
-        configCancelLimit.value = Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60; 
+        configCancelLimit.value =
+          Number(config.THOI_GIAN_HUY_HOAN_COC || 120) / 60;
       }
     } catch (error) {
       console.error("Lỗi lấy tham số hệ thống, dùng mặc định", error);
@@ -459,7 +460,7 @@ const fetchConfig = async () => {
       order.tienCocRaw === 0;
 
     if (khongCoCoc) {
-      // THAY ĐỔI Ở ĐÂY: Dùng chung Modal với đơn có cọc để bắt buộc nhập lý do
+      // Dùng chung Modal với đơn có cọc để bắt buộc nhập lý do
       cancelModalState.value = {
         isOpen: true,
         orderData: order,
@@ -473,7 +474,7 @@ const fetchConfig = async () => {
     }
 
     // ========================================================
-    // 2. LUỒNG BÊN DƯỚI DÀNH CHO HÓA ĐƠN ĐÃ CÓ CỌC (Trạng thái >= 2 và tienCoc > 0)
+    // 2. LUỒNG BÊN DƯỚI DÀNH CHO HÓA ĐƠN ĐÃ CÓ CỌC
     // ========================================================
     const hasDeposit = true;
     const bookingTime = dayjs(order.thoiGianDat);
@@ -484,6 +485,7 @@ const fetchConfig = async () => {
 
     let isWarning = false;
     let message = "";
+    let isSafe = true; // Khởi tạo isSafe
 
     const holdTimeHours = configHoldTime.value / 60;
     const cancelLimitHours = configCancelLimit.value;
@@ -493,10 +495,23 @@ const fetchConfig = async () => {
       if (Math.abs(diffHours) <= holdTimeHours) {
         isWarning = true;
         const minutesLate = Math.round(Math.abs(diffMinutes));
-        message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong ${configHoldTime.value}p giữ bàn). Khách hủy => MẤT CỌC.`;
+
+        if (order.trangThaiCode === 2) {
+          message = `Đã quá giờ đến ${minutesLate} phút, hóa đơn chưa xác nhận, hoàn cọc 100%.`;
+          isSafe = true;
+        } else {
+          message = `Đã quá giờ đặt ${minutesLate} phút. (Vẫn trong ${configHoldTime.value}p giữ bàn). Khách hủy => MẤT CỌC.`;
+          isSafe = false;
+        }
       } else {
         isWarning = true;
-        message = `Đã quá thời gian giữ bàn (${configHoldTime.value}p). Đơn lẽ ra đã bị hủy tự động.`;
+        if (order.trangThaiCode === 2) {
+          message = `Đã quá thời gian giữ bàn (${configHoldTime.value}p), hóa đơn chưa xác nhận, hoàn cọc 100%.`;
+          isSafe = true;
+        } else {
+          message = `Đã quá thời gian giữ bàn (${configHoldTime.value}p). Đơn lẽ ra đã bị hủy tự động.`;
+          isSafe = false;
+        }
       }
     } else if (diffHours < cancelLimitHours) {
       isWarning = true;
@@ -507,12 +522,17 @@ const fetchConfig = async () => {
       } else {
         timeDisplay = `${diffHours.toFixed(1)} giờ`;
       }
-      message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước ${configCancelLimit.value}h). Khách hủy lúc này sẽ MẤT CỌC.`;
+
+      if (order.trangThaiCode === 2) {
+        message = `Sắp đến giờ đến (còn ${timeDisplay}), hóa đơn chưa xác nhận, hoàn cọc 100%.`;
+        isSafe = true;
+      } else {
+        message = `Chỉ còn ${timeDisplay} nữa là đến giờ đặt (Quy định: Hủy trước ${configCancelLimit.value}h). Khách hủy lúc này sẽ MẤT CỌC.`;
+        isSafe = false;
+      }
+    } else {
+      isSafe = true;
     }
-
-    if (diffHours > 24) isWarning = false;
-
-    const isSafe = !isWarning;
 
     cancelModalState.value = {
       isOpen: true,
@@ -607,7 +627,7 @@ const fetchConfig = async () => {
         try {
           const payload = {
             idHoaDon: idToComplete,
-            idNhanVien: currentStaffId.value, 
+            idNhanVien: currentStaffId.value,
             hanhDong: "Khách ra về - Hoàn tất hóa đơn",
             thoiGianThucHien: new Date().toISOString(),
           };

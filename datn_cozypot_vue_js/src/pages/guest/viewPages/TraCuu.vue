@@ -217,21 +217,33 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   let isSafe = false;
   let message = "";
 
-  if (diffMinutes <= 0) {
+if (diffMinutes <= 0) {
     // Đã đến hoặc quá giờ
     isWarning = true;
-    message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Hủy lúc này m sẽ <b>MẤT CỌC</b>.`;
+    if (currentStatus === 2) {
+      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>) nhưng nhà hàng chưa xác nhận. Hủy lịch sẽ được <b>Hoàn 100% cọc</b>.`;
+      isSafe = true;
+    } else {
+      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Hủy lúc này bạn sẽ <b>MẤT CỌC</b>.`;
+      isSafe = false;
+    }
   } else if (diffHours < cancelLimit) {
-    // Hủy sát giờ (Dưới 2 tiếng)
+    // Hủy sát giờ (Dưới tham số giới hạn)
     isWarning = true;
     let timeRemaining =
       diffMinutes < 60
         ? `<b>${diffMinutes} phút</b>`
         : `<b>${Math.floor(diffMinutes / 60)} giờ ${diffMinutes % 60} phút</b>`;
 
-    message = `Chỉ còn ${timeRemaining} nữa là đến giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Quy định hủy trước ${cancelLimit}h, nên bạn sẽ <b>MẤT CỌC</b>.`;
+    if (currentStatus === 2) {
+      message = `Sắp đến giờ nhận bàn (còn ${timeRemaining}) nhưng nhà hàng chưa xác nhận. Hủy lịch sẽ được <b>Hoàn 100% cọc</b>.`;
+      isSafe = true;
+    } else {
+      message = `Chỉ còn ${timeRemaining} nữa là đến giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Quy định hủy trước ${cancelLimit}h, nên bạn sẽ <b>MẤT CỌC</b>.`;
+      isSafe = false;
+    }
   } else {
-    // Hủy an toàn (Trên 2 tiếng)
+    // Hủy an toàn (Trên thời gian quy định)
     isSafe = true;
     message = `Giờ đặt bàn là <b>${bookingTime.format("HH:mm")}</b>. Bạn đang hủy trước hạn nên sẽ được <b>Hoàn 100% cọc</b>.`;
   }
