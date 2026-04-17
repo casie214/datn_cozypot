@@ -182,6 +182,10 @@ const applyBestPublicVoucher = async () => {
   }
 };
 
+let modalRefreshTimer = null;
+
+
+
 const applyVoucher = async (voucher = null) => {
   const codeToApply = voucher ? voucher.codeGiamGia : maGiamGiaInput.value;
   if (!codeToApply) return Swal.fire({ title: 'Lỗi', text: 'Vui lòng nhập mã giảm giá!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đóng' });
@@ -798,6 +802,7 @@ onUnmounted(() => {
   // Dọn dẹp các bộ đếm khi chuyển sang trang khác
   if (timer) clearInterval(timer);
   if (expiredTimer) clearInterval(expiredTimer);
+  if (modalRefreshTimer) clearInterval(modalRefreshTimer);
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -1301,6 +1306,29 @@ const refreshTableData = async () => {
     console.error("Lỗi đồng bộ", error);
   }
 };
+
+watch(isShowModal, (isOpen) => {
+  if (isOpen) {
+    // Khi mở Modal -> Bắt đầu vòng lặp 5s
+    modalRefreshTimer = setInterval(async () => {
+      // CHỈ auto-refresh khi đang ở màn hình Info hoặc ViewOrder
+      // (Tránh việc đang bấm Thêm món / Đổi bàn mà bị load lại làm mất data)
+      if (isShowModal.value && (modalView.value === 'info' || modalView.value === 'viewOrder')) {
+        await refreshTableData();
+        
+        // (Tùy chọn) Cập nhật luôn cả sơ đồ bàn bên ngoài nếu cần:
+        // await fetchAllBan();
+        // await fetchTableStatus();
+      }
+    }, 5000);
+  } else {
+    // Khi đóng Modal -> Hủy vòng lặp
+    if (modalRefreshTimer) {
+      clearInterval(modalRefreshTimer);
+      modalRefreshTimer = null;
+    }
+  }
+});
 
 const handleCloseFoodList = async () => {
   modalView.value = 'info'; 
