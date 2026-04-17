@@ -165,16 +165,9 @@ const validateForm = () => {
   }
 
   // 2. Validate Máy In
-  if (!formData.value.phanLoaiMayIn) {
-    formErrors.value.phanLoaiMayIn = "Vui lòng chọn Khu vực máy in";
-    isValid = false;
-  }
 
   // 3. Validate Loại VAT
-  if (!formData.value.apDungLoaiVat) {
-    formErrors.value.apDungLoaiVat = "Vui lòng chọn Loại VAT áp dụng";
-    isValid = false;
-  }
+  
 
   // 4. Validate Định lượng (Phải chọn ít nhất 1)
   if (lstDonVi.length === 0) {
@@ -243,41 +236,6 @@ const submitForm = () => {
             <small v-if="formErrors.tenDanhMuc" class="error-text">{{ formErrors.tenDanhMuc }}</small>
           </div>
 
-          <div class="d-flex gap-3 mt-3 mb-1">
-            <div class="form-group w-50 m-0">
-              <label>Máy in liên đơn <span class="required">*</span></label>
-              <div :class="{ 'multiselect-error-border': formErrors.phanLoaiMayIn }">
-                <Multiselect
-                  v-model="formData.phanLoaiMayIn"
-                  :options="printerOptions"
-                  valueProp="value"
-                  label="label"
-                  placeholder="-- Chọn khu vực in --"
-                  :searchable="false"
-                  :canClear="false"
-                  class="custom-multiselect-theme"
-                />
-              </div>
-              <small v-if="formErrors.phanLoaiMayIn" class="error-text">{{ formErrors.phanLoaiMayIn }}</small>
-            </div>
-            
-            <div class="form-group w-50 m-0">
-              <label>Loại VAT <span class="required">*</span></label>
-              <div :class="{ 'multiselect-error-border': formErrors.apDungLoaiVat }">
-                <Multiselect
-                  v-model="formData.apDungLoaiVat"
-                  :options="vatOptions"
-                  valueProp="value"
-                  label="label"
-                  placeholder="-- Chọn loại VAT --"
-                  :searchable="false"
-                  :canClear="false"
-                  class="custom-multiselect-theme"
-                />
-              </div>
-              <small v-if="formErrors.apDungLoaiVat" class="error-text">{{ formErrors.apDungLoaiVat }}</small>
-            </div>
-          </div> 
 
           <div class="form-group full-width" style="margin-top: 5px;">
             <div class="d-flex justify-content-between align-items-center mb-1">

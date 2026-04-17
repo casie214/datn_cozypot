@@ -66,6 +66,7 @@ const formErrors = ref({
   tenKhachHang: "",
   soDienThoai: "",
   email: "",
+  ngaySinh: "", // 🚨 THÊM MỚI
   thoiGianDat: "",
   soLuongKhach: "",
   idBanAn: "", // Dùng chung key lỗi cho Bàn
@@ -486,13 +487,30 @@ watch(
   }
 );
 
-watch(() => createForm.value.thoiGianDat, (newVal) => {
+watch(() => createForm.value.thoiGianDat, (newVal, oldVal) => {
   if (newVal) {
-    // So sánh thời gian vừa chọn với thời gian hiện tại (tính tới phút)
+    // 1. So sánh thời gian vừa chọn với thời gian hiện tại (tính tới phút)
     if (dayjs(newVal).isBefore(dayjs(), 'minute')) {
       formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
     } else {
       formErrors.value.thoiGianDat = ""; // Xóa lỗi nếu chọn đúng
+    }
+
+    // 🚨 2. LOGIC MỚI: RESET BÀN KHI ĐỔI GIỜ
+    // Nếu oldVal có tồn tại (tức là đổi từ giờ A sang giờ B) và 2 giờ khác nhau
+    if (oldVal && String(newVal) !== String(oldVal)) {
+        // Có bàn đang được chọn thì mới cần báo và xóa
+        if (createForm.value.danhSachBanChon.length > 0) {
+            createForm.value.danhSachBanChon = [];
+            tempSelectedTables.value = [];
+            
+            // Bắn một cái Toast nhỏ báo cho nhân viên biết
+            Toast.fire({ 
+                icon: 'info', 
+                title: 'Đã làm mới bàn', 
+                text: 'Thời gian đặt vừa thay đổi, vui lòng chọn lại bàn!' 
+            });
+        }
     }
   }
 });
@@ -587,6 +605,7 @@ const resetCreateFormErrors = () => {
     tenKhachHang: "",
     soDienThoai: "",
     email: "",
+    ngaySinh: "", // 🚨 THÊM MỚI
     thoiGianDat: "",
     soLuongKhach: "",
     idBanAn: "",
@@ -598,6 +617,7 @@ const validateCreateForm = () => {
     tenKhachHang: "",
     soDienThoai: "",
     email: "",
+    ngaySinh: "", // 🚨 THÊM MỚI
     thoiGianDat: "",
     soLuongKhach: "",
     idBanAn: "",
@@ -608,6 +628,7 @@ const validateCreateForm = () => {
   const email = (createForm.value.email || "").trim();
   const thoiGianDat = normalizeBookingDateTime(createForm.value.thoiGianDat);
   const soLuongKhach = Number(createForm.value.soLuongKhach);
+  const ngaySinh = createForm.value.ngaySinh; // 🚨 THÊM MỚI
 
   if (!tenKhachHang) {
     errors.tenKhachHang = "Vui lòng nhập tên khách hàng";
@@ -621,8 +642,20 @@ const validateCreateForm = () => {
     errors.soDienThoai = "Số điện thoại không đúng định dạng";
   }
 
-  if (email && !isValidEmail(email)) {
+  // 🚨 BẮT BUỘC NHẬP EMAIL
+  if (!email) {
+    errors.email = "Vui lòng nhập email";
+  } else if (!isValidEmail(email)) {
     errors.email = "Email không đúng định dạng";
+  }
+
+  // 🚨 BẮT BUỘC NHẬP NGÀY SINH
+  if (!ngaySinh) {
+    errors.ngaySinh = "Vui lòng chọn ngày sinh";
+  } else if (dayjs(ngaySinh).isAfter(dayjs(), 'day')) {
+    errors.ngaySinh = "Ngày sinh không được ở trong tương lai";
+  } else if (dayjs().diff(dayjs(ngaySinh), 'year') < 16) {
+    errors.ngaySinh = "Khách hàng phải từ 16 tuổi trở lên";
   }
 
   if (!thoiGianDat) {
@@ -679,7 +712,7 @@ const openTableSelectionModal = async () => {
     return Swal.fire('Lưu ý', 'Vui lòng nhập <b>Số lượng khách</b> hợp lệ trước!', 'warning');
   }
 
-  // 🚨 ĐÃ SỬA: Chỉ chặn thời gian quá khứ nếu là ĐANG TẠO PHIẾU MỚI (isAssigningExisting = false)
+  // Chặn thời gian quá khứ nếu là tạo phiếu mới
   if (!isAssigningExisting.value && dayjs(createForm.value.thoiGianDat).isBefore(dayjs(), 'minute')) {
     formErrors.value.thoiGianDat = "Thời gian đặt không được ở trong quá khứ!";
     return Swal.fire('Lưu ý', 'Thời gian đặt không được ở trong quá khứ!', 'error');
@@ -692,6 +725,7 @@ const openTableSelectionModal = async () => {
     const idCuaPhieu = isAssigningExisting.value
       ? (phieuDetail.value?.id || phieuDetail.value?.idDatBan || detailHoaDon.value?.idPhieuDatBan || null)
       : null;
+      
     const payload = {
       ngayDat: dateObj.format('YYYY-MM-DD'),
       gioDat: dateObj.format('HH:mm:ss'),
@@ -721,8 +755,18 @@ const openTableSelectionModal = async () => {
       modalActiveFloor.value = danhSachTangModal.value[0];
     }
 
-    // 🚨 ĐÃ SỬA: Nếu xếp bàn cho phiếu cũ thì mảng bàn bắt đầu bằng mảng rỗng
-    tempSelectedTables.value = isAssigningExisting.value ? [] : [...(createForm.value.danhSachBanChon || [])];
+    // 🚨 ĐÃ FIX LOGIC 1: Khi mở lên, lọc các bàn đã tick chọn lúc trước.
+    // Nếu bàn nào đang bị kẹt ở giờ mới (Trạng thái = 2) thì vứt khỏi mảng luôn
+    if (isAssigningExisting.value) {
+        tempSelectedTables.value = [];
+    } else {
+        tempSelectedTables.value = (createForm.value.danhSachBanChon || []).filter(banDaChon => {
+            return tableStatusMap.value[String(banDaChon.id)]?.trangThai === 0;
+        });
+        
+        // Cập nhật lại mảng bên ngoài luôn để nó đồng bộ giao diện bước 1
+        createForm.value.danhSachBanChon = [...tempSelectedTables.value];
+    }
 
     Swal.close();
     showSelectTableModal.value = true;
@@ -849,30 +893,71 @@ const nextStep = () => {
 
 const toggleTableForCreate = (ban) => {
   const status = tableStatusMap.value[String(ban.id)]?.trangThai || 0;
+
   if (status !== 0) {
-    return Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Bàn đã có lịch lúc này!', showConfirmButton: false, timer: 1500 });
+    return Swal.fire({ 
+      toast: true, 
+      position: 'top-end', 
+      icon: 'error', 
+      title: 'Bàn đã có lịch lúc này!', 
+      showConfirmButton: false, 
+      timer: 1500 
+    });
   }
 
   const idx = tempSelectedTables.value.findIndex(b => b.id === ban.id);
+
   if (idx !== -1) {
+    // Nếu bàn ĐÃ ĐƯỢC CHỌN RỒI -> Bấm vào để BỎ CHỌN (Luôn luôn cho phép bỏ chọn)
     tempSelectedTables.value.splice(idx, 1);
   } else {
-    // 🚨 ĐÃ SỬA: Chặn nếu đã chọn đủ số người
-    if (totalTempCapacity.value >= createForm.value.soLuongKhach) {
-      return Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'warning',
-        title: 'Đã đủ chỗ, không cần chọn thêm bàn!',
-        showConfirmButton: false,
-        timer: 2000
+    // 🚨 ĐÃ FIX LOGIC 2: Nếu CHƯA ĐƯỢC CHỌN -> Chuẩn bị Tick thêm -> Phải check sức chứa
+    const khachHienTai = Number(createForm.value.soLuongKhach) || 1;
+    // Tổng chỗ ngồi CỦA CÁC BÀN ĐÃ TICK TRƯỚC ĐÓ
+    const tongChoNgoiHienTai = totalTempCapacity.value; 
+    
+    // Nếu tổng chỗ đã tick >= số lượng khách -> Báo lỗi chặn ngay lập tức
+    if (tongChoNgoiHienTai >= khachHienTai) {
+      return Swal.fire({ 
+        toast: true, 
+        position: 'top-end', 
+        icon: 'warning', 
+        iconColor: '#7d161a',
+        title: 'Đã đủ số lượng chỗ ngồi!', 
+        text: `Các bàn đã chọn chứa được ${tongChoNgoiHienTai} người, đã đủ cho ${khachHienTai} khách. Không cần chọn thêm.`,
+        showConfirmButton: false, 
+        timer: 3000 
       });
     }
+
+    // Nếu chưa đủ chỗ -> Cho phép Tick thêm bàn vào mảng
     tempSelectedTables.value.push(ban);
   }
 };
 
 const removeSelectedTable = (index) => {
+  const ban = createForm.value.danhSachBanChon[index];
+
+  const capacityAfterRemove =
+    createForm.value.danhSachBanChon.reduce(
+      (sum, b, i) => i !== index
+        ? sum + (Number(b.soCho || b.soNguoiToiDa) || 0)
+        : sum,
+      0
+    );
+
+  if (capacityAfterRemove < createForm.value.soLuongKhach) {
+    return Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'warning',
+      title: 'Không thể xóa bàn!',
+      text: 'Xóa bàn này sẽ không đủ chỗ cho khách.',
+      showConfirmButton: false,
+      timer: 2000
+    });
+  }
+
   createForm.value.danhSachBanChon.splice(index, 1);
 };
 
@@ -881,8 +966,29 @@ const removeSelectedTable = (index) => {
 const submitCreate = async () => {
   if (!validateCreateForm()) return;
 
-  // 🚀 KIỂM TRA TRÙNG LỊCH 3 TIẾNG 🚀
   const phoneToBook = createForm.value.soDienThoai.trim();
+  const emailToBook = createForm.value.email?.trim();
+
+  // 🚨 ƯU TIÊN 1: KIỂM TRA TRÙNG SĐT / EMAIL VỚI KHÁCH MỚI TRƯỚC TIÊN
+  if (!isOldCustomer.value) {
+    const isPhoneExist = allCustomers.value.some(c => c.raw.soDienThoai === phoneToBook);
+    if (isPhoneExist) {
+      Toast.fire({ icon: 'error', title: 'Trùng dữ liệu', text: 'Số điện thoại này đã tồn tại. Vui lòng chọn khách hàng từ danh sách!' });
+      formErrors.value.soDienThoai = "Số điện thoại đã tồn tại";
+      return; // Chặn đứng ngay lập tức
+    }
+
+    if (emailToBook) {
+      const isEmailExist = allCustomers.value.some(c => c.raw.email === emailToBook);
+      if (isEmailExist) {
+        Toast.fire({ icon: 'error', title: 'Trùng dữ liệu', text: 'Email này đã tồn tại. Vui lòng sử dụng email khác!' });
+        formErrors.value.email = "Email đã tồn tại";
+        return; // Chặn đứng ngay lập tức
+      }
+    }
+  }
+
+  // 🚀 ƯU TIÊN 2: KIỂM TRA TRÙNG LỊCH 3 TIẾNG 🚀
   const timeToBook = dayjs(createForm.value.thoiGianDat);
 
   const conflictingBooking = listPhieuDatBan.value.find(phieu => {
@@ -923,6 +1029,7 @@ const submitCreate = async () => {
      return; // Dừng lại không cho gọi API
   }
 
+  // 🚀 ƯU TIÊN 3: PASS HẾT THÌ CHO GỌI API
   isSubmitting.value = true;
 
   try {
@@ -1117,14 +1224,14 @@ onMounted(async () => {
           </div>
 
           <div>
-            <label>Email</label>
+            <label>Email <span class="required-star">*</span></label>
             <input v-model="createForm.email" :disabled="isOldCustomer" placeholder="Email"
               :class="{ 'input-error': formErrors.email }" />
             <small v-if="formErrors.email" class="error-text">{{ formErrors.email }}</small>
           </div>
 
           <div>
-            <label>Giới tính</label>
+            <label>Giới tính <span class="required-star">*</span></label>
             <select v-model="createForm.gioiTinh" :disabled="isOldCustomer">
               <option :value="true">Nam</option>
               <option :value="false">Nữ</option>
@@ -1132,8 +1239,10 @@ onMounted(async () => {
           </div>
 
           <div>
-            <label>Ngày sinh</label>
-            <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" />
+            <label>Ngày sinh <span class="required-star">*</span></label>
+            <input type="date" v-model="createForm.ngaySinh" :disabled="isOldCustomer" 
+              :class="{ 'input-error': formErrors.ngaySinh }" />
+            <small v-if="formErrors.ngaySinh" class="error-text">{{ formErrors.ngaySinh }}</small>
           </div>
         </div>
 

@@ -42,8 +42,8 @@ public class ThongKeDoanhThuDTO {
     private Long soHoaDonChoVaDaCoc;
     private BigDecimal tongTienHoaDonChoVaDaCoc;
 
-    private Long TongBanDaDat;
-    private BigDecimal DoanhThuDuKien;
+    private Long tongBanDaDat;
+    private BigDecimal doanhThuDuKien;
     private List<GioCaoDiemResponse> gioCaoDiem;
 
     private BigDecimal doanhThuTienMat;

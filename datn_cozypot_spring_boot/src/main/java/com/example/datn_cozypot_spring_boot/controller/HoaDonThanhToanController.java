@@ -164,7 +164,6 @@ public class HoaDonThanhToanController {
         response.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
         response.setTienCoc(hoaDon.getTienCoc());
         response.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-        response.setVatApDung(hoaDon.getVatApDung());
 
         if (hoaDon.getIdPhieuGiamGia() != null) {
             response.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
@@ -573,7 +572,6 @@ public class HoaDonThanhToanController {
             res.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
             res.setTienCoc(hoaDon.getTienCoc());
             res.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-            res.setVatApDung(hoaDon.getVatApDung() != null ? hoaDon.getVatApDung() : BigDecimal.valueOf(0));
             if (hoaDon.getIdPhieuGiamGia() != null) {
                 res.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
                 res.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getCodeGiamGia()); // Lưu ý: Tên trường trong Entity PhieuGiamGia thường là codeGiamGia

@@ -103,6 +103,14 @@ public class LichSuDatBanService {
         map.put("tongTienThanhToan", hd.getTongTienThanhToan());
         map.put("vatApDung", hd.getVatApDung() != null ? hd.getVatApDung() : 10.0);
 
+        map.put("soTienDaGiam", hd.getSoTienDaGiam() != null ? hd.getSoTienDaGiam() : BigDecimal.ZERO);
+
+        if (hd.getIdPhieuGiamGia() != null) {
+            map.put("maPhieuGiamGia", hd.getIdPhieuGiamGia().getCodeGiamGia());
+        } else {
+            map.put("maPhieuGiamGia", null);
+        }
+
         if (hd.getTrangThaiHoaDon() == 8 || hd.getTrangThaiHoaDon() == 9) {
             lichSuHoaDonRepository.findFirstByIdHoaDon_IdAndTrangThaiMoiInOrderByThoiGianThucHienDesc(hd.getId(), Arrays.asList(8, 9))
                     .ifPresent(log -> map.put("trangThaiTruocHuy", log.getTrangThaiTruocDo()));

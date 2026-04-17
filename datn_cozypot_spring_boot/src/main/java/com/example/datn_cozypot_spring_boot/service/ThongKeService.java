@@ -33,37 +33,44 @@ public class ThongKeService {
     @Autowired
     private HoaDonThanhToanRepository hoaDonThanhToanRepository;
 
-    public ThongKeDoanhThuDTO layThongKeTheoLoai(String loai, String tuNgay, String denNgay){
-        Map<String, Object> data =
-                thongKeRepository.layDuLieuThongKeChiTiet(loai, tuNgay, denNgay);
+    public ThongKeDoanhThuDTO layThongKeTheoLoai(String loai, String tuNgay, String denNgay) {
+        // 1. Lấy dữ liệu tổng quan thô từ DB
+        Map<String, Object> data = thongKeRepository.layDuLieuThongKeChiTiet(loai, tuNgay, denNgay);
         ThongKeDoanhThuDTO dto = new ThongKeDoanhThuDTO();
 
         if (data != null) {
-            // Mapping Doanh thu các thẻ tổng quan
+            // A. DOANH THU 4 THẺ TỔNG QUAN
             dto.setDoanhThuHomNay(toBigDecimal(data.get("doanhThuHomNay")));
             dto.setDoanhThuTuanNay(toBigDecimal(data.get("doanhThuTuanNay")));
             dto.setDoanhThuThangNay(toBigDecimal(data.get("doanhThuThangNay")));
             dto.setDoanhThuNamNay(toBigDecimal(data.get("doanhThuNamNay")));
-            dto.setTongBanDaDat(toLong(data.get("tongBanDaDat")));
-            dto.setDoanhThuDuKien(toBigDecimal(data.get("doanhThuDuKien")));
-            dto.setDoanhThuTienMat(toBigDecimal(data.get("doanhThuTienMat")));
-            dto.setDoanhThuChuyenKhoan(toBigDecimal(data.get("doanhThuChuyenKhoan")));
-            // Mapping số lượng đơn (Dùng để hiển thị phần mô tả nhỏ dưới con số tiền)
+
+            // B. SỐ ĐƠN TƯƠNG ỨNG 4 THẺ
             dto.setSoDonHomNay(toLong(data.get("soDonHomNay")));
             dto.setSoDonTuanNay(toLong(data.get("soDonTuanNay")));
             dto.setSoDonThangNay(toLong(data.get("soDonThangNay")));
             dto.setSoDonNamNay(toLong(data.get("soDonNamNay")));
 
-            // Chi tiết bộ lọc (Phần bảng hoặc thông tin chi tiết bên dưới)
+            // C. CÁC CHỈ SỐ BẢNG CHI TIẾT & DOANH THU LUỒNG
             dto.setTongHoaDon(toLong(data.get("tongHoaDon")));
             dto.setGiaTriTrungBinhDon(toBigDecimal(data.get("giaTriTrungBinhDon")));
             dto.setTongTienCoc(toBigDecimal(data.get("tongTienCoc")));
             dto.setTongGiamGia(toBigDecimal(data.get("tongGiamGia")));
             dto.setTongHoaDonHuy(toLong(data.get("tongHoaDonHuy")));
             dto.setDoanhThuThucNhan(toBigDecimal(data.get("doanhThuThucNhan")));
+
+            dto.setDoanhThuTienMat(toBigDecimal(data.get("doanhThuTienMat")));
+            dto.setDoanhThuChuyenKhoan(toBigDecimal(data.get("doanhThuChuyenKhoan")));
+            dto.setDoanhThuDuKien(toBigDecimal(data.get("doanhThuDuKien")));
+
+            // D. KHÁCH HÀNG & BÀN (Fix lỗi hiển thị số 0)
+            dto.setTongBanDaDat(toLong(data.get("tongBanDaDat")));
+            dto.setTongKhachHang(toLong(data.get("tongKhachHang")));
+            dto.setKhachMoi(toLong(data.get("khachMoi")));
+            dto.setKhachQuayLai(toLong(data.get("khachQuayLai")));
         }
 
-        // --- DỮ LIỆU BIỂU ĐỒ 12 THÁNG ---
+        // --- 2. DỮ LIỆU BIỂU ĐỒ 12 THÁNG ---
         List<Map<String, Object>> listDataChart = thongKeRepository.layDoanhThu12Thang();
         if (listDataChart != null) {
             List<BigDecimal> doanhThu12Thang = listDataChart.stream()
@@ -72,23 +79,49 @@ public class ThongKeService {
             dto.setDoanhThu12Thang(doanhThu12Thang);
         }
 
-        // --- TÍNH TỐC ĐỘ TĂNG TRƯỞNG ---
+        // --- 3. TÍNH TỐC ĐỘ TĂNG TRƯỞNG LÝ TƯỞNG ---
         BigDecimal doanhThuThangNay = dto.getDoanhThuThangNay() != null ? dto.getDoanhThuThangNay() : BigDecimal.ZERO;
         BigDecimal doanhThuThangTruoc = thongKeRepository.layDoanhThuThangTruoc();
         if (doanhThuThangTruoc == null) doanhThuThangTruoc = BigDecimal.ZERO;
 
-        double tocDoTangTruong = 0;
+        double tocDoTangTruongThang = 0;
         if (doanhThuThangTruoc.compareTo(BigDecimal.ZERO) > 0) {
-            tocDoTangTruong = doanhThuThangNay.subtract(doanhThuThangTruoc)
+            tocDoTangTruongThang = doanhThuThangNay.subtract(doanhThuThangTruoc)
                     .divide(doanhThuThangTruoc, 4, RoundingMode.HALF_UP)
                     .multiply(new BigDecimal(100)).doubleValue();
+        } else if (doanhThuThangNay.compareTo(BigDecimal.ZERO) > 0) {
+            tocDoTangTruongThang = 100.0; // Nếu tháng trước = 0 mà tháng này có tiền thì auto +100%
         }
+
+        double tocDoTangTruong = 0;
+
+        // Điều chỉnh % Tăng trưởng trả về phụ thuộc vào 'loai' Tab đang chọn
+        if ("Hôm nay".equals(loai)) {
+            BigDecimal doanhThuHomQua = BigDecimal.ZERO;
+            try {
+                // Nếu BE chưa có hàm layDoanhThuHomQua() thì chỗ này = 0 không sao, nó sẽ chạy an toàn
+                // doanhThuHomQua = thongKeRepository.layDoanhThuHomQua();
+            } catch (Exception ignored) {}
+
+            BigDecimal doanhThuHomNay = dto.getDoanhThuHomNay() != null ? dto.getDoanhThuHomNay() : BigDecimal.ZERO;
+            if (doanhThuHomQua.compareTo(BigDecimal.ZERO) > 0) {
+                tocDoTangTruong = doanhThuHomNay.subtract(doanhThuHomQua)
+                        .divide(doanhThuHomQua, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal(100)).doubleValue();
+            } else if (doanhThuHomNay.compareTo(BigDecimal.ZERO) > 0) {
+                tocDoTangTruong = 100.0;
+            }
+        } else {
+            // Mặc định Tuần, Tháng, Năm, Tùy chỉnh thì trả về % của Tháng này
+            tocDoTangTruong = tocDoTangTruongThang;
+        }
+
         dto.setTocDoTangTruong(tocDoTangTruong);
 
-        // --- TOP SẢN PHẨM ---
+        // --- 4. TOP SẢN PHẨM ---
         dto.setTopSets(thongKeRepository.layTopSetLauBanChay());
 
-        // --- HÓA ĐƠN CHỜ & ĐÃ CỌC ---
+        // --- 5. HÓA ĐƠN CHỜ & ĐÃ CỌC ---
         Long soHoaDonChoVaDaCoc = thongKeRepository.demHoaDonChoVaDaCoc();
         BigDecimal tongTienChoVaDaCoc = thongKeRepository.tongTienHoaDonChoVaDaCoc();
 
