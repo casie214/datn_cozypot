@@ -79,6 +79,8 @@ public class PhieuDatBanResponse {
         private Integer soLuong;
         private BigDecimal donGia;
         private BigDecimal thanhTien;
+        private String maMon;
+        private String maSetLau;
 
         private String type; // "FOOD" hoặc "SET"
         private Integer idChiTietMonAn;

@@ -670,11 +670,15 @@ if (!formData.tenDangNhap) {
     formData.tenDangNhap = formData.email;
   }
   // Tự động gán tài khoản nếu là thêm mới
-  if (!clientId.value) {
-    formData.tenDangNhap = formData.soDienThoai;
-    if (!formData.matKhauDangNhap) {
-      formData.matKhauDangNhap = generateRandomPassword(10);
-    }
+  // if (!clientId.value) {
+  //   formData.tenDangNhap = formData.soDienThoai;
+  //   if (!formData.matKhauDangNhap) {
+  //     formData.matKhauDangNhap = generateRandomPassword(10);
+  //   }
+  // }
+  if (!formData.matKhauDangNhap) {
+    // Gán một giá trị mặc định bất kỳ, vì bạn nói không cần check mật khẩu ở đây
+    formData.matKhauDangNhap = "Customer@123"; 
   }
 
   const result = await Swal.fire({
