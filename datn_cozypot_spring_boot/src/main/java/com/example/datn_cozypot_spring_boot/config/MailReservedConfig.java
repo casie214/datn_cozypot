@@ -15,15 +15,19 @@ public class MailReservedConfig {
 
         sender.setHost("smtp.gmail.com");
         sender.setPort(587);
-        sender.setUsername("5762382@gmail.com"); // ← thay vào
-        sender.setPassword("jbxj lgwi nlxw mnnm");          // ← App Password
+        sender.setUsername("5762382@gmail.com");
+        sender.setPassword("jbxj lgwi nlxw mnnm");
 
         Properties props = sender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.timeout", "5000");
-        props.put("mail.debug", "false");
+        props.put("mail.debug", "true"); // Bật true để xem log chi tiết nếu vẫn lỗi
+
+        // --- DÒNG QUAN TRỌNG ĐỂ FIX LỖI PKIX ---
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        // ---------------------------------------
 
         return sender;
     }

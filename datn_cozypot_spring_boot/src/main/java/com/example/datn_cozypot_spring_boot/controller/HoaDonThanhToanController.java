@@ -186,6 +186,13 @@ public class HoaDonThanhToanController {
                 monRes.setThanhTien(ct.getThanhTien());
                 monRes.setTrangThaiMon(ct.getTrangThaiMon());
                 monRes.setGhiChu(ct.getGhiChuMon());
+                System.out.println("YO");
+                System.out.println(ct.getIdChiTietMonAn().getMaMon());
+                System.out.println(ct.getIdChiTietMonAn().getMaMon());
+                System.out.println(ct.getIdChiTietMonAn().getMaMon());
+                System.out.println(ct.getIdChiTietMonAn().getMaMon());
+                System.out.println(ct.getIdChiTietMonAn().getMaMon());
+
 
                 // Phân loại Món lẻ hay Set lẩu
                 if (ct.getIdChiTietMonAn() != null) {
@@ -193,12 +200,14 @@ public class HoaDonThanhToanController {
                     monRes.setId(ct.getIdChiTietMonAn().getId());
                     monRes.setIdChiTietMonAn(ct.getIdChiTietMonAn().getId());
                     // Thay thế chuỗi lấy tên món bằng cấu trúc Entity thực tế của bạn
+                    monRes.setMaMon(ct.getIdChiTietMonAn().getMaMon());
                     monRes.setTenMon(ct.getIdChiTietMonAn().getTenMon());
                     monRes.setApDungLoaiVat(ct.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung());
                 } else if (ct.getIdSetLau() != null) {
                     monRes.setType("SET");
                     monRes.setId(ct.getIdSetLau().getId());
                     monRes.setIdSetLau(ct.getIdSetLau().getId());
+                    monRes.setMaSetLau(ct.getIdSetLau().getMaSetLau());
                     monRes.setTenMon(ct.getIdSetLau().getTenSetLau());
                     monRes.setApDungLoaiVat(8);
                 }
@@ -597,6 +606,7 @@ public class HoaDonThanhToanController {
                                 dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
                                 dto.setId(item.getIdChiTietMonAn().getId());
                                 dto.setType("FOOD");
+                                dto.setMaMon(item.getIdChiTietMonAn().getMaMon());
 
                                 Integer vatType = 1;
                                 try {
@@ -615,6 +625,7 @@ public class HoaDonThanhToanController {
                                 dto.setId(item.getIdSetLau().getId());
                                 dto.setType("SET");
                                 dto.setApDungLoaiVat(1);
+                                dto.setMaSetLau(item.getIdSetLau().getMaSetLau());
                             }
                             return dto;
                         }).collect(Collectors.toList());
