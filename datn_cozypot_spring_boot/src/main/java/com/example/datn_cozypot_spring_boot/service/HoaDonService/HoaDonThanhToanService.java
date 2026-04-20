@@ -133,7 +133,9 @@ public class HoaDonThanhToanService {
         BigDecimal tienCoc = hd.getTienCoc() != null ? hd.getTienCoc() : BigDecimal.ZERO;
         int trangThaiMoi;
 
-        if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0 && Boolean.TRUE.equals(request.getIsLoiDoQuan())) {
+        if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0 &&
+                (Boolean.TRUE.equals(request.getIsLoiDoQuan()) || trangThaiHDCu == 2)) {
+
             hd.setTienHoanTra(tienCoc);
             trangThaiMoi = 9;
             hd.setTrangThaiHoaDon(trangThaiMoi);
@@ -142,7 +144,14 @@ public class HoaDonThanhToanService {
             lsThanhToan.setHoaDon(hd);
             lsThanhToan.setSoTienThanhToan(tienCoc);
             lsThanhToan.setLoaiGiaoDich(3);
-            lsThanhToan.setGhiChu("Hoàn trả cọc do hủy hóa đơn: " + request.getLyDoThucHien());
+
+            // Đặt câu thông báo chi tiết cho lịch sử hoàn tiền
+            if (trangThaiHDCu == 2) {
+                lsThanhToan.setGhiChu("Hoàn trả cọc 100% do hóa đơn chưa được xác nhận: " + request.getLyDoThucHien());
+            } else {
+                lsThanhToan.setGhiChu("Hoàn trả cọc do lỗi của quán: " + request.getLyDoThucHien());
+            }
+
             lsThanhToan.setNgayThanhToan(Instant.now());
             lsThanhToan.setTrangThai(1);
             lsThanhToan.setTenPhuongThuc("Chuyển khoản");
@@ -179,8 +188,12 @@ public class HoaDonThanhToanService {
         log.setIdHoaDon(hd);
         log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Hoàn tiền" : "Hủy hóa đơn");
         String prefixLyDo = "";
-        if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
-            prefixLyDo = Boolean.TRUE.equals(request.getIsLoiDoQuan()) ? "[Đã hoàn cọc] " : "[Mất cọc] ";
+        if (trangThaiMoi == 9) {
+            // Đã nhảy sang 9 thì chắc chắn là đã hoàn cọc
+            prefixLyDo = "[Đã hoàn cọc] ";
+        } else if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
+            // Đã cọc mà rớt xuống 8 thì chắc chắn mất cọc
+            prefixLyDo = "[Mất cọc] ";
         } else if (trangThaiHDCu == 1) {
             prefixLyDo = "[Hủy chưa cọc] ";
         }
@@ -210,11 +223,21 @@ public class HoaDonThanhToanService {
             // Lấy mã phiếu hoặc mã hóa đơn
             String maGiaoDichMail = (phieu != null && phieu.getMaDatBan() != null) ? phieu.getMaDatBan() : hd.getMaHoaDon();
 
+            String nguoiHuyMail = "Nhà hàng CozyPot"; // Mặc định nếu hệ thống tự hủy
+            if (request.getIdNhanVien() != null) {
+                NhanVien nhanVienDb = nhanVienRepository.findById(request.getIdNhanVien()).orElse(null);
+                if (nhanVienDb != null) {
+                    String maNV = nhanVienDb.getMaNhanVien() != null ? nhanVienDb.getMaNhanVien() : "NV";
+                    String tenNV = nhanVienDb.getHoTenNhanVien() != null ? nhanVienDb.getHoTenNhanVien() : "";
+                    nguoiHuyMail = maNV + " - " + tenNV;
+                }
+            }
+
             EmailHuyDatBanDTO mailData = EmailHuyDatBanDTO.builder()
                     .email(khachHang.getEmail())
                     .tenKhachHang(khachHang.getTenKhachHang())
                     .maPhieuDatBan(maGiaoDichMail)
-                    .nguoiHuy("Nhà hàng CozyPot") // Chỗ này có thể lấy tên nv nếu cần
+                    .nguoiHuy(nguoiHuyMail)
                     .lyDoHuy(request.getLyDoThucHien())
                     .tienHoanTra(tienHoanTraMail)
                     .build();

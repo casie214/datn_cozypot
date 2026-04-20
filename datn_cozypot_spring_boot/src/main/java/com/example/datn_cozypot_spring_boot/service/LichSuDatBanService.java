@@ -146,10 +146,17 @@ public class LichSuDatBanService {
             int phutQuyDinh = thamSoHeThongRepository.findByMaThamSo("THOI_GIAN_HUY_HOAN_COC")
                     .map(ts -> Integer.parseInt(ts.getGiaTri())).orElse(120);
 
-            if (LocalDateTime.now().isBefore(thoiGianDat.minusMinutes(phutQuyDinh))) {
-                trangThaiMoi = 9;
+            // TÁC ĐỘNG VÀO ĐÂY: Thêm "trangThaiHDCu == 2" (Chưa xác nhận) vào cùng luồng với Hủy đúng hạn
+            if (trangThaiHDCu == 2 || LocalDateTime.now().isBefore(thoiGianDat.minusMinutes(phutQuyDinh))) {
+                trangThaiMoi = 9; // Chuyển sang Hoàn tiền
                 hd.setTienHoanTra(tienCoc);
-                ghiChuHoanTien = "[Khách tự hủy] Đúng quy định, hoàn cọc";
+
+                // Rẽ nhánh để lấy text hiển thị trong Email
+                if (trangThaiHDCu == 2) {
+                    ghiChuHoanTien = "[Khách tự hủy] Hoàn cọc 100% do quán chưa xác nhận";
+                } else {
+                    ghiChuHoanTien = "[Khách tự hủy] Đúng quy định, hoàn cọc";
+                }
 
                 LichSuThanhToan ls = new LichSuThanhToan();
                 ls.setHoaDon(hd);
@@ -162,10 +169,10 @@ public class LichSuDatBanService {
                 String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
                 ls.setMaGiaoDich("REFUND_KHACH_" + maHoaDonStr + "_" + System.currentTimeMillis());
                 lichSuThanhToanRepository.save(ls);
-            }else{
+            } else {
                 ghiChuHoanTien = "[Khách tự hủy] Mất cọc do sát giờ";
             }
-        }else if (trangThaiHDCu == 1){
+        } else if (trangThaiHDCu == 1) {
             ghiChuHoanTien = "[Khách tự hủy] Hủy đơn khi chưa nộp cọc";
         }
 
