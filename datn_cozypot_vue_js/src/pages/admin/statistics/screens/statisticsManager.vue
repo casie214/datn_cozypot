@@ -113,7 +113,7 @@
                                     {{ formatCurrency(item.gia) }}
                                 </td>
 
-                                <td class="text-right">
+                                <td class="text">
                                     <span class="badge-count">{{ item.soLuongBan }}</span>
                                 </td>
                             </tr>

@@ -961,7 +961,8 @@ public class DatBanService {
         BigDecimal tienCoc = request.getTienCoc() != null ? request.getTienCoc() : BigDecimal.ZERO;
 
         hoaDon.setTongTienChuaGiam(tongTien);
-        hoaDon.setTongTienThanhToan(tongTien);
+        Double tongTienThanhToan = tongTien.doubleValue() - tienCoc.doubleValue();
+        hoaDon.setTongTienThanhToan(BigDecimal.valueOf(tongTienThanhToan));
         hoaDon.setTienCoc(tienCoc);
         hoaDon.setSoTienDaGiam(BigDecimal.ZERO);
 
