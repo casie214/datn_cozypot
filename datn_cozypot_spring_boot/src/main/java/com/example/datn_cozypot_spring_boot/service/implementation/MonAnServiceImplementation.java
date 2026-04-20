@@ -592,8 +592,12 @@ public class MonAnServiceImplementation implements MonAnService {
 
     @Override
     public List<MonAnResponse> findMonAnActive() {
-        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
-        Double vatDongGoi = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT_DONG_GOI").get().getGiaTri());
+        // 🚨 ĐÃ SỬA: Thêm .orElse() để an toàn, nếu mất cấu hình trong DB thì mặc định VAT = 0
+        ThamSoHeThong tsVatChung = thamSoHeThongRepository.findByMaThamSo("VAT").orElse(null);
+        Double vatChung = tsVatChung != null ? Double.parseDouble(tsVatChung.getGiaTri()) : 0.0;
+
+        ThamSoHeThong tsVatDongGoi = thamSoHeThongRepository.findByMaThamSo("VAT_DONG_GOI").orElse(null);
+        Double vatDongGoi = tsVatDongGoi != null ? Double.parseDouble(tsVatDongGoi.getGiaTri()) : 0.0;
 
         // 1. LẤY DANH SÁCH KHUYẾN MÃI ĐANG "CHẠY" (Valid dates & Active)
         java.time.LocalDate today = java.time.LocalDate.now();
@@ -604,13 +608,10 @@ public class MonAnServiceImplementation implements MonAnService {
                 .toList();
 
         // 2. TẠO MAP TÌM MỨC GIẢM SÂU NHẤT CHO TỪNG MÓN
-        // Key: ID Món Ăn | Value: % Giảm giá cao nhất
         Map<Integer, Integer> maxDiscountMap = new HashMap<>();
         for (DotKhuyenMai km : activePromotions) {
-            // 🚨 CHÚ Ý: Mày tự sửa 'getListMonAnChiTiet()' thành đúng tên hàm get danh sách món lẻ trong Entity DotKhuyenMai của mày nhé!
             if (km.getMonAnDiKems() != null) {
                 for (DanhMucChiTiet mon : km.getMonAnDiKems()) {
-                    // Logic: Nếu id món đã có trong Map, nó sẽ so sánh % cũ và % mới, lấy số lớn hơn (Math::max)
                     maxDiscountMap.merge(mon.getId(), km.getPhanTramGiam(), Math::max);
                 }
             }
@@ -621,20 +622,14 @@ public class MonAnServiceImplementation implements MonAnService {
                 .map(mon -> {
                     MonAnResponse res = mapToMonAnResponse(mon);
 
-                    // --- VAT logic cũ của mày ---
                     if (mon.getDanhMuc() != null && mon.getDanhMuc().getLoaiVatApDung() != null) {
                         res.setPhanTramVat(mon.getDanhMuc().getLoaiVatApDung() == 2 ? vatDongGoi : vatChung);
                     } else {
                         res.setPhanTramVat(vatChung);
                     }
 
-                    // --- LOGIC KHUYẾN MÃI MỚI THÊM ---
-                    // Lấy % giảm từ Map (Nếu không có đợt KM nào thì mặc định là 0)
                     int maxGiam = maxDiscountMap.getOrDefault(mon.getId(), 0);
-
-                    // Mày set % giảm vào DTO (Mày nhớ thêm thuộc tính phanTramGiam vào MonAnResponse nếu chưa có nhé)
                     res.setPhanTramGiam(maxGiam);
-
                     res.setIsGiamGia(maxGiam > 0);
 
                     BigDecimal giaGoc = mon.getGiaBan();
@@ -642,7 +637,6 @@ public class MonAnServiceImplementation implements MonAnService {
                     if (giaGoc != null) {
                         BigDecimal giaSauGiam = giaGoc.multiply(BigDecimal.valueOf(100 - maxGiam))
                                 .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
-
                         res.setGiaSauGiam(giaSauGiam);
                     }
 
@@ -783,9 +777,11 @@ public class MonAnServiceImplementation implements MonAnService {
     @Override
     @Transactional
     public List<SetLauResponse> findSetLauActive() {
-        Double vatChung = Double.parseDouble(thamSoHeThongRepository.findByMaThamSo("VAT").get().getGiaTri());
+        // 🚨 ĐÃ SỬA: Chống lỗi Optional rỗng
+        ThamSoHeThong tsVatChung = thamSoHeThongRepository.findByMaThamSo("VAT").orElse(null);
+        Double vatChung = tsVatChung != null ? Double.parseDouble(tsVatChung.getGiaTri()) : 0.0;
 
-        // 1. LẤY DANH SÁCH KHUYẾN MÃI ĐANG "CHẠY" (Tương tự như bên món ăn)
+        // 1. LẤY DANH SÁCH KHUYẾN MÃI ĐANG "CHẠY"
         java.time.LocalDate today = java.time.LocalDate.now();
         List<DotKhuyenMai> activePromotions = dotKhuyenMaiRepository.findAll().stream()
                 .filter(d -> d.getTrangThai() == 1)
@@ -794,10 +790,8 @@ public class MonAnServiceImplementation implements MonAnService {
                 .toList();
 
         // 2. TẠO MAP TÌM MỨC GIẢM SÂU NHẤT CHO TỪNG SET LẨU
-        // Key: ID Set Lẩu | Value: % Giảm giá cao nhất
         Map<Integer, Integer> maxDiscountMap = new HashMap<>();
         for (DotKhuyenMai km : activePromotions) {
-            // 🚨 CHÚ Ý 1: Sửa 'getListSetLauChiTiet()' thành đúng tên hàm get danh sách Set Lẩu trong Entity DotKhuyenMai của mày nhé!
             if (km.getSetLaus() != null) {
                 for (SetLau set : km.getSetLaus()) {
                     maxDiscountMap.merge(set.getId(), km.getPhanTramGiam(), Math::max);
@@ -811,18 +805,15 @@ public class MonAnServiceImplementation implements MonAnService {
                     SetLauResponse res = mapToSetLauResponse(set);
                     res.setPhanTramVat(vatChung);
 
-                    // Lấy % giảm từ Map (Mặc định 0 nếu không có)
                     int maxGiam = maxDiscountMap.getOrDefault(set.getId(), 0);
-                    res.setPhanTramGiam(maxGiam); // 🚨 CHÚ Ý 2: Nhớ thêm phanTramGiam vào SetLauResponse DTO
-
+                    res.setPhanTramGiam(maxGiam);
                     res.setIsGiamGia(maxGiam > 0);
 
-                    // Tính toán giaSauGiam bằng BigDecimal để tránh lỗi toán học
                     BigDecimal giaGoc = set.getGiaBan();
                     if (giaGoc != null) {
                         BigDecimal giaSauGiam = giaGoc.multiply(BigDecimal.valueOf(100 - maxGiam))
                                 .divide(BigDecimal.valueOf(100), 0, java.math.RoundingMode.HALF_UP);
-                        res.setGiaSauGiam(giaSauGiam); // 🚨 CHÚ Ý 3: Nhớ thêm giaSauGiam vào SetLauResponse DTO
+                        res.setGiaSauGiam(giaSauGiam);
                     }
 
                     return res;

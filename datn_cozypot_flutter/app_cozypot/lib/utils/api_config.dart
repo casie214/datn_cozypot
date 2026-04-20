@@ -1,13 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
-  static String baseUrl = 'http://192.168.1.13:8080/api';
+  static String baseUrl = 'http://localhost:8080/api';
 
   static Future<void> loadSavedIP() async {
     final prefs = await SharedPreferences.getInstance();
     String? savedIP = prefs.getString('server_ip');
     if (savedIP != null && savedIP.isNotEmpty) {
-      baseUrl = 'http://$savedIP:8080/api';
+      baseUrl = 'http://localhost:8080/api';
     }
   }
 

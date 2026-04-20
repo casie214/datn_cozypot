@@ -159,23 +159,8 @@ public class HoaDonThanhToanController {
         // ==========================================
         // MAP THÔNG TIN HÓA ĐƠN
         // ==========================================
-        response.setIdHoaDon(hoaDon.getId());
-        response.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam());
-        response.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
-        response.setTienCoc(hoaDon.getTienCoc());
-        response.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-
-        if (hoaDon.getIdPhieuGiamGia() != null) {
-            response.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
-            response.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getCodeGiamGia()); // Thay bằng getter đúng
-        }
-
-        // ==========================================
-        // MAP DANH SÁCH MÓN ĂN
-        // ==========================================
         List<PhieuDatBanResponse.ChiTietMonResponse> chiTietList = new ArrayList<>();
 
-        // GIẢ SỬ biến danh sách chi tiết trong HoaDonThanhToan tên là getChiTietHoaDons()
         if (hoaDon.getChiTietHoaDons() != null) {
             for (ChiTietHoaDon ct : hoaDon.getChiTietHoaDons()) {
                 PhieuDatBanResponse.ChiTietMonResponse monRes = new PhieuDatBanResponse.ChiTietMonResponse();
@@ -186,20 +171,14 @@ public class HoaDonThanhToanController {
                 monRes.setThanhTien(ct.getThanhTien());
                 monRes.setTrangThaiMon(ct.getTrangThaiMon());
                 monRes.setGhiChu(ct.getGhiChuMon());
-                System.out.println("YO");
-                System.out.println(ct.getIdChiTietMonAn().getMaMon());
-                System.out.println(ct.getIdChiTietMonAn().getMaMon());
-                System.out.println(ct.getIdChiTietMonAn().getMaMon());
-                System.out.println(ct.getIdChiTietMonAn().getMaMon());
-                System.out.println(ct.getIdChiTietMonAn().getMaMon());
 
+                // 🚨 ĐÃ XÓA MẤY CÁI SYSTEM.OUT.PRINTLN GÂY LỖI NULL
 
-                // Phân loại Món lẻ hay Set lẩu
+                // Phân loại Món lẻ hay Set lẩu an toàn
                 if (ct.getIdChiTietMonAn() != null) {
                     monRes.setType("FOOD");
                     monRes.setId(ct.getIdChiTietMonAn().getId());
                     monRes.setIdChiTietMonAn(ct.getIdChiTietMonAn().getId());
-                    // Thay thế chuỗi lấy tên món bằng cấu trúc Entity thực tế của bạn
                     monRes.setMaMon(ct.getIdChiTietMonAn().getMaMon());
                     monRes.setTenMon(ct.getIdChiTietMonAn().getTenMon());
                     monRes.setApDungLoaiVat(ct.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung());
@@ -217,7 +196,6 @@ public class HoaDonThanhToanController {
         }
         response.setChiTiet(chiTietList);
 
-        // Trả về DTO đã map hoàn chỉnh, tuyệt đối không bị vòng lặp JSON
         return ResponseEntity.ok(response);
     }
 
