@@ -614,8 +614,8 @@ export function useOrderManager() {
     if (!idToComplete) return;
 
     Swal.fire({
-      title: "Khách đã ra về?",
-      text: "Hóa đơn sẽ được chuyển sang Hoàn thành và bàn sẽ được dọn trống.",
+      title: "Hoàn thành hóa đơn?",
+      text: "Hóa đơn sẽ được chuyển sang Hoàn thành.",
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#8b0000",

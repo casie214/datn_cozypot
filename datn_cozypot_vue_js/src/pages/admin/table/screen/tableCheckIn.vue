@@ -61,7 +61,7 @@ const timeWindowOptions = [
   { label: 'Hết ngày', value: 1440 }
 ];
 
-const selectedTimeWindow = ref(15);
+const selectedTimeWindow = ref(180);
 
 const setTimeWindow = (val) => {
   selectedTimeWindow.value = val;
@@ -276,40 +276,47 @@ const thongKeTang = computed(() => {
 
 const tableStatusMap = ref({});
 
+// 🚨 ĐÃ FIX: Logic tính trạng thái ưu tiên quét mảng danhSachCho trước
 const calculatedTableStatuses = computed(() => {
   const statuses = {};
   const window = Number(selectedTimeWindow.value);
   const now = dayjs(currentTime.value);
   
+  // 1. Gán trạng thái gốc từ DB vào (Chỉ lấy 0 và 1, bỏ 2 vì 2 sẽ được tính tự động)
   danhSachBan.value.forEach(ban => {
-    let baseStatus = Number(tableStatusMap.value[ban.id] ?? 0);
+    let baseStatus = Number(tableStatusMap.value[ban.id] ?? ban.trangThai ?? 0);
     if (baseStatus === 2) baseStatus = 0; 
-
-    if (baseStatus === 1) {
-      statuses[ban.id] = 1;
-      return;
-    }
-
-    const hasBookingInWindow = danhSachCho.value.some(khach => {
-      // 🚨 Sửa chỗ này
-      const isMatch = khach.danhSachBan && khach.danhSachBan.some(b => b.id === ban.id);
-      
-      if (isMatch && [0, 1].includes(Number(khach.trangThai))) {
-        const gioHen = dayjs(khach.thoiGianDat);
-        const diff = gioHen.diff(now, "minute");
-        return diff <= window && diff >= -(sysParams.value.THOI_GIAN_GIU_BAN);
-      }
-      return false;
-    });
-
-    statuses[ban.id] = hasBookingInWindow ? 2 : baseStatus;
+    statuses[ban.id] = baseStatus;
   });
+
+  // 2. Quét qua khách đang chờ để ép trạng thái = 2 cho CÁC BÀN nằm trong khung giờ
+  danhSachCho.value.forEach(khach => {
+    if ([0, 1].includes(Number(khach.trangThai))) {
+      const gioHen = dayjs(khach.thoiGianDat);
+      const diff = gioHen.diff(now, "minute");
+      
+      // Nếu khách đến trong khung giờ cho phép
+      if (diff <= window && diff >= -(sysParams.value.THOI_GIAN_GIU_BAN)) {
+        // Khách này có bao nhiêu bàn, đè trạng thái của TẤT CẢ các bàn đó thành 2
+        if (khach.danhSachBan && khach.danhSachBan.length > 0) {
+            khach.danhSachBan.forEach(b => {
+                // Chỉ đè thành 2 nếu bàn đó không phải đang bận (1)
+                if (statuses[b.id] !== 1) {
+                    statuses[b.id] = 2;
+                }
+            });
+        }
+      }
+    }
+  });
+
   return statuses;
 });
 
 const getTrangThaiTheoNgay = (banId) => {
   return calculatedTableStatuses.value[banId] ?? 0;
 };
+
 const selectedDate = ref(new Date().toISOString().slice(0, 10));
 
 const fetchTableStatus = async () => {
@@ -759,13 +766,19 @@ const formatHistoryTime = (time) => {
   return dayjs(time).format("HH:mm - DD/MM/YYYY");
 };
 
+let autoRefreshTimer = null;
+
 onMounted(async () => {
-  // 🚨 Đợi lấy tham số hệ thống trước rồi mới load danh sách
+  // 1. Đợi lấy tham số hệ thống
   await loadSystemParams();
   
-  fetchAllBan();
-  handleFetchAllCheckIn();
+  // 2. Load danh sách bàn vật lý
+  await fetchAllBan();
+
+  // 3. Đợi load xong khách chờ (bước này cực quan trọng để map đúng bàn)
+  await handleFetchAllCheckIn();
   
+  // 4. Khởi động Timer
   timer = setInterval(() => {
     currentTime.value = new Date();
   }, 1000);
@@ -773,6 +786,14 @@ onMounted(async () => {
   expiredTimer = setInterval(() => {
     checkExpiredTickets(); 
   }, 20000); 
+
+  autoRefreshTimer = setInterval(async () => {
+    if (!isShowModal.value) {
+      console.log("🔄 Tự động cập nhật sơ đồ bàn và danh sách chờ...");
+      await fetchAllBan();
+      await handleFetchAllCheckIn();
+    }
+  }, 15000);
 
   const user = JSON.parse(localStorage.getItem("user"));
   if (user) currentStaffName.value = user.hoTen || user.username;
@@ -1060,45 +1081,36 @@ const modalHandleTableClick = (ban) => {
 
 const mapAndGroupItems = (rawList) => {
   const validItems = rawList.filter(m => m.trangThaiMon !== 0); 
-  const grouped = {};
 
-  validItems.forEach((mon) => {
-    const isSet = mon.type === 'SET' || mon.idSetLau != null;
-    const originalId = mon.id || mon.idChiTietMonAn || mon.idSetLau;
-    const uniqueId = originalId ? (isSet ? `set_${originalId}` : `food_${originalId}`) : `unknown_${mon.tenMon}`;
+  return validItems.map((mon, index) => {
+    const isSet = mon.type === 'SET';
+    const originalId = mon.id; 
+
+    // Gốc để truyền vào Modal FoodList (Để Modal gộp và tính tổng)
+    const baseUniqueId = isSet ? `set_${originalId}` : `food_${originalId}`;
+    
+    // Khóa riêng cho UI (để vòng lặp v-for hiển thị không bị trùng Key)
+    const rowUniqueId = `${baseUniqueId}_${mon.idChiTietHd}_${index}`;
 
     let formattedNote = mon.ghiChu || '';
     if (mon.tenBanPhucVu && mon.tenBanPhucVu !== 'Bàn gốc' && mon.tenBanPhucVu !== 'Bàn chung') {
       formattedNote = `[${mon.tenBanPhucVu}] ${mon.ghiChu || ''}`.trim();
     }
 
-    if (grouped[uniqueId]) {
-      grouped[uniqueId].quantity += (mon.soLuong || 1);
-      if (formattedNote && !grouped[uniqueId].note.includes(formattedNote)) {
-        grouped[uniqueId].note += grouped[uniqueId].note ? ' | ' + formattedNote : formattedNote;
-      }
-    } else {
-      // Lấy mã món: Set dùng maSetLau, Món lẻ dùng maMon
-      const maMonAn = isSet 
-        ? (mon.maSetLau || '')
-        : (mon.maMon || '');
-      
-      grouped[uniqueId] = {
-        id: uniqueId,
-        dbDetailId: mon.idChiTietHd || mon.id, 
-        originalId: originalId,
-        type: isSet ? 'SET' : 'FOOD',
-        uniqueId: uniqueId,
-        name: mon.tenMon || 'Món không tên',
-        maMonAn: maMonAn,
+    return {
+        id: rowUniqueId,             // Dùng cho vòng lặp v-for
+        dbDetailId: mon.idChiTietHd, // 🚨 CỰC KỲ QUAN TRỌNG: Lấy ĐÚNG ID dòng
+        originalId: originalId,      // ID Món/Set thực tế
+        type: mon.type,
+        uniqueId: baseUniqueId,      // Truyền vào FoodList để nó biết là món gì
+        name: mon.tenMon,
+        maMonAn: mon.maMon || mon.maSetLau || '',
         quantity: mon.soLuong || 1,
         price: mon.donGia || 0,
         note: formattedNote,
-        served: mon.trangThaiMon === 2,
-        };
-    }
+        served: mon.trangThaiMon === 2, 
+    };
   });
-  return Object.values(grouped); 
 };
 
 // 🚨 ĐÃ FIX HÀM PHỤ: Bổ sung các trường danhSachBan, isBanPhu để không bị null khi load lỗi/Bàn chờ Check-in
@@ -1368,32 +1380,65 @@ const totalTempPrice = computed(() => {
   return listMonDaChon.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
 });
 
+const toOrderDetailPayloadItem = (item) => ({
+  id: item.dbDetailId || null,
+  idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
+  idSetLau: item.type === 'SET' ? item.originalId : null,
+  soLuong: item.quantity,
+  ghiChu: item.note || ''
+});
+
+// 🚨 ĐÃ FIX: Gom các món Chờ Phục Vụ (Từ Modal trả về) + CÁC MÓN ĐÃ PHỤC VỤ (Cất nãy giờ) gửi lên BE 1 lần
 const handleSaveFood = async (itemsArray) => {
-  if (!selectedPhieu.value?.id) {
-    Swal.fire({ title: 'Lưu ý', text: 'Bàn này chưa có Phiếu đặt trước. Không hỗ trợ thêm món!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đã hiểu' });
+  if (!selectedPhieu.value?.idHoaDon) {
+    Swal.fire({ title: 'Lưu ý', text: 'Bàn này chưa có Hóa đơn. Không hỗ trợ thêm món!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đã hiểu' });
     return;
   }
-  if (itemsArray.length === 0) {
-    listMonDaChon.value = [];
-    modalView.value = 'info';
+  
+  // 1. TẤT CẢ CÁC MÓN MÀ MÀY ĐÃ GỌI / SỬA TỪ MODAL TRẢ VỀ
+  const pendingItemsFromModal = itemsArray.map(item => ({
+    id: item.dbDetailId || null, 
+    idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
+    idSetLau: item.type === 'SET' ? item.originalId : null,
+    soLuong: item.quantity,
+    ghiChu: item.note || ''
+  }));
+
+  // 2. TÌM NHỮNG MÓN ĐANG CHỜ PHỤC VỤ (CÓ TRONG DB) NHƯNG BỊ MÀY XÓA MẤT (quantity = 0)
+  // Để báo cho Backend biết mà xóa mềm (trangThaiMon = 0)
+  const deletedPendingItems = monDangCho.value
+      .filter(oldPending => !itemsArray.some(newItem => newItem.dbDetailId === oldPending.dbDetailId))
+      .map(deletedItem => ({
+          id: deletedItem.dbDetailId,
+          idChiTietMonAn: deletedItem.type === 'FOOD' ? deletedItem.originalId : null,
+          idSetLau: deletedItem.type === 'SET' ? deletedItem.originalId : null,
+          soLuong: 0, // 🚨 ÉP SỐ LƯỢNG BẰNG 0 ĐỂ BACKEND HIỂU LÀ XÓA
+          ghiChu: ''
+      }));
+
+  // Gộp lại: Món sửa/thêm mới + Món bị xóa (Tuyệt đối không gửi món Đã lên)
+  const payloadDetails = [...pendingItemsFromModal, ...deletedPendingItems];
+
+  // Nếu chả gửi cái khỉ gì lên thì thôi nghỉ
+  if (payloadDetails.length === 0) {
+    handleCloseFoodList();
     return;
   }
+
   try {
+    Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
     const payload = {
       idHoaDon: selectedPhieu.value?.idHoaDon || null, 
       idBanAn: selectedBan.value.id,
       idNhanVien: getCurrentStaffId() || 1,
       idKhachHang: selectedPhieu.value?.idKhachHang || null,
-      chiTietHoaDon: itemsArray.map(item => ({
-        id: item.dbDetailId || null, 
-        idChiTietMonAn: item.type === 'FOOD' ? item.originalId : null,
-        idSetLau: item.type === 'SET' ? item.originalId : null,
-        soLuong: item.quantity,
-        ghiChu: item.note || '' 
-      }))
+      chiTietHoaDon: payloadDetails
     };
+    
     await createOrder(payload);
     Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: "Đã cập nhật thực đơn!", timer: 1500, showConfirmButton: false });
+    
     handleCloseFoodList();
   } catch (e) {
     Swal.fire({ title: 'Lỗi', text: "Lỗi lưu món", icon: 'error', confirmButtonText: 'Đóng' });
@@ -1833,21 +1878,16 @@ const danhSachBanChonGop = ref([]);
 const openMergeTableView = () => {
   modalView.value = 'mergeTable';
   modalActiveFloor.value = Number(selectedBan.value?.soTang) || 1;
-  danhSachBanChonGop.value = []; // Reset mảng mỗi khi mở lại tab này
+  danhSachBanChonGop.value = [];
 };
 
-const toggleSelectBanGop = async (ban) => { // 🚨 Nhớ thêm chữ async ở đây
+const toggleSelectBanGop = async (ban) => { 
   const index = danhSachBanChonGop.value.findIndex(b => b.id === ban.id);
   
-  // Nếu đã tick rồi thì bỏ tick (Bỏ chọn)
   if (index !== -1) {
     danhSachBanChonGop.value.splice(index, 1); 
   } 
-  // Nếu chưa tick -> Chuẩn bị tick -> Phải kiểm tra
   else {
-    // ========================================================
-    // 🚨 YÊU CẦU 2: Kiểm tra bàn mục tiêu có đang gộp/ghép nhiều khách không
-    // ========================================================
     try {
       Swal.fire({ title: 'Đang kiểm tra...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       const resTabs = await axiosClient.get(`/hoa-don-thanh-toan/danh-sach-phieu-tai-ban/${ban.id}`);
@@ -2185,11 +2225,16 @@ const primaryTableInGroup = computed(() => {
 
 const toggleItemServed = async (item) => {
   try {
+    Swal.fire({ title: 'Đang cập nhật...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
     const newStatus = item.served ? 1 : 2; 
     await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=${newStatus}&idNhanVien=${getCurrentStaffId()||1}`);
-    item.served = !item.served;
+    
+    // Tải lại cục data mới nhất để giao diện tự nhảy đúng dòng
+    await refreshTableData();
+    Swal.close();
   } catch (error) {
-    Swal.fire({ title: 'Lỗi', text: 'Không thể cập nhật!', icon: 'error', confirmButtonText: 'Đóng' });
+    Swal.fire({ title: 'Lỗi', text: 'Không thể cập nhật trạng thái món!', icon: 'error', confirmButtonText: 'Đóng' });
   }
 };
 
@@ -2200,12 +2245,13 @@ const markAllServed = async () => {
   try {
     Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
-    // 🚨 THAY THẾ PROMISE.ALL BẰNG VÒNG LẶP FOR...OF
     for (const item of unservedItems) {
       await axiosClient.put(`/dat-ban/chi-tiet-hoa-don/${item.dbDetailId}/trang-thai?trangThai=2&idNhanVien=${getCurrentStaffId()||1}`);
     }
     
-    listMonDaChon.value.forEach(item => item.served = true);
+    // Tải lại cục data mới nhất
+    await refreshTableData();
+    
     Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', timer: 1000, showConfirmButton: false });
   } catch (error) {
     Swal.fire({ title: 'Lỗi', text: 'Lỗi khi cập nhật món!', icon: 'error', confirmButtonText: 'Đóng' });
@@ -2326,6 +2372,10 @@ const monDaLen = computed(() => {
   return listMonDaChon.value.filter(item => item.served);
 });
 
+const listMonChoChinhSua = computed(() => {
+  return monDangCho.value.map(item => ({ ...item }));
+});
+
 const checkExpiredTickets = async () => {
   const now = dayjs(currentTime.value);
   let needRefresh = false;
@@ -2362,6 +2412,30 @@ const checkExpiredTickets = async () => {
     await fetchTableStatus();
   }
 };
+
+const mergedForFoodList = computed(() => {
+  const merged = {};
+  
+  // Lọc chỉ lấy món Chưa lên (served = false)
+  const pendingItems = listMonDaChon.value.filter(item => !item.served);
+  
+  pendingItems.forEach(item => {
+    // UniqueId lúc này là id gốc (VD: food_1, set_2)
+    const baseId = item.originalId ? (item.type === 'SET' ? `set_${item.originalId}` : `food_${item.originalId}`) : `unknown_${item.tenMon}`;
+    
+    if (merged[baseId]) {
+      merged[baseId].quantity += item.quantity;
+      merged[baseId].dbDetailId = item.dbDetailId; // Giữ lại ID dòng cũ để cập nhật
+    } else {
+      merged[baseId] = { 
+        ...item,
+        uniqueId: baseId // Xóa đuôi _1, _2 để FoodList hiểu
+      };
+    }
+  });
+  
+  return Object.values(merged);
+});
 
 watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, immediate: true });
 </script>
@@ -2726,7 +2800,11 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 <hr class="my-3" />
 
                 <div v-if="selectedPhieu?.id" class="action-buttons">
-                    <button :disabled="!isServing" class="btn-action" :class="{ 'has-items': listMonDaChon.length > 0 }" @click="switchToAddFood"><i class="fa-solid" :class="listMonDaChon.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i><span v-if="listMonDaChon.length === 0">Thêm món</span><span v-else> Đã chọn {{ listMonDaChon.length }} món </span></button>
+                  <button :disabled="!isServing" class="btn-action" :class="{ 'has-items': mergedForFoodList.length > 0 }" @click="switchToAddFood">
+                      <i class="fa-solid" :class="mergedForFoodList.length > 0 ? 'fa-pen-to-square' : 'fa-plus'"></i>
+                      <span v-if="mergedForFoodList.length === 0">Thêm món</span>
+                      <span v-else> Đang chọn thêm {{ mergedForFoodList.length }} món </span>
+                  </button>
                     <button :disabled="!isServing" class="btn-action" @click="modalView = 'viewOrder'"><i class="fa-solid fa-receipt me-1"></i> Xem đơn hàng</button>
                     <button :disabled="!selectedPhieu?.idHoaDon || !isServing" class="btn-action" @click="fetchOrderHistory"><i class="fa-solid fa-clock-rotate-left me-1"></i> Lịch sử hóa đơn</button>
                     <div class="d-flex gap-2 mt-2">
@@ -3168,7 +3246,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
         </div>
 
         <div v-else-if="modalView === 'addFood'" class="h-100 full-modal-content">
-          <FoodList :initial-items="listMonDaChon" @close="handleCloseFoodList" @save="handleSaveFood" />
+          <FoodList :initial-items="listMonChoChinhSua" @close="handleCloseFoodList" @save="handleSaveFood" />
         </div>
       </div>
     </div>
