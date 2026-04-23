@@ -459,8 +459,6 @@
                                                 <label class="fw-bold mb-1">Sắp xếp theo</label>
                                                 <select v-model="sortConfig.field" class="form-select custom-input">
                                                     <option :value="null">Mặc định</option>
-                                                    <option value="soLanDatTrongThang">Số lần đặt</option>
-                                                    <option value="tongChiTieuTrongThang">Chi tiêu (tháng)</option>
                                                 </select>
                                             </div>
 
@@ -487,8 +485,6 @@
                                                 <th>SĐT</th>
                                                 <th>Email</th>
 
-                                                <th class="text-center">Số lần đặt</th>
-                                                <th class="text-end">Chi tiêu (tháng)</th>
                                                 <th>Ngày mua gần nhất</th>
                                             </tr>
                                         </thead>
@@ -513,15 +509,6 @@
 
                                                 <td class="text-muted small">{{ kh.email }}</td>
 
-                                                <td>
-                                                    <span>
-                                                        {{ kh.soLanDatTrongThang }}
-                                                    </span>
-                                                </td>
-
-                                                <td class="text-danger fw-bold">
-                                                    {{ formatCurrency(kh.tongChiTieuTrongThang) }}
-                                                </td>
 
                                                 <td>
                                                     {{ kh.lanDatGanNhat ? formatDateTime(kh.lanDatGanNhat) : '—' }}
