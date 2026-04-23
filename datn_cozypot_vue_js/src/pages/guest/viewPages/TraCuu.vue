@@ -97,7 +97,9 @@ const getStatusBadge = (code) => {
     case 8:
       return { class: "bg-danger", text: "Đã hủy" };
     case 9:
-      return { class: "bg-dark", text: "Đã hoàn tiền" };
+      return { class: "bg-info text-dark", text: "Chờ hoàn tiền" };
+    case 10:
+      return { class: "bg-success", text: "Đã hoàn tiền" };
     default:
       return { class: "bg-secondary", text: "Không rõ" };
   }
@@ -217,7 +219,7 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   let isSafe = false;
   let message = "";
 
-if (diffMinutes <= 0) {
+  if (diffMinutes <= 0) {
     // Đã đến hoặc quá giờ
     isWarning = true;
     if (currentStatus === 2) {
@@ -328,7 +330,10 @@ const currentStatusCode = computed(
   () => displayOrderData.value?.trangThaiHoaDon ?? -1,
 );
 const isCancelledOrRefunded = computed(
-  () => currentStatusCode.value === 8 || currentStatusCode.value === 9,
+  () =>
+    currentStatusCode.value === 8 ||
+    currentStatusCode.value === 9 ||
+    currentStatusCode.value === 10,
 );
 const canCancel = computed(
   () => currentStatusCode.value >= 0 && currentStatusCode.value <= 3,
@@ -342,8 +347,8 @@ const visibleSteps = computed(() => {
     { code: 2, label: "Đã cọc", icon: "fa-money-bill-transfer" },
     { code: 3, label: "Xác nhận", icon: "fa-circle-check" },
     { code: 4, label: "Khách đến", icon: "fa-utensils" },
-    { code: 5, label: "Chờ TT", icon: "fa-file-invoice-dollar" }, 
-    { code: 6, label: "Đã TT", icon: "fa-hand-holding-dollar" },  
+    { code: 5, label: "Chờ TT", icon: "fa-file-invoice-dollar" },
+    { code: 6, label: "Đã TT", icon: "fa-hand-holding-dollar" },
     { code: 7, label: "Hoàn thành", icon: "fa-flag-checkered" },
   ];
 
@@ -364,10 +369,21 @@ const visibleSteps = computed(() => {
     .map((step) => ({ ...step, isErrorStep: false }));
 
   if (isCancelledOrRefunded.value) {
+    let stepLabel = "Đã hủy";
+    let stepIcon = "fa-ban";
+
+    if (currentStatusCode.value === 9) {
+      stepLabel = "Chờ hoàn tiền";
+      stepIcon = "fa-clock-rotate-left";
+    } else if (currentStatusCode.value === 10) {
+      stepLabel = "Đã hoàn tiền";
+      stepIcon = "fa-arrow-rotate-left";
+    }
+
     stepsToRender.push({
       code: currentStatusCode.value,
-      label: currentStatusCode.value === 9 ? "Đã hoàn tiền" : "Đã hủy",
-      icon: currentStatusCode.value === 9 ? "fa-arrow-rotate-left" : "fa-ban",
+      label: stepLabel,
+      icon: stepIcon,
       isErrorStep: true,
     });
   }
@@ -403,7 +419,7 @@ const handlePayDeposit = async (idPhieu) => {
 
 const isOrderDead = computed(() => {
   const status = displayOrderData.value?.trangThaiHoaDon;
-  return status === 8 || status === 9;
+  return status === 8 || status === 9 || status === 10;
 });
 
 // 1. Tổng tiền hàng

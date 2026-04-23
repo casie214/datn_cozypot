@@ -178,6 +178,10 @@ const applyBestPublicVoucher = async () => {
   }
 };
 
+let modalRefreshTimer = null;
+
+
+
 const applyVoucher = async (voucher = null) => {
   const codeToApply = voucher ? voucher.codeGiamGia : maGiamGiaInput.value;
   if (!codeToApply) return Swal.fire({ title: 'Lỗi', text: 'Vui lòng nhập mã giảm giá!', icon: 'warning', iconColor: '#7D161A', confirmButtonText: 'Đóng' });
@@ -778,6 +782,7 @@ onUnmounted(() => {
   // Dọn dẹp các bộ đếm khi chuyển sang trang khác
   if (timer) clearInterval(timer);
   if (expiredTimer) clearInterval(expiredTimer);
+  if (modalRefreshTimer) clearInterval(modalRefreshTimer);
 });
 
 onUnmounted(() => clearInterval(timer));
@@ -1073,6 +1078,11 @@ const mapAndGroupItems = (rawList) => {
         grouped[uniqueId].note += grouped[uniqueId].note ? ' | ' + formattedNote : formattedNote;
       }
     } else {
+      // Lấy mã món: Set dùng maSetLau, Món lẻ dùng maMon
+      const maMonAn = isSet 
+        ? (mon.maSetLau || '')
+        : (mon.maMon || '');
+      
       grouped[uniqueId] = {
         id: uniqueId,
         dbDetailId: mon.idChiTietHd || mon.id, 
@@ -1080,6 +1090,7 @@ const mapAndGroupItems = (rawList) => {
         type: isSet ? 'SET' : 'FOOD',
         uniqueId: uniqueId,
         name: mon.tenMon || 'Món không tên',
+        maMonAn: maMonAn,
         quantity: mon.soLuong || 1,
         price: mon.donGia || 0,
         note: formattedNote,
@@ -1259,6 +1270,29 @@ const refreshTableData = async () => {
     console.error("Lỗi đồng bộ", error);
   }
 };
+
+watch(isShowModal, (isOpen) => {
+  if (isOpen) {
+    // Khi mở Modal -> Bắt đầu vòng lặp 5s
+    modalRefreshTimer = setInterval(async () => {
+      // CHỈ auto-refresh khi đang ở màn hình Info hoặc ViewOrder
+      // (Tránh việc đang bấm Thêm món / Đổi bàn mà bị load lại làm mất data)
+      if (isShowModal.value && (modalView.value === 'info' || modalView.value === 'viewOrder')) {
+        await refreshTableData();
+        
+        // (Tùy chọn) Cập nhật luôn cả sơ đồ bàn bên ngoài nếu cần:
+        // await fetchAllBan();
+        // await fetchTableStatus();
+      }
+    }, 5000);
+  } else {
+    // Khi đóng Modal -> Hủy vòng lặp
+    if (modalRefreshTimer) {
+      clearInterval(modalRefreshTimer);
+      modalRefreshTimer = null;
+    }
+  }
+});
 
 const handleCloseFoodList = async () => {
   modalView.value = 'info'; 
@@ -2636,7 +2670,17 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                     <span class="badge bg-danger">{{ listMonDaChon.length }} món</span>
                     </div>
                     <ul class="summary-list mb-3">
-                    <li v-for="item in listMonDaChon" :key="item.id">{{ item.name }} <span class="text-muted">x{{ item.quantity }}<span class="text-muted" style="float: right;"><strong>{{ (item.price * item.quantity).toLocaleString() }} đ</strong></span></span></li>
+                    <li v-for="item in listMonDaChon" :key="item.id">
+                      <span class="fw-bold">{{ item.name }}</span>
+                      <span class="text-muted ms-2">[{{ item.maMonAn }}]</span>
+                      <span class="text-muted"> /
+                        <span class="ms-1">x{{ item.quantity }}
+                        <span class="text-muted" style="float: right;">
+                          <strong>{{ (item.price * item.quantity).toLocaleString() }} đ</strong>
+                        </span>
+                      </span>
+                      </span>
+                    </li>
                     </ul>
                     <div class="financial-breakdown border-top pt-2 mt-2">
                     <div class="d-flex justify-content-between text-muted small mb-1"><span>Tạm tính (Tiền món):</span><span>{{ (billSummary?.tong || 0).toLocaleString() }} đ</span></div>
@@ -2809,7 +2853,10 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                 
                 <div class="item-details flex-grow-1 ms-3">
                   <div class="d-flex justify-content-between align-items-start mb-1">
-                    <span class="fw-bold item-name fs-6">{{ item.name }}</span>
+                    <div>
+                      <span class="fw-bold item-name fs-6">{{ item.name }}</span>
+                      <span class="ms-2 text-muted" style="font-size: 12px;">[{{ item.maMonAn }}]</span>
+                    </div>
                     <button class="btn btn-sm text-danger p-0" @click.stop="handleDeleteItem(item, index)" title="Hủy món này">
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
@@ -2839,6 +2886,7 @@ watch(() => props.initialItems, () => { initSelectedItems(); }, { deep: true, im
                   <i class="fa-solid fa-check text-success me-3 fs-5"></i>
                   <div class="flex-grow-1">
                     <div class="fw-bold text-dark" style="text-decoration: line-through;">{{ item.name }}</div>
+                    <div class="text-muted" style="font-size: 12px; text-decoration: line-through;">[{{ item.maMonAn }}]</div>
                     <small class="text-muted">SL: {{ item.quantity }} | {{ (item.price * item.quantity).toLocaleString() }}đ</small>
                   </div>
                   

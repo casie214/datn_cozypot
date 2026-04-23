@@ -31,6 +31,7 @@ const {
   invoiceDate,
   formatDate,
   handleHoanTatHoaDon,
+  currentStaffId
 } = useOrderManager();
 
 const formatMoney = (value) => {
@@ -111,7 +112,7 @@ const finalTotal = computed(() => {
 
 const isReadOnly = computed(() => {
   const code = selectedOrder.value?.trangThaiCode;
-  return code === 7 || code === 8 || code === 9;
+  return code === 7 || code === 8 || code === 9 || code === 10;
 });
 
 const hasServedDish = computed(() =>
@@ -140,7 +141,10 @@ const currentStatusCode = computed(
   () => selectedOrder.value?.trangThaiCode ?? -1,
 );
 const isCancelledOrRefunded = computed(
-  () => currentStatusCode.value === 8 || currentStatusCode.value === 9,
+  () =>
+    currentStatusCode.value === 8 ||
+    currentStatusCode.value === 9 ||
+    currentStatusCode.value === 10,
 );
 
 const visibleSteps = computed(() => {
@@ -181,10 +185,21 @@ const visibleSteps = computed(() => {
 
   // 5. NẾU BỊ HỦY -> NỐI CỤC ĐỎ VÀO CUỐI CÙNG
   if (isCancelledOrRefunded.value) {
+    let stepLabel = "Đã hủy";
+    let stepIcon = "fa-ban";
+
+    if (currentStatusCode.value === 9) {
+      stepLabel = "Chờ hoàn tiền";
+      stepIcon = "fa-clock-rotate-left";
+    } else if (currentStatusCode.value === 10) {
+      stepLabel = "Đã hoàn tiền";
+      stepIcon = "fa-arrow-rotate-left";
+    }
+
     stepsToRender.push({
       code: currentStatusCode.value,
-      label: currentStatusCode.value === 9 ? "Đã hoàn tiền" : "Đã hủy",
-      icon: currentStatusCode.value === 9 ? "fa-arrow-rotate-left" : "fa-ban",
+      label: stepLabel,
+      icon: stepIcon,
       isErrorStep: true,
     });
   }
@@ -282,6 +297,54 @@ const handleConfirmOrder = async (idHoaDon) => {
         error.response?.data?.message ||
         error.message ||
         "Không thể xác nhận đơn lúc này.",
+    });
+  }
+};
+
+const handleXacNhanHoanTien = async () => {
+  const dbId = selectedOrder.value?.dbId; // Ưu tiên hiển thị tiền hoàn trả, nếu không có thì hiện tiền cọc
+  const staffId = currentStaffId.value;
+  const soTien =
+    selectedOrder.value?.tienHoanTra || selectedOrder.value?.tienCoc;
+
+  const confirm = await Swal.fire({
+    title: "Xác nhận đã hoàn tiền?",
+    html: `Xác nhận đã chuyển khoản hoàn số tiền <b class="text-danger fs-5">${soTien}</b> cho khách hàng?<br/><br/><small class="text-muted">Hóa đơn sẽ được cập nhật sang <b>Đã hoàn tiền (10)</b> và lưu lịch sử.</small>`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#28a745",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Đã hoàn tiền',
+    cancelButtonText: "Hủy",
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  Swal.fire({
+    title: "Đang cập nhật...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // LƯU Ý: Chỉnh sửa lại chuỗi URL API này cho khớp với cấu hình Backend của team bạn
+    await axiosClient.put(`/hoa-don-thanh-toan/xac-nhan-hoan-tien/${dbId}?idNhanVien=${staffId}`);
+
+    Swal.fire({
+      icon: "success",
+      title: "Thành công!",
+      text: "Đã lưu lịch sử hoàn tiền thành công.",
+      timer: 2000,
+      showConfirmButton: false,
+    }); // Reload lại chi tiết hóa đơn
+
+    await handleViewDetail(dbId);
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      icon: "error",
+      title: "Lỗi",
+      text: error.response?.data?.message || "Không thể xác nhận lúc này.",
     });
   }
 };
@@ -729,7 +792,7 @@ const cannotPrint = computed(() => {
       </div>
 
       <div class="d-flex justify-content-between mt-4 pb-5">
-        <div>
+        <div class="d-flex gap-2">
           <button
             v-if="!isReadOnly"
             class="btn btn-outline-custom px-4 py-2 fw-medium"
@@ -737,6 +800,14 @@ const cannotPrint = computed(() => {
             :disabled="cannotCancel"
           >
             Hủy hóa đơn
+          </button>
+          <button
+            v-if="selectedOrder?.trangThaiCode === 9"
+            class="btn btn-warning px-4 py-2 fw-medium text-dark shadow-sm border-warning"
+            @click="handleXacNhanHoanTien"
+          >
+          <i class="fa-solid fa-money-bill-transfer me-2"></i> Xác
+            nhận đã hoàn tiền
           </button>
         </div>
 

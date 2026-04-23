@@ -98,6 +98,30 @@ public class HoaDonThanhToanController {
         );
     }
 
+    @PutMapping("/xac-nhan-hoan-tien/{idHoaDon}")
+    public ResponseEntity<?> xacNhanHoanTien(
+            @PathVariable Integer idHoaDon,
+            @RequestParam(required = false) Integer idNhanVien) {
+        try {
+            hoaDonThanhToanService.xacNhanHoanTien(idHoaDon, idNhanVien);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Đã xác nhận hoàn tiền thành công cho hóa đơn #" + idHoaDon
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAILED",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "ERROR",
+                    "message", "Lỗi hệ thống: " + e.getMessage()
+            ));
+        }
+    }
+
     @GetMapping("/active-by-phieu/{idPhieu}")
     public ResponseEntity<?> getActiveBillByPhieu(@PathVariable Integer idPhieu) {
         // 1. Tìm hóa đơn theo ID phiếu
@@ -159,23 +183,8 @@ public class HoaDonThanhToanController {
         // ==========================================
         // MAP THÔNG TIN HÓA ĐƠN
         // ==========================================
-        response.setIdHoaDon(hoaDon.getId());
-        response.setTongTienChuaGiam(hoaDon.getTongTienChuaGiam());
-        response.setSoTienDaGiam(hoaDon.getSoTienDaGiam());
-        response.setTienCoc(hoaDon.getTienCoc());
-        response.setTongTienThanhToan(hoaDon.getTongTienThanhToan());
-
-        if (hoaDon.getIdPhieuGiamGia() != null) {
-            response.setIdPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getId());
-            response.setMaPhieuGiamGia(hoaDon.getIdPhieuGiamGia().getCodeGiamGia()); // Thay bằng getter đúng
-        }
-
-        // ==========================================
-        // MAP DANH SÁCH MÓN ĂN
-        // ==========================================
         List<PhieuDatBanResponse.ChiTietMonResponse> chiTietList = new ArrayList<>();
 
-        // GIẢ SỬ biến danh sách chi tiết trong HoaDonThanhToan tên là getChiTietHoaDons()
         if (hoaDon.getChiTietHoaDons() != null) {
             for (ChiTietHoaDon ct : hoaDon.getChiTietHoaDons()) {
                 PhieuDatBanResponse.ChiTietMonResponse monRes = new PhieuDatBanResponse.ChiTietMonResponse();
@@ -187,18 +196,19 @@ public class HoaDonThanhToanController {
                 monRes.setTrangThaiMon(ct.getTrangThaiMon());
                 monRes.setGhiChu(ct.getGhiChuMon());
 
-                // Phân loại Món lẻ hay Set lẩu
+                // Phân loại Món lẻ hay Set lẩu an toàn
                 if (ct.getIdChiTietMonAn() != null) {
                     monRes.setType("FOOD");
                     monRes.setId(ct.getIdChiTietMonAn().getId());
                     monRes.setIdChiTietMonAn(ct.getIdChiTietMonAn().getId());
-                    // Thay thế chuỗi lấy tên món bằng cấu trúc Entity thực tế của bạn
+                    monRes.setMaMon(ct.getIdChiTietMonAn().getMaMon());
                     monRes.setTenMon(ct.getIdChiTietMonAn().getTenMon());
                     monRes.setApDungLoaiVat(ct.getIdChiTietMonAn().getDanhMuc().getLoaiVatApDung());
                 } else if (ct.getIdSetLau() != null) {
                     monRes.setType("SET");
                     monRes.setId(ct.getIdSetLau().getId());
                     monRes.setIdSetLau(ct.getIdSetLau().getId());
+                    monRes.setMaSetLau(ct.getIdSetLau().getMaSetLau());
                     monRes.setTenMon(ct.getIdSetLau().getTenSetLau());
                     monRes.setApDungLoaiVat(8);
                 }
@@ -208,7 +218,6 @@ public class HoaDonThanhToanController {
         }
         response.setChiTiet(chiTietList);
 
-        // Trả về DTO đã map hoàn chỉnh, tuyệt đối không bị vòng lặp JSON
         return ResponseEntity.ok(response);
     }
 
@@ -597,6 +606,7 @@ public class HoaDonThanhToanController {
                                 dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
                                 dto.setId(item.getIdChiTietMonAn().getId());
                                 dto.setType("FOOD");
+                                dto.setMaMon(item.getIdChiTietMonAn().getMaMon());
 
                                 Integer vatType = 1;
                                 try {
@@ -615,6 +625,7 @@ public class HoaDonThanhToanController {
                                 dto.setId(item.getIdSetLau().getId());
                                 dto.setType("SET");
                                 dto.setApDungLoaiVat(1);
+                                dto.setMaSetLau(item.getIdSetLau().getMaSetLau());
                             }
                             return dto;
                         }).collect(Collectors.toList());

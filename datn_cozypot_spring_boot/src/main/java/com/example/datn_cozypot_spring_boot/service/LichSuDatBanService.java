@@ -111,8 +111,8 @@ public class LichSuDatBanService {
             map.put("maPhieuGiamGia", null);
         }
 
-        if (hd.getTrangThaiHoaDon() == 8 || hd.getTrangThaiHoaDon() == 9) {
-            lichSuHoaDonRepository.findFirstByIdHoaDon_IdAndTrangThaiMoiInOrderByThoiGianThucHienDesc(hd.getId(), Arrays.asList(8, 9))
+        if (hd.getTrangThaiHoaDon() == 8 || hd.getTrangThaiHoaDon() == 9 || hd.getTrangThaiHoaDon() == 10) {
+            lichSuHoaDonRepository.findFirstByIdHoaDon_IdAndTrangThaiMoiInOrderByThoiGianThucHienDesc(hd.getId(), Arrays.asList(8, 9, 10))
                     .ifPresent(log -> map.put("trangThaiTruocHuy", log.getTrangThaiTruocDo()));
         }
 
@@ -153,22 +153,22 @@ public class LichSuDatBanService {
 
                 // Rẽ nhánh để lấy text hiển thị trong Email
                 if (trangThaiHDCu == 2) {
-                    ghiChuHoanTien = "[Khách tự hủy] Hoàn cọc 100% do quán chưa xác nhận";
+                    ghiChuHoanTien = "[Khách tự hủy] Yêu cầu hoàn cọc (Đơn chưa xác nhận)";
                 } else {
-                    ghiChuHoanTien = "[Khách tự hủy] Đúng quy định, hoàn cọc";
+                    ghiChuHoanTien = "[Khách tự hủy] Yêu cầu hoàn cọc (Hủy đúng hạn)";
                 }
 
-                LichSuThanhToan ls = new LichSuThanhToan();
-                ls.setHoaDon(hd);
-                ls.setSoTienThanhToan(tienCoc);
-                ls.setLoaiGiaoDich(3);
-                ls.setGhiChu(ghiChuHoanTien);
-                ls.setNgayThanhToan(Instant.now());
-                ls.setTrangThai(1);
-                ls.setTenPhuongThuc("Chuyển khoản");
-                String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
-                ls.setMaGiaoDich("REFUND_KHACH_" + maHoaDonStr + "_" + System.currentTimeMillis());
-                lichSuThanhToanRepository.save(ls);
+//                LichSuThanhToan ls = new LichSuThanhToan();
+//                ls.setHoaDon(hd);
+//                ls.setSoTienThanhToan(tienCoc);
+//                ls.setLoaiGiaoDich(3);
+//                ls.setGhiChu(ghiChuHoanTien);
+//                ls.setNgayThanhToan(Instant.now());
+//                ls.setTrangThai(1);
+//                ls.setTenPhuongThuc("Chuyển khoản");
+//                String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
+//                ls.setMaGiaoDich("REFUND_KHACH_" + maHoaDonStr + "_" + System.currentTimeMillis());
+//                lichSuThanhToanRepository.save(ls);
             } else {
                 ghiChuHoanTien = "[Khách tự hủy] Mất cọc do sát giờ";
             }
