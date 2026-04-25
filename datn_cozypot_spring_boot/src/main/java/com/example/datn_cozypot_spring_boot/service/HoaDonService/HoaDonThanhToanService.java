@@ -189,10 +189,8 @@ public class HoaDonThanhToanService {
         log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Chờ hoàn tiền" : "Hủy hóa đơn");
         String prefixLyDo = "";
         if (trangThaiMoi == 9) {
-            // Đã nhảy sang 9 là chờ hoàn cọc
             prefixLyDo = "[Chờ hoàn cọc] ";
         } else if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
-            // Đã cọc mà rớt xuống 8 thì chắc chắn mất cọc
             prefixLyDo = "[Mất cọc] ";
         } else if (trangThaiHDCu == 1) {
             prefixLyDo = "[Hủy chưa cọc] ";

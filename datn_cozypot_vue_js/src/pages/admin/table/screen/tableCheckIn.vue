@@ -1662,11 +1662,11 @@ const handlePaymentCash = async () => {
   const confirm = await Swal.fire({
     title: 'Xác nhận thanh toán TIỀN MẶT?',
     html: `Tổng tiền thanh toán: <br><br>
-           <b style="color: #28a745; font-size: 26px">${amountToPay.toLocaleString()} đ</b>`,
+           <b style="color: #7D161A; font-size: 26px">${amountToPay.toLocaleString()} đ</b>`,
     icon: 'warning',
     iconColor: '#7D161A',
     showCancelButton: true,
-    confirmButtonColor: '#28a745', 
+    confirmButtonColor: '#7D161A', 
     confirmButtonText: 'Đã nhận đủ tiền',
     cancelButtonText: 'Quay lại'
   });
@@ -1689,7 +1689,8 @@ const handlePaymentCash = async () => {
     
     await updateTrangThaiBan(payloadChinh);
 
-    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã thanh toán và dọn bàn hoàn tất!', timer: 1500 });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công!', text: 'Đã thanh toán và dọn bàn hoàn tất!', timer: 1500, showCancelButton: false,
+      confirmButtonColor: "#8b0000", confirmButtonText: 'Đồng ý',});
     
     closeModal();
     await handleFetchAllCheckIn();
@@ -1836,25 +1837,68 @@ const handlePaymentMixed = async () => {
 };
 
 const handleCancelTicket = async () => {
-  if (!selectedPhieu.value?.id) return Swal.fire('Lưu ý', 'Bàn này chưa có phiếu để hủy!', 'warning');
-  const confirm = await Swal.fire({ title: 'Hủy phiếu đặt bàn?', text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Bạn chắc chắn chứ?', icon: 'warning', iconColor: '#7D161A', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Đồng ý hủy', cancelButtonText: 'Quay lại' });
-  
-  if (!confirm.isConfirmed) return;
-  
-  const bId = selectedBan.value.id;
-  await updateTrangThaiBan({ 
-      idBanAn: bId, 
-      trangThai: 0, // Trả bàn về trạng thái Trống
-      id: selectedPhieu.value.id, 
-      trangThaiPhieu: 2, // 🚨 SỬA Ở ĐÂY: 2 = Đã hủy
-      trangThaiHoaDon: 8 // Hóa đơn trạng thái Hủy
+  if (!selectedPhieu.value?.idHoaDon) {
+    return Swal.fire('Lưu ý', 'Bàn này chưa có hóa đơn hợp lệ để hủy!', 'warning');
+  }
+
+  // 🚨 1. CHỐT CHẶN FRONTEND: Kiểm tra xem có món nào ĐÃ LÊN chưa
+  if (monDaLen.value.length > 0) {
+    return Swal.fire({
+      title: 'Không thể hủy!',
+      html: `Bàn này đã có <b class="text-success">${monDaLen.value.length} món</b> được phục vụ.<br>Vui lòng yêu cầu khách <b>Thanh toán</b> thay vì Hủy phiếu!`,
+      icon: 'error',
+      confirmButtonText: 'Đã hiểu',
+      confirmButtonColor: '#7d161a'
+    });
+  }
+
+  // 2. Yêu cầu nhập lý do hủy (để gửi xuống Backend lưu lịch sử)
+  const { value: cancelReason, isConfirmed } = await Swal.fire({
+    title: 'Hủy phiếu đặt bàn?',
+    text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Vui lòng nhập lý do hủy:',
+    input: 'text',
+    inputPlaceholder: 'Ví dụ: Khách đổi ý, khách có việc gấp...',
+    icon: 'warning',
+    iconColor: '#7D161A',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    confirmButtonText: 'Đồng ý hủy',
+    cancelButtonText: 'Quay lại',
+    inputValidator: (value) => {
+      if (!value || value.trim() === '') {
+        return 'Bạn bắt buộc phải nhập lý do hủy!';
+      }
+    }
   });
-  
-  tableStatusMap.value = { ...tableStatusMap.value, [bId]: 0 };
-  closeModal();
-  await handleFetchAllCheckIn();
-  await fetchAllBan();
-  Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy', timer: 1000, confirmButtonText: 'Đã hiểu' });
+
+  if (!isConfirmed) return;
+
+  try {
+    Swal.fire({ title: 'Đang hủy...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // 3. Gọi API Hủy Đơn của Backend
+    const payload = {
+      idHoaDon: selectedPhieu.value.idHoaDon,
+      idNhanVien: getCurrentStaffId() || 1,
+      lyDoThucHien: cancelReason,
+      isLoiDoQuan: false // Tùy chỉnh: Mặc định là lỗi do khách. Nếu muốn có thể thêm checkbox trên UI.
+    };
+
+    await axiosClient.put('/hoa-don-thanh-toan/huy-don', payload);
+
+    // 4. Dọn dẹp UI
+    const bId = selectedBan.value.id;
+    tableStatusMap.value = { ...tableStatusMap.value, [bId]: 0 };
+    closeModal();
+    
+    // 5. Cập nhật lại sơ đồ
+    await handleFetchAllCheckIn();
+    await fetchAllBan();
+    
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy phiếu', timer: 1500, showConfirmButton: false });
+  } catch (error) {
+    Swal.fire('Lỗi', error.response?.data?.message || 'Không thể hủy phiếu lúc này', 'error');
+  }
 };
 
 const activeBookingTableIds = computed(() => {
