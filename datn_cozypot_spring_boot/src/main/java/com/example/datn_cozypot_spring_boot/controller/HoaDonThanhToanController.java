@@ -98,6 +98,30 @@ public class HoaDonThanhToanController {
         );
     }
 
+    @PutMapping("/xac-nhan-hoan-tien/{idHoaDon}")
+    public ResponseEntity<?> xacNhanHoanTien(
+            @PathVariable Integer idHoaDon,
+            @RequestParam(required = false) Integer idNhanVien) {
+        try {
+            hoaDonThanhToanService.xacNhanHoanTien(idHoaDon, idNhanVien);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Đã xác nhận hoàn tiền thành công cho hóa đơn #" + idHoaDon
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAILED",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "ERROR",
+                    "message", "Lỗi hệ thống: " + e.getMessage()
+            ));
+        }
+    }
+
     @GetMapping("/active-by-phieu/{idPhieu}")
     public ResponseEntity<?> getActiveBillByPhieu(@PathVariable Integer idPhieu) {
         // 1. Tìm hóa đơn theo ID phiếu
@@ -171,8 +195,6 @@ public class HoaDonThanhToanController {
                 monRes.setThanhTien(ct.getThanhTien());
                 monRes.setTrangThaiMon(ct.getTrangThaiMon());
                 monRes.setGhiChu(ct.getGhiChuMon());
-
-                // 🚨 ĐÃ XÓA MẤY CÁI SYSTEM.OUT.PRINTLN GÂY LỖI NULL
 
                 // Phân loại Món lẻ hay Set lẩu an toàn
                 if (ct.getIdChiTietMonAn() != null) {

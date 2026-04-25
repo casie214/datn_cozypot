@@ -33,6 +33,7 @@ const statusOptions = [
   "Đã thanh toán",
   "Hoàn thành",
   "Đã hủy",
+  "Chờ hoàn tiền",
   "Đã hoàn tiền",
 ];
 

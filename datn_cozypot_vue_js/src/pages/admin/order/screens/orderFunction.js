@@ -139,7 +139,8 @@ export function useOrderManager() {
       6: "Đã thanh toán",
       7: "Hoàn thành",
       8: "Đã hủy",
-      9: "Đã hoàn tiền",
+      9: "Chờ hoàn tiền", 
+      10: "Đã hoàn tiền",
     };
     return statuses[statusInt] || "Không xác định";
   };
@@ -193,7 +194,7 @@ export function useOrderManager() {
           item.danhSachTenBan || (item.tenBan ? [item.tenBan] : []),
         loai: mapOrderType(item.hinhThucDat),
         soLuongKhach: item.soLuongKhach,
-        tongTien: formatCurrency(item.tongTienChuaGiam),
+        tongTien: formatCurrency(item.tongTienThanhToan),
         tongTienRaw: item.tongTienThanhToan,
         tongTienHangRaw: item.tongTienChuaGiam || 0,
         soTienDaGiam: item.soTienDaGiam || 0,
@@ -206,7 +207,6 @@ export function useOrderManager() {
         ngayTaoRaw: item.thoiGianTao,
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
-        // 🔥 THÊM 2 DÒNG NÀY:
         idPhieuGiamGia: item.idPhieuGiamGia,
         maPhieuGiamGia: item.maPhieuGiamGia,
       };
@@ -259,7 +259,8 @@ export function useOrderManager() {
         "Đã thanh toán": 6,
         "Hoàn thành": 7,
         "Đã hủy": 8,
-        "Đã hoàn tiền": 9,
+        "Chờ hoàn tiền": 9,  
+        "Đã hoàn tiền": 10,
       };
 
       const trangThaiInt =
@@ -680,6 +681,7 @@ export function useOrderManager() {
   });
 
   return {
+    currentStaffId,
     currentPage,
     totalPages,
     pageSize,

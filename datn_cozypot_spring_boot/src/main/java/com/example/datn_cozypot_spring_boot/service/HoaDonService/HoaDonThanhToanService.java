@@ -126,7 +126,7 @@ public class HoaDonThanhToanService {
 
         Integer trangThaiHDCu = hd.getTrangThaiHoaDon();
 
-        if (trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9) {
+        if (trangThaiHDCu == 7 || trangThaiHDCu == 8 || trangThaiHDCu == 9 || trangThaiHDCu == 10) {
             throw new RuntimeException("Hóa đơn đã ở trạng thái kết thúc, không thể hủy!");
         }
 
@@ -140,24 +140,24 @@ public class HoaDonThanhToanService {
             trangThaiMoi = 9;
             hd.setTrangThaiHoaDon(trangThaiMoi);
 
-            LichSuThanhToan lsThanhToan = new LichSuThanhToan();
-            lsThanhToan.setHoaDon(hd);
-            lsThanhToan.setSoTienThanhToan(tienCoc);
-            lsThanhToan.setLoaiGiaoDich(3);
-
-            // Đặt câu thông báo chi tiết cho lịch sử hoàn tiền
-            if (trangThaiHDCu == 2) {
-                lsThanhToan.setGhiChu("Hoàn trả cọc 100% do hóa đơn chưa được xác nhận: " + request.getLyDoThucHien());
-            } else {
-                lsThanhToan.setGhiChu("Hoàn trả cọc do lỗi của quán: " + request.getLyDoThucHien());
-            }
-
-            lsThanhToan.setNgayThanhToan(Instant.now());
-            lsThanhToan.setTrangThai(1);
-            lsThanhToan.setTenPhuongThuc("Chuyển khoản");
-            String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
-            lsThanhToan.setMaGiaoDich("REFUND_" + maHoaDonStr + "_" + System.currentTimeMillis());
-            lichSuThanhToanRepository.save(lsThanhToan);
+//            LichSuThanhToan lsThanhToan = new LichSuThanhToan();
+//            lsThanhToan.setHoaDon(hd);
+//            lsThanhToan.setSoTienThanhToan(tienCoc);
+//            lsThanhToan.setLoaiGiaoDich(3);
+//
+//            // Đặt câu thông báo chi tiết cho lịch sử hoàn tiền
+//            if (trangThaiHDCu == 2) {
+//                lsThanhToan.setGhiChu("Hoàn trả cọc 100% do hóa đơn chưa được xác nhận: " + request.getLyDoThucHien());
+//            } else {
+//                lsThanhToan.setGhiChu("Hoàn trả cọc do lỗi của quán: " + request.getLyDoThucHien());
+//            }
+//
+//            lsThanhToan.setNgayThanhToan(Instant.now());
+//            lsThanhToan.setTrangThai(1);
+//            lsThanhToan.setTenPhuongThuc("Chuyển khoản");
+//            String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
+//            lsThanhToan.setMaGiaoDich("REFUND_" + maHoaDonStr + "_" + System.currentTimeMillis());
+//            lichSuThanhToanRepository.save(lsThanhToan);
         } else {
             hd.setTienHoanTra(BigDecimal.ZERO);
             trangThaiMoi = 8;
@@ -186,11 +186,11 @@ public class HoaDonThanhToanService {
 
         LichSuHoaDon log = new LichSuHoaDon();
         log.setIdHoaDon(hd);
-        log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Hoàn tiền" : "Hủy hóa đơn");
+        log.setHanhDong(trangThaiMoi == 9 ? "Hủy & Chờ hoàn tiền" : "Hủy hóa đơn");
         String prefixLyDo = "";
         if (trangThaiMoi == 9) {
-            // Đã nhảy sang 9 thì chắc chắn là đã hoàn cọc
-            prefixLyDo = "[Đã hoàn cọc] ";
+            // Đã nhảy sang 9 là chờ hoàn cọc
+            prefixLyDo = "[Chờ hoàn cọc] ";
         } else if (trangThaiHDCu >= 2 && tienCoc.compareTo(BigDecimal.ZERO) > 0) {
             // Đã cọc mà rớt xuống 8 thì chắc chắn mất cọc
             prefixLyDo = "[Mất cọc] ";
@@ -244,6 +244,51 @@ public class HoaDonThanhToanService {
 
             emailDatBanService.sendEmailHuyDatBan(mailData);
         }
+    }
+
+    @Transactional
+    public void xacNhanHoanTien(Integer idHoaDon, Integer idNhanVien) {
+        HoaDonThanhToan hd = hoaDonThanhToanRepository.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn!"));
+
+        if (hd.getTrangThaiHoaDon() != 9) {
+            throw new RuntimeException("Hóa đơn không ở trạng thái Chờ hoàn tiền!");
+        }
+
+        // 1. Chuyển trạng thái sang Đã hoàn tiền (10)
+        hd.setTrangThaiHoaDon(10);
+        hoaDonThanhToanRepository.save(hd);
+
+        // 2. Lưu Lịch sử thanh toán (Tiền cọc trả khách)
+        BigDecimal tienHoanTra = hd.getTienHoanTra() != null ? hd.getTienHoanTra() : BigDecimal.ZERO;
+        LichSuThanhToan lsThanhToan = new LichSuThanhToan();
+        lsThanhToan.setHoaDon(hd);
+        lsThanhToan.setSoTienThanhToan(tienHoanTra);
+        lsThanhToan.setLoaiGiaoDich(3);
+        lsThanhToan.setGhiChu("Kế toán xác nhận đã chuyển khoản hoàn tiền cho khách hàng");
+        lsThanhToan.setNgayThanhToan(Instant.now());
+        lsThanhToan.setTrangThai(1);
+        lsThanhToan.setTenPhuongThuc("Chuyển khoản");
+        lsThanhToan.setGhiChu("Hoàn trả tiền cọc cho hóa đơn " + hd.getMaHoaDon());
+        String maHoaDonStr = hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "HD" + hd.getId();
+        lsThanhToan.setMaGiaoDich("REFUND_" + maHoaDonStr + "_" + System.currentTimeMillis());
+        lichSuThanhToanRepository.save(lsThanhToan);
+
+        // 3. Ghi log Lịch sử hóa đơn
+        LichSuHoaDon log = new LichSuHoaDon();
+        log.setIdHoaDon(hd);
+        log.setHanhDong("Xác nhận đã hoàn tiền");
+        log.setLyDoThucHien("[Đã hoàn tiền] Hoàn tất hoàn tiền cho khách hàng");
+        log.setThoiGianThucHien(Instant.now());
+        log.setTrangThaiTruocDo(9);
+        log.setTrangThaiMoi(10);
+
+        if (idNhanVien != null) {
+            NhanVien nv = new NhanVien();
+            nv.setId(idNhanVien);
+            log.setIdNhanVien(nv);
+        }
+        lichSuHoaDonRepository.save(log);
     }
 
     @Transactional

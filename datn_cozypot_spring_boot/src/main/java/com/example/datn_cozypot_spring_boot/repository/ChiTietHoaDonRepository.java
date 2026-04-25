@@ -23,8 +23,8 @@ public interface ChiTietHoaDonRepository extends JpaRepository<ChiTietHoaDon, In
 
     @Query("SELECT new com.example.datn_cozypot_spring_boot.dto.ChiTietHoaDonDTO.ChiTietHoaDonResponse(" +
             "cthd.id, " +
-            "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.tenSetLau " +
-            "     ELSE ctma.tenMon END, " + // Đã sửa: ctma.idMonAnDiKem.tenMon -> ctma.tenMon
+            "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.maSetLau ELSE ctma.maMon END, " +
+            "CASE WHEN cthd.idSetLau IS NOT NULL THEN s.tenSetLau ELSE ctma.tenMon END, " +
             "cthd.soLuong, " +
             "cthd.donGiaTaiThoiDiemBan, " +
             "cthd.thanhTien, " +
