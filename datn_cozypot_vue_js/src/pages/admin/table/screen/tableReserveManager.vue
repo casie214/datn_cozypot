@@ -224,38 +224,114 @@ const handleCancelPhieuFromDetail = async () => {
     return Swal.fire('Lỗi', 'Không tìm thấy thông tin phiếu để hủy!', 'error');
   }
 
-  const confirm = await Swal.fire({
-    title: 'Xác nhận hủy phiếu?',
-    html: `Bạn có chắc chắn muốn hủy phiếu <b>${phieuDetail.value?.maDatBan || phieuDetail.value?.maPhieu || 'này'}</b> không?<br><br><i>Hệ thống sẽ tự động hủy Hóa đơn và giải phóng bàn liên quan!</i>`,
-    icon: 'warning',
-    iconColor: '#7D161A',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#6c757d',
-    confirmButtonText: '<i class="fa-solid fa-trash-can me-1"></i> Đồng ý hủy',
-    cancelButtonText: 'Quay lại'
-  });
+  // 1. Nhận diện trạng thái: Đã có Hóa Đơn (Check-in) hay chưa?
+  const hasHoaDon = !!detailHoaDon.value?.idHoaDon;
 
-  if (!confirm.isConfirmed) return;
+  // 🚨 CHỐT CHẶN 1: Nếu đã có Hóa đơn, phải check xem có món nào đã lên chưa
+  if (hasHoaDon) {
+    const monDaLen = detailOrderedItems.value.filter(item => item.served);
+    if (monDaLen.length > 0) {
+      return Swal.fire({
+        title: 'Không thể hủy!',
+        html: `Bàn này đã có <b class="text-success">${monDaLen.length} món</b> được phục vụ.<br>Vui lòng yêu cầu khách <b>Thanh toán</b> thay vì Hủy phiếu!`,
+        icon: 'error',
+        confirmButtonText: 'Đã hiểu',
+        confirmButtonColor: '#7d161a'
+      });
+    }
+  }
 
+  // 2. Tính toán thời gian cho Kịch bản Hủy phiếu chờ (Hoàn cọc / Mất cọc)
+  const phutHuyAnToan = 120; // Mặc định 120 phút (Hoặc lấy từ sysParams nếu component này có)
+  const thoiGianDat = phieuDetail.value?.thoiGianDat || detailHoaDon.value?.thoiGianDat;
+  let isRefundable = false;
+  let diffMinutes = 0;
+
+  if (thoiGianDat) {
+    let targetTime = dayjs(thoiGianDat);
+    // Xử lý mảng thời gian từ backend nếu có
+    if (Array.isArray(thoiGianDat)) {
+       const [y, m, d, h, min, s] = thoiGianDat;
+       targetTime = dayjs(new Date(y, m - 1, d, h || 0, min || 0, s || 0));
+    }
+    diffMinutes = targetTime.diff(dayjs(), "minute");
+    isRefundable = diffMinutes > phutHuyAnToan;
+  }
+
+  // 3. Xây dựng giao diện Swal tùy theo Kịch bản
+  let swalConfig = {};
+
+  if (hasHoaDon) {
+     // KỊCH BẢN A: Khách đã Check-in (Có hóa đơn) -> Phải nhập lý do
+     swalConfig = {
+        title: 'Hủy hóa đơn đang phục vụ?',
+        text: 'Bàn sẽ được dọn trống. Vui lòng nhập lý do hủy:',
+        input: 'text',
+        inputPlaceholder: 'Ví dụ: Khách đợi lâu bỏ về...',
+        icon: 'warning',
+        iconColor: '#7D161A',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Đồng ý hủy',
+        cancelButtonText: 'Quay lại',
+        inputValidator: (value) => {
+          if (!value || value.trim() === '') return 'Bạn bắt buộc phải nhập lý do hủy!';
+        }
+     };
+  } else {
+     // KỊCH BẢN B: Khách đang chờ (Chưa có hóa đơn) -> Báo hoàn cọc hay mất cọc
+     swalConfig = {
+        title: isRefundable ? "Xác nhận Hủy (Hoàn cọc)" : "Xác nhận Hủy (Mất cọc)",
+        text: isRefundable
+              ? `Khách hủy trước lịch hẹn ${Math.floor(diffMinutes/60)}h${diffMinutes%60}p. Hợp lệ để HỦY PHIẾU VÀ HOÀN TRẢ tiền cọc.`
+              : `Khách báo hủy quá sát giờ (chỉ còn ${diffMinutes} phút). Phiếu sẽ bị hủy và KHÔNG HOÀN TRẢ tiền cọc (nếu có).`,
+        icon: 'warning',
+        iconColor: '#7D161A',
+        showCancelButton: true,
+        confirmButtonColor: isRefundable ? '#7D161A' : '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: isRefundable ? 'Xác nhận hủy hợp lệ' : 'Xác nhận hủy',
+        cancelButtonText: 'Quay lại',
+     };
+  }
+
+  const { value: cancelReason, isConfirmed } = await Swal.fire(swalConfig);
+  if (!isConfirmed) return;
+
+  // 4. BẮN API TƯƠNG ỨNG
   try {
-    Swal.fire({ title: 'Đang hủy phiếu...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Đang hủy...', iconColor: '#7D161A', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    // 🚀 GỌI API MỚI CỦA BÁC
-    // Lưu ý: Đổi /dat-ban/ thành prefix đúng của Controller chứa @PutMapping("/update-trang-thai-phieu")
-    const payload = {
-      id: idPhieuCanHuy,
-      trangThai: 2 // 2 = Đã hủy
-    };
+    // Lấy ID nhân viên từ LocalStorage
+    const user = JSON.parse(localStorage.getItem("user"));
+    const idNhanVien = user ? user.id : 1;
 
-    await axiosClient.put(`/dat-ban/update-trang-thai-phieu`, payload);
+    if (hasHoaDon) {
+        // Gọi API hủy hóa đơn
+        const payload = {
+          idHoaDon: detailHoaDon.value.idHoaDon,
+          idNhanVien: idNhanVien,
+          lyDoThucHien: cancelReason,
+          isLoiDoQuan: false 
+        };
+        await axiosClient.put('/hoa-don-thanh-toan/huy-don', payload);
+    } else {
+        // Gọi API hủy phiếu chờ
+        const payload = {
+          idPhieu: idPhieuCanHuy,
+          isRefundable: isRefundable,
+          idNhanVien: idNhanVien
+        };
+        await axiosClient.put('/hoa-don-thanh-toan/huy-phieu-cho', payload);
+    }
 
-    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã hủy phiếu đặt bàn!', timer: 1500, showConfirmButton: false });
+    Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Thành công', text: 'Đã hủy phiếu đặt bàn!', timer: 1500, showConfirmButton: false });
 
-    // Đóng Modal và làm mới dữ liệu
+    // 5. Cập nhật lại UI
     closeDetailModal();
-    await searchDatBan(); // Load lại danh sách phiếu bên dưới
-    await loadTables();   // Quét lại sơ đồ bàn cho nó trống
+    await searchDatBan(); // Tải lại danh sách
+    await loadTables();   // Giải phóng sơ đồ bàn ngầm
     refreshKey.value += 1;
 
   } catch (error) {
@@ -816,6 +892,7 @@ const handleConfirmOrder = async (idHoaDon) => {
 
     Swal.fire({
       title: "Đang xử lý & Gửi email...",
+      iconColor: '7D161A',
       text: "Vui lòng không đóng trình duyệt lúc này.",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
