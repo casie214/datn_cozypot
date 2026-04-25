@@ -673,10 +673,12 @@ const finalBalance = computed(() => {
                 <table class="table align-middle mb-0">
                   <thead class="bg-custom-red text-white">
                     <tr>
-                      <th class="ps-4 py-3">TÊN MÓN</th>
+                      <th class="text-center py-3">STT</th>
+                      <th class="py-3">TÊN MÓN</th>
                       <th class="text-center py-3">SỐ LƯỢNG</th>
                       <th class="text-center py-3">ĐƠN GIÁ</th>
                       <th class="text-end py-3 pe-4">THÀNH TIỀN</th>
+                      <th class="text-center py-3 pe-4">TRẠNG THÁI</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -684,6 +686,7 @@ const finalBalance = computed(() => {
                       v-for="(item, index) in displayOrderData.chiTiet"
                       :key="index"
                     >
+                      <td class="text-center fw-bold">{{ index + 1 }}</td>
                       <td class="ps-4">
                         <span class="fw-medium">{{ item.tenMon }}</span>
                         <div
@@ -699,6 +702,20 @@ const finalBalance = computed(() => {
                       </td>
                       <td class="text-end fw-bold pe-4">
                         {{ formatMoney(item.thanhTien) }}
+                      </td>
+                      <td class="text-center">
+                        <span
+                          class="badge px-2 py-1"
+                          :class="
+                            item.trangThaiCode === 2
+                              ? 'bg-success-subtle text-success'
+                              : item.trangThaiCode === 1
+                                ? 'bg-warning-subtle text-warning'
+                                : 'bg-custom-red-subtle text-custom-red'
+                          "
+                        >
+                          {{ item.trangThaiText }}
+                        </span>
                       </td>
                     </tr>
                     <tr
