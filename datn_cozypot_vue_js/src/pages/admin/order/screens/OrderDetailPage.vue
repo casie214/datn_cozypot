@@ -31,7 +31,7 @@ const {
   invoiceDate,
   formatDate,
   handleHoanTatHoaDon,
-  currentStaffId
+  currentStaffId,
 } = useOrderManager();
 
 const formatMoney = (value) => {
@@ -328,7 +328,9 @@ const handleXacNhanHoanTien = async () => {
 
   try {
     // LƯU Ý: Chỉnh sửa lại chuỗi URL API này cho khớp với cấu hình Backend của team bạn
-    await axiosClient.put(`/hoa-don-thanh-toan/xac-nhan-hoan-tien/${dbId}?idNhanVien=${staffId}`);
+    await axiosClient.put(
+      `/hoa-don-thanh-toan/xac-nhan-hoan-tien/${dbId}?idNhanVien=${staffId}`,
+    );
 
     Swal.fire({
       icon: "success",
@@ -378,6 +380,39 @@ const cannotPrint = computed(() => {
   if (!hasValidItems) return true;
 
   return false;
+});
+
+// --- LOGIC GỘP MÓN DÀNH RIÊNG CHO IN HÓA ĐƠN ---
+const printOrderItems = computed(() => {
+  if (!orderDetails.value || orderDetails.value.length === 0) return [];
+
+  // 1. Lọc bỏ món đã hủy (trạng thái 0) để không in ra bill
+  const validItems = orderDetails.value.filter(item => item.trangThaiCode !== 0);
+
+  const groups = validItems.reduce((acc, item) => {
+    // Gộp theo Mã món 
+    const key = `${item.maMon}-${item.donGia}`;
+
+    if (!acc[key]) {
+      acc[key] = { ...item };
+    } else {
+      acc[key].soLuong += item.soLuong;
+      // Ép kiểu Number để tính toán chính xác
+      acc[key].thanhTien = Number(acc[key].thanhTien) + Number(item.thanhTien);
+      
+      // Gộp ghi chú (tránh trùng lặp)
+      if (item.ghiChu && item.ghiChu.trim() !== "") {
+        if (!acc[key].ghiChu) {
+          acc[key].ghiChu = item.ghiChu;
+        } else if (!acc[key].ghiChu.includes(item.ghiChu)) {
+          acc[key].ghiChu += `, ${item.ghiChu}`;
+        }
+      }
+    }
+    return acc;
+  }, {});
+
+  return Object.values(groups);
 });
 </script>
 
@@ -536,7 +571,8 @@ const cannotPrint = computed(() => {
               <thead class="bg-custom-red text-white">
                 <tr>
                   <th class="text-center py-3" style="width: 5%">STT</th>
-                  <th class="py-3" style="width: 40%">TÊN MÓN ĂN</th>
+                  <th class="py-3" style="width: 10%">MÃ MÓN</th>
+                  <th class="py-3" style="width: 30%">TÊN MÓN ĂN</th>
                   <th class="text-center py-3" style="width: 10%">SỐ LƯỢNG</th>
                   <th class="text-end py-3" style="width: 15%">ĐƠN GIÁ</th>
                   <th class="text-end py-3" style="width: 15%">THÀNH TIỀN</th>
@@ -548,6 +584,7 @@ const cannotPrint = computed(() => {
               <tbody>
                 <tr v-for="(item, index) in orderDetails" :key="index">
                   <td class="fw-bold text-center">{{ index + 1 }}</td>
+                  <td class="fw-medium">{{ item.maMon }}</td>
                   <td>
                     <div class="d-flex flex-column">
                       <span class="fw-medium">{{ item.tenMon }}</span>
@@ -794,10 +831,9 @@ const cannotPrint = computed(() => {
       <div class="d-flex justify-content-between mt-4 pb-5">
         <div class="d-flex gap-2">
           <button
-            v-if="!isReadOnly"
+            v-if="!cannotCancel"
             class="btn btn-outline-custom px-4 py-2 fw-medium"
             @click="openCancelModal(selectedOrder)"
-            :disabled="cannotCancel"
           >
             Hủy hóa đơn
           </button>
@@ -806,8 +842,8 @@ const cannotPrint = computed(() => {
             class="btn btn-warning px-4 py-2 fw-medium text-dark shadow-sm border-warning"
             @click="handleXacNhanHoanTien"
           >
-          <i class="fa-solid fa-money-bill-transfer me-2"></i> Xác
-            nhận đã hoàn tiền
+            <i class="fa-solid fa-money-bill-transfer me-2"></i> Xác nhận đã
+            hoàn tiền
           </button>
         </div>
 
@@ -1090,7 +1126,7 @@ const cannotPrint = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in orderDetails" :key="index">
+            <tr v-for="(item, index) in printOrderItems" :key="index">
               <td class="text-center fw-bold">{{ index + 1 }}</td>
               <td>
                 <span class="fw-medium">{{ item.tenMon }}</span>

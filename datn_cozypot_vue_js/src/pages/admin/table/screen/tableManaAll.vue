@@ -332,7 +332,7 @@ onUnmounted(() => {
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <router-link class="nav-link" exact-active-class="active" to="/manage/all">
-            <i class="fa-solid fa-list"></i> Lịch đặt bàn
+            <i class="fa-solid fa-list"></i> Sơ đồ bàn
           </router-link>
         </li>
         <li class="nav-item">

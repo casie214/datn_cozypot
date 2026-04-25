@@ -194,7 +194,7 @@ export function useOrderManager() {
           item.danhSachTenBan || (item.tenBan ? [item.tenBan] : []),
         loai: mapOrderType(item.hinhThucDat),
         soLuongKhach: item.soLuongKhach,
-        tongTien: formatCurrency(item.tongTienChuaGiam),
+        tongTien: formatCurrency(item.tongTienThanhToan),
         tongTienRaw: item.tongTienThanhToan,
         tongTienHangRaw: item.tongTienChuaGiam || 0,
         soTienDaGiam: item.soTienDaGiam || 0,
@@ -207,7 +207,6 @@ export function useOrderManager() {
         ngayTaoRaw: item.thoiGianTao,
         vatApDung: item.vatApDung,
         thoiGianDat: item.thoiGianDat || item.thoiGianTao,
-        // 🔥 THÊM 2 DÒNG NÀY:
         idPhieuGiamGia: item.idPhieuGiamGia,
         maPhieuGiamGia: item.maPhieuGiamGia,
       };
@@ -616,8 +615,8 @@ export function useOrderManager() {
     if (!idToComplete) return;
 
     Swal.fire({
-      title: "Khách đã ra về?",
-      text: "Hóa đơn sẽ được chuyển sang Hoàn thành và bàn sẽ được dọn trống.",
+      title: "Hoàn thành hóa đơn?",
+      text: "Hóa đơn sẽ được chuyển sang Hoàn thành.",
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#8b0000",

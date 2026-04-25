@@ -183,7 +183,12 @@ const totalAmount = computed(() => {
 });
 
 const handleSave = () => {
-    emit('save', Object.values(selectedItems.value));
+    const finalPayload = Object.values(selectedItems.value).map(item => ({
+        ...item,
+        dbDetailId: item.dbDetailId || null
+    }));
+    
+    emit('save', finalPayload);
 };
 
 const getImg = (url) => {
@@ -282,7 +287,7 @@ const setCategoryOptions = computed(() => setCategories.value); // Sử dụng r
             <div class="total-info">
                 <span>Đã chọn: <b>{{ Object.keys(selectedItems).length }}</b> món</span>
                 <div class="price-group">
-                    <span>Tổng:</span>
+                    <span>Tổng giá các món chọn:</span>
                     <strong class="price">{{ totalAmount.toLocaleString() }}đ</strong>
                 </div>
             </div>

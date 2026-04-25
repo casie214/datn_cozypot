@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 public class ChiTietHoaDonResponse {
     private Integer id;
     private String tenMon;
+    private String maMon;
     private Integer soLuong;
     private BigDecimal donGia;
     private BigDecimal thanhTien;

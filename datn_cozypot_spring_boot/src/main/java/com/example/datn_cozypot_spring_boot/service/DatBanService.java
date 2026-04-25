@@ -363,10 +363,10 @@ public class DatBanService {
         if (request.getId() == null && request.getTrangThai() != null && request.getTrangThai() == 1) {
 
             // Kiểm tra xem bàn này có đang phục vụ ai không?
-            Optional<HoaDonThanhToan> existingBill = hoaDonThanhToanRepository.findActiveBillByBanAn(request.getIdBanAn());
-            if (existingBill.isPresent()) {
-                throw new RuntimeException("Bàn này hiện đang có khách (HĐ #" + existingBill.get().getMaHoaDon() + "), không thể mở phiếu mới!");
-            }
+//            Optional<HoaDonThanhToan> existingBill = hoaDonThanhToanRepository.findActiveBillByBanAn(request.getIdBanAn());
+//            if (existingBill.isPresent()) {
+//                throw new RuntimeException("Bàn này hiện đang có khách (HĐ #" + existingBill.get().getMaHoaDon() + "), không thể mở phiếu mới!");
+//            }
 
             BanAn banPhu = banAnRepository.findById(request.getIdBanAn())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy bàn ăn"));

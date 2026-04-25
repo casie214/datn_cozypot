@@ -9,7 +9,10 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,48 +26,69 @@ public class ChiTietHoaDonService {
     public List<ChiTietHoaDonResponse> getAllChiTietHoaDon(Integer idHoaDon) {
         List<ChiTietHoaDon> list = chiTietHoaDonRepository.findByIdHoaDon(idHoaDon);
 
-        return list.stream().map(item -> {
-            ChiTietHoaDonResponse dto = new ChiTietHoaDonResponse();
-            dto.setId(item.getId());
-            dto.setSoLuong(item.getSoLuong());
-            dto.setDonGia(item.getDonGiaTaiThoiDiemBan());
-            dto.setThanhTien(item.getThanhTien());
-            dto.setGhiChu(item.getGhiChuMon());
+        // Sử dụng LinkedHashMap để giữ đúng thứ tự món ăn xuất hiện
+        Map<String, ChiTietHoaDonResponse> groupedMap = new LinkedHashMap<>();
 
-            if (item.getIdChiTietMonAn() != null) {
-                dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
-                dto.setIdSetLau(null);
-            }
-            else if (item.getIdSetLau() != null) {
-                dto.setTenMon(item.getIdSetLau().getTenSetLau());
-                dto.setIdSetLau(item.getIdSetLau().getId());
-            }
-            else {
-                dto.setTenMon("Món không xác định");
-            }
+        for (ChiTietHoaDon item : list) {
+            // 1. Map entity sang DTO tạm thời để lấy thông tin
+            ChiTietHoaDonResponse currentDto = mapToResponse(item);
 
-            dto.setTrangThaiCode(item.getTrangThaiMon());
+            // 2. Tạo một key duy nhất để gộp: kết hợp Mã món + Trạng thái
+            // Nếu món giống nhau nhưng trạng thái khác nhau (1 cái 'Chưa lên', 1 cái 'Đã lên') thì KHÔNG gộp.
+            String key = currentDto.getMaMon() + "_" + currentDto.getTrangThaiCode() + "_" + currentDto.getDonGia();
 
-            String textHienThi = "";
-            if (item.getTrangThaiMon() != null) {
-                switch (item.getTrangThaiMon()) {
-                    case 0:
-                        textHienThi = "Đã hủy";
-                        break;
-                    case 1:
-                        textHienThi = "Chưa lên"; // Hoặc "Đang chế biến"
-                        break;
-                    case 2:
-                        textHienThi = "Đã lên";   // Hoặc "Hoàn thành"
-                        break;
-                    default:
-                        textHienThi = "Khác";
+            if (groupedMap.containsKey(key)) {
+                // Nếu đã tồn tại món này với trạng thái này rồi -> Tiến hành cộng dồn
+                ChiTietHoaDonResponse existingDto = groupedMap.get(key);
+
+                existingDto.setSoLuong(existingDto.getSoLuong() + currentDto.getSoLuong());
+                existingDto.setThanhTien(existingDto.getThanhTien().add(currentDto.getThanhTien()));
+
+                // Gộp ghi chú nếu có (cách nhau bởi dấu phẩy)
+                if (currentDto.getGhiChu() != null && !currentDto.getGhiChu().trim().isEmpty()) {
+                    String oldGhiChu = existingDto.getGhiChu();
+                    String newGhiChu = (oldGhiChu == null || oldGhiChu.isEmpty())
+                            ? currentDto.getGhiChu()
+                            : oldGhiChu + ", " + currentDto.getGhiChu();
+                    existingDto.setGhiChu(newGhiChu);
                 }
+            } else {
+                // Nếu chưa có thì bỏ vào Map
+                groupedMap.put(key, currentDto);
             }
-            dto.setTrangThaiText(textHienThi);
+        }
 
-            return dto;
-        }).collect(Collectors.toList());
+        return new ArrayList<>(groupedMap.values());
+    }
+
+    private ChiTietHoaDonResponse mapToResponse(ChiTietHoaDon item) {
+        ChiTietHoaDonResponse dto = new ChiTietHoaDonResponse();
+        dto.setId(item.getId());
+        dto.setSoLuong(item.getSoLuong());
+        dto.setDonGia(item.getDonGiaTaiThoiDiemBan());
+        dto.setThanhTien(item.getThanhTien());
+        dto.setGhiChu(item.getGhiChuMon());
+        dto.setTrangThaiCode(item.getTrangThaiMon());
+
+        if (item.getIdChiTietMonAn() != null) {
+            dto.setTenMon(item.getIdChiTietMonAn().getTenMon());
+            dto.setMaMon(item.getIdChiTietMonAn().getMaMon());
+            dto.setIdSetLau(null);
+        } else if (item.getIdSetLau() != null) {
+            dto.setTenMon(item.getIdSetLau().getTenSetLau());
+            dto.setMaMon(item.getIdSetLau().getMaSetLau());
+            dto.setIdSetLau(item.getIdSetLau().getId());
+        }
+
+        String textHienThi = switch (item.getTrangThaiMon() != null ? item.getTrangThaiMon() : -1) {
+            case 0 -> "Đã hủy";
+            case 1 -> "Chưa lên";
+            case 2 -> "Đã lên";
+            default -> "Khác";
+        };
+        dto.setTrangThaiText(textHienThi);
+
+        return dto;
     }
 
     public List<ChiTietSetLauResponse> getChiTietSetLau(Integer idSetLau){
