@@ -32,6 +32,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
   List<dynamic> categories = [];
   List<dynamic> hotpotTypes = [];
   Map<String, int> cart = {};
+  Map<String, int> existingCart = {};
 
   // 🚨 THÊM BIẾN QUẢN LÝ DANH SÁCH PHIẾU (TABS)
   List<dynamic> danhSachHoaDon = [];
@@ -156,24 +157,46 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
         List<dynamic> items = [];
 
         if (billDetailData is List && billDetailData.isNotEmpty) {
-          items =
-              billDetailData[0]['chiTiet'] ??
-              billDetailData[0]['chiTietHoaDon'] ??
-              [];
+          var detail = billDetailData[0];
+          items = detail['chiTiet'] ?? detail['chiTietHoaDon'] ?? [];
+          currentMaHoaDon =
+              detail['maHoaDon'] ??
+              detail['maPhieu'] ??
+              detail['maDatBan'] ??
+              currentMaHoaDon;
+          currentIdHoaDon =
+              detail['idHoaDon'] ?? detail['id'] ?? currentIdHoaDon;
+          currentIdKhachHang = detail['idKhachHang'] ?? currentIdKhachHang;
         } else if (billDetailData is Map) {
           items =
               billDetailData['chiTiet'] ??
               billDetailData['chiTietHoaDon'] ??
               [];
+          currentMaHoaDon =
+              billDetailData['maHoaDon'] ??
+              billDetailData['maPhieu'] ??
+              billDetailData['maDatBan'] ??
+              currentMaHoaDon;
+          currentIdHoaDon =
+              billDetailData['idHoaDon'] ??
+              billDetailData['id'] ??
+              currentIdHoaDon;
+          currentIdKhachHang =
+              billDetailData['idKhachHang'] ?? currentIdKhachHang;
         }
 
-        cart.clear();
+        existingCart.clear();
+        cart.clear(); // Reset giỏ hàng nháp
+
         for (var item in items) {
+          // Chỉ lấy những món chưa bị hủy
           if (item['trangThaiMon'] == 0) continue;
+
           String key = item['type'] == 'SET'
-              ? 'set_${item['id']}'
-              : 'food_${item['id']}';
-          cart[key] = (cart[key] ?? 0) + (item['soLuong'] as int);
+              ? 'set_${item['originalId'] ?? item['id']}'
+              : 'food_${item['originalId'] ?? item['id']}';
+          existingCart[key] =
+              (existingCart[key] ?? 0) + (item['soLuong'] as int);
         }
 
         isLoading = false;
@@ -633,9 +656,14 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
     required VoidCallback onTap,
     required List<dynamic> variantList,
   }) {
-    int totalQty = 0;
+    // 🚨 Tách bạch số lượng
+    int newQty = 0; // Số lượng khách VỪA BẤM THÊM
+    int existingQty = 0; // Số lượng ĐÃ GỌI TỪ TRƯỚC
+
     for (var v in variantList) {
-      totalQty += (cart[_getCartKey(v)] ?? 0);
+      String key = _getCartKey(v);
+      newQty += (cart[key] ?? 0);
+      existingQty += (existingCart[key] ?? 0);
     }
 
     return Card(
@@ -644,8 +672,8 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: totalQty > 0 ? const Color(0xFF7D161A) : Colors.grey.shade100,
-          width: totalQty > 0 ? 1.5 : 1,
+          color: newQty > 0 ? const Color(0xFF7D161A) : Colors.grey.shade100,
+          width: newQty > 0 ? 1.5 : 1,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -661,7 +689,9 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                   color: Colors.grey[50],
                   child: _buildImage(image),
                 ),
-                if (totalQty > 0)
+
+                // Hiển thị số lượng ĐANG THÊM MỚI (Số to đùng giữa ảnh)
+                if (newQty > 0)
                   Positioned.fill(
                     child: Container(
                       color: Colors.black.withOpacity(0.3),
@@ -673,7 +703,7 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Text(
-                            '$totalQty',
+                            '+$newQty',
                             style: const TextStyle(
                               color: Color(0xFF7D161A),
                               fontWeight: FontWeight.bold,
@@ -700,29 +730,57 @@ class _OrderFoodScreenState extends State<OrderFoodScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: totalQty > 0
+                        color: newQty > 0
                             ? const Color(0xFF7D161A)
                             : Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 5),
-                    isVariant
-                        ? const Text(
-                            "Nhiều lựa chọn",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+
+                    // 🚨 ĐÃ FIX: Hiển thị tag Đã gọi nếu món này từng được phục vụ
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        isVariant
+                            ? const Text(
+                                "Nhiều loại",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : Text(
+                                formatPrice(price),
+                                style: const TextStyle(
+                                  color: Color(0xFF7D161A),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+
+                        if (existingQty > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          )
-                        : Text(
-                            formatPrice(price),
-                            style: const TextStyle(
-                              color: Color(0xFF7D161A),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Text(
+                              "Đã gọi: $existingQty",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
+                              ),
                             ),
                           ),
+                      ],
+                    ),
                   ],
                 ),
               ),

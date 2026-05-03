@@ -176,8 +176,19 @@ public class HoaDonThanhToanService {
             phieu.setTrangThai(2); // Hủy phiếu
 
             for (BanAn ban : phieu.getBanAns()) {
-                ban.setTrangThai(0); // Bàn về trạng thái Trống
-                banAnRepo.save(ban);
+                // 1. Lấy danh sách tất cả các phiếu đang mượn bàn này
+                List<PhieuDatBanBanAn> cacPhieuCungBan = phieuDatBanBanAnRepository.findActiveLinksByBanId(ban.getId());
+
+                // 2. Đếm xem có phiếu nào KHÁC với phiếu đang bị hủy này không
+                long countOtherActive = cacPhieuCungBan.stream()
+                        .filter(l -> !l.getPhieuDatBan().getId().equals(phieu.getId()))
+                        .count();
+
+                // 3. 🚨 CHỈ DỌN BÀN VỀ 0 NẾU KHÔNG CÒN ĐOÀN KHÁCH NÀO KHÁC
+                if (countOtherActive == 0) {
+                    ban.setTrangThai(0); // Bàn về trạng thái Trống
+                    banAnRepo.save(ban); // Lưu ý: Nếu báo đỏ thì đổi thành banAnRepository.save(ban)
+                }
             }
             phieuDatBanRepository.save(phieu);
         }

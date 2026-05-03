@@ -131,7 +131,7 @@ public class OllamaService {
     // Hàm gọi API Ollama tách riêng cho sạch code
     private String callOllama(String prompt) {
         Map<String, Object> body = new HashMap<>();
-        body.put("model", "qwen2.5:7b-instruct-q4_K_M"); // Nhớ check đúng tên model mày đang chạy trong terminal
+        body.put("model", "qwen2.5:1.5b");
         body.put("prompt", prompt);
         body.put("stream", false);
         try {
