@@ -1841,7 +1841,7 @@ const handleCancelTicket = async () => {
     return Swal.fire('Lưu ý', 'Bàn này chưa có hóa đơn hợp lệ để hủy!', 'warning');
   }
 
-  // 🚨 1. CHỐT CHẶN FRONTEND: Kiểm tra xem có món nào ĐÃ LÊN chưa
+  // 1. CHỐT CHẶN FRONTEND: Kiểm tra xem có món nào ĐÃ LÊN chưa
   if (monDaLen.value.length > 0) {
     return Swal.fire({
       title: 'Không thể hủy!',
@@ -1852,10 +1852,16 @@ const handleCancelTicket = async () => {
     });
   }
 
-  // 2. Yêu cầu nhập lý do hủy (để gửi xuống Backend lưu lịch sử)
+  // 🚨 KIỂM TRA XEM BÀN NÀY CÒN ĐOÀN KHÁCH NÀO KHÁC KHÔNG
+  const isLastTicket = danhSachPhieuTaiBan.value.length <= 1;
+  const confirmText = isLastTicket 
+      ? 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Vui lòng nhập lý do hủy:' 
+      : 'Phiếu của đoàn này sẽ bị hủy, nhưng các đoàn khách khác vẫn tiếp tục sử dụng bàn. Vui lòng nhập lý do:';
+
+  // 2. Yêu cầu nhập lý do hủy
   const { value: cancelReason, isConfirmed } = await Swal.fire({
     title: 'Hủy phiếu đặt bàn?',
-    text: 'Phiếu sẽ bị hủy và bàn sẽ được dọn trống. Vui lòng nhập lý do hủy:',
+    text: confirmText,
     input: 'text',
     inputPlaceholder: 'Ví dụ: Khách đổi ý, khách có việc gấp...',
     icon: 'warning',
@@ -1876,24 +1882,29 @@ const handleCancelTicket = async () => {
   try {
     Swal.fire({ title: 'Đang hủy...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    // 3. Gọi API Hủy Đơn của Backend
+    // 3. Gọi API Hủy Đơn của Backend (API Mới)
     const payload = {
       idHoaDon: selectedPhieu.value.idHoaDon,
       idNhanVien: getCurrentStaffId() || 1,
       lyDoThucHien: cancelReason,
-      isLoiDoQuan: false // Tùy chỉnh: Mặc định là lỗi do khách. Nếu muốn có thể thêm checkbox trên UI.
+      isLoiDoQuan: false 
     };
 
     await axiosClient.put('/hoa-don-thanh-toan/huy-don', payload);
 
     // 4. Dọn dẹp UI
     const bId = selectedBan.value.id;
-    tableStatusMap.value = { ...tableStatusMap.value, [bId]: 0 };
+    const newTableStatus = isLastTicket ? 0 : 1; // 🚨 ĐÃ FIX: Giữ nguyên bàn nếu còn đoàn khách khác
+    
+    // Cập nhật mảng local để UI không bị chớp giật
+    tableStatusMap.value = { ...tableStatusMap.value, [bId]: newTableStatus };
+    
     closeModal();
     
     // 5. Cập nhật lại sơ đồ
     await handleFetchAllCheckIn();
     await fetchAllBan();
+    await fetchTableStatus();
     
     Swal.fire({ icon: 'success', iconColor: '#7D161A', title: 'Đã hủy phiếu', timer: 1500, showConfirmButton: false });
   } catch (error) {
