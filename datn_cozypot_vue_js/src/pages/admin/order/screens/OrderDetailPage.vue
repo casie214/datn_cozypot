@@ -250,7 +250,7 @@ const handleConfirmOrder = async (idHoaDon) => {
       html: "Trạng thái hóa đơn sẽ chuyển sang <b>Xác nhận (3)</b>, phiếu đặt bàn sang <b>(1)</b> và hệ thống sẽ <b>gửi Email</b> thông báo cho khách hàng.",
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#28a745",
+      confirmButtonColor: "#8b0000",
       cancelButtonColor: "#6c757d",
       confirmButtonText:
         '<i class="fa-solid fa-paper-plane me-1"></i> Đồng ý gửi',
@@ -309,10 +309,10 @@ const handleXacNhanHoanTien = async () => {
 
   const confirm = await Swal.fire({
     title: "Xác nhận đã hoàn tiền?",
-    html: `Xác nhận đã chuyển khoản hoàn số tiền <b class="text-danger fs-5">${soTien}</b> cho khách hàng?<br/><br/><small class="text-muted">Hóa đơn sẽ được cập nhật sang <b>Đã hoàn tiền (10)</b> và lưu lịch sử.</small>`,
+    html: `Xác nhận đã chuyển khoản hoàn số tiền <b class="text-danger fs-5">${soTien}</b> cho khách hàng?`,
     icon: "warning",
     showCancelButton: true,
-    confirmButtonColor: "#28a745",
+    confirmButtonColor: "#8b0000",
     cancelButtonColor: "#6c757d",
     confirmButtonText: '<i class="fa-solid fa-check me-1"></i> Đã hoàn tiền',
     cancelButtonText: "Hủy",

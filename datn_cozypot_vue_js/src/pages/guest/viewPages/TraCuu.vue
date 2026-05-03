@@ -212,8 +212,8 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
   const diffMinutes = bookingTime.diff(now, "minute");
   const diffHours = bookingTime.diff(now, "hour", true);
 
-  const holdTime = configHoldTime.value; // Mặc định 15p
-  const cancelLimit = configCancelLimit.value; // Mặc định 2h
+  const holdTime = configHoldTime.value; 
+  const cancelLimit = configCancelLimit.value; 
 
   let isWarning = false;
   let isSafe = false;
@@ -223,31 +223,34 @@ const handleCancelOrder = async (idPhieu, tienCoc, currentStatus) => {
     // Đã đến hoặc quá giờ
     isWarning = true;
     if (currentStatus === 2) {
-      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>) nhưng nhà hàng chưa xác nhận. Hủy lịch sẽ được <b>Hoàn 100% cọc</b>.`;
+      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm - DD/MM/YYYY")}</b>) nhưng do nhà hàng <b>chưa xác nhận/xếp bàn</b> cho bạn, bạn vẫn được <b>Hoàn 100% cọc</b>.`;
       isSafe = true;
     } else {
-      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Hủy lúc này bạn sẽ <b>MẤT CỌC</b>.`;
+      message = `Đã quá giờ nhận bàn (<b>${bookingTime.format("HH:mm - DD/MM/YYYY")}</b>). Lịch đã được xác nhận trước đó nên hủy lúc này bạn sẽ <b>MẤT CỌC</b>.`;
       isSafe = false;
     }
   } else if (diffHours < cancelLimit) {
     // Hủy sát giờ (Dưới tham số giới hạn)
     isWarning = true;
-    let timeRemaining =
-      diffMinutes < 60
+    let timeRemaining = diffMinutes < 60
         ? `<b>${diffMinutes} phút</b>`
         : `<b>${Math.floor(diffMinutes / 60)} giờ ${diffMinutes % 60} phút</b>`;
 
     if (currentStatus === 2) {
-      message = `Sắp đến giờ nhận bàn (còn ${timeRemaining}) nhưng nhà hàng chưa xác nhận. Hủy lịch sẽ được <b>Hoàn 100% cọc</b>.`;
+      message = `Còn ${timeRemaining} là đến giờ hẹn nhưng nhà hàng <b>chưa xác nhận bàn</b>, bạn có thể hủy và được <b>Hoàn 100% cọc</b>.`;
       isSafe = true;
     } else {
-      message = `Chỉ còn ${timeRemaining} nữa là đến giờ nhận bàn (<b>${bookingTime.format("HH:mm")}</b>). Quy định hủy trước ${cancelLimit}h, nên bạn sẽ <b>MẤT CỌC</b>.`;
+      message = `Chỉ còn ${timeRemaining} nữa là đến giờ nhận bàn. Theo quy định hủy trước ${cancelLimit}h khi đã xác nhận bàn, bạn sẽ <b>MẤT CỌC</b>.`;
       isSafe = false;
     }
   } else {
     // Hủy an toàn (Trên thời gian quy định)
     isSafe = true;
-    message = `Giờ đặt bàn là <b>${bookingTime.format("HH:mm")}</b>. Bạn đang hủy trước hạn nên sẽ được <b>Hoàn 100% cọc</b>.`;
+    if (currentStatus === 2) {
+        message = `Nhà hàng chưa xác nhận bàn, bạn có thể hủy lịch bất cứ lúc nào và được <b>Hoàn 100% cọc</b>.`;
+    } else {
+        message = `Giờ đặt là <b>${bookingTime.format("HH:mm - DD/MM/YYYY")}</b>. Bạn đang hủy trước hạn nên sẽ được <b>Hoàn 100% cọc</b>.`;
+    }
   }
 
   // 3. HIỂN THỊ POPUP
@@ -446,6 +449,18 @@ const actualDepositPaid = computed(() => {
 const finalBalance = computed(() => {
   if (isOrderDead.value) return 0;
   return displayOrderData.value.tongTienThanhToan || 0;
+});
+
+const shouldShowItemStatus = computed(() => {
+  const status = displayOrderData.value?.trangThaiHoaDon;
+
+  // Chưa đến
+  if (status < 4) return false;
+
+  // Đơn chết (hủy / hoàn tiền)
+  if (status === 8 || status === 9 || status === 10) return false;
+
+  return true;
 });
 </script>
 
@@ -678,7 +693,7 @@ const finalBalance = computed(() => {
                       <th class="text-center py-3">SỐ LƯỢNG</th>
                       <th class="text-center py-3">ĐƠN GIÁ</th>
                       <th class="text-end py-3 pe-4">THÀNH TIỀN</th>
-                      <th class="text-center py-3 pe-4">TRẠNG THÁI</th>
+                      <th v-if="shouldShowItemStatus" class="text-center py-3 pe-4">TRẠNG THÁI</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -703,7 +718,7 @@ const finalBalance = computed(() => {
                       <td class="text-end fw-bold pe-4">
                         {{ formatMoney(item.thanhTien) }}
                       </td>
-                      <td class="text-center">
+                      <td v-if="shouldShowItemStatus" class="text-center">
                         <span
                           class="badge px-2 py-1"
                           :class="
