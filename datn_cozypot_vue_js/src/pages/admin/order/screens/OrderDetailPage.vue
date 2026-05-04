@@ -150,7 +150,7 @@ const isCancelledOrRefunded = computed(
 const visibleSteps = computed(() => {
   if (!selectedOrder.value || currentStatusCode.value === -1) return [];
 
-  // 1. Định nghĩa gốc (8 bước)
+  // 1. Định nghĩa gốc (happy path từ 0 đến 7)
   let baseSteps = [
     { code: 0, label: "Vừa tạo", icon: "fa-file-pen" },
     { code: 1, label: "Chờ cọc", icon: "fa-clock" },
@@ -162,15 +162,14 @@ const visibleSteps = computed(() => {
     { code: 7, label: "Hoàn thành", icon: "fa-flag-checkered" },
   ];
 
-  // 2. LOGIC BỎ QUA CỌC: Nếu không có tiền cọc, lọc bỏ code 1 và 2
+  // 2. Lọc bỏ cọc nếu không có tiền cọc
   if (!selectedOrder.value.tienCocRaw || selectedOrder.value.tienCocRaw === 0) {
     baseSteps = baseSteps.filter((step) => step.code !== 1 && step.code !== 2);
   }
 
-  // 3. TÌM TRẠNG THÁI CUỐI CÙNG TRƯỚC KHI HỦY (Quét toàn bộ lịch sử)
+  // 3. Tìm trạng thái bình thường cuối cùng trước khi bị Hủy/Hoàn tiền
   let targetCode = currentStatusCode.value;
   if (isCancelledOrRefunded.value) {
-    // Tìm mã trạng thái lớn nhất nhỏ hơn 8 trong lịch sử
     const historyCodes = historyEvents.value
       .map((e) => e.trangThaiMoi)
       .filter((code) => code !== null && code !== undefined && code < 8);
@@ -178,13 +177,24 @@ const visibleSteps = computed(() => {
     targetCode = historyCodes.length > 0 ? Math.max(...historyCodes) : 0;
   }
 
-  // 4. LẤY CÁC BƯỚC ĐÃ ĐI QUA
+  // 4. Đưa các bước bình thường vào danh sách hiển thị
   const stepsToRender = baseSteps
     .filter((step) => step.code <= targetCode)
     .map((step) => ({ ...step, isErrorStep: false }));
 
-  // 5. NẾU BỊ HỦY -> NỐI CỤC ĐỎ VÀO CUỐI CÙNG
+  // 5. XỬ LÝ RIÊNG CHO HỦY / HOÀN TIỀN (8, 9, 10)
   if (isCancelledOrRefunded.value) {
+    // TRƯỜNG HỢP ĐẶC BIỆT: Nếu là trạng thái 10 (Đã hoàn), phải hiện thêm bước 9 (Chờ hoàn) trước nó
+    if (currentStatusCode.value === 10) {
+      stepsToRender.push({
+        code: 9,
+        label: "Chờ hoàn tiền",
+        icon: "fa-clock-rotate-left",
+        isErrorStep: false, 
+      });
+    }
+
+    // Xác định thông tin cho bước hiện tại (8, 9 hoặc 10)
     let stepLabel = "Đã hủy";
     let stepIcon = "fa-ban";
 
@@ -196,6 +206,7 @@ const visibleSteps = computed(() => {
       stepIcon = "fa-arrow-rotate-left";
     }
 
+    // Đẩy trạng thái cuối cùng vào (đang active, hiện màu đỏ đậm)
     stepsToRender.push({
       code: currentStatusCode.value,
       label: stepLabel,

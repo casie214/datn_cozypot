@@ -371,7 +371,18 @@ const visibleSteps = computed(() => {
     .filter((step) => step.code <= targetCode)
     .map((step) => ({ ...step, isErrorStep: false }));
 
+  // XỬ LÝ RIÊNG CHO HỦY / HOÀN TIỀN
   if (isCancelledOrRefunded.value) {
+    // --- THÊM LOGIC NÀY ĐỂ KHÔNG MẤT BƯỚC 9 ---
+    if (currentStatusCode.value === 10) {
+      stepsToRender.push({
+        code: 9,
+        label: "Chờ hoàn tiền",
+        icon: "fa-clock-rotate-left",
+        isErrorStep: false, // Để hiện trạng thái đã hoàn thành (màu nâu đỏ)
+      });
+    }
+
     let stepLabel = "Đã hủy";
     let stepIcon = "fa-ban";
 
