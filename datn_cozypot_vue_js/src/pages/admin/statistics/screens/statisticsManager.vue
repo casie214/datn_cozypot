@@ -468,14 +468,17 @@ const chartData = computed(() => ({
 
 const mapTrangThai = (status) => {
     const map = {
-        1: "Chờ xác nhận",
-        2: "Đã cọc",
-        3: "Đang phục vụ",
-        4: "Hoàn tất tạm",
-        5: "Đã thanh toán",
-        6: "Đã giao",
-        7: "Hoàn tất",
-        8: "Đã hủy"
+        1: "Vừa tạo",
+        2: "Chờ cọc",
+        3: "Đã cọc",
+        4: "Đã xác nhận",
+        5: "Khách đã đến",
+        6: "Chờ thanh toán",
+        7: "Đã thanh toán",
+        8: "Hoàn thành",
+        9: "Đã hủy",
+        10: "Chờ hoàn tiền",
+        11: "Đã hoàn tiền"
     }
     return map[status] || "Khác"
 }
@@ -486,9 +489,18 @@ const pieChartData = computed(() => ({
         {
             data: trangThaiData.value.map(i => i.soLuong),
             backgroundColor: [
-                '#FFB300', '#FB8C00', '#F4511E', '#E53935',
-                '#C62828', '#B71C1C', '#8E0000', '#5D0000'
-            ],
+    '#9E9E9E',  // Vừa tạo
+    '#FFC107',  // Chờ cọc
+    '#FF9800',  // Đã cọc
+    '#03A9F4',  // Đã xác nhận
+    '#673AB7',  // Khách đã đến
+    '#795548',  // Chờ thanh toán
+    '#4CAF50',  // Đã thanh toán
+    '#2E7D32',  // Hoàn thành
+    '#F44336',  // Đã hủy
+    '#FF5722',  // Chờ hoàn tiền
+    '#009688'   // Đã hoàn tiền
+],
             borderColor: '#fff',
             borderWidth: 2
         }
